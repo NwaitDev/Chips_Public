@@ -1,0 +1,5 @@
+pure function() -> ()
+
+SYSTEM {
+    int a = function();
+}

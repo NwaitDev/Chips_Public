@@ -1,0 +1,13 @@
+virtual function() init {
+    int i = 4; 
+} then {
+    i = i + 1;
+}-> (i)
+
+SYSTEM dimensions(2){
+    function f;
+    file fi;
+    foreach tab in tabs {
+        f link to a;
+    }
+}

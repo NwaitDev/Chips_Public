@@ -1,0 +1,12 @@
+@cpp(src="filestuff.cpp",include="filestuff.hpp")
+
+// utility functions to write information to external files of the bip system
+// see filestuff.hpp for more information
+package filestuff
+    extern function owritec(string, string)
+    extern function append(string, int)
+    extern function append(string, string)
+    extern function append(string, float)
+    extern function clearstr(string)
+    // be careful, float in BIP means double in cpp
+end

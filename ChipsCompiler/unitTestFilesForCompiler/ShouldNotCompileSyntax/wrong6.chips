@@ -1,0 +1,9 @@
+virtual function() init {
+    int i = 4;  
+} then {
+    i = i + 1;
+}-> (i)
+
+SYSTEM dimensions(){
+    pure x()->(50);
+}

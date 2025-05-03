@@ -1,0 +1,3 @@
+import "unitTestFilesForCompiler/ShouldCompileSemantic/oneImport.chips" as myself;
+
+SYSTEM {}

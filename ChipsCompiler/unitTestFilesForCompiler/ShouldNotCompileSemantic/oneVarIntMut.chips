@@ -1,0 +1,3 @@
+SYSTEM {
+    int hello = 0.1;
+}

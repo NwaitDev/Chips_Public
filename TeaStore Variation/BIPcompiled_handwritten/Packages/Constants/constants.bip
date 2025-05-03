@@ -1,0 +1,7 @@
+@cpp(src="constants.cpp",include="constants.hpp")
+
+package constants
+
+    extern function const int cst(string)
+    extern function const float cstfloat(string)
+end

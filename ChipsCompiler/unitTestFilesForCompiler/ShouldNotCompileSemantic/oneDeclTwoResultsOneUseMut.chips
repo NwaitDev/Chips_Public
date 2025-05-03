@@ -1,0 +1,5 @@
+pure function() -> (1,2)
+
+SYSTEM dimensions(0){
+    int i = function();
+}

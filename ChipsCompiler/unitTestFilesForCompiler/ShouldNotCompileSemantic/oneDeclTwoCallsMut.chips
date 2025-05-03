@@ -1,0 +1,6 @@
+pure function() -> ()
+
+SYSTEM {
+    bool g = function();
+    float b = function();
+}

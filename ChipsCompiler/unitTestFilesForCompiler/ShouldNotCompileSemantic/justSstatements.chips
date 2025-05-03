@@ -1,0 +1,9 @@
+SYSTEM {
+    link sensor1 to actuator1;
+    this.knobs.threshold = 42;
+    foreach idx in wholeindices {
+        if (idx < 3) {
+            this.sensors.temperature = idx * 10;
+        }
+    }
+}

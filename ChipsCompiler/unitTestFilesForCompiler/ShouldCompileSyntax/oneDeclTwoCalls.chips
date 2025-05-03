@@ -1,0 +1,6 @@
+pure function() -> ()
+
+SYSTEM {
+    x = function();
+    bonjour =  function();
+}

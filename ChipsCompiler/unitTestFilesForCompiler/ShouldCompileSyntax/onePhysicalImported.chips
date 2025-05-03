@@ -1,0 +1,18 @@
+import "Hello.json" as aBlock;
+
+physical aBlock(int intflow) init {
+    int aVar = 0;
+} then {
+    aVar = aVar + intflow;
+} -> (aVar/intFlow)
+
+pure input() -> (t)
+
+pure output(int dataflow) -> ()
+
+SYSTEM dimensions(3) {
+    aBlock myBlock;
+    myBlock at (1,2,3);
+    myBlock.in(input());
+    output(myBlock.out);
+}

@@ -1,0 +1,3 @@
+virtual function() -> (1)
+
+SYSTEM dimensions(1){}

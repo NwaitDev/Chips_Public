@@ -1,0 +1,5 @@
+pure function() -> ()
+
+SYSTEM {
+    a= function();
+}

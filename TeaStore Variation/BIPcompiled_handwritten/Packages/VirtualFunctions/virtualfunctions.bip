@@ -1,0 +1,660 @@
+@cpp(include="constants.hpp,utils.hpp,filestuff.hpp,stdio.h")
+// need to include this anyway because otherwise, the cpp compiler is lost
+// even if the associated bip files are used
+
+
+package virtualfunctions
+
+
+    use base // for the most basic ports of each components
+    use utils // utility functions to make the semantic of the program easier
+    use filestuff
+    use constants
+
+    extern function printf(string)
+    extern function printf(string,int)
+
+    atom type pid_controller()
+
+        data float pcoef
+        data float dcoef
+        data float icoef
+
+        data float derivative
+        data float integral
+        data float lasterror
+        data float dt
+
+        data float the_error
+        data float the_measure
+        data float command
+
+        data float out
+
+        export port port1float_t knob(out)
+        //export port port1float_t command_port(command)
+        export port port1float_t measure(the_measure)
+
+        place KNOB_SENT, MEASURE_RCVD//, COMMAND_RCVD
+
+        initial to KNOB_SENT do {
+            pcoef =  cstfloat("G_P_COEF");
+            dcoef =  cstfloat("G_D_COEF");
+            icoef =  cstfloat("G_I_COEF");
+
+            derivative = 0.0;
+            integral = 0.0;
+            lasterror = 0.0;
+            the_error = 0.0;
+            command =  cstfloat("G_COMMAND");
+            the_measure = 1.0;
+            dt = 0.0;
+
+            out = 0;
+        }
+
+        on knob from MEASURE_RCVD to KNOB_SENT
+        //on command_port from KNOB_SENT to COMMAND_RCVD
+        on measure from KNOB_SENT to MEASURE_RCVD do {
+            // dt = the_measure;
+            // the_error = command - the_measure;
+            // derivative = (lasterror-the_error)/dt;
+            // integral = integral+the_error*dt;
+            // lasterror = the_error;
+            // out = pcoef*the_error+icoef*integral+dcoef*derivative;
+            out = command;
+
+        }
+
+    end
+
+    atom type actions_scenario_light2heavyweight_public()
+        // navigating through new pages, connecting, navigating through new pages,
+
+        data int nav_step
+        data int user_actions
+        data int resources
+        data int last_step
+
+        export port port_t earlydeadlock()
+
+        export port port1int_t virt_out(user_actions)
+        export port port1int_t virt_in(resources)
+        
+
+        place SERVER_DATA_RCVD, USER_DATA_SENT, FINISH
+        
+        initial to SERVER_DATA_RCVD do {
+            last_step = 850;
+            nav_step = 0;
+            user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PUBLIC_PAGE")+cst("A_NO_AUTH_DATA");
+            resources = 1;
+        }
+
+        on virt_out from SERVER_DATA_RCVD to USER_DATA_SENT provided (nav_step < last_step)
+
+        on virt_out from SERVER_DATA_RCVD to FINISH provided (nav_step == last_step)
+
+        on earlydeadlock from SERVER_DATA_RCVD to FINISH provided (nav_step > last_step)
+        
+        on virt_in from USER_DATA_SENT to SERVER_DATA_RCVD do {
+
+            if(nav_step==300)then
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_MANY_IMAGES")+cst("A_PUBLIC_PAGE");
+            fi
+
+            nav_step = nav_step + 1;
+        }
+
+    end
+
+    atom type action_tester()
+
+        data bool aux_check
+
+        data int nav_step
+        data int user_actions
+        data int resources
+        data int last_step
+
+        export port port_t earlydeadlock()
+
+        export port port1int_t virt_out(user_actions)
+        export port port1int_t virt_in(resources)
+        
+
+        place SERVER_DATA_RCVD, USER_DATA_SENT, FINISH
+        
+        initial to SERVER_DATA_RCVD do {
+            last_step = 9;
+            nav_step = 0;
+            user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PUBLIC_PAGE")+cst("A_NO_AUTH_DATA");
+            resources = 1;
+        }
+
+        on virt_out from SERVER_DATA_RCVD to USER_DATA_SENT provided (nav_step < last_step)
+
+        on virt_out from SERVER_DATA_RCVD to FINISH provided (nav_step == last_step)
+
+        on earlydeadlock from SERVER_DATA_RCVD to FINISH provided (nav_step > last_step)
+        
+        on virt_in from USER_DATA_SENT to SERVER_DATA_RCVD do {
+            
+            // user_actions a la valeur
+            // cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PUBLIC_PAGE")+cst("A_NO_AUTH_DATA");
+            // après l'initialisation
+
+            if(nav_step==0)then
+                aux_check = (resources!= cst("R_PAGE"));
+                if (aux_check) then
+                    printf("\n\tError on step 0!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PUBLIC_PAGE") ;
+            fi
+            if(nav_step==1)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\tError on step 1!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PRIVATE_PAGE");
+            fi
+
+            if(nav_step==2)then
+                aux_check = (resources!=cst("R_PAGE")+cst("R_CONNEXION_PAGE"));
+                if (aux_check) then
+                    printf("\n\tError on step 2!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_MANY_IMAGES")+cst("A_PUBLIC_PAGE");
+            fi
+
+            if(nav_step==3)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\tError on step 3!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_MANY_IMAGES")+cst("A_PRIVATE_PAGE");
+            fi
+
+            if(nav_step==4)then
+                aux_check = (resources!=cst("R_PAGE")+cst("R_CONNEXION_PAGE"));
+                if (aux_check) then
+                    printf("\n\tError on step 4!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PRIVATE_PAGE") + cst("A_AUTH_DATA");
+            fi
+
+            if(nav_step==5)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\tError on step 5!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PUBLIC_PAGE") ;
+            fi
+            if(nav_step==6)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\t\tError on step 6!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_FEW_IMAGES")+cst("A_PRIVATE_PAGE");
+            fi
+
+            if(nav_step==7)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\tError on step 7!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_MANY_IMAGES")+cst("A_PUBLIC_PAGE");
+            fi
+
+            if(nav_step==8)then
+                aux_check = (resources!= cst("R_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\tError on step 8!\n");
+                    nav_step = last_step;
+                fi
+                user_actions = cst("A_SIGNAL")+cst("A_STAY")+cst("A_ASK_FOR_MANY_IMAGES")+cst("A_PRIVATE_PAGE");
+            fi
+
+            nav_step = nav_step + 1;
+        }
+
+    end
+
+    atom type user_action_interpreter()
+
+        data bool aux_check
+
+        data bool auth_data
+        data int data_req
+        data bool is_new_req
+
+        data int user_actions
+
+        export port port1int_t get_user_actions(user_actions)
+        export port port1int_t send_data_req(data_req)
+        export port port1bool_t send_auth(auth_data)
+        export port port1bool_t send_newness(is_new_req)
+
+        place USER_ACTIONS_RCVD, NEWNESS_SENT, DATA_REQ_SENT, AUTH_SENT
+
+        initial to AUTH_SENT do {
+            aux_check = false;
+            auth_data = false;
+            data_req =  cst("ASK_FOR_FEW_IMAGES") | cst("PUBLIC_PAGE");
+            is_new_req = true;
+            user_actions = 0;
+        }
+
+        on get_user_actions from AUTH_SENT to USER_ACTIONS_RCVD do {
+
+            is_new_req = (user_actions & cst("A_SIGNAL")) == 1;
+
+            // auth data presence update
+            auth_data = (user_actions & (cst("A_AUTH_DATA") | cst("A_NO_AUTH_DATA"))) == cst("A_AUTH_DATA");
+
+            if (is_new_req) then
+                // weird formula to check only the parameters we want
+                aux_check = (user_actions & (cst("A_STAY") | cst("A_LEAVE") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PUBLIC_PAGE") | cst("A_PRIVATE_PAGE"))) == (cst("A_STAY") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_PUBLIC_PAGE"));
+                if (aux_check) then
+                    printf("\n\nuser requested : staying, public, few imgs\n\n");
+                    data_req = cst("PUBLIC_PAGE") | cst("ASK_FOR_FEW_IMAGES");
+                fi
+                aux_check = (user_actions & (cst("A_STAY") | cst("A_LEAVE") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PUBLIC_PAGE") | cst("A_PRIVATE_PAGE"))) == (cst("A_STAY") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PUBLIC_PAGE"));
+                if (aux_check) then
+                    printf("\n\nuser requested : staying, public, many imgs\n\n");
+                    data_req = cst("PUBLIC_PAGE") | cst("ASK_FOR_MANY_IMAGES");
+                fi
+                aux_check = (user_actions & (cst("A_STAY") | cst("A_LEAVE") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PUBLIC_PAGE") | cst("A_PRIVATE_PAGE"))) == (cst("A_STAY") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_PRIVATE_PAGE")) ;
+                if (aux_check) then
+                    printf("\n\nuser requested : staying, private, few imgs\n\n");
+                    data_req = cst("PRIVATE_PAGE") | cst("ASK_FOR_FEW_IMAGES");
+                fi
+                aux_check = (user_actions & (cst("A_STAY") | cst("A_LEAVE") | cst("A_ASK_FOR_FEW_IMAGES") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PUBLIC_PAGE") | cst("A_PRIVATE_PAGE"))) == (cst("A_STAY") | cst("A_ASK_FOR_MANY_IMAGES") | cst("A_PRIVATE_PAGE"));
+                if (aux_check) then
+                    printf("\n\nuser requested : staying, private, many imgs\n\n");
+                    data_req = cst("PRIVATE_PAGE") | cst("ASK_FOR_MANY_IMAGES");
+                fi
+            fi
+
+        }
+
+        on send_newness from USER_ACTIONS_RCVD to NEWNESS_SENT
+
+        on send_data_req from NEWNESS_SENT to DATA_REQ_SENT
+
+        on send_auth from DATA_REQ_SENT to AUTH_SENT
+    end
+
+    atom type request_validator()
+        data bool aux_check
+        
+        // from user action interpreter
+        data bool is_new_req
+        data int data_req
+        export port port1bool_t get_newness(is_new_req)
+        export port port1int_t get_data_req(data_req)
+
+        // from auth function
+        data bool auth_state
+        export port port1bool_t get_auth_state(auth_state)
+
+        // to data treatment
+        data bool validated
+        data int nb_new_images
+        export port port1bool_t send_validation(validated)
+        export port port1int_t send_nb_new_images(nb_new_images)
+
+        place VALIDATION_SENT, NB_IMG_SENT, AUTH_STATE_RCVD, NEWNESS_RCVD, DATA_REQ_RCVD
+
+        initial to NB_IMG_SENT do {
+            data_req = cst("PUBLIC_PAGE") + cst("ASK_FOR_FEW_IMAGES");
+            nb_new_images =  2;
+            aux_check = false;
+            auth_state = false;
+            is_new_req = false;
+            validated = false;
+        }
+
+        on send_validation from AUTH_STATE_RCVD to VALIDATION_SENT
+        on send_nb_new_images from VALIDATION_SENT to NB_IMG_SENT
+        on get_newness from NB_IMG_SENT to NEWNESS_RCVD
+        on get_data_req from NEWNESS_RCVD to DATA_REQ_RCVD
+        on get_auth_state from DATA_REQ_RCVD to AUTH_STATE_RCVD do {
+            if (is_new_req) then
+                aux_check = auth_state && (data_req == (cst("PUBLIC_PAGE") | cst("ASK_FOR_FEW_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : public page with few images (connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM")+cst("ADDITIONNAL_IMG_CONNECTED");
+                fi
+                aux_check = !auth_state && (data_req == (cst("PUBLIC_PAGE") | cst("ASK_FOR_FEW_IMAGES")));
+                if (aux_check) then
+                    printf("\n\nvalidation : public page with few images (not connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM");
+                fi
+                aux_check = auth_state && (data_req == (cst("PRIVATE_PAGE") | cst("ASK_FOR_FEW_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : private page with few images (connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM")+cst("ADDITIONNAL_IMG_PRIVATE")+cst("ADDITIONNAL_IMG_CONNECTED");
+                fi
+                aux_check = !auth_state && (data_req == (cst("PRIVATE_PAGE") | cst("ASK_FOR_FEW_IMAGES"))) ;
+                if ( aux_check) then
+                    printf("\n\nvalidation : private page with few images (not connected) -> not validated!\n\n");
+                    validated = false;
+                    nb_new_images = 0;
+                fi
+                aux_check = !auth_state && (data_req == (cst("PUBLIC_PAGE") | cst("ASK_FOR_MANY_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : public page with many images (not connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM")+cst("ADDITIONNAL_IMG_BIG_REQ");
+                fi
+                aux_check = auth_state && (data_req == (cst("PUBLIC_PAGE") | cst("ASK_FOR_MANY_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : public page with many images (connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM")+cst("ADDITIONNAL_IMG_BIG_REQ") + cst("ADDITIONNAL_IMG_CONNECTED");
+                fi
+                aux_check = auth_state && (data_req == (cst("PRIVATE_PAGE") | cst("ASK_FOR_MANY_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : private page with many images (connected) -> validated!\n\n");
+                    validated = true;
+                    nb_new_images = cst("DEFAULT_IMG_NUM") + cst("ADDITIONNAL_IMG_PRIVATE") + cst("ADDITIONNAL_IMG_BIG_REQ") + cst("ADDITIONNAL_IMG_CONNECTED");
+                fi
+                aux_check = !auth_state && (data_req == (cst("PRIVATE_PAGE") | cst("ASK_FOR_MANY_IMAGES")));
+                if ( aux_check ) then
+                    printf("\n\nvalidation : private page with many images (not connected) -> not validated!\n\n");
+                    validated = false;
+                    nb_new_images = 0;
+                fi
+            else
+                validated = true;
+                nb_new_images = 0;
+            fi
+
+        }
+    end
+
+    atom type authentication_function()
+
+        data bool auth_data
+        data bool auth_state
+        export port port1bool_t get_auth_data(auth_data)
+        export port port1bool_t send_auth_state(auth_state)
+
+        place AUTH_DATA_RCVD, AUTH_STATE_SENT
+
+        initial to AUTH_STATE_SENT do {
+            auth_state = false;
+            auth_data = false;
+        }
+
+        on send_auth_state from AUTH_DATA_RCVD to AUTH_STATE_SENT
+        on get_auth_data from AUTH_STATE_SENT to AUTH_DATA_RCVD do {
+            if (auth_data) then
+                auth_state = true;
+            fi
+        }
+    end
+
+
+    atom type img_provider_controller()
+        data string filename
+        data string line
+        data float time
+        data bool aux_check
+
+        data float req_time
+        data float res_time
+        data int cache_size
+
+        data float pcoef
+        data float dcoef
+        data float icoef
+
+        data float derivative
+        data float integral
+        data float lasterror
+        data float dt
+
+        data float the_error
+        data float command
+
+        data int cache_miss
+        data int req_size
+
+        data float out
+
+        export port port1int_t knob(cache_size)
+        export port port1float_t command_port(req_time)
+        export port port1float_t measure(res_time)
+
+        place KNOB_SENT, MEASURE_RCVD, COMMAND_RCVD
+
+        initial to KNOB_SENT do {
+
+            filename = "output/DataTreatmentBlock.csv";
+            owritec("1.TIME;2.REQ_TIME;3.RES_TIME;4.CACHE_SIZE;5.CACHE_MISS;",filename);
+            //owritec("TIME(s);t_{required}(s);t_{response}(s);cache size;error(s);derror/dt",filename);
+            line = "";
+            
+            time = 0;
+            req_time = 1.0;
+            res_time = 1.3;
+            cache_size = 5;
+
+            pcoef = cstfloat("DTB_P_COEF");
+            dcoef = cstfloat("DTB_D_COEF");
+            icoef = cstfloat("DTB_I_COEF");
+
+            derivative = 0.0;
+            integral = 0.0;
+            lasterror = 0.0;
+            the_error = 0.0;
+            dt = 0.0;
+
+            out = 0;
+            aux_check = false;
+
+            cache_miss = 0;
+        }
+
+        on command_port from MEASURE_RCVD to COMMAND_RCVD
+        on knob from COMMAND_RCVD to KNOB_SENT
+        on measure from KNOB_SENT to MEASURE_RCVD do {
+            
+            dt = res_time;
+            time = time +dt;
+            the_error = req_time - res_time;
+            derivative = (the_error-lasterror)/dt;
+            integral = integral+the_error*dt;
+            lasterror = the_error;
+            out = pcoef*the_error+icoef*integral+dcoef*derivative;
+            
+            aux_check = out<cst("CACHE_MIN_SIZE");
+            if (aux_check) then
+                out = cstfloat("CACHE_MIN_SIZE");
+            fi
+            aux_check = out>cst("CACHE_MAX_SIZE");
+            if (aux_check) then
+                out = cstfloat("CACHE_MAX_SIZE");
+            fi
+
+            cache_miss = asint( ( (res_time - cstfloat("NO_REQ_STEP")) / cstfloat("REQ_TIME") ) );
+        
+            cache_size = asint(out);
+
+            append(line,time);
+            append(line,";");
+            append(line,req_time);
+            append(line,";");
+            append(line,res_time);
+            append(line,";");
+            append(line,cache_size);
+            append(line,";");
+            append(line,cache_miss);
+            append(line,";");
+            // append(line,the_error);
+            // append(line,";");
+            // append(line,derivative);
+            // append(line,";");
+            // append(line,integral);
+            owritec(line,filename);
+            clearstr(line);
+        }
+
+
+    end
+
+    atom type img_provider()
+        data int cache_size
+        export port port1int_t get_cache_size(cache_size)
+        data table_t cache
+        
+        data float res_time
+        export port port1float_t send_res_time(res_time)
+
+        data bool validation
+        data int nb_new_images
+        data int images_remaining
+        data int rand_img_id
+        export port port1int_t get_nb_new_images(nb_new_images)
+        export port port1bool_t get_validation(validation)
+
+        data bool db_req
+        export port port_t send_db_req()
+        export port port_t get_db_res()
+
+        data bool requested_data
+        export port port1bool_t send_requested_data(requested_data)
+
+        // purely virtual data
+        data rand_t rnd
+        data int lower_rand_bound
+        data int upper_rand_bound
+
+        // data calculated following the server speed
+        data float time_step
+
+        port port_t inner_transition()
+
+        place CACHE_SIZE_RCVD, VALIDATION_RCVD, RES_TIME_SENT, DB_REQ_SENT, CHECK_REMAINING_IMAGES_TO_FETCH, REQUESTED_DATA_SENT
+    
+        initial to CACHE_SIZE_RCVD do {
+            cache_size = cst("CACHE_MIN_SIZE");
+            cache = maketable(cache_size);
+            res_time = 0.0;
+            nb_new_images = 0;
+            validation = false;
+            db_req = false;
+            requested_data = false;
+            time_step =  cstfloat("NO_REQ_STEP");
+
+            lower_rand_bound = 1;
+            upper_rand_bound = cst("DB_SIZE");
+            rnd = makerand(0,53,7);
+            rand_img_id = lower_rand_bound;
+        }
+
+        
+        
+        on get_nb_new_images from VALIDATION_RCVD to CHECK_REMAINING_IMAGES_TO_FETCH do {
+            images_remaining = nb_new_images;
+        }
+        
+        on inner_transition from CHECK_REMAINING_IMAGES_TO_FETCH to CHECK_REMAINING_IMAGES_TO_FETCH provided( images_remaining>0 && !db_req) do {
+            rand_img_id = getinrand(rnd, lower_rand_bound, upper_rand_bound);
+            rnd = updaterand(rnd);
+            printf("image requested : %d\n",rand_img_id);
+            db_req = !findtable(cache, rand_img_id);
+            if (db_req) then
+                printf("\tT_T\n");
+            else
+                printf("\t<3\n");
+            fi
+            printtable(cache);
+            printf("\n");
+            images_remaining = images_remaining -1;
+        }
+
+        on send_db_req from CHECK_REMAINING_IMAGES_TO_FETCH to DB_REQ_SENT provided (db_req) do {
+             res_time = res_time + cstfloat("REQ_TIME");
+             printf("REQUESTED THE DATABASE\n");
+        }
+        on get_db_res from DB_REQ_SENT to CHECK_REMAINING_IMAGES_TO_FETCH do {
+            puttable(cache, rand_img_id);
+            db_req = false;
+        }
+
+        on send_requested_data from CHECK_REMAINING_IMAGES_TO_FETCH to REQUESTED_DATA_SENT provided (!db_req && images_remaining <= 0 )
+
+        on send_res_time from REQUESTED_DATA_SENT to RES_TIME_SENT do {
+            res_time = time_step;
+        }
+
+        on get_cache_size from RES_TIME_SENT to CACHE_SIZE_RCVD do {
+            resizetable(cache, cache_size);
+        }
+
+        on get_validation from CACHE_SIZE_RCVD to VALIDATION_RCVD do {
+            requested_data = validation;
+        }
+    end
+
+    atom type data_collection()
+        export port port_t get_request ()
+        export port port_t send_response ()
+
+        place INIT, REQ_RCVD, RES_SENT
+
+        initial to INIT
+
+        on get_request from INIT to REQ_RCVD do {
+            //printf("Request received!\n");
+        }
+
+        on get_request from RES_SENT to REQ_RCVD do {
+            //printf("Request received!\n");
+        }
+
+        on send_response from REQ_RCVD to RES_SENT do {
+            //printf("Response sent!\n");
+        }
+    end
+
+    atom type web_page_service()
+        data int response
+        export port port1int_t send_response(response)
+
+        data bool page_result
+        export port port1bool_t get_requested_data(page_result)
+        
+        place RES_SENT, PAGE_RCVD
+
+        initial to RES_SENT do {
+            response = cst("R_NO_PAGE");
+            page_result = false;
+        }
+
+        on get_requested_data from RES_SENT to PAGE_RCVD do {
+            if (page_result) then 
+                response = cst("R_PAGE") | cst("R_OTHER_PAGE") | cst("R_NEW_PAGE");
+            else
+                response = cst("R_PAGE") | cst("R_CONNEXION_PAGE");
+            fi
+        }
+        on send_response from PAGE_RCVD to RES_SENT
+        
+    end
+
+end

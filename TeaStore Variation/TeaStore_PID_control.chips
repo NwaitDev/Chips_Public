@@ -1,0 +1,418 @@
+/*
+
+System implementing the TeaStore App
+
+It is assumed that the website is working on the single page model.
+Therefore, it is only requiring to update the content of the page
+and no other resources are to be sent by the server than the data to
+display on the page (our excuse to only model the image transmission)
+
+*/
+
+import "server.json" as server;
+import "user_computer.json" as user_computer;
+
+pure pcoef() -> (0.5)
+pure icoef() -> (0.5)
+pure dcoef() -> (0.5)
+
+pure pid(float error, float ierror, float derror) 
+		-> (pcoef()*error+icoef()*ierror+dcoef()*derror)
+
+pure errorf(float expected, float received) 
+		-> (expected - received)
+
+virtual pid_controller(float expected, float received) init {
+    float derivative = 0;
+    float integral = 0;
+    float lasterror = 0;
+    float error = 0;
+    float out = pid(error, integral, derivative);
+} then {
+    error = errorf(expected, received);
+    derivative = (lasterror-error)/dt;
+    integral = integral+error*dt;
+    lasterror = error;
+    out = pid(error, integral, derivative);
+} -> (out)
+
+
+/* 
+    User Computer action
+
+    SIGNAL || NO_SIGNAL
+    STAY || DISCONNECT
+    ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
+    PRIVATE_PAGE || PUBLIC_PAGE
+    PROVIDES_AUTH_DATA || NO_AUTH_DATA
+*/
+
+
+virtual user_computer_actions(enums resources) init {
+    enums action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE | NO_AUTH_DATA;
+    navigation_step = 0;
+    int time_waited = 0;
+} then {
+    switch(navigation_step) {
+        1,2,3: 
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        4: 
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PRIVATE_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        5:
+            if( resources == (PAGE | CONNEXION_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PRIVATE_PAGE | PROVIDES_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        6,7,8,9:
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE)){
+                action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PRIVATE_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        10,11,12,13,14: 
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PRIVATE_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        15,16,17,18,19: 
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PRIVATE_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        20,21,22,23,24,25,26,27,28,29: 
+            if( resources == (PAGE | OTHER_PAGE | NEW_PAGE) ){
+                action = SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PRIVATE_PAGE | NO_AUTH_DATA;
+                time_waited = 0;
+            } else {
+                action = NO_SIGNAL;
+                if(time_waited >= 10) { action = SIGNAL | DISCONNECT; navigation_step = 30; time_waited=0; }
+            }
+        30: action = SIGNAL | DISCONNECT;
+        31: action = NO_SIGNAL;
+        default: // same action as before
+    }
+    if(time_waited==0){
+        navigation_step = navigation_step +1;
+    }
+    time_waited = time_waited + 1;
+} -> (action)
+
+/*
+    User Input Interpreter data req
+
+    IS_CONNECTED || IS_NOT_CONNECTED
+    ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
+    PRIVATE_PAGE || PUBLIC_PAGE
+
+    User Input Interpreter auth data
+
+    PROVIDES_AUTH_DATA || NO_AUTH_DATA
+*/
+
+virtual user_action_interpreter (enums action) init {
+    enums data_req = IS_NOT_CONNECTED | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE ;
+    enums auth_data = NO_AUTH_DATA ;
+    connected = false ;
+    is_new_req = true;
+} then {
+    if(action == NO_SIGNAL){
+        is_new_req = false;
+    }else{
+        is_new_req = true;
+    }
+    if(action & PROVIDES_AUTH_DATA != 0) {
+        auth_data = PROVIDES_AUTH_DATA;
+    } else {
+        auth_data = NO_AUTH_DATA;
+    }
+    if(action & (SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE) != 0 ){
+        if (connected){
+            data_req = IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
+        } else {
+            data_req = IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
+        }
+    }
+    if(action & (SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PUBLIC_PAGE) != 0 ){
+        if (connected){
+            data_req = IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
+        } else {
+            data_req = IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
+        }
+    }
+
+    if(action & (SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PRIVATE_PAGE) != 0 ){
+        if (connected){
+            data_req = IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
+        } else {
+            data_req = IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
+        }
+    }
+    if(action & (SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PRIVATE_PAGE) != 0 ){
+        if (connected){
+            data_req = IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
+        } else {
+            data_req = IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
+        }
+    }
+
+    if(action & SIGNAL | DISCONNECT != 0) {
+        // maybe add a special command to specify the component end of use ?
+    }
+    
+} -> (data_req, auth_data, is_new_req)
+
+
+pure total_nb_images () -> (10)
+pure imgget(int last_image) -> ((last_image%total_nb_images())+1);
+
+
+virtual imgget_n(int n) init {
+    int last_image = 0;
+    int [] img_ids;
+} then {
+    for i in numbers_up_to(n) {
+        img_ids[i] = imgget(last_image);
+        last_image = img_ids[i];
+    }
+} -> (img_ids[:n])
+
+/*
+    Request Validator auth required
+
+    true||false
+
+    Request Validator validated request
+
+    true || false
+    int nb_new_images
+    bool is_new_req
+*/
+virtual request_validator(bool auth_state, enums data_req, bool is_new_req) init {
+    bool validation = false;
+    int nb_new_images = 0;
+} then {
+    if(is_new_req) {
+        if ( data_req & (IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 3;
+        }
+        if ( data_req & (IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 2;
+        }
+        if ( data_req & (IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 4;
+        }
+        if ( data_req & (IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+            validation = false;
+            auth_required = true;
+            nb_new_images = 0;
+        }
+        if ( data_req & (IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 6;
+        }
+        if ( data_req & (IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 7;
+        }
+        if ( data_req & (IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+            validation = true;
+            auth_required = false;
+            nb_new_images = 8;
+        }
+        if ( data_req & (IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+            validation = false;
+            auth_required = true;
+            nb_new_images = 0;
+        }
+    }
+} -> (validation, auth_required, nb_new_images, is_new_req)
+
+
+/* 
+    Authentication Function
+
+    PAGE || NO_PAGE
+    CONNEXION_PAGE || NORMAL_PAGE
+*/
+
+virtual authentication_func(bool auth_required, bool auth_data) init {
+    enums provided_page = NO_PAGE;
+} then {
+    if (auth_required && (auth_data == NO_AUTH_DATA)){
+        provided_page = PAGE | CONNEXION_PAGE;
+    }
+    if (auth_required && (auth_data == PROVIDES_AUTH_DATA)) {
+        provided_page = PAGE | NORMAL_PAGE;
+    }
+    if (!auth_required) {
+        provided_page = NO_PAGE;
+    }
+} -> (provided_page)
+
+
+pure nb_dt_blocks()->(3);
+
+virtual vreq_profiler(enums validated_req, int[]images_to_get) init{
+    
+    int[nb_dt_blocks()][] flows;
+} then {
+    for i in nupto(nb_dt_blocks()) {
+        flows[i] = resize(flows[i], 1 + size(images_to_get)/nb_dt_blocks());
+    }
+} -> ()
+
+/*
+    Data Collection Block DB response
+
+    IMAGES || NOTHING
+*/
+virtual data_collection(enums db_requests)init{
+    enums db_responses = NOTHING;
+}then{
+    if(db_requests & IMAGES_IDs != 0){
+        db_responses = IMAGES;
+    }else{
+        db_responses = NOTHING;
+    }
+}->(db_responses)
+
+
+virtual web_ui(enums action, enums resources) init {
+    int response_time = -1;
+    int time_spent = -1;
+} then {
+    if(resources & NO_PAGE == 0){
+        response_time = time_spent;
+    }
+    if(action & SIGNAL != 0) {
+        time_spent = 0;
+    }
+    if(time_spent >=0){
+        time_spent = time_spent + 1;
+    }
+} -> (action, resources, response_time)
+
+/*
+    Web Page Service resources
+
+    PAGE || NO_PAGE
+    CONNEXION_PAGE || OTHER_PAGE
+    PREVIOUS_PAGE || NEW_PAGE
+*/
+virtual page_service (enums data_requested, enums provided_page) init {
+    enums resources = PAGE | OTHER_PAGE | NEW_PAGE;
+} then {
+    if(data_requested == NOTHING) {
+        if (provided_page & NOTHING != 0 ){
+            resources = NO_PAGE;
+        } else {
+            if (provided_page & CONNEXION_PAGE != 0){
+                resources = PAGE | CONNEXION_PAGE;
+            } else {
+                resources = PAGE | OTHER_PAGE | PREVIOUS_PAGE;
+            }
+        }
+    }else{
+        resources = PAGE | OTHER_PAGE | NEW_PAGE;
+    }
+} -> (resources)
+
+physical user_computer(enums in_actions, enums out_resources) init {
+    this.out.port00 = in_actions;
+    this.in.port00 = out_resources;
+} then {
+    this.out.port00 = in_actions;
+    this.in.port00 = out_resources;
+} -> (in_actions, out_resources)
+
+physical server(enums in_resources, enums out_actions) init {
+    this.in.port00 = out_actions;
+    this.out.port00 = in_resources;
+} then {
+    this.in.port00 = out_actions;
+    this.out.port00 = in_resources;
+} -> (in_resources, out_actions)
+
+
+system(3){
+
+    user_computer_actions uca;      // virtual func
+    user_action_interpreter uai;    // virtual func
+    request_validator rv;           // virtual func
+    imgget_n imggetter;             // virtual too
+    data_treatment dt;              // virtual func
+    data_collection dc;             // virtual func
+    authentication_func af;         // virtual func
+    page_service ps;                // virtual func
+
+    web_ui wui;                     // virtual func
+
+    user_computer uc;               // physical func
+    server s;                       // physical func
+
+    server s2;
+
+    wui.in(s.out[1],ps.out);
+
+    uca.in(uc.out[1]);
+    uc.in(uca.out, s.out[0]);
+    s.in(wui.out[1], uc.out[0]);
+    uai.in(wui.out[0]);
+    rv.in(uai.out[0],uai.out[2]);
+    af.in(rv.out[1],uai.out[1]);
+    imggetter(rv.out[2]);
+    dc.in(dt.out[0]);
+    ps.in(dt.out[1],af.out);
+
+    link uca to uc;
+    uc at (0,0,0);
+
+    link uai to s2;
+    //link uai to s;
+    link rv to s;
+    link dt to s;
+    link dc to s;
+    link af to s;
+    link ps to s;
+    s at (2,2,0);
+
+    s2 at (3,3,3);
+
+    pid_controller controller;
+
+    link controller to s;
+
+    controller.in(wui.out[2]);
+    dt.in(rv.out[0], imggetter.out, dc.out, controller.out);
+}

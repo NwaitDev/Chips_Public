@@ -1,0 +1,98 @@
+@cpp(include="stdio.h")
+/*
+    Package for trivial bip components, types or connectors
+*/
+package base
+
+
+    // cache model
+    extern data type table_t
+    extern function table_t maketable(int)
+    extern function resizetable(table_t, int)
+    extern function puttable(table_t, int)
+    extern function table_t copytable(table_t)
+    extern function bool findtable(table_t, int)
+    extern function printtable(table_t)
+
+    // pseudo random number generation for deterministic behaviour
+    extern data type rand_t
+    extern function rand_t makerand(int, int, int)
+    extern function rand_t updaterand(rand_t)
+    extern function int getinrand(rand_t, int, int)
+
+    // port that serves as a trigger
+    port type port_t()
+
+    // port holding a float
+    port type port1float_t(float v)
+
+    // port holding an integer
+    port type port1int_t(int v)
+
+    // port holding a boolean
+    port type port1bool_t(bool v)
+
+    // port holding a table
+    port type port1table_t(table_t v)
+
+    // connector allowing to send a table from src to t
+    connector type flow1table_t(port1table_t src, port1table_t t)
+        define src t
+        on src t down {
+            t.v = copytable(src.v);
+        }
+    end
+
+    // connector allowing to send a boolean from src to t
+    connector type flow1bool_t(port1bool_t src, port1bool_t t)
+        define src t
+        on src t down {
+            t.v = src.v;
+        }
+    end
+
+    // connector allowing to send a float from src to t
+    connector type flow1float_t(port1float_t src, port1float_t t0)
+        define src t0
+        on src t0 down {
+            t0.v = src.v;
+        }
+    end
+
+    // connector allowing to send a float from src to t and export it to this.p
+    connector type flow1floatAndExport_t(port1float_t src, port1float_t t0)
+        data float value
+        export port port1float_t p(value)
+
+        define src t0
+        on src t0 up{
+            value = src.v;
+        } down {
+            t0.v = value;
+        }
+    end
+
+    // connector allowing to send a bool from src to t
+    connector type flow1int_t(port1int_t src, port1int_t t0)
+        define src t0
+        on src t0 down {
+            t0.v = src.v;
+        }
+    end
+
+
+    // connector that fills a float port not connected to anything 
+    // (mainly useful to avoid useless warnings)
+    connector type singleton1float_t(port1float_t p)
+        define p
+    end
+
+    connector type sync1port_t(port_t p)
+        define p
+    end
+
+    connector type sync1to1port_t(port_t p0, port_t p1)
+        define p0 p1
+    end
+
+end
