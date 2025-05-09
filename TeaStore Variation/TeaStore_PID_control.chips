@@ -9,8 +9,8 @@ display on the page (our excuse to only model the image transmission)
 
 */
 
-import "server.json" as server;
-import "user_computer.json" as user_computer;
+import "server.json" as server; // description file of physical device not ready yet
+import "user_computer.json" as user_computer; // description file of physical device not ready yet
 
 pure pcoef() -> (0.5)
 pure icoef() -> (0.5)
@@ -38,16 +38,15 @@ virtual pid_controller(float expected, float received) init {
 
 
 /* 
-    User Computer action
+    User Computer action : model of the actions of a user
 
-    SIGNAL || NO_SIGNAL
-    STAY || DISCONNECT
-    ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
-    PRIVATE_PAGE || PUBLIC_PAGE
-    PROVIDES_AUTH_DATA || NO_AUTH_DATA
+    Produces a signal composed of :
+	    SIGNAL || NO_SIGNAL
+	    STAY || DISCONNECT
+	    ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
+	    PRIVATE_PAGE || PUBLIC_PAGE
+	    PROVIDES_AUTH_DATA || NO_AUTH_DATA
 */
-
-
 virtual user_computer_actions(enums resources) init {
     enums action = SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE | NO_AUTH_DATA;
     navigation_step = 0;
@@ -120,22 +119,22 @@ virtual user_computer_actions(enums resources) init {
     time_waited = time_waited + 1;
 } -> (action)
 
+
 /*
     User Input Interpreter data req
 
-    IS_CONNECTED || IS_NOT_CONNECTED
-    ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
-    PRIVATE_PAGE || PUBLIC_PAGE
 
-    User Input Interpreter auth data
+    Produces for the request validator component a signal composed of:
+	ASK_FOR_FEW_IMAGES ||  ASK_FOR_MANY_IMAGES
+	PRIVATE_PAGE || PUBLIC_PAGE
+	and a boolean to say if this is a new request (for an asynchronous version)
 
-    PROVIDES_AUTH_DATA || NO_AUTH_DATA
+    Produces for the authentication function a signal composed of:
+	PROVIDES_AUTH_DATA || NO_AUTH_DATA
 */
-
 virtual user_action_interpreter (enums action) init {
     enums data_req = IS_NOT_CONNECTED | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE ;
     enums auth_data = NO_AUTH_DATA ;
-    connected = false ;
     is_new_req = true;
 } then {
     if(action == NO_SIGNAL){
@@ -149,33 +148,17 @@ virtual user_action_interpreter (enums action) init {
         auth_data = NO_AUTH_DATA;
     }
     if(action & (SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PUBLIC_PAGE) != 0 ){
-        if (connected){
-            data_req = IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
-        } else {
-            data_req = IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
-        }
+            data_req = PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
     }
     if(action & (SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PUBLIC_PAGE) != 0 ){
-        if (connected){
-            data_req = IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
-        } else {
-            data_req = IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
-        }
+	data_req = PUBLIC_PAGE | ASK_FOR_FEW_IMAGES;
     }
 
     if(action & (SIGNAL | STAY | ASK_FOR_FEW_IMAGES | PRIVATE_PAGE) != 0 ){
-        if (connected){
-            data_req = IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
-        } else {
-            data_req = IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
-        }
+            data_req = PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
     }
     if(action & (SIGNAL | STAY | ASK_FOR_MANY_IMAGES | PRIVATE_PAGE) != 0 ){
-        if (connected){
-            data_req = IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
-        } else {
-            data_req = IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
-        }
+        data_req = PRIVATE_PAGE | ASK_FOR_FEW_IMAGES;
     }
 
     if(action & SIGNAL | DISCONNECT != 0) {
@@ -185,10 +168,11 @@ virtual user_action_interpreter (enums action) init {
 } -> (data_req, auth_data, is_new_req)
 
 
-pure total_nb_images () -> (10)
-pure imgget(int last_image) -> ((last_image%total_nb_images())+1);
 
+pure total_nb_images () -> (40) // nb imgs of the database
+pure imgget(int last_image) -> ((last_image%total_nb_images())+1); // to be replaced with randomly generated numbers
 
+// 
 virtual imgget_n(int n) init {
     int last_image = 0;
     int [] img_ids;
@@ -198,6 +182,7 @@ virtual imgget_n(int n) init {
         last_image = img_ids[i];
     }
 } -> (img_ids[:n])
+
 
 /*
     Request Validator auth required
@@ -215,85 +200,70 @@ virtual request_validator(bool auth_state, enums data_req, bool is_new_req) init
     int nb_new_images = 0;
 } then {
     if(is_new_req) {
-        if ( data_req & (IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+	validation = true;
+        if ( data_req & (PUBLIC_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
             validation = true;
-            auth_required = false;
-            nb_new_images = 3;
-        }
-        if ( data_req & (IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
-            validation = true;
-            auth_required = false;
             nb_new_images = 2;
         }
-        if ( data_req & (IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
+        if ( data_req & (PRIVATE_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
             validation = true;
-            auth_required = false;
             nb_new_images = 4;
         }
-        if ( data_req & (IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_FEW_IMAGES) != 0 ){
-            validation = false;
-            auth_required = true;
-            nb_new_images = 0;
-        }
-        if ( data_req & (IS_NOT_CONNECTED | PUBLIC_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+        if ( data_req & (PUBLIC_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
             validation = true;
-            auth_required = false;
             nb_new_images = 6;
         }
-        if ( data_req & (IS_CONNECTED | PUBLIC_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
+        if ( data_req & (PRIVATE_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
             validation = true;
-            auth_required = false;
-            nb_new_images = 7;
-        }
-        if ( data_req & (IS_CONNECTED | PRIVATE_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
-            validation = true;
-            auth_required = false;
             nb_new_images = 8;
         }
-        if ( data_req & (IS_NOT_CONNECTED | PRIVATE_PAGE | ASK_FOR_MANY_IMAGES) != 0 ){
-            validation = false;
-            auth_required = true;
-            nb_new_images = 0;
-        }
+	if ( (data_req & PRIVATE_PAGE != 0) && !auth_state) {
+	    validation = false;
+	    nb_new_images = 0;
+	}
     }
-} -> (validation, auth_required, nb_new_images, is_new_req)
+} -> (validation, nb_new_images, is_new_req)
 
 
 /* 
     Authentication Function
-
-    PAGE || NO_PAGE
-    CONNEXION_PAGE || NORMAL_PAGE
+	considers that once the auth data has been sent, 
+	the user is connected forever
 */
 
-virtual authentication_func(bool auth_required, bool auth_data) init {
-    enums provided_page = NO_PAGE;
+virtual authentication_func(bool auth_data) init {
+    bool auth_state = false;
 } then {
-    if (auth_required && (auth_data == NO_AUTH_DATA)){
-        provided_page = PAGE | CONNEXION_PAGE;
+    if (auth_data) {
+	auth_state = true;
     }
-    if (auth_required && (auth_data == PROVIDES_AUTH_DATA)) {
-        provided_page = PAGE | NORMAL_PAGE;
-    }
-    if (!auth_required) {
-        provided_page = NO_PAGE;
-    }
-} -> (provided_page)
+} -> (auth_state)
 
+// -------------------------------------------------------------
+// Syntax not ready to describe a function with a dynamic number of outputs
+// For an adaptive system of charge balance among any number of virtual data treatment blocks
 
 pure nb_dt_blocks()->(3);
 
+// function splitting the images to fetch inbetween each data treatment blocks
 virtual vreq_profiler(enums validated_req, int[]images_to_get) init{
-    
     int[nb_dt_blocks()][] flows;
 } then {
     for i in nupto(nb_dt_blocks()) {
         flows[i] = resize(flows[i], 1 + size(images_to_get)/nb_dt_blocks());
+	flows[i] = 
+	images_to_get[ 
+		i * size(images_to_get)/nb_dt_blocks() 
+		: i *size(images_to_get)/nb_dt_blocks() + size(images_to_get)/nb_dt_blocks() -1
+	];
     }
-} -> ()
+} -> (flows[0], ... , flows[n-1])
 
+
+//-----------------------------------------------------------------
 /*
     Data Collection Block DB response
+	(The database always finds images when required)
 
     IMAGES || NOTHING
 */
@@ -307,7 +277,11 @@ virtual data_collection(enums db_requests)init{
     }
 }->(db_responses)
 
-
+/*
+	Response time not calculated the same way in the BIP model
+	(the BIP model only calculates the response time of one component while 
+	the chips model intended to calculate the time taken by all the backend)
+*/
 virtual web_ui(enums action, enums resources) init {
     int response_time = -1;
     int time_spent = -1;
