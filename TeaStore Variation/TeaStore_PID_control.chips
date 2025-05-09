@@ -217,10 +217,13 @@ virtual request_validator(bool auth_state, enums data_req, bool is_new_req) init
             validation = true;
             nb_new_images = 8;
         }
-	if ( (data_req & PRIVATE_PAGE != 0) && !auth_state) {
-	    validation = false;
-	    nb_new_images = 0;
-	}
+
+		// if the user asked for a private page but is not connected, cancel the image request
+		if ( (data_req & PRIVATE_PAGE != 0) && !auth_state) {
+		    validation = false;
+		    nb_new_images = 0;
+		}
+
     }
 } -> (validation, nb_new_images, is_new_req)
 
@@ -251,11 +254,11 @@ virtual vreq_profiler(enums validated_req, int[]images_to_get) init{
 } then {
     for i in nupto(nb_dt_blocks()) {
         flows[i] = resize(flows[i], 1 + size(images_to_get)/nb_dt_blocks());
-	flows[i] = 
-	images_to_get[ 
-		i * size(images_to_get)/nb_dt_blocks() 
-		: i *size(images_to_get)/nb_dt_blocks() + size(images_to_get)/nb_dt_blocks() -1
-	];
+		flows[i] = 
+		images_to_get[ 
+			i * size(images_to_get)/nb_dt_blocks() 
+			: i *size(images_to_get)/nb_dt_blocks() + size(images_to_get)/nb_dt_blocks() -1
+		];
     }
 } -> (flows[0], ... , flows[n-1])
 
@@ -270,12 +273,61 @@ virtual vreq_profiler(enums validated_req, int[]images_to_get) init{
 virtual data_collection(enums db_requests)init{
     enums db_responses = NOTHING;
 }then{
-    if(db_requests & IMAGES_IDs != 0){
+    if(db_requests & IMAGES_IDS != 0){
         db_responses = IMAGES;
     }else{
         db_responses = NOTHING;
     }
 }->(db_responses)
+
+
+// component with a cache for storing images or asking for them to the database
+// adaptively changes the size of the cache
+virtual data_treatment(bool validated, bool is_new_req ,int[] images_to_get, enum db_responses, int cache_size) init {
+	int [] img_req_buffer;
+	enums data_sent_back = NOTHING;
+	enums db_request = NOTHING;
+	int[] cache;
+	int i = 0;
+} then {
+	if( is_new_req ) {
+		i = 0;
+		img_req_buffer = images_to_get;
+	}
+	if (validated) {
+		// adapting the size of the cache according to the controller
+		cache = resize(cache, cache_size);
+	
+		// fetching the image from the cache
+		// if it fails, ask the DataBase component
+		if ( !(img_req_buffer[i] in cache) ) {
+			db_request = IMAGES_IDS;
+		} else {
+			db_request = NOTHING;
+		}
+		// if image retrieved, either from the cache or the Database
+		if (db_request == IMAGES_IDS && db_responses == IMAGES) || (db_request == NOTHING) {
+	
+			// updating the image pos in the cache for application of LRU strategy
+			cache = update(cache, img_req_buffer[i]);
+			
+			// updating the next image to find
+			i = i+1;
+	
+			// reseting the request to the database to no request
+			db_request = NOTHING;
+		}
+		// sending the images once they are all retrieved
+		if (i == size(img_req_buffer)) {
+			i = 0;
+			data_sent_back = IMAGES;
+		} else {
+			data_sent_back = NOTHING;
+		}
+	}
+	
+} -> (db_request, data_sent_back)
+
 
 /*
 	Response time not calculated the same way in the BIP model
@@ -298,7 +350,7 @@ virtual web_ui(enums action, enums resources) init {
 } -> (action, resources, response_time)
 
 /*
-    Web Page Service resources
+    Web Page Service
 
     PAGE || NO_PAGE
     CONNEXION_PAGE || OTHER_PAGE
@@ -355,25 +407,25 @@ system(3){
     user_computer uc;               // physical func
     server s;                       // physical func
 
-    server s2;
+    // server s2; // potential additionnal server
 
+	// connecting all the components together
     wui.in(s.out[1],ps.out);
-
     uca.in(uc.out[1]);
     uc.in(uca.out, s.out[0]);
     s.in(wui.out[1], uc.out[0]);
     uai.in(wui.out[0]);
-    rv.in(uai.out[0],uai.out[2]);
-    af.in(rv.out[1],uai.out[1]);
-    imggetter(rv.out[2]);
+    rv.in(uai.out[0],af.out);
+    af.in(uai.out[1]);
+    imggetter(rv.out[1]);
     dc.in(dt.out[0]);
-    ps.in(dt.out[1],af.out);
+    ps.in(dt.out[1]);
 
     link uca to uc;
     uc at (0,0,0);
 
-    link uai to s2;
-    //link uai to s;
+    //link uai to s2;
+    link uai to s;
     link rv to s;
     link dt to s;
     link dc to s;
@@ -388,5 +440,5 @@ system(3){
     link controller to s;
 
     controller.in(wui.out[2]);
-    dt.in(rv.out[0], imggetter.out, dc.out, controller.out);
+    dt.in(rv.out[0], rv.out[2], imggetter.out, dc.out, controller.out);
 }
