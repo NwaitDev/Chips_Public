@@ -1,0 +1,152 @@
+module incremental_chips2bip;
+
+-- @path Chips=/Chips2BIP/Chips1.0.ecore
+-- @path BIP=/Chips2BIP/BIP.ecore
+
+create OUT: BIP from IN: Chips;
+
+rule import_def2AtomType {
+	from
+		imp: Chips!import_def
+	to
+		at: BIP!AtomType(
+			name <- imp.as_name
+		)
+}
+
+rule direct_int2DirectIntegerExpression {
+	from
+		di: Chips!direct_int
+	to
+		die: BIP!DirectIntegerExpression(
+			value <- di.value
+		)
+}
+
+rule direct_float2DirectFloatExpression {
+	from
+		df: Chips!direct_float
+	to
+		dfe: BIP!DirectFloatExpression(
+			value <- df.value
+		)
+}
+
+rule direct_bool2DirectBooleanExpression {
+	from
+		db: Chips!direct_bool
+	to
+		dbe: BIP!DirectBooleanExpression(
+			value <- db.value
+		)
+}
+
+rule logical_def2AtomType {
+	from
+		ld: Chips!logical_def
+	to
+		at: BIP!AtomType(
+			name <- ld.name,
+			native <- false,
+			exportedPortDeclarations <- 
+				ld.output_flow->collect(output_flow_element | thisModule.output_expression2AtomExternalPortDeclaration(output_flow_element))
+				-> union(
+					fd.parameters -> collect(parameters_element | thisModule.parameter_declaration2AtomExternalPortDeclaration(parameters_element))
+				),
+			internalPortDeclaration <- , -- TODO
+			behavior <- , -- TODO (petri net)
+			internalDataDeclaration <- , -- TODO
+		)
+	
+}
+
+unique lazy rule parameter_declaration2AtomExternalPortDeclaration{
+	from 
+		paramdecl:Chips!parameter
+	to
+		aepd:BIP!AtomExternalPortDeclaration(
+			portType <- paramdecl2PortType(paramdecl),
+			name <- paramdecl.name+'_port',
+			dataParameters <- Sequence{},
+			backendName <- paramdecls.oclType().name+'_'+paramdecl.name,
+			policy <- 0 -- 0:remember / 1:ignore / 2:error
+		)
+}
+
+
+unique lazy rule paramdecl2PortType{
+		from
+			paramdecl: Chips!parameter
+		to
+			BIP!PortType(
+				name <- paramdecl.oclType().name +'_port_t',
+				native <-true,
+				superTypes <- Sequence{},
+				castableTypes <- Sequence{},
+				dataParameterDeclarations <- paramdecl2DataDeclaration(paramdecl)
+			)
+		
+}
+
+unique lazy rule paramdecl2DataDeclaration{
+		from
+			paramdecl: Chips!parameter
+		to
+			BIP!PortType(
+				dataType <- param2DataType(paramdecl),
+				name <- paramdecl.name+'_v',
+				value <- param2ValueDefault(paramdecl),
+				const <- false
+			)
+		
+}
+
+unique lazy rule param2DataType {
+    from
+        source : Chips!parameter
+    to
+        target : BIP!DataType (
+            backendName <- 
+				if source.oclType().name= 'int_param' then
+					'int'
+				else if source.oclType().name= 'float_param' then
+  					'float'
+				else if source.oclType().name= 'bool_param' then
+  					'bool'
+				else
+					'string'
+				endif
+        )
+}
+
+unique lazy rule param2ValueDefault {
+    from
+        source : Chips!parameter
+    to
+        target : BIP!DataType (
+            backendName <- 
+				if source.oclType().name= 'int_param' then
+					1
+				else if source.oclType().name= 'float_param' then
+  					1.0
+				else if source.oclType().name= 'bool_param' then
+  					false
+				else
+					'a default string (ATL produced)'
+				endif
+        )
+}
+
+
+unique lazy rule output_expression2AtomExternalPortDeclaration {
+	from
+		output_exp:Chips!expression
+	to
+		aepd:BIP!AtomExternalPortDeclaration(
+			portType <- , -- TODO
+			name <- , -- TODO
+			dataParameters <- output_exp. , -- TODO
+			backendName <- , -- TODO
+			policy <- -- TODO
+		)
+}
