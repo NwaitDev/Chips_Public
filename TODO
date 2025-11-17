@@ -1,0 +1,46 @@
+- Remove coordinate system from the syntax (no more dimensions of the system specification, no more "at" instruction for the system specification)
+- Change the "virtual" keyword to "logical" (so there is no confusion with the "virtual" keyword from other languages)
+- Adding 4 new physical definition specific keywords, namely:
+    + *sensor* for input parameters (/inner variables?) being interfaced with the physical part of the model (the binary representation of the not binary part of the system).
+    + *actuator* for output parameters (/inner variables?) being interfaced with the physical part of the model.
+    + *ctx* for the inner variables that should be accessible by other components being linked to the physical device represented, i.e. collective functions (spread/collect) needing access to the device information to compute correctly.
+    + *channel* for listing the communication media that should be specified by the collective functions
+- Adding collective functions:
+    + *spread* -- An aggregate Programming inspired broadcast function.
+    + *collect* -- An aggregate Programming inspired aggregation function.
+These two functions have the following syntax (using "[", "]", "<", ">", "|" and "*" as meta-characters just like in unix style usage description):
+```chips
+
+spread (<variableDeclaration> = <variableDefaultValue>[, <variableDeclaration> = <variableDefaultValue>]*)
+<functionName> onto <physicalFunctionName> {
+    [<statements>]
+} 
+-> self(expression)
+[-> <yetUnspecifiedPhysicalFunctionChannelName>(<expression>[, <expression>])]*
+[-> default(<expression>[, <expression>])] // in case not all channels were specified
+
+
+
+collect (<variableDeclaration> = <variableDefaultValue>[, <variableDeclaration> = <variableDefaultValue>]*)
+<functionName> among <physicalFunctionName> {
+    [<statements>]
+} 
+-> @(expression) // output for the collecting device
+[-> <yetUnspecifiedPhysicalFunctionChannelName>(<expression>[, <expression>])]*
+[-> default(<expression>[, <expression>])] // in case not all channels were specified
+```
+
+- Adding "node" refinement. A new "node" type shall be instantiated for each physical definition. Such node type represents the type of the vertex associated to a device within the graph of all the interconnected devices of the system. Such type is supposed to be inferred from the keywords used in the physical definition, however, it can be refined by using a JSON specification file to check that the model is relevant according to the device used, or to instantiate context variables, infer channel names, type restrict sensor/actuator inputs/outputs. The syntax for such "node" refinement is as follow (same writing convention as earlier):
+```chips
+
+node <physicalFunctionName> implemented by "<JSON_Specification_file_path>" {
+    [[having "<JSON_channel_name>" as <physicalChannelName>]
+     [having "<JSON_sensor_name>" as <physicalSensorName>]
+     [having "<JSON_actuator_name>" as <physicalActuatorName>]
+     [having "<JSON_attribute_name>" as <physicalCtxVariableName>]]*
+}
+```
+
+- Defining how to specify elements of JSON specification files.
+
+- Correct Chips Meta langage according to these modifications (.ecore model and ChipsClassDiagram)
