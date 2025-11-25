@@ -1,58 +1,15 @@
-%require "3.0.4"
-%skeleton "lalr1.cc"
-%define api.value.type variant
-%define api.token.constructor
-%header
-%locations
-%parse-param { driver& drv}
-%define parse.trace
-%define parse.error detailed
-%define parse.lac full
+# The Chips syntax
 
+Chips grammar is inspired from C but intends to be a functionnal language by essence where each declared object is to be connected to others by flows of data.
 
-%code requires{
-    // #include "cpp_sources/ChipsAST.hpp"
-    #include "ChipsDriver.hpp"
-}
+- The **df_** prefix stands for **data flow**
+- The **s_** prefix stands for **system**
+- The **o_** prefix stands for **object** 
+- The **p_** prefix stands for **physical**
+- The **l_** prefix stands for **logical**
+- The **c_** prefix stands for **collective**
 
-%{
-    #define YYDEBUG 1
-    #include <iostream>
-    #include <memory>
-    #include "ChipsParser.hpp"
-    
-    // Give Flex the prototype of yylex we want ...
-    # define YY_DECL yy::parser::symbol_type yylex ()
-    // ... and declare it for the parser's sake.
-    YY_DECL;
-%}
-
-
-
-/*defining the terminal tokens of the grammar*/
-%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW PURE_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTED_BY_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW ONTO_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW
-
-%left PLUS MINUS
-%left TIMES DIV
-
-
-/*defining the variable tokens of the grammar*/
-%token <int> INT
-%token <double> FLOAT
-%token <std::string> IDENTIFIER
-%token <std::string> STR
-%token <bool> BOOL
-
-
-/*defining the non-terminal symbols of the grammar*/
-// %type <std::unique_ptr<chips_node>> chips
-// %type <std::unique_ptr<preambles_node>> preambles
-// %type <std::unique_ptr<system_node>> system
-// %type <std::unique_ptr<preamble_node>> preamble
-
-%%
-
-%start chips;
+```c
 chips:
     preambles system
     ;
@@ -386,20 +343,4 @@ may_assign:
     ASSIGN expr
     | /* EMPTY */
     ;
-%%
-
-int main(int argc, char *argv[])
-{
-    if(argc != 2){
-        std::cout << "Usage: ./chipsc <file.chips>\n";
-        return -1;
-    }
-	driver drv;
-	return drv.parse(std::string(argv[1]));
-}
-
-
-void yy::parser::error(const location_type& l, const std::string& m)
-{
-  std::cerr << l << ": " << m << '\n';
-}
+```
