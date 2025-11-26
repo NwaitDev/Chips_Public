@@ -103,14 +103,14 @@ c_function_def:
     ;
 l_function_def:
     l_signature 
-    o_definition_body
+    l_definition_body
     named_output
     named_outputs
     ;
 p_function_def:
     p_signature
     channels_section
-    o_definition_body
+    p_definition_body
     p_named_output
     p_named_outputs
     ;
@@ -124,14 +124,21 @@ p_signature:
     PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
     ;
 c_signature:
-    SPREAD_KW L_PARENTH df_defaulted_decls R_PARENTH 
+    SPREAD_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
     IDENTIFIER ONTO_KW IDENTIFIER
-    | COLLECT_KW L_PARENTH df_defaulted_decls R_PARENTH 
+    | COLLECT_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
       IDENTIFIER AMONG_KW IDENTIFIER
     ;
-o_definition_body:
+l_definition_body:
     INIT_KW L_CURL 
         statements 
+    R_CURL THEN_KW L_CURL 
+        statements 
+    R_CURL
+    ;
+p_definition_body:
+    INIT_KW L_CURL 
+        p_statements 
     R_CURL THEN_KW L_CURL 
         statements 
     R_CURL
@@ -272,8 +279,12 @@ statements:
     | /* EMPTY */
     ;
 p_statements:
+    p_statement p_statements
+    | statements p_statements
+    | /* EMPTY */
+    ;
+p_statement:
     CTX_KW df_decraration SEMICOL
-    | statements
     ;
 statement:
     df_decraration SEMICOL
@@ -365,11 +376,11 @@ pdf_parameter_decls:
 pdf_parameter_decl:
     pdf_parameter_type IDENTIFIER may_assign
     ;
-df_defaulted_decls:
-    df_defaulted_decl
-    | df_defaulted_decl COMMA df_defaulted_decls
+cdf_defaulted_decls:
+    cdf_defaulted_decl
+    | cdf_defaulted_decl COMMA cdf_defaulted_decls
     ;
-df_defaulted_decl:
+cdf_defaulted_decl:
     df_type IDENTIFIER ASSIGN stopless_c_expr
     ;
 df_decraration:

@@ -1,7 +1,15 @@
-# The Chips syntax
+# The Chips grammar
 
-Chips grammar is inpired from C but intends to be a functionnal language by essence where each declared object is to be connected to others by flows of data.
-```
+Chips grammar is inspired from C but intends to be a functionnal language by essence where each declared object is to be connected to others by flows of data.
+
+- The **df_** prefix stands for **data flow**
+- The **s_** prefix stands for **system**
+- The **o_** prefix stands for **object** 
+- The **p_** prefix stands for **physical**
+- The **l_** prefix stands for **logical**
+- The **c_** prefix stands for **collective**
+
+```c
 chips:
     preambles system
     ;
@@ -9,87 +17,118 @@ preambles:
     preamble preambles
     | /* EMPTY */
     ;
+system:
+    SYSTEM_KW  L_CURL 
+        s_statements
+    R_CURL
+    ;
 preamble:
-    import
+    node_def
     | function_def
     ;
-import:
-    IMPORT_KW STR AS_KW NAME SEMICOL
+node_def:
+    NODE_KW IDENTIFIER IMPLEMENTED_BY_KW STR L_CURL
+        node_mappings
+    R_CURL
+    ;
+node_mappings:
+    node_mapping node_mappings
+    | /* EMPTY */
+    ;
+node_mapping:
+    HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL
     ;
 function_def:
+    pure_function_def
+    | o_function_def
+    | c_function_def
+    ;
+pure_function_def:
     pure_signature output
-    | object_signature INIT_KW L_CURL 
+    ;
+o_function_def:
+    l_function_def
+    | p_function_def
+    ;
+c_function_def:
+    c_signature L_CURL
+        c_statements
+    R_CURL
+    ARROW TARGET_KW L_PARENTH c_expr R_PARENTH
+    c_named_outputs
+    ARROW DEFAULT_KW L_PARENTH c_expr R_PARENTH
+    ;
+l_function_def:
+    l_signature 
+    l_definition_body
+    named_output
+    named_outputs
+    ;
+p_function_def:
+    p_signature
+    channels_section
+    p_definition_body
+    p_named_output
+    p_named_outputs
+    ;
+pure_signature:
+    PURE_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    ;
+l_signature:
+    LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    ;
+p_signature:
+    PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
+    ;
+c_signature:
+    SPREAD_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
+    IDENTIFIER ONTO_KW IDENTIFIER
+    | COLLECT_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
+      IDENTIFIER AMONG_KW IDENTIFIER
+    ;
+l_definition_body:
+    INIT_KW L_CURL 
         statements 
     R_CURL THEN_KW L_CURL 
         statements 
-    R_CURL output
+    R_CURL
     ;
-pure_signature:
-    PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH
+p_definition_body:
+    INIT_KW L_CURL 
+        p_statements 
+    R_CURL THEN_KW L_CURL 
+        statements 
+    R_CURL
     ;
-df_decl_list_or_nothing:
-    df_decl_list
+channels_section:
+    CHANNELS_KW L_CURL
+        channel_decraration
+        channel_decrarations
+    R_CURL
+    ;
+channel_decrarations:
+    channel_decraration channel_decrarations
     | /* EMPTY */
     ;
-df_decl_list:
-    df_decl_lhs
-    | df_decl_lhs COMMA df_decl_list
+channel_decraration:
+    IDENTIFIER IDENTIFIER SEMICOL
     ;
-df_decl_lhs:
-    df_type NAME
-    ;
-df_type:
-    INT_KW suffixes
-    | FLOAT_KW suffixes
-    | BOOL_KW suffixes
-    ;
-output:
-    ARROW L_PARENTH exprs R_PARENTH
-    ;
-object_signature:
-    VIRT_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH
-    | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH
-    ;
-statements: 
-    statement SEMICOL statements
-    | loop statements
-    | if_else statements
-    | if statements
+list_expr:
+    exprs
     | /* EMPTY */
     ;
-statement:
-    df_full_decl
-    | assignment
+exprs:
+    expr
+    | expr COMMA exprs
     ;
-sstatement: 
-    NAME suffixes NAME
-    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH
-    | LINK_KW NAME TO_KW NAME
-    | NAME AT_KW L_PARENTH exprs R_PARENTH
-    | df_full_decl
-    | assignment
-    | function_call_sttmt
+c_expr:
+    STOP_KW
+    | INPUT_KW
+    | expr
     ;
-df_full_decl:
-    df_decl_lhs may_assign
-    ;
-suffixes:
-    suffix suffixes
-    | /* EMPTY */
-    ;
-suffix:
-    L_SQUA expr R_SQUA
-    | L_SQUA R_SQUA
-    ;
-may_assign:
-    assign_rhs
-    | /* EMPTY */
-    ;
-assign_rhs: 
-    ASSIGN expr
-    ;
-cast:
-    df_type L_PARENTH expr R_PARENTH
+stopless_c_expr:
+    INPUT_KW
+    | expr
     ;
 expr:
     expr0 LT expr
@@ -120,79 +159,199 @@ expr2:
     | BOOL
     | L_PARENTH expr R_PARENTH
     | cast
+    | function_call
     ;
-suffixable_expr:
-    function_call
-    | NAME
-    | NAME OUTPUT_SUF
-    | THIS_KW PERIOD NAME PERIOD NAME
-    ;
-assignment:
-    NAME suffixes assign_rhs
-    | THIS_KW PERIOD NAME PERIOD NAME suffixes assign_rhs
-    ;
-loop:
-    FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
-        statements 
-    R_CURL
-    ;
-if_else:
-    if 
-    ELSE_KW L_CURL 
-        statements 
-    R_CURL
-    ;
-if: 
-    IF_KW L_PARENTH expr R_PARENTH L_CURL 
-        statements 
-    R_CURL
-    ;
-sloop:
-    FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
-        sstatements 
-    R_CURL
-    ;
-sif_else:
-    sif 
-    ELSE_KW L_CURL 
-        sstatements 
-    R_CURL
-    ;
-sif: 
-    IF_KW L_PARENTH expr R_PARENTH L_CURL 
-        sstatements 
-    R_CURL
+cast:
+    L_PARENTH df_type R_PARENTH expr
     ;
 function_call:
-    NAME L_PARENTH exprs R_PARENTH
+    IDENTIFIER L_PARENTH list_expr R_PARENTH
     ;
-function_call_sttmt:
-    function_call
-    ;
-exprs:
-    list_expr
+suffixes:
+    suffix suffixes
     | /* EMPTY */
     ;
-list_expr:
-    expr
-    | expr COMMA list_expr
+suffix:
+    L_SQUA expr R_SQUA
+    | L_SQUA R_SQUA
     ;
-
-system:
-    SYSTEM_KW optional_dim L_CURL 
-        sstatements
+suffixable_expr:
+    IDENTIFIER /* df_variable */
+    | function_call 
+    | IDENTIFIER PERIOD IDENTIFIER /* block named output */
+    ;
+loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL 
+        statements 
     R_CURL
     ;
-optional_dim:
-    DIMENSION_KW L_PARENTH INT R_PARENTH
+c_loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL
+        c_statements 
+    R_CURL
+    ;
+s_loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL 
+        s_statements 
+    R_CURL
+    ;
+if_else_statement:
+    if_statement 
+    ELSE_KW L_CURL 
+        statements 
+    R_CURL
+    ;
+s_if_else_statement:
+    s_if_statement 
+    ELSE_KW L_CURL 
+        s_statements 
+    R_CURL
+    ;
+c_if_else_statement:
+    c_if_statement
+    ELSE_KW L_CURL 
+        c_statements 
+    R_CURL
+    ;
+if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+        statements 
+    R_CURL
+    ;
+s_if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+        s_statements 
+    R_CURL
+    ;
+c_if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+        c_statements
+    R_CURL
+    ;
+statements: 
+    statement statements
+    | loop_statement statements
+    | if_else_statement statements
+    | if_statement statements
     | /* EMPTY */
     ;
-sstatements:
-    sstatement SEMICOL sstatements
-    | sloop sstatements
-    | sif_else sstatements
-    | sif sstatements
+p_statements:
+    p_statement p_statements
+    | statements p_statements
     | /* EMPTY */
     ;
-
+p_statement:
+    CTX_KW df_decraration SEMICOL
+    ;
+statement:
+    df_decraration SEMICOL
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL
+    ;
+s_statements:
+    s_statement s_statements
+    | s_loop_statement s_statements
+    | s_if_else_statement s_statements
+    | s_if_statement s_statements
+    | /* EMPTY */
+    ;
+s_statement:
+    IDENTIFIER suffixes IDENTIFIER SEMICOL /* functionnal block instanciation */
+    | IDENTIFIER PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL /* plugging expr to block input */
+    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL /* attaching logical process to another or a physical */
+    | df_decraration SEMICOL /* declaring a variable */
+    | function_call SEMICOL
+    | statement
+    ;
+c_statements:
+    c_statement c_statements
+    | c_loop_statement c_statements
+    | c_if_else_statement c_statements
+    | c_if_statement c_statements
+    | /* EMPTY */
+    ;
+c_statement:
+    cdf_full_declaration SEMICOL
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL
+    ;
+output:
+    ARROW L_PARENTH list_expr R_PARENTH
+    ;
+named_outputs:
+    named_output named_outputs
+    | /* EMPTY */
+    ;
+named_output:
+    ARROW IDENTIFIER L_PARENTH list_expr R_PARENTH
+    ;
+p_named_outputs:
+    p_named_output p_named_outputs
+    | /* EMPTY */
+    ;
+p_named_output:
+    ARROW ACTUATOR_KW IDENTIFIER L_PARENTH exprs R_PARENTH
+    | named_output
+    ;
+c_named_outputs:
+    c_named_output c_named_outputs
+    | /* EMPTY */
+    ;
+c_named_output:
+    ARROW IDENTIFIER L_PARENTH c_expr R_PARENTH
+    ;
+df_parameter_list:
+    df_parameter_decls
+    | /* EMPTY */
+    ;
+df_parameter_decls:
+    df_parameter_decl
+    | df_parameter_decl COMMA df_parameter_decls
+    ;
+df_parameter_decl:
+    df_type IDENTIFIER may_assign
+    ;
+df_type:
+    INT_KW suffixes
+    | FLOAT_KW suffixes
+    | BOOL_KW suffixes
+    ;
+pdf_parameter_type:
+    df_type
+    | SENSOR_KW df_type
+    ;
+pdf_parameter_type:
+    df_type
+    | SENSOR_KW df_type
+    ;
+pdf_parameter_list:
+    pdf_parameter_decls
+    | /* EMPTY */
+    ;
+pdf_parameter_decls:
+    pdf_parameter_decl
+    | pdf_parameter_decl COMMA pdf_declaration_decls
+    ;
+pdf_parameter_decl:
+    pdf_parameter_type IDENTIFIER may_assign
+    ;
+cdf_defaulted_decls:
+    cdf_defaulted_decl
+    | cdf_defaulted_decl COMMA cdf_defaulted_decls
+    ;
+cdf_defaulted_decl:
+    df_type IDENTIFIER ASSIGN stopless_c_expr
+    ;
+df_decraration:
+    df_type IDENTIFIER may_assign
+    ;
+cdf_full_declaration:
+    df_type IDENTIFIER c_may_assign
+    ;
+c_may_assign:
+    ASSIGN c_expr
+    | /* EMPTY */
+    ;
+may_assign:
+    ASSIGN expr
+    | /* EMPTY */
+    ;
 ```
