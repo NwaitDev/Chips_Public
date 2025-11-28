@@ -221,6 +221,9 @@ suffix:
 suffixable_expr:
     IDENTIFIER /* df_variable */
     | function_call 
+    ;
+s_suffixable_expr:
+    suffixable_expr
     | IDENTIFIER PERIOD IDENTIFIER /* block named output */
     ;
 loop_statement:
@@ -234,7 +237,7 @@ c_loop_statement:
     R_CURL
     ;
 s_loop_statement:
-    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL 
+    FOREACH_KW IDENTIFIER IN_KW s_suffixable_expr L_CURL 
         s_statements 
     R_CURL
     ;
@@ -283,19 +286,19 @@ p_statements:
     | statements p_statements
     | /* EMPTY */
     ;
-p_statement:
-    CTX_KW df_decraration SEMICOL
-    ;
-statement:
-    df_decraration SEMICOL
-    | IDENTIFIER suffixes ASSIGN expr SEMICOL
-    ;
 s_statements:
     s_statement s_statements
     | s_loop_statement s_statements
     | s_if_else_statement s_statements
     | s_if_statement s_statements
     | /* EMPTY */
+    ;
+p_statement:
+    CTX_KW df_decraration SEMICOL
+    ;
+statement:
+    df_decraration SEMICOL
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL
     ;
 s_statement:
     IDENTIFIER suffixes IDENTIFIER SEMICOL /* functionnal block instanciation */
