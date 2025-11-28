@@ -317,7 +317,7 @@ c_statements:
     ;
 c_statement:
     cdf_full_declaration SEMICOL
-    | IDENTIFIER suffixes ASSIGN expr SEMICOL
+    | IDENTIFIER suffixes ASSIGN c_expr SEMICOL
     ;
 output:
     ARROW L_PARENTH list_expr R_PARENTH
