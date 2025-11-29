@@ -16,5 +16,10 @@ int driver::parse (const std::string &f)
   theparser.set_debug_level (trace_parsing);
   int res = theparser.parse ();
   scan_end ();
+
+  if(res == 0 && ast){
+    std::cout << "AST généré avec succès!" << std::endl;
+    ast->node_print();
+  }
   return res;
 }
