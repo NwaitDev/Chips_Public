@@ -9,67 +9,81 @@
 #include <utility>
 #include <iostream>
 
+// /*
+//     Configuration stuff
+// */
+
+namespace chips {
+
+    inline namespace v1 {
+
+        class dimension_node : public ast_node {
+            private:
+                // std::unique_ptr<number_literal_node> dimension;
+            public:
+                dimension_node() = default;
+
+                // dimension_node(std::unique_ptr<number_literal_node> dimension)
+                //     : dimension(std::move(dimension)){}
+
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    // TODO
+                }
+        };
+
+        class system_node : ast_node {
+        private:
+            std::unique_ptr<dimension_node> dimension = nullptr;
+            // std::unique_ptr<c_statements_node> sstatements;
+
+        public:
+            system_node() = default;
+
+            // system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
+            //     : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
+
+            void accept(chips_visitor& visitor){
+                // TODO
+            }
+
+            void node_print() override {
+                std::cout << "SYSTEM {\n";
+                // TODO
+                std::cout << "}" << std::endl;
+            }
+        };
 
 
+        class chips_node : ast_node {
+            private:
+            // std::unique_ptr<preambles_node> preambles;
+            std::unique_ptr<system_node> system;
 
+            public:
+            chips_node() = default;
 
+            chips_node(std::unique_ptr<system_node>& system)
+                : system(std::move(system)) {}
 
+            // chips_node(std::unique_ptr<preambles_node>& preambles, std::unique_ptr<system_node>& system)
+            //     : preambles(std::move(preambles)), system(std::move(system)) {}
 
+            void accept(chips_visitor& visitor){
+                // TODO
+            }
 
+            void node_print() override {
+                // TODO: print preambles if needed
+                if (system) {  // Vérifie si system contient une valeur
+                    system->node_print();
+                }
+            }
 
-
-
-
-
-
-/*
-    Configuration stuff
-*/
-
-class dimension_node : public ast_node {
-private:
-    std::unique_ptr<number_literal_node> dimension;
-public:
-    dimension_node(std::unique_ptr<number_literal_node> dimension)
-        : dimension(std::move(dimension)){}
-    void accept(chips_visitor& visitor);
-
-    inline void hello() override {std::cout << "hello from dimension_node\n";}
-};
-
-class system_node : public ast_node {
-    std::unique_ptr<dimension_node> dimension = nullptr;
-    std::unique_ptr<c_statements_node> sstatements;
-public:
-    system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
-        : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
-
-    system_node(std::unique_ptr<c_statements_node>& sstatements)
-        : sstatements(std::move(sstatements)) {}
-    
-    void accept(chips_visitor& visitor);
-
-    inline void hello() override {std::cout << "hello from system_node\n";}
-};
-
-class chips_node : public ast_node{
-private:
-    preambles_node preambles;
-    std::unique_ptr<system_node> system;
-public:
-
-    chips_node(){}
-
-    chips_node(std::unique_ptr<preambles_node>& preambles, std::unique_ptr<system_node>& system)
-        : preambles(std::move(preambles)), system(std::move(system)) {}
-
-    void accept(chips_visitor& visitor){
-        // TODO
+        };
     }
 
-    inline void hello() override {std::cout << "hello from chips_node\n";}
-
-};
-
+}
 
 #endif 
