@@ -5,6 +5,7 @@
 //#include "./ChipsADS.hpp"
 #include "./chips_ast_classes.hpp"
 #include "./chips_expressions.hpp"
+#include "./chips_overall_stts.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -41,7 +42,7 @@ namespace chips {
         class system_node : ast_node {
         private:
             std::unique_ptr<dimension_node> dimension = nullptr;
-            // std::unique_ptr<c_statements_node> sstatements;
+            std::unique_ptr<c_statements_node> sstatements;
 
         public:
             system_node() = default;
@@ -49,8 +50,8 @@ namespace chips {
             system_node(std::unique_ptr<dimension_node> dimension)
                 : dimension(std::move(dimension)) {}
 
-            // system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
-            //     : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
+            system_node(std::unique_ptr<dimension_node> dimension, std::unique_ptr<c_statements_node> sstatements)
+                : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
 
             void accept(chips_visitor& visitor){
                 // TODO
@@ -62,7 +63,9 @@ namespace chips {
                     dimension->node_print();
                 }
                 std::cout << "{\n";
-                // TODO
+                if(sstatements){
+                    sstatements->node_print();
+                }
                 std::cout << "}" << std::endl;
             }
         };

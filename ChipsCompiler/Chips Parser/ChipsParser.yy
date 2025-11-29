@@ -76,7 +76,7 @@
 // %type <std::unique_ptr<rhs_assignment_node>> assign_rhs
 // %type <std::unique_ptr<expressions_node>> list_expr
 %type <std::unique_ptr<chips::dimension_node>> optional_dim
-// %type <std::unique_ptr<c_statements_node>> c_statements
+%type <std::unique_ptr<chips::c_statements_node>> c_statements
 // %type <std::unique_ptr<c_statement_node>> c_statement
 // %type <std::unique_ptr<c_loop_node>> c_loop
 // %type <std::unique_ptr<c_if_else_node>> c_if_else
@@ -269,7 +269,7 @@ list_expr:
 system:
     SYSTEM_KW optional_dim L_CURL 
         c_statements
-    R_CURL                                      {/* $$ = std::move(std::make_unique<system_node>($2, $4));  $$->hello(); */ $$ = std::move(std::make_unique<chips::system_node>(std::move($2))); }
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::system_node>(std::move($2), std::move($4))); }
     ;
 optional_dim:
     DIMENSION_KW L_PARENTH INT R_PARENTH        { $$ = std::move(std::make_unique<chips::dimension_node>(std::move(std::make_unique<chips::number_literal_node>($3)))); }
@@ -280,7 +280,7 @@ c_statements:
     | c_loop c_statements                       {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
     | c_if_else c_statements                    {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
     | c_if c_statements                         {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<c_statements_node>());  $$->hello(); */}
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::c_statements_node>()); }
     ;
 
 %%
