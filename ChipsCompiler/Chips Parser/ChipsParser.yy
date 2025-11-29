@@ -90,7 +90,7 @@
 %start chips;
 
 chips:
-    preambles system                    { $$ = std::move(std::make_unique<chips::chips_node>($2));
+    preambles system                    { $$ = std::move(std::make_unique<chips::chips_node>(std::move($2)));
                                           drv.ast = std::move($$);                                          }
     ;
 preambles:
@@ -269,11 +269,11 @@ list_expr:
 system:
     SYSTEM_KW optional_dim L_CURL 
         c_statements
-    R_CURL                                      {/* $$ = std::move(std::make_unique<system_node>($2, $4));  $$->hello(); */ $$ = std::move(std::make_unique<chips::system_node>()); }
+    R_CURL                                      {/* $$ = std::move(std::make_unique<system_node>($2, $4));  $$->hello(); */ $$ = std::move(std::make_unique<chips::system_node>(std::move($2))); }
     ;
 optional_dim:
-    DIMENSION_KW L_PARENTH INT R_PARENTH        {/* $$ = std::move(std::make_unique<dimension_node>(std::move(std::make_unique<number_literal_node>($3))));  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<chips::dimension_node>(std::move(std::make_unique<number_literal_node>(0)))); */}
+    DIMENSION_KW L_PARENTH INT R_PARENTH        { $$ = std::move(std::make_unique<chips::dimension_node>(std::move(std::make_unique<chips::number_literal_node>($3)))); }
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::dimension_node>(std::move(std::make_unique<chips::number_literal_node>(0)))); }
     ;
 c_statements:
     c_statement SEMICOL c_statements            {/* $$ = std::move($3); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}

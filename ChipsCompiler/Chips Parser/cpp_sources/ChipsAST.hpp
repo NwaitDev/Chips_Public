@@ -4,6 +4,7 @@
 
 //#include "./ChipsADS.hpp"
 #include "./chips_ast_classes.hpp"
+#include "./chips_expressions.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -19,17 +20,21 @@ namespace chips {
 
         class dimension_node : public ast_node {
             private:
-                // std::unique_ptr<number_literal_node> dimension;
+                std::unique_ptr<number_literal_node> dimension;
             public:
                 dimension_node() = default;
 
-                // dimension_node(std::unique_ptr<number_literal_node> dimension)
-                //     : dimension(std::move(dimension)){}
+                dimension_node(std::unique_ptr<number_literal_node> dimension)
+                    : dimension(std::move(dimension)){}
 
                 void accept(chips_visitor& visitor);
 
                 void node_print() override {
-                    // TODO
+                    std::cout << "dimensions(";
+                    if (dimension) {
+                        dimension->node_print();
+                    };
+                    std::cout << ") ";
                 }
         };
 
@@ -41,6 +46,9 @@ namespace chips {
         public:
             system_node() = default;
 
+            system_node(std::unique_ptr<dimension_node> dimension)
+                : dimension(std::move(dimension)) {}
+
             // system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
             //     : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
 
@@ -49,7 +57,11 @@ namespace chips {
             }
 
             void node_print() override {
-                std::cout << "SYSTEM {\n";
+                std::cout << "SYSTEM ";
+                if (dimension) {
+                    dimension->node_print();
+                }
+                std::cout << "{\n";
                 // TODO
                 std::cout << "}" << std::endl;
             }
@@ -64,7 +76,7 @@ namespace chips {
             public:
             chips_node() = default;
 
-            chips_node(std::unique_ptr<system_node>& system)
+            chips_node(std::unique_ptr<system_node> system)
                 : system(std::move(system)) {}
 
             // chips_node(std::unique_ptr<preambles_node>& preambles, std::unique_ptr<system_node>& system)
