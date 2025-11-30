@@ -189,23 +189,23 @@ expr:
     | expr0                             { $$ = std::move($1); }
     ;
 expr0:
-    expr1 PLUS expr0                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,PLUS_EXP,$3));  $$->hello(); */}
-    | expr1 MINUS expr0                 {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MINUS_EXP,$3));  $$->hello(); */}
+    expr1 PLUS expr0                    { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::PLUS_EXP,std::move($3))); }
+    | expr1 MINUS expr0                 { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::MINUS_EXP,std::move($3))); }
     | MINUS expr0                       {/* $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP,$2));  $$->hello(); */}
     | expr1                             { $$ = std::move($1); }
     ;
 expr1: 
-    expr2 TIMES expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,TIMES_EXP,$3));  $$->hello(); */}
-    | expr2 DIV expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,DIV_EXP,$3));  $$->hello(); */}
-    | expr2 MOD expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MOD_EXP,$3));  $$->hello(); */}
+    expr2 TIMES expr1                   { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::TIMES_EXP,std::move($3))); }
+    | expr2 DIV expr1                   { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::DIV_EXP,std::move($3))); }
+    | expr2 MOD expr1                   { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::MOD_EXP,std::move($3))); }
     | expr2                             { $$ = std::move($1); }
     | NOT expr2                         {/* $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP,$2));  $$->hello(); */}
     ;
 expr2: 
     suffixable_expr suffixes                    {/* $$ = std::move(std::make_unique<suffixised_node>($1,$2));  $$->hello(); */}
-    | INT                                       {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
+    | INT                                       { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | FLOAT                                     { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
-    | BOOL                                      {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
+    | BOOL                                      { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | L_PARENTH expr R_PARENTH                  {/* $$ = std::move($2);  $$->hello(); */}
     | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
     ;

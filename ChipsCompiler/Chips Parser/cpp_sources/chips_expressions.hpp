@@ -15,6 +15,45 @@ namespace chips {
 
         class expression_node : public ast_node {};
 
+        class binary_expression_node : public expression_node {
+            private:
+                std::unique_ptr<expression_node> lhs;
+                const EXPRESSION_TYPE type;
+                std::unique_ptr<expression_node> rhs;
+            public:
+                binary_expression_node(std::unique_ptr<expression_node> lhs, EXPRESSION_TYPE type, std::unique_ptr<expression_node> rhs)
+                    : lhs(std::move(lhs)), type(type), rhs(std::move(rhs)) {}
+                
+                void accept(chips_visitor& visitor) ;
+
+                void node_print() override {
+                    lhs->node_print();
+                    switch (type) {
+                        case PLUS_EXP:
+                            std::cout << " + ";
+                            break;
+                        case MINUS_EXP:
+                            std::cout << " - ";
+                            break;
+                        case TIMES_EXP:
+                            std::cout << " * ";
+                            break;
+                        case DIV_EXP:   
+                            std::cout << " / ";
+                            break;
+                        case MOD_EXP:
+                            std::cout << " % ";
+                            break;
+                        default:
+                            std::cout << " Unknown Binary Operator ";
+                            break;
+                    }
+                    rhs->node_print();
+                }
+        };
+
+        class suffixable_node : public expression_node {};
+
         class number_literal_node : public expression_node {
             private:
                 union{
@@ -94,20 +133,9 @@ namespace chips {
 
 }
 
-// class suffixable_node : public expression_node {};
 
-// class binary_expression_node : public expression_node {
-// private:
-//     std::unique_ptr<expression_node> lhs;
-//     const EXPRESSION_TYPE type;
-//     std::unique_ptr<expression_node> rhs;
-// public:
-//     binary_expression_node(std::unique_ptr<expression_node>& lhs, EXPRESSION_TYPE type, std::unique_ptr<expression_node>& rhs)
-//         : lhs(std::move(lhs)), type(type), rhs(std::move(rhs)) {}
-    
-//     void accept(chips_visitor& visitor) ;
-//     inline void hello() override {std::cout << "hello from binary_expression_node\n";}
-// };
+
+
 
 // class unary_expression_node : public expression_node {
 // private:
