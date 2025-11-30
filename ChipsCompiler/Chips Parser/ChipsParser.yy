@@ -72,7 +72,7 @@
 %type <std::unique_ptr<chips::suffix_node>> suffix
 %type <std::unique_ptr<chips::suffixes_node>> suffixes
 %type <std::unique_ptr<chips::expression_node>> expr expr0 expr1 expr2
-// %type <std::unique_ptr<suffixable_node>> suffixable_expr
+%type <std::unique_ptr<chips::suffixable_node>> suffixable_expr
 %type <std::unique_ptr<chips::rhs_assignment_node>> assign_rhs
 // %type <std::unique_ptr<expressions_node>> list_expr
 %type <std::unique_ptr<chips::dimension_node>> optional_dim
@@ -191,7 +191,7 @@ expr:
 expr0:
     expr1 PLUS expr0                    { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::PLUS_EXP,std::move($3))); }
     | expr1 MINUS expr0                 { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::MINUS_EXP,std::move($3))); }
-    | MINUS expr0                       {/* $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP,$2));  $$->hello(); */}
+    | MINUS expr0                       { $$ = std::move(std::make_unique<chips::unary_expression_node>(chips::U_MINUS_EXP,std::move($2))); }
     | expr1                             { $$ = std::move($1); }
     ;
 expr1: 
@@ -199,10 +199,10 @@ expr1:
     | expr2 DIV expr1                   { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::DIV_EXP,std::move($3))); }
     | expr2 MOD expr1                   { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::MOD_EXP,std::move($3))); }
     | expr2                             { $$ = std::move($1); }
-    | NOT expr2                         {/* $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP,$2));  $$->hello(); */}
+    | NOT expr2                         { $$ = std::move(std::make_unique<chips::unary_expression_node>(chips::NOT_EXP,std::move($2))); }
     ;
 expr2: 
-    suffixable_expr suffixes                    {/* $$ = std::move(std::make_unique<suffixised_node>($1,$2));  $$->hello(); */}
+    suffixable_expr suffixes                    { $$ = std::move(std::make_unique<chips::suffixised_node>(std::move($1),std::move($2))); }
     | INT                                       { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | FLOAT                                     { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | BOOL                                      { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
@@ -211,7 +211,7 @@ expr2:
     ;
 suffixable_expr:
     function_call                               {/* $$ = std::move($1);  $$->hello(); */}
-    | NAME                                      {/* $$ = std::move(std::make_unique<variable_node>($1));  $$->hello(); */}
+    | NAME                                      { $$ = std::move(std::make_unique<chips::variable_node>(std::move($1))); }
     | NAME OUTPUT_SUF                           {/* $$ = std::move(std::make_unique<object_virtual_output_node>($1));  $$->hello(); */}
     | THIS_KW PERIOD NAME PERIOD NAME           {/* $$ = std::move(std::make_unique<object_physical_attribute_node>($5,$3));  $$->hello(); */}
     ;

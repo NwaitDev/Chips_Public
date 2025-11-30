@@ -52,6 +52,32 @@ namespace chips {
                 }
         };
 
+        class unary_expression_node : public expression_node {
+            private:
+                const EXPRESSION_TYPE type;
+                std::unique_ptr<expression_node> operand;
+            public:
+                unary_expression_node( EXPRESSION_TYPE type, std::unique_ptr<expression_node> operand)
+                    : type(type), operand(std::move(operand)) {}
+                
+                void accept(chips_visitor& visitor) ;
+
+                void node_print() override {
+                    switch (type) {
+                        case U_MINUS_EXP:
+                            std::cout << "-";
+                            break;
+                        case NOT_EXP:
+                            std::cout << "!";
+                            break;
+                        default:
+                            std::cout << " Unknown Unary Operator ";
+                            break;
+                    }
+                    operand->node_print();
+                }
+        };
+
         class suffixable_node : public expression_node {};
 
         class number_literal_node : public expression_node {
@@ -129,99 +155,97 @@ namespace chips {
                 }
         };
 
+        // class function_call_node : public suffixable_node {
+        //     private:
+        //         const EXPRESSION_TYPE type = FCALL_EXP;
+        //         std::string ident;
+        //         std::unique_ptr<expressions_node> operands;
+        //     public:
+        //         function_call_node(std::string ident, std::unique_ptr<expressions_node>& operands)
+        //             :ident(ident),operands(std::move(operands)){}
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from function_call_node\n";}
+        // };
+
+        class suffixised_node : public expression_node {
+            private:
+                std::unique_ptr<suffixable_node> base;
+                std::unique_ptr<suffixes_node> suffixes;
+            public:
+                suffixised_node() = default;
+                suffixised_node(std::unique_ptr<suffixable_node> base, std::unique_ptr<suffixes_node> suffixes)
+                : base(std::move(base)), suffixes(std::move(suffixes)) {}
+
+                void accept(chips_visitor& visitor);
+                void node_print() override {
+                    if(base != nullptr){
+                        base->node_print();
+                    } else {
+                        std::cout << "(no base) ";
+                    }
+                    if(suffixes != nullptr){
+                        suffixes->node_print();
+                    } else {
+                        std::cout << "(no suffixes)";
+                    }
+                    // suffixes->node_print();
+                }
+            
+        };
+
+        class variable_node : public suffixable_node {
+            private:
+                std::string ident;
+            public:
+                variable_node(std::string ident)
+                    :ident(std::move(ident)) {}
+
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    std::cout << ident;
+                }
+        };
+
+
+        // class object_virtual_output_node : public suffixable_node {
+        //     private:
+        //         const EXPRESSION_TYPE type = OBJ_VIRT_OUT_EXP;
+        //         std::string ident;
+        //     public:
+        //         object_virtual_output_node(std::string ident) : ident(ident){}
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from object_virtual_output_node\n";}
+        // };
+
+        // class object_physical_attribute_node : public suffixable_node {
+        //     private:
+        //         const EXPRESSION_TYPE type = OBJ_PHY_ATTR_EXP;
+        //         std::string attribute;
+        //         std::string element;
+        //     public:
+        //         object_physical_attribute_node(std::string attr, std::string& elem) : attribute(attr), element(std::move(elem)){}
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from object_physical_attribute_node\n";}
+        // };
+
+
+
+        // class cast_node : public expression_node {
+        //     private:
+        //         std::unique_ptr<dataflow_type_node> type;
+        //         std::unique_ptr<expression_node> expr;
+        //     public:
+        //         cast_node(std::unique_ptr<dataflow_type_node>& type, std::unique_ptr<expression_node>& expr) 
+        //             : expr(std::move(expr)), type(std::move(type)) {}
+                
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from cast_node\n";}
+        // };
+
     }
 
 }
-
-
-
-
-
-// class unary_expression_node : public expression_node {
-// private:
-//     const EXPRESSION_TYPE type;
-//     std::unique_ptr<expression_node> operand;
-// public:
-//     unary_expression_node( EXPRESSION_TYPE type, std::unique_ptr<expression_node>& operand)
-//         : type(type), operand(std::move(operand)) {}
-    
-//     void accept(chips_visitor& visitor) ;
-//     inline void hello() override {std::cout << "hello from unary_expression_node\n";}
-// };
-
-
-
-// class function_call_node : public suffixable_node {
-// private:
-//     const EXPRESSION_TYPE type = FCALL_EXP;
-//     std::string ident;
-//     std::unique_ptr<expressions_node> operands;
-// public:
-//     function_call_node(std::string ident, std::unique_ptr<expressions_node>& operands)
-//         :ident(ident),operands(std::move(operands)){}
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from function_call_node\n";}
-// };
-
-// class suffixised_node : public expression_node {
-// private:
-//     std::unique_ptr<suffixes_node> suffixes;
-// public:
-//     suffixised_node(std::unique_ptr<suffixes_node>& suffixes)
-//     : suffixes(std::move(suffixes)) {}
-
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from suffixes_node\n";}
-    
-// };
-
-// class variable_node : public suffixised_node {
-// private:
-//     std::string ident;
-// public:
-//     variable_node(std::string ident, std::unique_ptr<suffixes_node> suff)
-//         :ident(ident), suffixised_node(suff) {}
-
-//     void accept(chips_visitor& visitor);
-
-//     inline void hello() override {std::cout << "hello from variable_node\n";}
-// };
-
-
-// class object_virtual_output_node : public suffixable_node {
-// private:
-//     const EXPRESSION_TYPE type = OBJ_VIRT_OUT_EXP;
-//     std::string ident;
-// public:
-//     object_virtual_output_node(std::string ident) : ident(ident){}
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from object_virtual_output_node\n";}
-// };
-
-// class object_physical_attribute_node : public suffixable_node {
-// private:
-//     const EXPRESSION_TYPE type = OBJ_PHY_ATTR_EXP;
-//     std::string attribute;
-//     std::string element;
-// public:
-//     object_physical_attribute_node(std::string attr, std::string& elem) : attribute(attr), element(std::move(elem)){}
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from object_physical_attribute_node\n";}
-// };
-
-
-
-// class cast_node : public expression_node {
-// private:
-//     std::unique_ptr<dataflow_type_node> type;
-//     std::unique_ptr<expression_node> expr;
-// public:
-//     cast_node(std::unique_ptr<dataflow_type_node>& type, std::unique_ptr<expression_node>& expr) 
-//         : expr(std::move(expr)), type(std::move(type)) {}
-    
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from cast_node\n";}
-// };
 
 
 #endif
