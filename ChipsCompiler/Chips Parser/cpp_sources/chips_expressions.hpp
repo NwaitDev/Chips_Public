@@ -44,6 +44,24 @@ namespace chips {
                         case MOD_EXP:
                             std::cout << " % ";
                             break;
+                        case LT_EXP:
+                            std::cout << " < ";
+                            break;
+                        case GT_EXP:
+                            std::cout << " > ";
+                            break;
+                        case LEQ_EXP:
+                            std::cout << " <= ";
+                            break;
+                        case GEQ_EXP:
+                            std::cout << " >= ";
+                            break;
+                        case EQ_EXP:
+                            std::cout << " == ";
+                            break;
+                        case NEQ_EXP:
+                            std::cout << " != ";
+                            break;
                         default:
                             std::cout << " Unknown Binary Operator ";
                             break;

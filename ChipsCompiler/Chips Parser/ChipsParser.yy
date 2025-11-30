@@ -180,12 +180,12 @@ cast:
     df_type L_PARENTH expr R_PARENTH    {/* $$ = std::move(std::make_unique<cast_node>($1, $3));  $$->hello(); */}
     ;
 expr:
-    expr0 LT expr                       {/* $$ = std::move(std::make_unique<binary_expression_node>($1,LT_EXP,$3));  $$->hello(); */}
-    | expr0 GT expr                     {/* $$ = std::move(std::make_unique<binary_expression_node>($1,GT_EXP,$3));  $$->hello(); */}
-    | expr0 LEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,LEQ_EXP,$3));  $$->hello(); */}
-    | expr0 GEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,GEQ_EXP,$3));  $$->hello(); */}
-    | expr0 NEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,NEQ_EXP,$3));  $$->hello(); */}
-    | expr0 EQ expr                     {/* $$ = std::move(std::make_unique<binary_expression_node>($1,EQ_EXP,$3));  $$->hello(); */}
+    expr0 LT expr                       { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::LT_EXP,std::move($3))); }
+    | expr0 GT expr                     { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::GT_EXP,std::move($3))); }
+    | expr0 LEQ expr                    { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::LEQ_EXP,std::move($3))); }
+    | expr0 GEQ expr                    { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::GEQ_EXP,std::move($3))); }
+    | expr0 NEQ expr                    { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::NEQ_EXP,std::move($3))); }
+    | expr0 EQ expr                     { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::EQ_EXP,std::move($3))); }
     | expr0                             { $$ = std::move($1); }
     ;
 expr0:
