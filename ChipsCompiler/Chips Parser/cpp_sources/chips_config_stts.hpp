@@ -16,49 +16,80 @@ namespace chips {
 
     inline namespace v1 {
 
+        class c_statement_node : public ast_node {
+
+        public:
+            virtual ~c_statement_node() = default;
+            //virtual void accept(chips_visitor& visitor) = 0;
+            virtual void node_print() = 0;
+
+        };
+
         class c_statements_node : ast_node {
             private:
-                // std::vector<std::unique_ptr<c_statement_node>> sstatements;
+                std::vector<std::unique_ptr<c_statement_node>> sstatements;
             public:
 
-                c_statements_node() = default;
+                c_statements_node() 
+                    : sstatements(std::vector<std::unique_ptr<c_statement_node>>()){};
 
-                // c_statements_node() 
-                //     : sstatements(std::vector<std::unique_ptr<c_statement_node>>()){};
-
-                // c_statements_node(std::unique_ptr<c_statements_node>& sstatements)
-                //     : sstatements(std::move(sstatements->sstatements)){}
+                c_statements_node(std::unique_ptr<c_statements_node> sstatements)
+                    : sstatements(std::move(sstatements->sstatements)){}
                 
-                // inline void append(std::unique_ptr<c_statement_node>& sttmt){sstatements.push_back(std::move(sttmt));}
+                inline void append(std::unique_ptr<c_statement_node> sttmt){sstatements.push_back(std::move(sttmt));}
 
                 void accept(chips_visitor& visitor);
 
                 void node_print() override {
-                    std::cout << "c_statements_node" << std::endl;
+                    // std::cout << "c_statements_node" << std::endl;
+                    // if(sstatements.empty()){
+                    //     std::cout << "  (empty)" << std::endl;
+                    // }else{
+                    //     std::cout << sstatements.size() << " statements:" << std::endl;
+                    // }
+                    for(auto& sttmt : sstatements){
+                        if(sttmt == nullptr) {  // AJOUTEZ les accolades ici
+                            // std::cout << "null\n"; 
+                            continue;
+                        }
+                        sttmt->node_print();
+                    }
                 }
+        };
+
+        
+
+        class c_assignment_node : public c_statement_node{
+            private:
+                std::string ofname;
+                // std::unique_ptr<suffixes_node> qty;
+                // std::unique_ptr<expressions_node> exprs;
+
+            public:
+
+                c_assignment_node() = default;
+
+                // c_assignment_node(std::string ofname, std::unique_ptr<suffixes_node>& qty, std::unique_ptr<expressions_node>& exprs)
+                //     : ofname(ofname), qty(std::move(qty)), exprs(std::move(exprs)){}
+
+                void accept(chips_visitor& visitor); // TODO
+                
+
+                void node_print() override {
+                    std::cout << "c_assignment_node: " ;
+                    
+                }
+
         };
 
     }
 
 }
 
-// class c_statement_node : public ast_node {};
 
 
-// class c_assignment_node : public c_statement_node{
-// private:
-//     std::string ofname;
-//     std::unique_ptr<suffixes_node> qty;
-//     std::unique_ptr<expressions_node> exprs;
 
-// public:
-//     c_assignment_node(std::string ofname, std::unique_ptr<suffixes_node>& qty, std::unique_ptr<expressions_node>& exprs)
-//         : ofname(ofname), qty(std::move(qty)), exprs(std::move(exprs)){}
 
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from c_assignment_node\n";}
-
-// };
 
 // class at_node : public c_statement_node{
 // private:

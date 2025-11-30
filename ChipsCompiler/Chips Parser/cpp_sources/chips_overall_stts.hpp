@@ -3,12 +3,73 @@
 
 #include "./chips_config_stts.hpp"
 #include "./chips_expressions.hpp"
+#include "./chips_ast_classes.hpp"
 /*
         (NOT CONFIGURATION) STATEMENTS NODES
 */
 
+namespace chips {
 
-// class statement_node : public c_statement_node {};
+    inline namespace v1 {
+
+        class statement_node : public c_statement_node {};
+
+        class rhs_assignment_node : public ast_node {
+            private:
+                std::unique_ptr<expression_node> value = nullptr;
+
+            public:
+                rhs_assignment_node(std::unique_ptr<expression_node>& value)
+                    : value(std::move(value)) {}
+
+                rhs_assignment_node() {}
+                
+                void accept(chips_visitor& visitor);
+                void node_print() override {
+                    if(value != nullptr){  // Ajoutez cette vérification
+                        std::cout << "= ";
+                        value->node_print();
+                        std::cout << ";";
+                    } else {
+                        std::cout << "(value is null)";
+                    }
+                }
+        };
+
+        class dataflow_full_declaration_node : public statement_node {
+            private:
+                const STATEMENT_TYPE type = INST_ST;
+                std::unique_ptr<rhs_assignment_node> assign;
+                std::unique_ptr<dataflow_declaration_node> decl;
+                
+            public:
+                dataflow_full_declaration_node(std::unique_ptr<dataflow_declaration_node> decl, std::unique_ptr<rhs_assignment_node> assign)
+                    : decl(std::move(decl)), assign(std::move(assign)) {}
+
+                dataflow_full_declaration_node(std::unique_ptr<dataflow_declaration_node> decl)
+                    : decl(std::move(decl)), assign(nullptr) {}
+
+                void accept(chips_visitor& visitor) ;
+
+                void node_print() override {
+                    // std::cout << "dataflow_full_declaration_node: ";
+                    if(decl != nullptr){  // Ajoutez cette vérification
+                        decl->node_print();
+                    } else {
+                        std::cout << "(decl is null) ";
+                    }
+                    if(assign != nullptr){
+                        assign->node_print();
+                    } else {
+                        std::cout << "(no assignment)";
+                    }
+                    std::cout << std::endl;
+                }
+        };
+    }
+}
+
+
 
 // class statements_node : public ast_node {
 
@@ -25,19 +86,7 @@
 //     inline void hello() override {std::cout << "hello from statements_node\n";}
 // };
 
-// class rhs_assignment_node : public ast_node {
-// private:
-//     std::unique_ptr<expression_node> value = nullptr;
 
-// public:
-//     rhs_assignment_node(std::unique_ptr<expression_node>& value)
-//         : value(std::move(value)) {}
-
-//     rhs_assignment_node() {}
-    
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from rhs_assignment_node\n";}
-// };
 
 
 // class assignment_node : public statement_node {
@@ -67,22 +116,7 @@
 
 
 
-// class dataflow_full_declaration_node : public statement_node {
-// private:
-//     const STATEMENT_TYPE type = INST_ST;
-//     std::unique_ptr<rhs_assignment_node> assign;
-//     std::unique_ptr<dataflow_declaration_node> decl;
-    
-// public:
-//     dataflow_full_declaration_node(std::unique_ptr<dataflow_declaration_node>& decl, std::unique_ptr<rhs_assignment_node>& assign)
-//         : decl(std::move(decl)), assign(std::move(assign)) {}
-    
-//     dataflow_full_declaration_node(std::unique_ptr<dataflow_declaration_node>& decl)
-//         : decl(std::move(decl)), assign(nullptr){}
-    
-//     void accept(chips_visitor& visitor) ;
-//     inline void hello() override {std::cout << "hello from dataflow_full_declaration_node\n";}
-// };
+
 
 
 // class function_call_statement_node : public statement_node {

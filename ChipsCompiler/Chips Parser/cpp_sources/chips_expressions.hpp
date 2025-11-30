@@ -2,7 +2,9 @@
 #define EXPRESSIONS_H
 
 #include "./chips_ast_classes.hpp"
-#include "./chips_overall.hpp"
+#include <memory>
+#include <vector>
+#include <iostream>
 /*
     EXPRESSION NODES
 */
@@ -10,6 +12,8 @@
 namespace chips {
 
     inline namespace v1 {
+
+        class expression_node : public ast_node {};
 
         class number_literal_node : public expression_node {
             private:
@@ -39,6 +43,49 @@ namespace chips {
                         default:
                             std::cout << "Unknown Number Literal Type";
                             break;
+                    }
+                }
+        };
+
+        class suffix_node : public ast_node {
+            private:
+                std::unique_ptr<expression_node> expression;
+            public:
+                suffix_node(std::unique_ptr<expression_node> expression)
+                : expression(std::move(expression)) {}
+                
+                suffix_node() : expression(nullptr) {}
+
+                void accept(chips_visitor& visitor); // TODO
+                void node_print() override {
+                    std::cout << "suffix_node: ";
+                    if(expression != nullptr){
+                        expression->node_print();
+                    } else {
+                        std::cout << "(no expression)";
+                    }
+                }
+        };
+
+        class suffixes_node : public ast_node {
+            private:
+                std::vector<std::unique_ptr<suffix_node>> suffixes;
+            public:
+                suffixes_node(std::unique_ptr<suffixes_node> suffixes)
+                    : suffixes(std::move(suffixes->suffixes)) {}
+                
+                suffixes_node()
+                    : suffixes(std::move(std::vector<std::unique_ptr<suffix_node>>())) {}
+                
+                inline void append(std::unique_ptr<suffix_node>& suf){suffixes.push_back(std::move(suf));}
+                
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    // std::cout << "suffixes_node: " << suffixes.size();
+                    for (const auto& suf : suffixes) {
+                        suf->node_print();
+                        std::cout << " ";
                     }
                 }
         };
@@ -134,18 +181,7 @@ namespace chips {
 //     inline void hello() override {std::cout << "hello from object_physical_attribute_node\n";}
 // };
 
-// class suffix_node : public ast_node {
-// private:
-//     std::unique_ptr<expression_node> expression;
-// public:
-//     suffix_node(std::unique_ptr<expression_node>& expression)
-//     : expression(std::move(expression)) {}
-    
-//     suffix_node() : expression(nullptr) {}
 
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from suffix_node\n";}
-// };
 
 // class cast_node : public expression_node {
 // private:
@@ -159,20 +195,5 @@ namespace chips {
 //     inline void hello() override {std::cout << "hello from cast_node\n";}
 // };
 
-// class suffixes_node : public ast_node {
-// private:
-//     std::vector<std::unique_ptr<suffix_node>> suffixes;
-// public:
-//     suffixes_node(std::unique_ptr<suffixes_node>& suffixes)
-//         : suffixes(std::move(suffixes->suffixes)) {}
-    
-//     suffixes_node()
-//         : suffixes(std::move(std::vector<std::unique_ptr<suffix_node>>())) {}
-    
-//     inline void append(std::unique_ptr<suffix_node>& suf){suffixes.push_back(std::move(suf));}
-    
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from suffixes_node\n";}
-// };
 
 #endif

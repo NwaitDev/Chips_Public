@@ -55,8 +55,8 @@
 // %type <std::unique_ptr<output_node>> output
 // %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list_or_nothing
 // %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list
-// %type <std::unique_ptr<dataflow_declaration_node>> df_decl_lhs
-// %type <std::unique_ptr<dataflow_type_node>> df_type
+%type <std::unique_ptr<chips::dataflow_declaration_node>> df_decl_lhs
+%type <std::unique_ptr<chips::dataflow_type_node>> df_type
 // %type <std::unique_ptr<expressions_node>> exprs
 // %type <std::unique_ptr<signature_node>> object_signature
 // %type <std::unique_ptr<statements_node>> statements
@@ -64,20 +64,20 @@
 // %type <std::unique_ptr<loop_node>> loop
 // %type <std::unique_ptr<if_node>> if
 // %type <std::unique_ptr<if_else_node>> if_else
-// %type <std::unique_ptr<dataflow_full_declaration_node>> df_full_decl
+%type <std::unique_ptr<chips::dataflow_full_declaration_node>> df_full_decl
 // %type <std::unique_ptr<assignment_node>> assignment
 // %type <std::unique_ptr<function_call_node>> function_call
 // %type <std::unique_ptr<function_call_statement_node>> function_call_sttmt
-// %type <std::unique_ptr<rhs_assignment_node>> may_assign
-// %type <std::unique_ptr<suffix_node>> suffix
-// %type <std::unique_ptr<suffixes_node>> suffixes
-// %type <std::unique_ptr<expression_node>> expr expr0 expr1 expr2
+%type <std::unique_ptr<chips::rhs_assignment_node>> may_assign
+%type <std::unique_ptr<chips::suffix_node>> suffix
+%type <std::unique_ptr<chips::suffixes_node>> suffixes
+%type <std::unique_ptr<chips::expression_node>> expr expr0 expr1 expr2
 // %type <std::unique_ptr<suffixable_node>> suffixable_expr
-// %type <std::unique_ptr<rhs_assignment_node>> assign_rhs
+%type <std::unique_ptr<chips::rhs_assignment_node>> assign_rhs
 // %type <std::unique_ptr<expressions_node>> list_expr
 %type <std::unique_ptr<chips::dimension_node>> optional_dim
 %type <std::unique_ptr<chips::c_statements_node>> c_statements
-// %type <std::unique_ptr<c_statement_node>> c_statement
+%type <std::unique_ptr<chips::c_statement_node>> c_statement
 // %type <std::unique_ptr<c_loop_node>> c_loop
 // %type <std::unique_ptr<c_if_else_node>> c_if_else
 // %type <std::unique_ptr<c_if_node>> c_if
@@ -124,12 +124,12 @@ df_decl_list:
     | df_decl_lhs COMMA df_decl_list    {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
     ;
 df_decl_lhs:
-    df_type NAME                        {/* $$ = std::move(std::make_unique<dataflow_declaration_node>($1, $2));  $$->hello(); */}
+    df_type NAME                        {/*std::cout << "df_type NAME\n";*/  $$ = std::move(std::make_unique<chips::dataflow_declaration_node>(std::move($1), $2)); }
     ;
 df_type:
-    INT_KW suffixes                     {/* $$ = std::move(std::make_unique<dataflow_type_node>(INT_DF,$2));  $$->hello(); */}
-    | FLOAT_KW suffixes                 {/* $$ = std::move(std::make_unique<dataflow_type_node>(FLOAT_DF,$2));  $$->hello(); */}
-    | BOOL_KW suffixes                  {/* $$ = std::move(std::make_unique<dataflow_type_node>(BOOL_DF,$2));  $$->hello(); */}
+    INT_KW suffixes                     { $$ = std::move(std::make_unique<chips::dataflow_type_node>(chips::INT_DF, std::move($2))); }
+    | FLOAT_KW suffixes                 { $$ = std::move(std::make_unique<chips::dataflow_type_node>(chips::FLOAT_DF, std::move($2))); }
+    | BOOL_KW suffixes                  { $$ = std::move(std::make_unique<chips::dataflow_type_node>(chips::BOOL_DF, std::move($2))); }
     ;
 output:
     ARROW L_PARENTH exprs R_PARENTH     {/* $$ = std::move(std::make_unique<output_node>($3));  $$->hello(); */}
@@ -150,31 +150,31 @@ statement:
     | assignment                        {/* $$ = std::move($1);  $$->hello(); */}
     ;
 c_statement: 
-    NAME suffixes NAME                                              {/* $$ = std::move(std::make_unique<function_declaration_node>($1, $2, $3));  $$->hello(); */}
-    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             {/* $$ = std::move(std::make_unique<c_assignment_node>($1, $2, $5));  $$->hello(); */}
-    | LINK_KW NAME TO_KW NAME                                       {/* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
-    | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
-    | df_full_decl                                                  {/* $$ = std::move($1);  $$->hello(); */}
-    | assignment                                                    {/* $$ = std::move($1);  $$->hello(); */}
-    | function_call_sttmt                                           {/* $$ = std::move($1);  $$->hello(); */}
+    NAME suffixes NAME                                              {/*std::cout << "NAME suffixes NAME\n";*//* $$ = std::move(std::make_unique<function_declaration_node>($1, $2, $3));  $$->hello(); */}
+    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             {/*std::cout << "NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<c_assignment_node>($1, $2, $5));  $$->hello(); */}
+    | LINK_KW NAME TO_KW NAME                                       {/*std::cout << "LINK_KW NAME TO_KW NAME\n";*/ /* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
+    | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/*std::cout << "NAME AT_KW L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
+    | df_full_decl                                                  {/*std::cout << "df_full_decl (c_statement)\n";*/  $$ = std::move($1); }
+    | assignment                                                    {/*std::cout << "ASSIGNMENT\n";*/ /* $$ = std::move($1);  $$->hello(); */}
+    | function_call_sttmt                                           {/*std::cout << "function_call_sttmt\n"*/; /* $$ = std::move($1);  $$->hello(); */}
     ;
 df_full_decl:
-    df_decl_lhs may_assign              {/* $$ = std::move(std::make_unique<dataflow_full_declaration_node>($1, $2));  $$->hello(); */}
+    df_decl_lhs may_assign              { $$ = std::move(std::make_unique<chips::dataflow_full_declaration_node>(std::move($1), std::move($2))); }
     ;
 suffixes:
-    suffix suffixes                     {/* $$ = std::move($2); $$->append($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<suffixes_node>());  $$->hello(); */}
+    suffix suffixes                     {/*std::cout << "suffix suffixes\n";*/ $$ = std::move($2); $$->append($1); }
+    | /* EMPTY */                       {/*std::cout << "EMPTY suffixes\n";*/ $$ = std::move(std::make_unique<chips::suffixes_node>()); }
     ;
 suffix:
-    L_SQUA expr R_SQUA                  {/* $$ = std::move(std::make_unique<suffix_node>($2));  $$->hello(); */}
-    | L_SQUA R_SQUA                     {/* $$ = std::move(std::make_unique<suffix_node>());  $$->hello(); */}
+    L_SQUA expr R_SQUA                  {/* $$ = std::move(std::make_unique<chips::suffix_node>($2)); */}
+    | L_SQUA R_SQUA                     {/* $$ = std::move(std::make_unique<chips::suffix_node>());  */}
     ;
 may_assign:
-    assign_rhs                          {/* $$ = std::move($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<rhs_assignment_node>());  $$->hello(); */}
+    assign_rhs                          {/*std::cout << "assign_rhs\n";*/ $$ = std::move($1); }
+    | /* EMPTY */                       {/*std::cout << "EMPTY (may_assign)\n";*/ /* $$ = std::move(std::make_unique<rhs_assignment_node>());  $$->hello(); */}
     ;
 assign_rhs: 
-    ASSIGN expr                         {/* $$ = std::move(std::make_unique<rhs_assignment_node>($2));  $$->hello(); */}
+    ASSIGN expr                         { $$ = std::move(std::make_unique<chips::rhs_assignment_node>($2)); }
     ;
 cast:
     df_type L_PARENTH expr R_PARENTH    {/* $$ = std::move(std::make_unique<cast_node>($1, $3));  $$->hello(); */}
@@ -186,25 +186,25 @@ expr:
     | expr0 GEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,GEQ_EXP,$3));  $$->hello(); */}
     | expr0 NEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,NEQ_EXP,$3));  $$->hello(); */}
     | expr0 EQ expr                     {/* $$ = std::move(std::make_unique<binary_expression_node>($1,EQ_EXP,$3));  $$->hello(); */}
-    | expr0                             {/* $$ = std::move($1);  $$->hello(); */}
+    | expr0                             { $$ = std::move($1); }
     ;
 expr0:
     expr1 PLUS expr0                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,PLUS_EXP,$3));  $$->hello(); */}
     | expr1 MINUS expr0                 {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MINUS_EXP,$3));  $$->hello(); */}
     | MINUS expr0                       {/* $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP,$2));  $$->hello(); */}
-    | expr1                             {/* $$ = std::move($1);  $$->hello(); */}
+    | expr1                             { $$ = std::move($1); }
     ;
 expr1: 
     expr2 TIMES expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,TIMES_EXP,$3));  $$->hello(); */}
     | expr2 DIV expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,DIV_EXP,$3));  $$->hello(); */}
     | expr2 MOD expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MOD_EXP,$3));  $$->hello(); */}
-    | expr2                             {/* $$ = std::move($1);  $$->hello(); */}
+    | expr2                             { $$ = std::move($1); }
     | NOT expr2                         {/* $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP,$2));  $$->hello(); */}
     ;
 expr2: 
     suffixable_expr suffixes                    {/* $$ = std::move(std::make_unique<suffixised_node>($1,$2));  $$->hello(); */}
     | INT                                       {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
-    | FLOAT                                     {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
+    | FLOAT                                     { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | BOOL                                      {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
     | L_PARENTH expr R_PARENTH                  {/* $$ = std::move($2);  $$->hello(); */}
     | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
@@ -276,7 +276,7 @@ optional_dim:
     | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::dimension_node>(std::move(std::make_unique<chips::number_literal_node>(0)))); }
     ;
 c_statements:
-    c_statement SEMICOL c_statements            {/* $$ = std::move($3); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
+    c_statement SEMICOL c_statements            { $$ = std::move($3); $$->append(std::move($1)); }
     | c_loop c_statements                       {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
     | c_if_else c_statements                    {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
     | c_if c_statements                         {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
