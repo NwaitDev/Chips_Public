@@ -64,7 +64,53 @@ namespace chips {
                     }
                     std::cout << name;
                 }
-        };       
+        };  
+        
+        // class dataflow_declarations_node : public ast_node {
+        //     private:
+        //         std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
+        //     public:
+
+        //         dataflow_declarations_node(){}
+
+        //         dataflow_declarations_node(dataflow_declarations_node& decls)
+        //             : decls(std::move(decls.decls)) {}
+
+        //         inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
+                
+                
+        //         void accept(chips_visitor& visitor);
+
+        //         inline void hello() override {std::cout << "hello from ArgDeclarationsNode\n";}
+        // };
+
+        class expressions_node : public ast_node {
+            private:
+                std::vector<std::unique_ptr<expression_node>> exprs;
+                friend class output_node;
+            public:
+
+                expressions_node(): exprs{} {}
+
+                expressions_node(expressions_node& exprs) : exprs(std::move(exprs.exprs)) {}
+                
+                inline void append(std::unique_ptr<expression_node>& expr){exprs.push_back(std::move(expr));};
+                
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    for(const auto& expr : exprs){
+                        expr->node_print();
+                        std::cout << ", ";
+                    }
+                }
+        };
+
+        inline void function_call_node::node_print() {
+            std::cout << ident << "(";
+            if (operands) operands->node_print();
+            std::cout << ")";
+        }
 
     }
 }
@@ -81,39 +127,6 @@ namespace chips {
 
 
 
-// class dataflow_declarations_node : public ast_node {
-// private:
-//     std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
-// public:
 
-//     dataflow_declarations_node(){}
-
-//     dataflow_declarations_node(dataflow_declarations_node& decls)
-//         : decls(std::move(decls.decls)) {}
-
-//     inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
-    
-    
-//     void accept(chips_visitor& visitor);
-
-//     inline void hello() override {std::cout << "hello from ArgDeclarationsNode\n";}
-// };
-
-// class expressions_node : public ast_node {
-// private:
-//     std::vector<std::unique_ptr<expression_node>> exprs;
-//     friend class output_node;
-// public:
-
-//     expressions_node(){}
-
-//     expressions_node(expressions_node& exprs) : exprs(std::move(exprs.exprs)) {}
-    
-//     inline void append(std::unique_ptr<expression_node>& expr){exprs.push_back(std::move(expr));};
-    
-//     void accept(chips_visitor& visitor);
-
-//     inline void hello() override {std::cout << "hello from expressions_node\n";}
-// };
 
 #endif

@@ -173,17 +173,18 @@ namespace chips {
                 }
         };
 
-        // class function_call_node : public suffixable_node {
-        //     private:
-        //         const EXPRESSION_TYPE type = FCALL_EXP;
-        //         std::string ident;
-        //         std::unique_ptr<expressions_node> operands;
-        //     public:
-        //         function_call_node(std::string ident, std::unique_ptr<expressions_node>& operands)
-        //             :ident(ident),operands(std::move(operands)){}
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from function_call_node\n";}
-        // };
+        class function_call_node : public suffixable_node {
+            private:
+                const EXPRESSION_TYPE type = FCALL_EXP;
+                std::string ident;
+                std::unique_ptr<expressions_node> operands;
+            public:
+                function_call_node(std::string ident, std::unique_ptr<expressions_node> operands)
+                    :ident(ident),operands(std::move(operands)){}
+                void accept(chips_visitor& visitor);
+
+                void node_print() override;
+        };
 
         class suffixised_node : public expression_node {
             private:

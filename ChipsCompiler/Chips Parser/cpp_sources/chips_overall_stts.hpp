@@ -81,6 +81,62 @@ namespace chips {
                     std::cout << std::endl;
                 }
         };
+
+        class function_call_statement_node : public statement_node {
+            private:
+                std::unique_ptr<function_call_node> fcall;
+            public:
+                function_call_statement_node(std::unique_ptr<function_call_node> fcall)
+                    : fcall(std::move(fcall)) {}
+                
+                void accept(chips_visitor& visitor) ;
+
+                void node_print() override {
+                    std::cout << "function_call_statement_node: \n";
+                    fcall->node_print();
+                }
+        };
+
+
+        // class if_node : public statement_node {
+        //     private:
+        //         const STATEMENT_TYPE type = IF_ST;
+        //         std::unique_ptr<expression_node> cond;
+        //         std::unique_ptr<statements_node> stts;
+        //     public:
+        //         if_node(std::unique_ptr<expression_node>& cond, std::unique_ptr<statements_node>& stts)
+        //             : cond(std::move(cond)), stts(std::move(stts)) {} 
+        //         void accept(chips_visitor& visitor) ;
+
+        //         inline void hello() override {std::cout << "hello from if_node\n";}
+        // };
+
+        // class if_else_node : public statement_node {
+        //     private:
+        //         const STATEMENT_TYPE type = IFELSE_ST;
+        //         std::unique_ptr<if_node> ifnode;
+        //         std::unique_ptr<statements_node> elsestts;
+        //     public:
+        //         if_else_node(std::unique_ptr<if_node>& ifnode, std::unique_ptr<statements_node>& elsestts)
+        //             : ifnode(std::move(ifnode)) , elsestts(std::move(elsestts)){} 
+        //         void accept(chips_visitor& visitor) ;
+
+        //         inline void hello() override {std::cout << "hello from if_else_node\n";}
+        // };
+
+        // class loop_node : public statement_node {
+        //     private:
+        //         const STATEMENT_TYPE type = LOOP_ST;
+        //         std::string ident;
+        //         std::unique_ptr<suffixable_node> iterable;
+        //         std::unique_ptr<statements_node> stts;
+        //     public:
+        //         loop_node(std::string ident, std::unique_ptr<suffixable_node>& iterable, std::unique_ptr<statements_node>& stts)
+        //             : ident(std::move(ident)), iterable(std::move(iterable)), stts(std::move(stts)) {} 
+        //         void accept(chips_visitor& visitor);
+
+        //         inline void hello() override {std::cout << "hello from loop_node\n";}
+        // };
     }
 }
 
@@ -134,56 +190,6 @@ namespace chips {
 
 
 
-// class function_call_statement_node : public statement_node {
-// private:
-//     std::unique_ptr<function_call_node> fcall;
-// public:
-//     function_call_statement_node(std::unique_ptr<function_call_node>& fcall)
-//         : fcall(std::move(fcall)) {}
-    
-//     void accept(chips_visitor& visitor) ;
-//     inline void hello() {std::cout << "hello from function_call_statement_node\n";}
-// };
 
-
-// class if_node : public statement_node {
-// private:
-//     const STATEMENT_TYPE type = IF_ST;
-//     std::unique_ptr<expression_node> cond;
-//     std::unique_ptr<statements_node> stts;
-// public:
-//     if_node(std::unique_ptr<expression_node>& cond, std::unique_ptr<statements_node>& stts)
-//         : cond(std::move(cond)), stts(std::move(stts)) {} 
-//     void accept(chips_visitor& visitor) ;
-
-//     inline void hello() override {std::cout << "hello from if_node\n";}
-// };
-
-// class if_else_node : public statement_node {
-// private:
-//     const STATEMENT_TYPE type = IFELSE_ST;
-//     std::unique_ptr<if_node> ifnode;
-//     std::unique_ptr<statements_node> elsestts;
-// public:
-//     if_else_node(std::unique_ptr<if_node>& ifnode, std::unique_ptr<statements_node>& elsestts)
-//         : ifnode(std::move(ifnode)) , elsestts(std::move(elsestts)){} 
-//     void accept(chips_visitor& visitor) ;
-
-//     inline void hello() override {std::cout << "hello from if_else_node\n";}
-// };
-
-// class loop_node : public statement_node {
-// private:
-//     const STATEMENT_TYPE type = LOOP_ST;
-//     std::string ident;
-//     std::unique_ptr<suffixable_node> iterable;
-//     std::unique_ptr<statements_node> stts;
-// public:
-//     loop_node(std::string ident, std::unique_ptr<suffixable_node>& iterable, std::unique_ptr<statements_node>& stts)
-//         : ident(std::move(ident)), iterable(std::move(iterable)), stts(std::move(stts)) {} 
-//     void accept(chips_visitor& visitor);
-
-//     inline void hello() override {std::cout << "hello from loop_node\n";}
-// };
 
 #endif

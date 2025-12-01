@@ -57,7 +57,7 @@
 // %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list
 %type <std::unique_ptr<chips::dataflow_declaration_node>> df_decl_lhs
 %type <std::unique_ptr<chips::dataflow_type_node>> df_type
-// %type <std::unique_ptr<expressions_node>> exprs
+%type <std::unique_ptr<chips::expressions_node>> exprs
 // %type <std::unique_ptr<signature_node>> object_signature
 // %type <std::unique_ptr<statements_node>> statements
 // %type <std::unique_ptr<statement_node>> statement
@@ -66,8 +66,8 @@
 // %type <std::unique_ptr<if_else_node>> if_else
 %type <std::unique_ptr<chips::dataflow_full_declaration_node>> df_full_decl
 // %type <std::unique_ptr<assignment_node>> assignment
-// %type <std::unique_ptr<function_call_node>> function_call
-// %type <std::unique_ptr<function_call_statement_node>> function_call_sttmt
+%type <std::unique_ptr<chips::function_call_node>> function_call
+%type <std::unique_ptr<chips::function_call_statement_node>> function_call_sttmt
 %type <std::unique_ptr<chips::rhs_assignment_node>> may_assign
 %type <std::unique_ptr<chips::suffix_node>> suffix
 %type <std::unique_ptr<chips::suffixes_node>> suffixes
@@ -155,8 +155,8 @@ c_statement:
     | LINK_KW NAME TO_KW NAME                                       {/*std::cout << "LINK_KW NAME TO_KW NAME\n";*/ /* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
     | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/*std::cout << "NAME AT_KW L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
     | df_full_decl                                                  {/*std::cout << "df_full_decl (c_statement)\n";*/  $$ = std::move($1); }
-    | assignment                                                    {/*std::cout << "ASSIGNMENT\n";*/ /* $$ = std::move($1);  $$->hello(); */}
-    | function_call_sttmt                                           {/*std::cout << "function_call_sttmt\n"*/; /* $$ = std::move($1);  $$->hello(); */}
+    | assignment                                                    {std::cout << "ASSIGNMENT (c_statement)\n"; /* $$ = std::move($1);  $$->hello(); */}
+    | function_call_sttmt                                           {std::cout << "function_call_sttmt (c_statement)\n"; $$ = std::move($1); }
     ;
 df_full_decl:
     df_decl_lhs may_assign              { $$ = std::move(std::make_unique<chips::dataflow_full_declaration_node>(std::move($1), std::move($2))); }
@@ -252,14 +252,14 @@ c_if:
     R_CURL                                      { $$ = std::move(std::make_unique<chips::c_if_node>(std::move($3), std::move($6))); }
     ;
 function_call:
-    NAME L_PARENTH exprs R_PARENTH              {/* $$ = std::move(std::make_unique<function_call_node>($1,$3));  $$->hello(); */}
+    NAME L_PARENTH exprs R_PARENTH              { $$ = std::move(std::make_unique<chips::function_call_node>(std::move($1),std::move($3))); }
     ;
 function_call_sttmt:
-    function_call                               {/* $$ = std::move(std::make_unique<function_call_statement_node>($1));  $$->hello(); */}
+    function_call                               { $$ = std::move(std::make_unique<chips::function_call_statement_node>(std::move($1))); }
     ;
 exprs:
     list_expr                                   {/* $$ = std::move($1);  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<expressions_node>());  $$->hello(); */}
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::expressions_node>()); }
     ;
 list_expr:
     expr                                        {/* $$ = std::move(std::make_unique<expressions_node>()); $$->append($1);  $$->hello(); */}
