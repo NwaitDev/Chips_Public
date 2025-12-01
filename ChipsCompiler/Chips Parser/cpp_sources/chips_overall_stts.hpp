@@ -92,8 +92,9 @@ namespace chips {
                 void accept(chips_visitor& visitor) ;
 
                 void node_print() override {
-                    std::cout << "function_call_statement_node: \n";
+                    // std::cout << "function_call_statement_node: \n";
                     fcall->node_print();
+                    std::cout << ";\n";
                 }
         };
 

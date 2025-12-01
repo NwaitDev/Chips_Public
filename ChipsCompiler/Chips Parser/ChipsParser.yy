@@ -74,7 +74,7 @@
 %type <std::unique_ptr<chips::expression_node>> expr expr0 expr1 expr2
 %type <std::unique_ptr<chips::suffixable_node>> suffixable_expr
 %type <std::unique_ptr<chips::rhs_assignment_node>> assign_rhs
-// %type <std::unique_ptr<expressions_node>> list_expr
+%type <std::unique_ptr<chips::expressions_node>> list_expr
 %type <std::unique_ptr<chips::dimension_node>> optional_dim
 %type <std::unique_ptr<chips::c_statements_node>> c_statements
 %type <std::unique_ptr<chips::c_statement_node>> c_statement
@@ -258,12 +258,12 @@ function_call_sttmt:
     function_call                               { $$ = std::move(std::make_unique<chips::function_call_statement_node>(std::move($1))); }
     ;
 exprs:
-    list_expr                                   {/* $$ = std::move($1);  $$->hello(); */}
+    list_expr                                   { $$ = std::move($1); }
     | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::expressions_node>()); }
     ;
 list_expr:
-    expr                                        {/* $$ = std::move(std::make_unique<expressions_node>()); $$->append($1);  $$->hello(); */}
-    | expr COMMA list_expr                      {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
+    expr                                        { $$ = std::move(std::make_unique<chips::expressions_node>()); $$->append($1); }
+    | expr COMMA list_expr                      { $$ = std::move($3); $$->append($1); }
     ;
 
 system:

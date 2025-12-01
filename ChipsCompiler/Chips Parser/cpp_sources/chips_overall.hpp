@@ -94,13 +94,16 @@ namespace chips {
 
                 expressions_node(expressions_node& exprs) : exprs(std::move(exprs.exprs)) {}
                 
-                inline void append(std::unique_ptr<expression_node>& expr){exprs.push_back(std::move(expr));};
-                
+                inline void append(std::unique_ptr<expression_node>& expr){
+                    exprs.insert(exprs.begin(), std::move(expr));
+                };
+
                 void accept(chips_visitor& visitor);
 
                 void node_print() override {
                     for(const auto& expr : exprs){
                         expr->node_print();
+                        if(exprs.back() == expr) break;
                         std::cout << ", ";
                     }
                 }
