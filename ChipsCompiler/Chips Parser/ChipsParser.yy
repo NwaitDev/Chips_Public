@@ -30,7 +30,7 @@
 
 
 /*defining the terminal tokens of the grammar*/
-%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW PURE_KW VIRT_KW PHYSICAL_KW IMPORT_KW AS_KW INIT_KW THEN_KW THIS_KW FOREACH_KW AT_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW DIMENSION_KW LINK_KW PERIOD INPUT_SUF OUTPUT_SUF
+%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW PURE_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTED_BY_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW ONTO_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW
 
 %left PLUS MINUS
 %left TIMES DIV
@@ -39,7 +39,7 @@
 /*defining the variable tokens of the grammar*/
 %token <int> INT
 %token <double> FLOAT
-%token <std::string> NAME
+%token <std::string> IDENTIFIER
 %token <std::string> STR
 %token <bool> BOOL
 
@@ -49,239 +49,357 @@
 // %type <std::unique_ptr<preambles_node>> preambles
 // %type <std::unique_ptr<system_node>> system
 // %type <std::unique_ptr<preamble_node>> preamble
-// %type <std::unique_ptr<import_node>> import
-// %type <std::unique_ptr<function_definition_node>> function_def
-// %type <std::unique_ptr<signature_node>> pure_signature
-// %type <std::unique_ptr<output_node>> output
-// %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list_or_nothing
-// %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list
-// %type <std::unique_ptr<dataflow_declaration_node>> df_decl_lhs
-// %type <std::unique_ptr<dataflow_type_node>> df_type
-// %type <std::unique_ptr<expressions_node>> exprs
-// %type <std::unique_ptr<signature_node>> object_signature
-// %type <std::unique_ptr<statements_node>> statements
-// %type <std::unique_ptr<statement_node>> statement
-// %type <std::unique_ptr<loop_node>> loop
-// %type <std::unique_ptr<if_node>> if
-// %type <std::unique_ptr<if_else_node>> if_else
-// %type <std::unique_ptr<dataflow_full_declaration_node>> df_full_decl
-// %type <std::unique_ptr<assignment_node>> assignment
-// %type <std::unique_ptr<function_call_node>> function_call
-// %type <std::unique_ptr<function_call_statement_node>> function_call_sttmt
-// %type <std::unique_ptr<rhs_assignment_node>> may_assign
-// %type <std::unique_ptr<suffix_node>> suffix
-// %type <std::unique_ptr<suffixes_node>> suffixes
-// %type <std::unique_ptr<expression_node>> expr expr0 expr1 expr2
-// %type <std::unique_ptr<suffixable_node>> suffixable_expr
-// %type <std::unique_ptr<rhs_assignment_node>> assign_rhs
-// %type <std::unique_ptr<expressions_node>> list_expr
-// %type <std::unique_ptr<dimension_node>> optional_dim
-// %type <std::unique_ptr<c_statements_node>> c_statements
-// %type <std::unique_ptr<c_statement_node>> c_statement
-// %type <std::unique_ptr<c_loop_node>> c_loop
-// %type <std::unique_ptr<c_if_else_node>> c_if_else
-// %type <std::unique_ptr<c_if_node>> c_if
-// %type <std::unique_ptr<cast_node>> cast
-
-
 
 %%
 
 %start chips;
-
 chips:
-    preambles system                    {/* $$ = std::move(std::make_unique<chips_node>());  $$->hello(); */}
+    preambles system
     ;
 preambles:
-    preamble preambles                  {/* $$ = std::move($2); $$->append($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<preambles_node>());  $$->hello(); */}
+    preamble preambles
+    | /* EMPTY */
+    ;
+system:
+    SYSTEM_KW  L_CURL 
+        s_statements
+    R_CURL
     ;
 preamble:
-    import                              {/* $$ = std::move($1);  $$->hello(); */}
-    | function_def                      {/* $$ = std::move($1);  $$->hello(); */}
+    node_def
+    | function_def
     ;
-import:
-    IMPORT_KW STR AS_KW NAME SEMICOL   {/* $$ = std::move(std::make_unique<import_node>($4, $2));  $$->hello(); */}
+node_def:
+    NODE_KW IDENTIFIER IMPLEMENTED_BY_KW STR L_CURL
+        node_mappings
+    R_CURL
+    ;
+node_mappings:
+    node_mapping node_mappings
+    | /* EMPTY */
+    ;
+node_mapping:
+    HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL
     ;
 function_def:
-    pure_signature output               {/* $$ = std::move(std::make_unique<function_definition_node>($1,$2));  $$->hello(); */}
-    | object_signature INIT_KW L_CURL 
+    pure_function_def
+    | o_function_def
+    | c_function_def
+    ;
+pure_function_def:
+    pure_signature output
+    ;
+o_function_def:
+    l_function_def
+    | p_function_def
+    ;
+c_function_def:
+    c_signature L_CURL
+        c_statements
+    R_CURL
+    ARROW TARGET_KW L_PARENTH c_expr R_PARENTH
+    c_named_outputs
+    ARROW DEFAULT_KW L_PARENTH c_expr R_PARENTH
+    ;
+l_function_def:
+    l_signature 
+    l_definition_body
+    named_output
+    named_outputs
+    ;
+p_function_def:
+    p_signature
+    channels_section
+    p_definition_body
+    p_named_output
+    p_named_outputs
+    ;
+pure_signature:
+    PURE_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    ;
+l_signature:
+    LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    ;
+p_signature:
+    PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
+    ;
+c_signature:
+    SPREAD_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
+    IDENTIFIER ONTO_KW IDENTIFIER
+    | COLLECT_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
+      IDENTIFIER AMONG_KW IDENTIFIER
+    ;
+l_definition_body:
+    INIT_KW L_CURL 
         statements 
     R_CURL THEN_KW L_CURL 
         statements 
-    R_CURL output                       {/* $$ = std::move(std::make_unique<function_definition_node>($1,$4,$8,$10));  $$->hello(); */}
+    R_CURL
     ;
-pure_signature:
-    PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH  {/* $$ = std::move(std::make_unique<signature_node>(PURE, $2, $4));  $$->hello(); */}
-    ;
-df_decl_list_or_nothing:
-    df_decl_list                        {/* $$=std::move($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$=std::move(std::make_unique<dataflow_declarations_node>());  $$->hello(); */}
-    ;
-df_decl_list:
-    df_decl_lhs                         {/* $$ = std::move(std::make_unique<dataflow_declarations_node>()); $$->append($1);  $$->hello(); */}
-    | df_decl_lhs COMMA df_decl_list    {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
-    ;
-df_decl_lhs:
-    df_type NAME                        {/* $$ = std::move(std::make_unique<dataflow_declaration_node>($1, $2));  $$->hello(); */}
-    ;
-df_type:
-    INT_KW suffixes                     {/* $$ = std::move(std::make_unique<dataflow_type_node>(INT_DF,$2));  $$->hello(); */}
-    | FLOAT_KW suffixes                 {/* $$ = std::move(std::make_unique<dataflow_type_node>(FLOAT_DF,$2));  $$->hello(); */}
-    | BOOL_KW suffixes                  {/* $$ = std::move(std::make_unique<dataflow_type_node>(BOOL_DF,$2));  $$->hello(); */}
-    ;
-output:
-    ARROW L_PARENTH exprs R_PARENTH     {/* $$ = std::move(std::make_unique<output_node>($3));  $$->hello(); */}
-    ;
-object_signature:
-    VIRT_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH           {/* $$ = std::move(std::make_unique<signature_node>(VIRTUAL, $2, $4));  $$->hello(); */}
-    | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH     {/* $$ = std::move(std::make_unique<signature_node>(PHYSICAL, $2, $4));  $$->hello(); */}
-    ;
-statements: 
-    statement SEMICOL statements        {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
-    | loop statements                   {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | if_else statements                {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | if statements                     {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<statements_node>());  $$->hello(); */}
-    ;
-statement:
-    df_full_decl                        {/* $$ = std::move($1);  $$->hello(); */}
-    | assignment                        {/* $$ = std::move($1);  $$->hello(); */}
-    ;
-c_statement: 
-    NAME suffixes NAME                                              {/* $$ = std::move(std::make_unique<function_declaration_node>($1, $2, $3));  $$->hello(); */}
-    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             {/* $$ = std::move(std::make_unique<c_assignment_node>($1, $2, $5));  $$->hello(); */}
-    | LINK_KW NAME TO_KW NAME                                       {/* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
-    | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
-    | df_full_decl                                                  {/* $$ = std::move($1);  $$->hello(); */}
-    | assignment                                                    {/* $$ = std::move($1);  $$->hello(); */}
-    | function_call_sttmt                                           {/* $$ = std::move($1);  $$->hello(); */}
-    ;
-df_full_decl:
-    df_decl_lhs may_assign              {/* $$ = std::move(std::make_unique<dataflow_full_declaration_node>($1, $2));  $$->hello(); */}
-    ;
-suffixes:
-    suffix suffixes                     {/* $$ = std::move($2); $$->append($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<suffixes_node>());  $$->hello(); */}
-    ;
-suffix:
-    L_SQUA expr R_SQUA                  {/* $$ = std::move(std::make_unique<suffix_node>($2));  $$->hello(); */}
-    | L_SQUA R_SQUA                     {/* $$ = std::move(std::make_unique<suffix_node>());  $$->hello(); */}
-    ;
-may_assign:
-    assign_rhs                          {/* $$ = std::move($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<rhs_assignment_node>());  $$->hello(); */}
-    ;
-assign_rhs: 
-    ASSIGN expr                         {/* $$ = std::move(std::make_unique<rhs_assignment_node>($2));  $$->hello(); */}
-    ;
-cast:
-    df_type L_PARENTH expr R_PARENTH    {/* $$ = std::move(std::make_unique<cast_node>($1, $3));  $$->hello(); */}
-    ;
-expr:
-    expr0 LT expr                       {/* $$ = std::move(std::make_unique<binary_expression_node>($1,LT_EXP,$3));  $$->hello(); */}
-    | expr0 GT expr                     {/* $$ = std::move(std::make_unique<binary_expression_node>($1,GT_EXP,$3));  $$->hello(); */}
-    | expr0 LEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,LEQ_EXP,$3));  $$->hello(); */}
-    | expr0 GEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,GEQ_EXP,$3));  $$->hello(); */}
-    | expr0 NEQ expr                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,NEQ_EXP,$3));  $$->hello(); */}
-    | expr0 EQ expr                     {/* $$ = std::move(std::make_unique<binary_expression_node>($1,EQ_EXP,$3));  $$->hello(); */}
-    | expr0                             {/* $$ = std::move($1);  $$->hello(); */}
-    ;
-expr0:
-    expr1 PLUS expr0                    {/* $$ = std::move(std::make_unique<binary_expression_node>($1,PLUS_EXP,$3));  $$->hello(); */}
-    | expr1 MINUS expr0                 {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MINUS_EXP,$3));  $$->hello(); */}
-    | MINUS expr0                       {/* $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP,$2));  $$->hello(); */}
-    | expr1                             {/* $$ = std::move($1);  $$->hello(); */}
-    ;
-expr1: 
-    expr2 TIMES expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,TIMES_EXP,$3));  $$->hello(); */}
-    | expr2 DIV expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,DIV_EXP,$3));  $$->hello(); */}
-    | expr2 MOD expr1                   {/* $$ = std::move(std::make_unique<binary_expression_node>($1,MOD_EXP,$3));  $$->hello(); */}
-    | expr2                             {/* $$ = std::move($1);  $$->hello(); */}
-    | NOT expr2                         {/* $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP,$2));  $$->hello(); */}
-    ;
-expr2: 
-    suffixable_expr suffixes                    {/* $$ = std::move(std::make_unique<suffixised_node>($1,$2));  $$->hello(); */}
-    | INT                                       {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
-    | FLOAT                                     {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
-    | BOOL                                      {/* $$ = std::move(std::make_unique<number_literal_node>($1));  $$->hello(); */}
-    | L_PARENTH expr R_PARENTH                  {/* $$ = std::move($2);  $$->hello(); */}
-    | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
-    ;
-suffixable_expr:
-    function_call                               {/* $$ = std::move($1);  $$->hello(); */}
-    | NAME                                      {/* $$ = std::move(std::make_unique<variable_node>($1));  $$->hello(); */}
-    | NAME OUTPUT_SUF                           {/* $$ = std::move(std::make_unique<object_virtual_output_node>($1));  $$->hello(); */}
-    | THIS_KW PERIOD NAME PERIOD NAME           {/* $$ = std::move(std::make_unique<object_physical_attribute_node>($5,$3));  $$->hello(); */}
-    ;
-assignment:
-    NAME suffixes assign_rhs                                   {/* $$ = std::move(std::make_unique<variable_assignment_node>($1, $2, $3));  $$->hello(); */}
-    | THIS_KW PERIOD NAME PERIOD NAME suffixes assign_rhs      {/* $$ = std::move(std::make_unique<this_assignment_node>($3, $5, $6, $7));  $$->hello(); */}
-    ;
-loop:
-    FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
+p_definition_body:
+    INIT_KW L_CURL 
+        p_statements 
+    R_CURL THEN_KW L_CURL 
         statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<loop_node>($2,(std::unique_ptr<suffixable_node>&)$4,$6));  $$->hello(); */}
+    R_CURL
     ;
-if_else:
-    if 
-    ELSE_KW L_CURL 
-        statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<if_else_node>($1,$4));  $$->hello(); */}
+channels_section:
+    CHANNELS_KW L_CURL
+        channel_decraration
+        channel_decrarations
+    R_CURL
     ;
-if: 
-    IF_KW L_PARENTH expr R_PARENTH L_CURL 
-        statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<if_node>($3,$6));  $$->hello(); */}
+channel_decrarations:
+    channel_decraration channel_decrarations
+    | /* EMPTY */
     ;
-c_loop:
-    FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
-        c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_loop_node>($2,(std::unique_ptr<suffixable_node>&) $4, $6));  $$->hello(); */}
-    ;
-c_if_else:
-    c_if 
-    ELSE_KW L_CURL 
-        c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_if_else_node>($1,$4));  $$->hello(); */}
-    ;
-c_if: 
-    IF_KW L_PARENTH expr R_PARENTH L_CURL 
-        c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_if_node>($3,$6));  $$->hello(); */}
-    ;
-function_call:
-    NAME L_PARENTH exprs R_PARENTH              {/* $$ = std::move(std::make_unique<function_call_node>($1,$3));  $$->hello(); */}
-    ;
-function_call_sttmt:
-    function_call                               {/* $$ = std::move(std::make_unique<function_call_statement_node>($1));  $$->hello(); */}
-    ;
-exprs:
-    list_expr                                   {/* $$ = std::move($1);  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<expressions_node>());  $$->hello(); */}
+channel_decraration:
+    IDENTIFIER IDENTIFIER SEMICOL
     ;
 list_expr:
-    expr                                        {/* $$ = std::move(std::make_unique<expressions_node>()); $$->append($1);  $$->hello(); */}
-    | expr COMMA list_expr                      {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
+    exprs
+    | /* EMPTY */
     ;
-
-system:
-    SYSTEM_KW optional_dim L_CURL 
+exprs:
+    expr
+    | expr COMMA exprs
+    ;
+c_expr:
+    STOP_KW
+    | INPUT_KW
+    | expr
+    ;
+stopless_c_expr:
+    INPUT_KW
+    | expr
+    ;
+expr:
+    expr0 LT expr
+    | expr0 GT expr
+    | expr0 LEQ expr
+    | expr0 GEQ expr
+    | expr0 NEQ expr
+    | expr0 EQ expr
+    | expr0
+    ;
+expr0:
+    expr1 PLUS expr0
+    | expr1 MINUS expr0
+    | MINUS expr0
+    | expr1
+    ;
+expr1: 
+    expr2 TIMES expr1
+    | expr2 DIV expr1
+    | expr2 MOD expr1
+    | expr2
+    | NOT expr2
+    ;
+expr2: 
+    suffixable_expr suffixes
+    | INT
+    | FLOAT
+    | BOOL
+    | L_PARENTH expr R_PARENTH
+    | cast
+    | function_call
+    ;
+cast:
+    L_PARENTH df_type R_PARENTH expr
+    ;
+function_call:
+    IDENTIFIER L_PARENTH list_expr R_PARENTH
+    ;
+suffixes:
+    suffix suffixes
+    | /* EMPTY */
+    ;
+suffix:
+    L_SQUA expr R_SQUA
+    | L_SQUA R_SQUA
+    ;
+suffixable_expr:
+    IDENTIFIER /* df_variable */
+    | function_call 
+    ;
+s_suffixable_expr:
+    suffixable_expr
+    | IDENTIFIER PERIOD IDENTIFIER /* block named output */
+    ;
+loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL 
+        statements 
+    R_CURL
+    ;
+c_loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL
+        c_statements 
+    R_CURL
+    ;
+s_loop_statement:
+    FOREACH_KW IDENTIFIER IN_KW s_suffixable_expr L_CURL 
+        s_statements 
+    R_CURL
+    ;
+if_else_statement:
+    if_statement 
+    ELSE_KW L_CURL 
+        statements 
+    R_CURL
+    ;
+s_if_else_statement:
+    s_if_statement 
+    ELSE_KW L_CURL 
+        s_statements 
+    R_CURL
+    ;
+c_if_else_statement:
+    c_if_statement
+    ELSE_KW L_CURL 
+        c_statements 
+    R_CURL
+    ;
+if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+        statements 
+    R_CURL
+    ;
+s_if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+        s_statements 
+    R_CURL
+    ;
+c_if_statement: 
+    IF_KW L_PARENTH expr R_PARENTH L_CURL 
         c_statements
-    R_CURL                                      {/* $$ = std::move(std::make_unique<system_node>($2, $4));  $$->hello(); */}
+    R_CURL
     ;
-optional_dim:
-    DIMENSION_KW L_PARENTH INT R_PARENTH        {/* $$ = std::move(std::make_unique<dimension_node>(std::move(std::make_unique<number_literal_node>($3))));  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<dimension_node>(std::move(std::make_unique<number_literal_node>(0))));  $$->hello(); */}
+statements: 
+    statement statements
+    | loop_statement statements
+    | if_else_statement statements
+    | if_statement statements
+    | /* EMPTY */
+    ;
+p_statements:
+    p_statement p_statements
+    | statements p_statements
+    | /* EMPTY */
+    ;
+s_statements:
+    s_statement s_statements
+    | s_loop_statement s_statements
+    | s_if_else_statement s_statements
+    | s_if_statement s_statements
+    | /* EMPTY */
+    ;
+p_statement:
+    CTX_KW df_decraration SEMICOL
+    ;
+statement:
+    df_decraration SEMICOL
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL
+    ;
+s_statement:
+    IDENTIFIER suffixes IDENTIFIER SEMICOL /* functionnal block instanciation */
+    | IDENTIFIER PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL /* plugging expr to block input */
+    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL /* attaching logical process to another or a physical */
+    | df_decraration SEMICOL /* declaring a variable */
+    | function_call SEMICOL
+    | statement
     ;
 c_statements:
-    c_statement SEMICOL c_statements            {/* $$ = std::move($3); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | c_loop c_statements                       {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | c_if_else c_statements                    {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | c_if c_statements                         {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | /* EMPTY */                               {/* $$ = std::move(std::make_unique<c_statements_node>());  $$->hello(); */}
+    c_statement c_statements
+    | c_loop_statement c_statements
+    | c_if_else_statement c_statements
+    | c_if_statement c_statements
+    | /* EMPTY */
     ;
-
+c_statement:
+    cdf_full_declaration SEMICOL
+    | IDENTIFIER suffixes ASSIGN c_expr SEMICOL
+    ;
+output:
+    ARROW L_PARENTH list_expr R_PARENTH
+    ;
+named_outputs:
+    named_output named_outputs
+    | /* EMPTY */
+    ;
+named_output:
+    ARROW IDENTIFIER L_PARENTH list_expr R_PARENTH
+    ;
+p_named_outputs:
+    p_named_output p_named_outputs
+    | /* EMPTY */
+    ;
+p_named_output:
+    ARROW ACTUATOR_KW IDENTIFIER L_PARENTH exprs R_PARENTH
+    | named_output
+    ;
+c_named_outputs:
+    c_named_output c_named_outputs
+    | /* EMPTY */
+    ;
+c_named_output:
+    ARROW IDENTIFIER L_PARENTH c_expr R_PARENTH
+    ;
+df_parameter_list:
+    df_parameter_decls
+    | /* EMPTY */
+    ;
+df_parameter_decls:
+    df_parameter_decl
+    | df_parameter_decl COMMA df_parameter_decls
+    ;
+df_parameter_decl:
+    df_type IDENTIFIER may_assign
+    ;
+df_type:
+    INT_KW suffixes
+    | FLOAT_KW suffixes
+    | BOOL_KW suffixes
+    ;
+pdf_parameter_type:
+    df_type
+    | SENSOR_KW df_type
+    ;
+pdf_parameter_type:
+    df_type
+    | SENSOR_KW df_type
+    ;
+pdf_parameter_list:
+    pdf_parameter_decls
+    | /* EMPTY */
+    ;
+pdf_parameter_decls:
+    pdf_parameter_decl
+    | pdf_parameter_decl COMMA pdf_declaration_decls
+    ;
+pdf_parameter_decl:
+    pdf_parameter_type IDENTIFIER may_assign
+    ;
+cdf_defaulted_decls:
+    cdf_defaulted_decl
+    | cdf_defaulted_decl COMMA cdf_defaulted_decls
+    ;
+cdf_defaulted_decl:
+    df_type IDENTIFIER ASSIGN stopless_c_expr
+    ;
+df_decraration:
+    df_type IDENTIFIER may_assign
+    ;
+cdf_full_declaration:
+    df_type IDENTIFIER c_may_assign
+    ;
+c_may_assign:
+    ASSIGN c_expr
+    | /* EMPTY */
+    ;
+may_assign:
+    ASSIGN expr
+    | /* EMPTY */
+    ;
 %%
 
 int main(int argc, char *argv[])
