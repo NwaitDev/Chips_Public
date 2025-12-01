@@ -36,7 +36,9 @@ namespace chips {
                 c_statements_node(std::unique_ptr<c_statements_node> sstatements)
                     : sstatements(std::move(sstatements->sstatements)){}
                 
-                inline void append(std::unique_ptr<c_statement_node> sttmt){sstatements.push_back(std::move(sttmt));}
+                inline void append(std::unique_ptr<c_statement_node> sttmt){
+                    sstatements.insert(sstatements.begin(), std::move(sttmt));
+                }
 
                 void accept(chips_visitor& visitor);
 
