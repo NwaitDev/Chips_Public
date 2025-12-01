@@ -206,7 +206,7 @@ expr2:
     | INT                                       { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | FLOAT                                     { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | BOOL                                      { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
-    | L_PARENTH expr R_PARENTH                  {/* $$ = std::move($2);  $$->hello(); */}
+    | L_PARENTH expr R_PARENTH                  { $$ = std::move(std::make_unique<chips::paren_expression_node>(std::move($2))); }
     | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
     ;
 suffixable_expr:

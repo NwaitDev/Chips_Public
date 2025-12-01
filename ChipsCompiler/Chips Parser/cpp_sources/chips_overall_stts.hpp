@@ -35,6 +35,22 @@ namespace chips {
                 }
         };
 
+        class paren_expression_node : public expression_node {
+            private:
+                std::unique_ptr<expression_node> expr;
+            public:
+                paren_expression_node(std::unique_ptr<expression_node> expr)
+                    : expr(std::move(expr)) {}
+
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    std::cout << "(";
+                    expr->node_print();
+                    std::cout << ")";
+                }
+        };
+
         class dataflow_full_declaration_node : public statement_node {
             private:
                 const STATEMENT_TYPE type = INST_ST;
