@@ -82,6 +82,81 @@ namespace chips {
 
         };
 
+        
+        class c_if_node : public c_statement_node {
+            private:
+                std::unique_ptr<expression_node> expr;
+                std::unique_ptr<c_statements_node> sstatements;
+            public:
+                c_if_node(std::unique_ptr<expression_node> expr, std::unique_ptr<c_statements_node> sstatements)
+                    : expr(std::move(expr)), sstatements(std::move(sstatements)){}
+
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    std::cout << "if(";
+                    expr->node_print();
+                    std::cout << "){\n";
+                    sstatements->node_print();
+                    std::cout << "}\n";
+                }
+        };
+
+        class c_loop_node : public c_statement_node {
+            private:
+                std::string ident;
+                std::unique_ptr<suffixable_node> expr;
+                std::unique_ptr<c_statements_node> ssttmts;
+            public:
+                c_loop_node(std::string ident, std::unique_ptr<suffixable_node> expr, std::unique_ptr<c_statements_node> ssttmts)
+                    : ident(std::move(ident)), expr(std::move(expr)), ssttmts(std::move(ssttmts)) {}
+
+                void accept(chips_visitor& visitor);
+                
+                void node_print() override {
+                    std::cout << "foreach " << ident << " in ";
+                    expr->node_print();
+                    std::cout << "{\n";
+                    ssttmts->node_print();
+                    std::cout << "}\n";
+                }
+        };
+
+
+        class c_if_else_node : public c_statement_node {
+            private:
+                std::unique_ptr<c_if_node> sifnode;
+                std::unique_ptr<c_statements_node> elsestts;
+            public:
+                c_if_else_node(std::unique_ptr<c_if_node> sifnode, std::unique_ptr<c_statements_node> elsestts)
+                    : sifnode(std::move(sifnode)), elsestts(std::move(elsestts)){}
+                
+                void accept(chips_visitor& visitor);
+                
+                void node_print() override {
+                    sifnode->node_print();
+                    std::cout << "else {\n";
+                    elsestts->node_print();
+                    std::cout << "}\n";
+                }
+        };
+
+        // class function_declaration_node : public c_statement_node {
+        //     private:
+        //         std::string oftype;
+        //         std::unique_ptr<suffixes_node> qty;
+        //         std::string ofname;
+        //     public:
+        //         function_declaration_node (std::string oftype, std::unique_ptr<suffixes_node>& qty, std::string ofname)
+        //             : oftype(oftype), qty(std::move(qty)), ofname(ofname){}
+                
+        //     void accept(chips_visitor& visitor);
+
+        //     void node_print() override {
+        //     }
+            
+        // };
+
     }
 
 }
@@ -123,55 +198,6 @@ namespace chips {
 
 
 
-// class c_loop_node : public c_statement_node {
-// private:
-//     std::string ident;
-//     std::unique_ptr<suffixable_node> expr;
-//     std::unique_ptr<c_statements_node> ssttmts;
-// public:
-//     c_loop_node(const std::string& ident, std::unique_ptr<suffixable_node>& expr, std::unique_ptr<c_statements_node>& ssttmts)
-//         : ident(std::move(ident)), expr(std::move(expr)), ssttmts(std::move(ssttmts)) {}
 
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from c_loop_node\n";}
-// };
-
-// class c_if_node : public c_statement_node {
-// private:
-//     std::unique_ptr<expression_node> expr;
-//     std::unique_ptr<c_statements_node> sstatements;
-// public:
-//     c_if_node(std::unique_ptr<expression_node>& expr, std::unique_ptr<c_statements_node>& sstatements)
-//         : expr(std::move(expr)), sstatements(std::move(sstatements)){}
-    
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from c_if_node\n";}
-// };
-
-// class c_if_else_node : public c_statement_node {
-// private:
-//     std::unique_ptr<c_if_node> sifnode;
-//     std::unique_ptr<c_statements_node> elsestts;
-// public:
-//     c_if_else_node(std::unique_ptr<c_if_node>& sifnode, std::unique_ptr<c_statements_node>& elsestts)
-//         : sifnode(std::move(sifnode)), elsestts(std::move(elsestts)){}
-    
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from c_if_else_node\n";}
-// };
-
-// class function_declaration_node : public c_statement_node {
-//     private:
-//         std::string oftype;
-//         std::unique_ptr<suffixes_node> qty;
-//         std::string ofname;
-//     public:
-//         function_declaration_node (std::string oftype, std::unique_ptr<suffixes_node>& qty, std::string ofname)
-//             : oftype(oftype), qty(std::move(qty)), ofname(ofname){}
-        
-//         void accept(chips_visitor& visitor);
-//         inline void hello() override {std::cout << "hello from dataflow_declaration_node\n";}
-    
-//     };
 
 #endif

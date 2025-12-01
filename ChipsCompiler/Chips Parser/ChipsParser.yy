@@ -78,9 +78,9 @@
 %type <std::unique_ptr<chips::dimension_node>> optional_dim
 %type <std::unique_ptr<chips::c_statements_node>> c_statements
 %type <std::unique_ptr<chips::c_statement_node>> c_statement
-// %type <std::unique_ptr<c_loop_node>> c_loop
-// %type <std::unique_ptr<c_if_else_node>> c_if_else
-// %type <std::unique_ptr<c_if_node>> c_if
+%type <std::unique_ptr<chips::c_loop_node>> c_loop
+%type <std::unique_ptr<chips::c_if_else_node>> c_if_else
+%type <std::unique_ptr<chips::c_if_node>> c_if
 // %type <std::unique_ptr<cast_node>> cast
 
 
@@ -238,18 +238,18 @@ if:
 c_loop:
     FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
         c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_loop_node>($2,(std::unique_ptr<suffixable_node>&) $4, $6));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::c_loop_node>(std::move($2), std::move($4), std::move($6))); }
     ;
 c_if_else:
     c_if 
     ELSE_KW L_CURL 
         c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_if_else_node>($1,$4));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::c_if_else_node>(std::move($1),std::move($4))); }
     ;
 c_if: 
     IF_KW L_PARENTH expr R_PARENTH L_CURL 
         c_statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<c_if_node>($3,$6));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::c_if_node>(std::move($3), std::move($6))); }
     ;
 function_call:
     NAME L_PARENTH exprs R_PARENTH              {/* $$ = std::move(std::make_unique<function_call_node>($1,$3));  $$->hello(); */}
@@ -277,9 +277,9 @@ optional_dim:
     ;
 c_statements:
     c_statement SEMICOL c_statements            { $$ = std::move($3); $$->append(std::move($1)); }
-    | c_loop c_statements                       {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | c_if_else c_statements                    {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
-    | c_if c_statements                         {/* $$ = std::move($2); $$->append((std::unique_ptr<c_statement_node>&)$1);  $$->hello(); */}
+    | c_loop c_statements                       { $$ = std::move($2); $$->append(std::move($1)); }
+    | c_if_else c_statements                    { $$ = std::move($2); $$->append(std::move($1)); }
+    | c_if c_statements                         { $$ = std::move($2); $$->append(std::move($1)); }
     | /* EMPTY */                               { $$ = std::move(std::make_unique<chips::c_statements_node>()); }
     ;
 
