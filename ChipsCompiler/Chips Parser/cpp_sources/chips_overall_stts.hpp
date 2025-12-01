@@ -27,12 +27,11 @@ namespace chips {
                 void accept(chips_visitor& visitor);
                 void node_print() override {
                     if(value != nullptr){  // Ajoutez cette vérification
-                        std::cout << "= ";
+                        std::cout << " = ";
                         value->node_print();
-                        std::cout << ";";
-                    } else {
-                        std::cout << "(value is null)";
+                        
                     }
+                    std::cout << ";";
                 }
         };
 

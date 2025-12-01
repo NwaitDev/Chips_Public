@@ -170,8 +170,8 @@ suffix:
     | L_SQUA R_SQUA                     {/* $$ = std::move(std::make_unique<chips::suffix_node>());  */}
     ;
 may_assign:
-    assign_rhs                          {/*std::cout << "assign_rhs\n";*/ $$ = std::move($1); }
-    | /* EMPTY */                       {/*std::cout << "EMPTY (may_assign)\n";*/ /* $$ = std::move(std::make_unique<rhs_assignment_node>());  $$->hello(); */}
+    assign_rhs                          { $$ = std::move($1); }
+    | /* EMPTY */                       { $$ = std::move(std::make_unique<chips::rhs_assignment_node>()); }
     ;
 assign_rhs: 
     ASSIGN expr                         { $$ = std::move(std::make_unique<chips::rhs_assignment_node>($2)); }

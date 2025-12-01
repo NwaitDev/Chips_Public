@@ -62,7 +62,7 @@ namespace chips {
                     } else {
                         std::cout << "(no type) ";
                     }
-                    std::cout << name << " ";
+                    std::cout << name;
                 }
         };       
 
