@@ -153,10 +153,10 @@ c_statement:
     NAME suffixes NAME                                              {/*std::cout << "NAME suffixes NAME\n";*//* $$ = std::move(std::make_unique<function_declaration_node>($1, $2, $3));  $$->hello(); */}
     | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             {/*std::cout << "NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<c_assignment_node>($1, $2, $5));  $$->hello(); */}
     | LINK_KW NAME TO_KW NAME                                       {/*std::cout << "LINK_KW NAME TO_KW NAME\n";*/ /* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
-    | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/*std::cout << "NAME AT_KW L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
+    | NAME AT_KW L_PARENTH exprs R_PARENTH                          { $$ = std::move(std::make_unique<chips::at_node>(std::move($1), std::move($4))); }
     | df_full_decl                                                  {/*std::cout << "df_full_decl (c_statement)\n";*/  $$ = std::move($1); }
-    | assignment                                                    {std::cout << "ASSIGNMENT (c_statement)\n"; $$ = std::move($1); }
-    | function_call_sttmt                                           {std::cout << "function_call_sttmt (c_statement)\n"; $$ = std::move($1); }
+    | assignment                                                    { $$ = std::move($1); }
+    | function_call_sttmt                                           { $$ = std::move($1); }
     ;
 df_full_decl:
     df_decl_lhs may_assign              { $$ = std::move(std::make_unique<chips::dataflow_full_declaration_node>(std::move($1), std::move($2))); }

@@ -55,6 +55,7 @@ namespace chips {
                             continue;
                         }
                         sttmt->node_print();
+                        std::cout << ";" << std::endl;
                     }
                 }
         };
@@ -159,6 +160,40 @@ namespace chips {
             
         // };
 
+        class at_node : public c_statement_node{
+            private:
+                std::string ofname;
+                std::unique_ptr<expressions_node> exprs;
+
+            public:
+                at_node(std::string ofname, std::unique_ptr<expressions_node> exprs)
+                    : ofname(std::move(ofname)), exprs(std::move(exprs)){}
+
+                void accept(chips_visitor& visitor);
+                
+                void node_print() override {
+                    std::cout << ofname << " at (";
+                    exprs->node_print();
+                    std::cout << ")";
+                }
+
+        };
+
+
+        // class link_node : public c_statement_node{
+        //     private:
+        //         std::string lk_src;
+        //         std::string lk_target;
+            
+        //     public:
+        //         link_node(std::string lk_src, std::string lk_target)
+        //             : lk_src(lk_src), lk_target(lk_target){}
+            
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from link_node\n";}
+        
+        // };
+
     }
 
 }
@@ -168,34 +203,7 @@ namespace chips {
 
 
 
-// class at_node : public c_statement_node{
-// private:
-//     std::string ofname;
-//     std::unique_ptr<expressions_node> exprs;
 
-// public:
-//     at_node(std::string ofname, std::unique_ptr<expressions_node>& exprs)
-//         : ofname(ofname), exprs(std::move(exprs)){}
-
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from at_node\n";}
-
-// };
-
-
-// class link_node : public c_statement_node{
-//     private:
-//         std::string lk_src;
-//         std::string lk_target;
-    
-//     public:
-//         link_node(std::string lk_src, std::string lk_target)
-//             : lk_src(lk_src), lk_target(lk_target){}
-    
-//         void accept(chips_visitor& visitor);
-//         inline void hello() override {std::cout << "hello from link_node\n";}
-    
-//     };
 
 
 

@@ -46,7 +46,6 @@ namespace chips {
                         value->node_print();
                         
                     }
-                    std::cout << ";";
                 }
         };
 
@@ -93,7 +92,6 @@ namespace chips {
                     } else {
                         std::cout << "(no assignment)";
                     }
-                    std::cout << std::endl;
                 }
         };
 
@@ -109,7 +107,6 @@ namespace chips {
                 void node_print() override {
                     // std::cout << "function_call_statement_node: \n";
                     fcall->node_print();
-                    std::cout << ";\n";
                 }
         };
 
