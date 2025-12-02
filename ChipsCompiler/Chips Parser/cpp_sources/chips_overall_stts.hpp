@@ -190,17 +190,24 @@ namespace chips {
 
         };
 
-        // class this_attribute_node : public suffixised_node {
-        //     private:
-        //         std::string attr;
-        //         std::string elem;
-        //     public:
-        //         this_attribute_node(std::string attr, std::string elem, std::unique_ptr<suffixes_node>& suff)
-        //         : attr(attr), elem(elem), suffixised_node(suff) {}
+        class this_assignment_node : public assignment_node {
+            private:
+                std::string attr;
+                std::string elem;
+                std::unique_ptr<suffixes_node> suff;
+                std::unique_ptr<rhs_assignment_node> rhs;
+            public:
+                this_assignment_node(std::string attr, std::string elem, std::unique_ptr<suffixes_node> suff, std::unique_ptr<rhs_assignment_node> rhs)
+                : attr(std::move(attr)), elem(std::move(elem)), suff(std::move(suff)), rhs(std::move(rhs)) {}
 
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from this_attribute_node\n";}
-        // };
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    std::cout << "this." << attr << "." << elem;
+                    suff->node_print();
+                    rhs->node_print();
+                }
+        };
     }
 }
 

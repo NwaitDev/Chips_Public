@@ -216,8 +216,8 @@ suffixable_expr:
     | THIS_KW PERIOD NAME PERIOD NAME           { $$ = std::move(std::make_unique<chips::object_physical_attribute_node>(std::move($5), std::move($3))); }
     ;
 assignment:
-    NAME suffixes assign_rhs                                   {std::cout << "NAME suffixes assign_rhs (assignment)\n"; $$ = std::move(std::make_unique<chips::variable_assignment_node>(std::move($1), std::move($2), std::move($3))); }
-    | THIS_KW PERIOD NAME PERIOD NAME suffixes assign_rhs      {/* $$ = std::move(std::make_unique<this_assignment_node>($3, $5, $6, $7));  $$->hello(); */}
+    NAME suffixes assign_rhs                                   { $$ = std::move(std::make_unique<chips::variable_assignment_node>(std::move($1), std::move($2), std::move($3))); }
+    | THIS_KW PERIOD NAME PERIOD NAME suffixes assign_rhs      { $$ = std::move(std::make_unique<chips::this_assignment_node>(std::move($3), std::move($5), std::move($6), std::move($7))); }
     ;
 loop:
     FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
