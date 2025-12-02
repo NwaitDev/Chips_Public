@@ -150,11 +150,11 @@ statement:
     | assignment                        {/* $$ = std::move($1);  $$->hello(); */}
     ;
 c_statement: 
-    NAME suffixes NAME                                              {/*std::cout << "NAME suffixes NAME\n";*//* $$ = std::move(std::make_unique<function_declaration_node>($1, $2, $3));  $$->hello(); */}
-    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             {/*std::cout << "NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<c_assignment_node>($1, $2, $5));  $$->hello(); */}
-    | LINK_KW NAME TO_KW NAME                                       {/*std::cout << "LINK_KW NAME TO_KW NAME\n";*/ /* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
+    NAME suffixes NAME                                              { $$ = std::move(std::make_unique<chips::function_declaration_node>(std::move($1), std::move($2), std::move($3))); }
+    | NAME suffixes INPUT_SUF L_PARENTH exprs R_PARENTH             { $$ = std::move(std::make_unique<chips::c_assignment_node>(std::move($1), std::move($2), std::move($5))); }
+    | LINK_KW NAME TO_KW NAME                                       { $$ = std::move(std::make_unique<chips::link_node>(std::move($2), std::move($4))); }
     | NAME AT_KW L_PARENTH exprs R_PARENTH                          { $$ = std::move(std::make_unique<chips::at_node>(std::move($1), std::move($4))); }
-    | df_full_decl                                                  {/*std::cout << "df_full_decl (c_statement)\n";*/  $$ = std::move($1); }
+    | df_full_decl                                                  { $$ = std::move($1); }
     | assignment                                                    { $$ = std::move($1); }
     | function_call_sttmt                                           { $$ = std::move($1); }
     ;
@@ -162,8 +162,8 @@ df_full_decl:
     df_decl_lhs may_assign              { $$ = std::move(std::make_unique<chips::dataflow_full_declaration_node>(std::move($1), std::move($2))); }
     ;
 suffixes:
-    suffix suffixes                     {/*std::cout << "suffix suffixes\n";*/ $$ = std::move($2); $$->append($1); }
-    | /* EMPTY */                       {/*std::cout << "EMPTY suffixes\n";*/ $$ = std::move(std::make_unique<chips::suffixes_node>()); }
+    suffix suffixes                     { $$ = std::move($2); $$->append($1); }
+    | /* EMPTY */                       { $$ = std::move(std::make_unique<chips::suffixes_node>()); }
     ;
 suffix:
     L_SQUA expr R_SQUA                  { $$ = std::move(std::make_unique<chips::suffix_node>(std::move($2))); }
