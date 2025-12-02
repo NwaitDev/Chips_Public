@@ -14,6 +14,21 @@ namespace chips {
 
         class statement_node : public c_statement_node {};
 
+        // class statements_node : public ast_node {
+
+        //     private:
+        //         std::vector<std::unique_ptr<statement_node>> statements;
+
+        //     public:
+        //         statements_node() : statements(std::vector<std::unique_ptr<statement_node>>()){};
+        //         statements_node(std::unique_ptr<statements_node>& stts)
+        //             : statements(std::move(stts->statements)) {}
+                
+        //         inline void append(std::unique_ptr<statement_node>& sttmt) {statements.push_back(std::move(sttmt));}
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from statements_node\n";}
+        // };
+
         class rhs_assignment_node : public ast_node {
             private:
                 std::unique_ptr<expression_node> value = nullptr;
@@ -138,52 +153,44 @@ namespace chips {
 
         //         inline void hello() override {std::cout << "hello from loop_node\n";}
         // };
+
+        class assignment_node : public statement_node {
+            private:
+                std::unique_ptr<suffixised_node> lhs;
+                const STATEMENT_TYPE type = ASSI_ST;
+                std::unique_ptr<rhs_assignment_node> rhs;
+            public:
+                assignment_node(std::unique_ptr<suffixised_node> lhs, std::unique_ptr<rhs_assignment_node> rhs)
+                : lhs(std::move(lhs)), rhs(std::move(rhs))  {};
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    
+                } 
+        };
+
+        // class this_attribute_node : public suffixised_node {
+        //     private:
+        //         std::string attr;
+        //         std::string elem;
+        //     public:
+        //         this_attribute_node(std::string attr, std::string elem, std::unique_ptr<suffixes_node>& suff)
+        //         : attr(attr), elem(elem), suffixised_node(suff) {}
+
+        //         void accept(chips_visitor& visitor);
+        //         inline void hello() override {std::cout << "hello from this_attribute_node\n";}
+        // };
     }
 }
 
 
 
-// class statements_node : public ast_node {
-
-// private:
-//     std::vector<std::unique_ptr<statement_node>> statements;
-
-// public:
-//     statements_node() : statements(std::vector<std::unique_ptr<statement_node>>()){};
-//     statements_node(std::unique_ptr<statements_node>& stts)
-//         : statements(std::move(stts->statements)) {}
-    
-//     inline void append(std::unique_ptr<statement_node>& sttmt) {statements.push_back(std::move(sttmt));}
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from statements_node\n";}
-// };
 
 
 
 
-// class assignment_node : public statement_node {
-// private:
-//     std::unique_ptr<suffixised_node> lhs;
-//     const STATEMENT_TYPE type = ASSI_ST;
-//     std::unique_ptr<rhs_assignment_node> rhs;
-// public:
-//     assignment_node(std::unique_ptr<suffixised_node> lhs, std::unique_ptr<rhs_assignment_node> rhs)
-//     : lhs(std::move(lhs)), rhs(std::move(rhs))  {};
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from assignment_node\n";}
-// };
 
-// class this_attribute_node : public suffixised_node {
-// private:
-//     std::string attr;
-//     std::string elem;
-// public:
-//     this_attribute_node(std::string attr, std::string elem, std::unique_ptr<suffixes_node>& suff)
-//     : attr(attr), elem(elem), suffixised_node(suff) {}
 
-//     void accept(chips_visitor& visitor);
-//     inline void hello() override {std::cout << "hello from this_attribute_node\n";}
-// };
 
 
 

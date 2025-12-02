@@ -227,26 +227,32 @@ namespace chips {
         };
 
 
-        // class object_virtual_output_node : public suffixable_node {
-        //     private:
-        //         const EXPRESSION_TYPE type = OBJ_VIRT_OUT_EXP;
-        //         std::string ident;
-        //     public:
-        //         object_virtual_output_node(std::string ident) : ident(ident){}
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from object_virtual_output_node\n";}
-        // };
+        class object_virtual_output_node : public suffixable_node {
+            private:
+                const EXPRESSION_TYPE type = OBJ_VIRT_OUT_EXP;
+                std::string ident;
+            public:
+                object_virtual_output_node(std::string ident) : ident(std::move(ident)){}
+                void accept(chips_visitor& visitor);
 
-        // class object_physical_attribute_node : public suffixable_node {
-        //     private:
-        //         const EXPRESSION_TYPE type = OBJ_PHY_ATTR_EXP;
-        //         std::string attribute;
-        //         std::string element;
-        //     public:
-        //         object_physical_attribute_node(std::string attr, std::string& elem) : attribute(attr), element(std::move(elem)){}
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from object_physical_attribute_node\n";}
-        // };
+                void node_print() override {
+                    std::cout << ident << ".out";
+                }
+        };
+
+        class object_physical_attribute_node : public suffixable_node {
+            private:
+                const EXPRESSION_TYPE type = OBJ_PHY_ATTR_EXP;
+                std::string attribute;
+                std::string element;
+            public:
+                object_physical_attribute_node(std::string attr, std::string elem) : attribute(std::move(attr)), element(std::move(elem)){}
+                void accept(chips_visitor& visitor);
+                
+                void node_print() override {
+                    std::cout << "this." << element << "." << attribute;
+                }
+        };
 
 
 

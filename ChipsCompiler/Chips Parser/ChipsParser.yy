@@ -210,10 +210,10 @@ expr2:
     | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
     ;
 suffixable_expr:
-    function_call                               {/* $$ = std::move($1);  $$->hello(); */}
+    function_call                               { $$ = std::move($1); }
     | NAME                                      { $$ = std::move(std::make_unique<chips::variable_node>(std::move($1))); }
-    | NAME OUTPUT_SUF                           {/* $$ = std::move(std::make_unique<object_virtual_output_node>($1));  $$->hello(); */}
-    | THIS_KW PERIOD NAME PERIOD NAME           {/* $$ = std::move(std::make_unique<object_physical_attribute_node>($5,$3));  $$->hello(); */}
+    | NAME OUTPUT_SUF                           { $$ = std::move(std::make_unique<chips::object_virtual_output_node>(std::move($1))); }
+    | THIS_KW PERIOD NAME PERIOD NAME           { $$ = std::move(std::make_unique<chips::object_physical_attribute_node>(std::move($5), std::move($3))); }
     ;
 assignment:
     NAME suffixes assign_rhs                                   {/* $$ = std::move(std::make_unique<variable_assignment_node>($1, $2, $3));  $$->hello(); */}
