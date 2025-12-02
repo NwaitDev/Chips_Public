@@ -43,6 +43,13 @@ namespace chips {
                 }
         };
 
+        inline void cast_node::node_print() {
+            if(type) type->node_print();
+            std::cout << "(";
+            if(expr) expr->node_print();
+            std::cout << ")";
+        }
+
         class dataflow_declaration_node : public ast_node {
             private:
                 std::string name;

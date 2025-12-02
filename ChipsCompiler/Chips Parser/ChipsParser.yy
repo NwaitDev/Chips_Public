@@ -81,7 +81,7 @@
 %type <std::unique_ptr<chips::c_loop_node>> c_loop
 %type <std::unique_ptr<chips::c_if_else_node>> c_if_else
 %type <std::unique_ptr<chips::c_if_node>> c_if
-// %type <std::unique_ptr<cast_node>> cast
+%type <std::unique_ptr<chips::cast_node>> cast
 
 
 
@@ -177,7 +177,7 @@ assign_rhs:
     ASSIGN expr                         { $$ = std::move(std::make_unique<chips::rhs_assignment_node>($2)); }
     ;
 cast:
-    df_type L_PARENTH expr R_PARENTH    {/* $$ = std::move(std::make_unique<cast_node>($1, $3));  $$->hello(); */}
+    df_type L_PARENTH expr R_PARENTH    { $$ = std::move(std::make_unique<chips::cast_node>(std::move($1), std::move($3))); }
     ;
 expr:
     expr0 LT expr                       { $$ = std::move(std::make_unique<chips::binary_expression_node>(std::move($1),chips::LT_EXP,std::move($3))); }
@@ -207,7 +207,7 @@ expr2:
     | FLOAT                                     { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | BOOL                                      { $$ = std::move(std::make_unique<chips::number_literal_node>($1)); }
     | L_PARENTH expr R_PARENTH                  { $$ = std::move(std::make_unique<chips::paren_expression_node>(std::move($2))); }
-    | cast                                      {/* $$ = std::move($1);  $$->hello(); */}
+    | cast                                      { $$ = std::move($1); }
     ;
 suffixable_expr:
     function_call                               { $$ = std::move($1); }

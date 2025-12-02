@@ -255,17 +255,18 @@ namespace chips {
 
 
 
-        // class cast_node : public expression_node {
-        //     private:
-        //         std::unique_ptr<dataflow_type_node> type;
-        //         std::unique_ptr<expression_node> expr;
-        //     public:
-        //         cast_node(std::unique_ptr<dataflow_type_node>& type, std::unique_ptr<expression_node>& expr) 
-        //             : expr(std::move(expr)), type(std::move(type)) {}
+        class cast_node : public expression_node {
+            private:
+                std::unique_ptr<dataflow_type_node> type;
+                std::unique_ptr<expression_node> expr;
+            public:
+                cast_node(std::unique_ptr<dataflow_type_node> type, std::unique_ptr<expression_node> expr) 
+                    : expr(std::move(expr)), type(std::move(type)) {}
                 
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from cast_node\n";}
-        // };
+                void accept(chips_visitor& visitor);
+
+                void node_print() override;
+        };
 
     }
 
