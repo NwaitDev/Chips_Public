@@ -154,19 +154,40 @@ namespace chips {
         //         inline void hello() override {std::cout << "hello from loop_node\n";}
         // };
 
-        class assignment_node : public statement_node {
+        // class assignment_node : public statement_node {
+        //     private:
+        //         std::unique_ptr<suffixised_node> lhs;
+        //         const STATEMENT_TYPE type = ASSI_ST;
+        //         std::unique_ptr<rhs_assignment_node> rhs;
+        //     public:
+        //         assignment_node(std::unique_ptr<suffixised_node> lhs, std::unique_ptr<rhs_assignment_node> rhs)
+        //         : lhs(std::move(lhs)), rhs(std::move(rhs))  {};
+        //         void accept(chips_visitor& visitor);
+
+        //         void node_print() override {
+
+        //         } 
+        // };
+
+        class assignment_node : public statement_node {};
+
+        class variable_assignment_node : public assignment_node {
             private:
-                std::unique_ptr<suffixised_node> lhs;
-                const STATEMENT_TYPE type = ASSI_ST;
+                std::string ident;
+                std::unique_ptr<suffixes_node> suff;
                 std::unique_ptr<rhs_assignment_node> rhs;
+
             public:
-                assignment_node(std::unique_ptr<suffixised_node> lhs, std::unique_ptr<rhs_assignment_node> rhs)
-                : lhs(std::move(lhs)), rhs(std::move(rhs))  {};
-                void accept(chips_visitor& visitor);
+
+                variable_assignment_node(std::string ident, std::unique_ptr<suffixes_node> suff, std::unique_ptr<rhs_assignment_node> rhs)
+                    : ident(std::move(ident)), suff(std::move(suff)), rhs(std::move(rhs)) {}
 
                 void node_print() override {
-                    
-                } 
+                    std::cout << ident;
+                    suff->node_print();
+                    rhs->node_print();
+                }
+
         };
 
         // class this_attribute_node : public suffixised_node {

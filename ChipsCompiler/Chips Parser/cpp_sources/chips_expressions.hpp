@@ -141,12 +141,11 @@ namespace chips {
 
                 void accept(chips_visitor& visitor); // TODO
                 void node_print() override {
-                    std::cout << "suffix_node: ";
+                    std::cout << "[";
                     if(expression != nullptr){
                         expression->node_print();
-                    } else {
-                        std::cout << "(no expression)";
                     }
+                    std::cout << "]";
                 }
         };
 

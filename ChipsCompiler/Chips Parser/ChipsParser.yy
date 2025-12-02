@@ -65,7 +65,7 @@
 // %type <std::unique_ptr<if_node>> if
 // %type <std::unique_ptr<if_else_node>> if_else
 %type <std::unique_ptr<chips::dataflow_full_declaration_node>> df_full_decl
-// %type <std::unique_ptr<assignment_node>> assignment
+%type <std::unique_ptr<chips::assignment_node>> assignment
 %type <std::unique_ptr<chips::function_call_node>> function_call
 %type <std::unique_ptr<chips::function_call_statement_node>> function_call_sttmt
 %type <std::unique_ptr<chips::rhs_assignment_node>> may_assign
@@ -155,7 +155,7 @@ c_statement:
     | LINK_KW NAME TO_KW NAME                                       {/*std::cout << "LINK_KW NAME TO_KW NAME\n";*/ /* $$ = std::move(std::make_unique<link_node>($2, $4));  $$->hello(); */}
     | NAME AT_KW L_PARENTH exprs R_PARENTH                          {/*std::cout << "NAME AT_KW L_PARENTH exprs R_PARENTH\n";*/ /* $$ = std::move(std::make_unique<at_node>($1, $4));  $$->hello(); */}
     | df_full_decl                                                  {/*std::cout << "df_full_decl (c_statement)\n";*/  $$ = std::move($1); }
-    | assignment                                                    {std::cout << "ASSIGNMENT (c_statement)\n"; /* $$ = std::move($1);  $$->hello(); */}
+    | assignment                                                    {std::cout << "ASSIGNMENT (c_statement)\n"; $$ = std::move($1); }
     | function_call_sttmt                                           {std::cout << "function_call_sttmt (c_statement)\n"; $$ = std::move($1); }
     ;
 df_full_decl:
@@ -166,8 +166,8 @@ suffixes:
     | /* EMPTY */                       {/*std::cout << "EMPTY suffixes\n";*/ $$ = std::move(std::make_unique<chips::suffixes_node>()); }
     ;
 suffix:
-    L_SQUA expr R_SQUA                  {/* $$ = std::move(std::make_unique<chips::suffix_node>($2)); */}
-    | L_SQUA R_SQUA                     {/* $$ = std::move(std::make_unique<chips::suffix_node>());  */}
+    L_SQUA expr R_SQUA                  { $$ = std::move(std::make_unique<chips::suffix_node>(std::move($2))); }
+    | L_SQUA R_SQUA                     { $$ = std::move(std::make_unique<chips::suffix_node>()); }
     ;
 may_assign:
     assign_rhs                          { $$ = std::move($1); }
@@ -216,7 +216,7 @@ suffixable_expr:
     | THIS_KW PERIOD NAME PERIOD NAME           { $$ = std::move(std::make_unique<chips::object_physical_attribute_node>(std::move($5), std::move($3))); }
     ;
 assignment:
-    NAME suffixes assign_rhs                                   {/* $$ = std::move(std::make_unique<variable_assignment_node>($1, $2, $3));  $$->hello(); */}
+    NAME suffixes assign_rhs                                   {std::cout << "NAME suffixes assign_rhs (assignment)\n"; $$ = std::move(std::make_unique<chips::variable_assignment_node>(std::move($1), std::move($2), std::move($3))); }
     | THIS_KW PERIOD NAME PERIOD NAME suffixes assign_rhs      {/* $$ = std::move(std::make_unique<this_assignment_node>($3, $5, $6, $7));  $$->hello(); */}
     ;
 loop:
