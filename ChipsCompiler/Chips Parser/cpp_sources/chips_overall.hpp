@@ -73,23 +73,23 @@ namespace chips {
                 }
         };  
         
-        // class dataflow_declarations_node : public ast_node {
-        //     private:
-        //         std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
-        //     public:
+        class dataflow_declarations_node : public ast_node {
+            private:
+                std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
+            public:
 
-        //         dataflow_declarations_node(){}
+                dataflow_declarations_node(){}
 
-        //         dataflow_declarations_node(dataflow_declarations_node& decls)
-        //             : decls(std::move(decls.decls)) {}
+                dataflow_declarations_node(dataflow_declarations_node& decls)
+                    : decls(std::move(decls.decls)) {}
 
-        //         inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
+                inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
                 
                 
-        //         void accept(chips_visitor& visitor);
+                void accept(chips_visitor& visitor);
 
-        //         inline void hello() override {std::cout << "hello from ArgDeclarationsNode\n";}
-        // };
+                void node_print() override {}
+        };
 
         class expressions_node : public ast_node {
             private:

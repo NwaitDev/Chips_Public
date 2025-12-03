@@ -14,20 +14,22 @@ namespace chips {
 
         class statement_node : public c_statement_node {};
 
-        // class statements_node : public ast_node {
+        class statements_node : public ast_node {
 
-        //     private:
-        //         std::vector<std::unique_ptr<statement_node>> statements;
+            private:
+                std::vector<std::unique_ptr<statement_node>> statements;
 
-        //     public:
-        //         statements_node() : statements(std::vector<std::unique_ptr<statement_node>>()){};
-        //         statements_node(std::unique_ptr<statements_node>& stts)
-        //             : statements(std::move(stts->statements)) {}
+            public:
+                statements_node() : statements(std::vector<std::unique_ptr<statement_node>>()){};
+                statements_node(std::unique_ptr<statements_node>& stts)
+                    : statements(std::move(stts->statements)) {}
                 
-        //         inline void append(std::unique_ptr<statement_node>& sttmt) {statements.push_back(std::move(sttmt));}
-        //         void accept(chips_visitor& visitor);
-        //         inline void hello() override {std::cout << "hello from statements_node\n";}
-        // };
+                inline void append(std::unique_ptr<statement_node>& sttmt) {statements.push_back(std::move(sttmt));}
+                void accept(chips_visitor& visitor);
+                void node_print() override {
+                    std::cout << "statements_node: ";
+                }
+        };
 
         class rhs_assignment_node : public ast_node {
             private:

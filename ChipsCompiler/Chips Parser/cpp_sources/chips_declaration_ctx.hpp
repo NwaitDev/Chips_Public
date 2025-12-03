@@ -55,52 +55,85 @@ namespace chips {
 
 
 
-        // class signature_node : public ast_node {
-        //     const FUNCTION_TYPE type;
-        //     const std::string name;
-        //     std::unique_ptr<dataflow_declarations_node> args;
-        // public:
-        //     signature_node(FUNCTION_TYPE type, std::string name, std::unique_ptr<dataflow_declarations_node>& args)
-        //         : type(type), name(name), args(std::move(args)) {}
-        //     void accept(chips_visitor& visitor);
-        //     inline void hello() override {std::cout << "hello from signature_node\n";}
-        // };
-
-
-        // class output_node : public ast_node {
-        // private:
-        //     std::vector<std::unique_ptr<expression_node>> outputs;
-        // public:
-        //     output_node(){}
-
-        //     output_node(std::unique_ptr<expressions_node>& exprs)
-        //     : outputs(std::move(exprs->exprs)) {}
-
-        //     output_node(std::unique_ptr<output_node>& out)
-        //     : outputs(std::move(out->outputs)) {}
-
-        //     inline void hello() override {std::cout << "hello from output_node\n";}
-        // };
-
-        // class function_definition_node : public preamble_node {
-        // private:
-        //     std::unique_ptr<signature_node> signature;
-        //     std::unique_ptr<output_node> output;
-        //     std::unique_ptr<statements_node> init;
-        //     std::unique_ptr<statements_node> then;
-        // public:
-        //     function_definition_node(std::unique_ptr<signature_node>& signature, std::unique_ptr<output_node>& output)
-        //         : signature(std::move(signature)), output(std::move(output)) {}
+        class signature_node : public ast_node {
+            const FUNCTION_TYPE type;
+            const std::string name;
+            std::unique_ptr<dataflow_declarations_node> args;
+        public:
+            signature_node(FUNCTION_TYPE type, std::string name, std::unique_ptr<dataflow_declarations_node> args)
+                : type(std::move(type)), name(std::move(name)), args(std::move(args)) {}
+            void accept(chips_visitor& visitor);
             
-        //     function_definition_node(std::unique_ptr<signature_node>& signature,
-        //         std::unique_ptr<statements_node>& init,
-        //         std::unique_ptr<statements_node>& then,
-        //         std::unique_ptr<output_node>& output)
-        //     : signature(std::move(signature)), init(std::move(init)), then(std::move(then)), output(std::move(output)) {}
+            void node_print() override {
+                switch(type){
+                    case VIRTUAL:
+                        std::cout << "virtual ";
+                        break;
+                    case PHYSICAL:
+                        std::cout << "physical ";
+                        break;
+                    case PURE:
+                        std::cout << "pure ";
+                        break;
+                }
+                std::cout << name << "(";
+                if(args){
+                    args->node_print();
+                }
+                std::cout << ")";
+            }
+        };
 
-        //     inline void hello() override {std::cout << "hello from function_definition_node\n";}
 
-        // };
+        class output_node : public ast_node {
+        private:
+            std::vector<std::unique_ptr<expression_node>> outputs;
+        public:
+            output_node(){}
+
+            output_node(std::unique_ptr<expressions_node> exprs)
+            : outputs(std::move(exprs->exprs)) {}
+
+            output_node(std::unique_ptr<output_node> out)
+            : outputs(std::move(out->outputs)) {}
+
+            void accept(chips_visitor& visitor);
+
+            void node_print() override {
+                std::cout << " -> (";
+                for(const auto& output : outputs){
+                    output->node_print();
+                    if(outputs.back() == output) break;
+                    std::cout << ", ";
+                }
+                std::cout << ") ";
+            }
+        };
+
+        class function_definition_node : public preamble_node {
+            private:
+                std::unique_ptr<signature_node> signature;
+                std::unique_ptr<output_node> output;
+                std::unique_ptr<statements_node> init;
+                std::unique_ptr<statements_node> then;
+            public:
+                function_definition_node(std::unique_ptr<signature_node> signature, std::unique_ptr<output_node> output)
+                    : signature(std::move(signature)), output(std::move(output)) {}
+
+                function_definition_node(std::unique_ptr<signature_node> signature,
+                    std::unique_ptr<statements_node> init,
+                    std::unique_ptr<statements_node> then,
+                    std::unique_ptr<output_node> output)
+                : signature(std::move(signature)), init(std::move(init)), then(std::move(then)), output(std::move(output)) {}
+
+                void accept(chips_visitor& visitor);
+
+                void node_print() override {
+                    signature->node_print();
+                    output->node_print();
+                }
+
+        };
     }
 }
 

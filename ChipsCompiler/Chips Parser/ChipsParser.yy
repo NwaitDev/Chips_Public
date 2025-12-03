@@ -50,10 +50,10 @@
 %type <std::unique_ptr<chips::system_node>> system
 %type <std::unique_ptr<chips::preamble_node>> preamble
 %type <std::unique_ptr<chips::import_node>> import
-// %type <std::unique_ptr<function_definition_node>> function_def
-// %type <std::unique_ptr<signature_node>> pure_signature
-// %type <std::unique_ptr<output_node>> output
-// %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list_or_nothing
+%type <std::unique_ptr<chips::function_definition_node>> function_def
+%type <std::unique_ptr<chips::signature_node>> pure_signature
+%type <std::unique_ptr<chips::output_node>> output
+%type <std::unique_ptr<chips::dataflow_declarations_node>> df_decl_list_or_nothing
 // %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list
 %type <std::unique_ptr<chips::dataflow_declaration_node>> df_decl_lhs
 %type <std::unique_ptr<chips::dataflow_type_node>> df_type
@@ -99,13 +99,13 @@ preambles:
     ;
 preamble:
     import                              { $$ = std::move($1); }
-    | function_def                      {/* $$ = std::move($1);  $$->hello(); */}
+    | function_def                      { $$ = std::move($1);}
     ;
 import:
     IMPORT_KW STR AS_KW NAME SEMICOL   { $$ = std::move(std::make_unique<chips::import_node>(std::move($4), std::move($2))); }
     ;
 function_def:
-    pure_signature output               {/* $$ = std::move(std::make_unique<function_definition_node>($1,$2));  $$->hello(); */}
+    pure_signature output               { $$ = std::move(std::make_unique<chips::function_definition_node>(std::move($1),std::move($2))); }
     | object_signature INIT_KW L_CURL 
         statements 
     R_CURL THEN_KW L_CURL 
@@ -113,11 +113,11 @@ function_def:
     R_CURL output                       {/* $$ = std::move(std::make_unique<function_definition_node>($1,$4,$8,$10));  $$->hello(); */}
     ;
 pure_signature:
-    PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH  {/* $$ = std::move(std::make_unique<signature_node>(PURE, $2, $4));  $$->hello(); */}
+    PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH  { $$ = std::move(std::make_unique<chips::signature_node>(chips::PURE, std::move($2), std::move($4))); }
     ;
 df_decl_list_or_nothing:
     df_decl_list                        {/* $$=std::move($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$=std::move(std::make_unique<dataflow_declarations_node>());  $$->hello(); */}
+    | /* EMPTY */                       { $$=std::move(std::make_unique<chips::dataflow_declarations_node>()); }
     ;
 df_decl_list:
     df_decl_lhs                         {/* $$ = std::move(std::make_unique<dataflow_declarations_node>()); $$->append($1);  $$->hello(); */}
@@ -132,7 +132,7 @@ df_type:
     | BOOL_KW suffixes                  { $$ = std::move(std::make_unique<chips::dataflow_type_node>(chips::BOOL_DF, std::move($2))); }
     ;
 output:
-    ARROW L_PARENTH exprs R_PARENTH     {/* $$ = std::move(std::make_unique<output_node>($3));  $$->hello(); */}
+    ARROW L_PARENTH exprs R_PARENTH     { $$ = std::move(std::make_unique<chips::output_node>(std::move($3))); }
     ;
 object_signature:
     VIRT_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH           {/* $$ = std::move(std::make_unique<signature_node>(VIRTUAL, $2, $4));  $$->hello(); */}
