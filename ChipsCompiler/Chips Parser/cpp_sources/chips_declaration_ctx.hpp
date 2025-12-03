@@ -12,82 +12,96 @@
 /*
     Declaration context stuff
 */
+namespace chips {
 
-class preamble_node : public ast_node {
+    inline namespace v1 {
 
-};
+        class preamble_node : public ast_node {
+        };
 
-class preambles_node : public ast_node {
-private:
-    std::vector<std::unique_ptr<preamble_node>> preambleList;
-public:
-    preambles_node() : preambleList(std::vector<std::unique_ptr<preamble_node>>()){}
-    
+        class preambles_node : public ast_node {
+        private:
+            std::vector<std::unique_ptr<preamble_node>> preambleList;
+        public:
+            preambles_node() : preambleList(std::vector<std::unique_ptr<preamble_node>>()){}
+            
 
-    preambles_node(const std::unique_ptr<preambles_node>& preambles) : preambleList(std::move(preambles->preambleList)){};
+            preambles_node(const std::unique_ptr<preambles_node> preambles) : preambleList(std::move(preambles->preambleList)){};
 
-    inline void append(std::unique_ptr<preamble_node>& preamble){preambleList.push_back(std::move(preamble));};
-    void accept(chips_visitor& visitor);
+            inline void append(std::unique_ptr<preamble_node> preamble){
+                preambleList.insert(preambleList.begin(), std::move(preamble));
+            };
+            void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from preambles_node\n";}
-};
+            void node_print() override {
+                for (const auto& preamble : preambleList) {
+                    preamble->node_print();
+                    std::cout << std::endl;
+                }
+            }
+        };
 
-class import_node : public preamble_node {
-private:
-    const std::string name;
-    const std::string path;
-public:
-    import_node(std::string name, std::string path) : name(name), path(path) {}
-    inline void hello() override {std::cout << "hello from import_node\n";}
-};
-
-
-
-class signature_node : public ast_node {
-    const FUNCTION_TYPE type;
-    const std::string name;
-    std::unique_ptr<dataflow_declarations_node> args;
-public:
-    signature_node(FUNCTION_TYPE type, std::string name, std::unique_ptr<dataflow_declarations_node>& args)
-        : type(type), name(name), args(std::move(args)) {}
-    void accept(chips_visitor& visitor);
-    inline void hello() override {std::cout << "hello from signature_node\n";}
-};
+        class import_node : public preamble_node {
+            private:
+                const std::string name;
+                const std::string path;
+            public:
+                import_node(std::string name, std::string path) : name(std::move(name)), path(std::move(path)) {}
+                void accept(chips_visitor& visitor);
+                void node_print() override {
+                    std::cout << "import " << path << " as " << name << ";";
+                }
+        };
 
 
-class output_node : public ast_node {
-private:
-    std::vector<std::unique_ptr<expression_node>> outputs;
-public:
-    output_node(){}
 
-    output_node(std::unique_ptr<expressions_node>& exprs)
-    : outputs(std::move(exprs->exprs)) {}
+        // class signature_node : public ast_node {
+        //     const FUNCTION_TYPE type;
+        //     const std::string name;
+        //     std::unique_ptr<dataflow_declarations_node> args;
+        // public:
+        //     signature_node(FUNCTION_TYPE type, std::string name, std::unique_ptr<dataflow_declarations_node>& args)
+        //         : type(type), name(name), args(std::move(args)) {}
+        //     void accept(chips_visitor& visitor);
+        //     inline void hello() override {std::cout << "hello from signature_node\n";}
+        // };
 
-    output_node(std::unique_ptr<output_node>& out)
-    : outputs(std::move(out->outputs)) {}
 
-    inline void hello() override {std::cout << "hello from output_node\n";}
-};
+        // class output_node : public ast_node {
+        // private:
+        //     std::vector<std::unique_ptr<expression_node>> outputs;
+        // public:
+        //     output_node(){}
 
-class function_definition_node : public preamble_node {
-private:
-    std::unique_ptr<signature_node> signature;
-    std::unique_ptr<output_node> output;
-    std::unique_ptr<statements_node> init;
-    std::unique_ptr<statements_node> then;
-public:
-    function_definition_node(std::unique_ptr<signature_node>& signature, std::unique_ptr<output_node>& output)
-        : signature(std::move(signature)), output(std::move(output)) {}
-    
-    function_definition_node(std::unique_ptr<signature_node>& signature,
-        std::unique_ptr<statements_node>& init,
-        std::unique_ptr<statements_node>& then,
-        std::unique_ptr<output_node>& output)
-    : signature(std::move(signature)), init(std::move(init)), then(std::move(then)), output(std::move(output)) {}
+        //     output_node(std::unique_ptr<expressions_node>& exprs)
+        //     : outputs(std::move(exprs->exprs)) {}
 
-    inline void hello() override {std::cout << "hello from function_definition_node\n";}
+        //     output_node(std::unique_ptr<output_node>& out)
+        //     : outputs(std::move(out->outputs)) {}
 
-};
+        //     inline void hello() override {std::cout << "hello from output_node\n";}
+        // };
+
+        // class function_definition_node : public preamble_node {
+        // private:
+        //     std::unique_ptr<signature_node> signature;
+        //     std::unique_ptr<output_node> output;
+        //     std::unique_ptr<statements_node> init;
+        //     std::unique_ptr<statements_node> then;
+        // public:
+        //     function_definition_node(std::unique_ptr<signature_node>& signature, std::unique_ptr<output_node>& output)
+        //         : signature(std::move(signature)), output(std::move(output)) {}
+            
+        //     function_definition_node(std::unique_ptr<signature_node>& signature,
+        //         std::unique_ptr<statements_node>& init,
+        //         std::unique_ptr<statements_node>& then,
+        //         std::unique_ptr<output_node>& output)
+        //     : signature(std::move(signature)), init(std::move(init)), then(std::move(then)), output(std::move(output)) {}
+
+        //     inline void hello() override {std::cout << "hello from function_definition_node\n";}
+
+        // };
+    }
+}
 
 #endif

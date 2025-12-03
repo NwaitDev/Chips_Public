@@ -7,6 +7,7 @@
 #include "./chips_expressions.hpp"
 #include "./chips_overall.hpp"
 #include "./chips_overall_stts.hpp"
+#include "./chips_declaration_ctx.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -74,7 +75,7 @@ namespace chips {
 
         class chips_node : ast_node {
             private:
-            // std::unique_ptr<preambles_node> preambles;
+            std::unique_ptr<preambles_node> preambles;
             std::unique_ptr<system_node> system;
 
             public:
@@ -83,15 +84,17 @@ namespace chips {
             chips_node(std::unique_ptr<system_node> system)
                 : system(std::move(system)) {}
 
-            // chips_node(std::unique_ptr<preambles_node>& preambles, std::unique_ptr<system_node>& system)
-            //     : preambles(std::move(preambles)), system(std::move(system)) {}
+            chips_node(std::unique_ptr<preambles_node> preambles, std::unique_ptr<system_node> system)
+                : preambles(std::move(preambles)), system(std::move(system)) {}
 
             void accept(chips_visitor& visitor){
                 // TODO
             }
 
             void node_print() override {
-                // TODO: print preambles if needed
+                if(preambles){
+                    preambles->node_print();
+                }
                 if (system) {  // Vérifie si system contient une valeur
                     system->node_print();
                 }

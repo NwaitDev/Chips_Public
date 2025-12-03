@@ -46,10 +46,10 @@
 
 /*defining the non-terminal symbols of the grammar*/
 %type <std::unique_ptr<chips::chips_node>> chips
-// %type <std::unique_ptr<preambles_node>> preambles
+%type <std::unique_ptr<chips::preambles_node>> preambles
 %type <std::unique_ptr<chips::system_node>> system
-// %type <std::unique_ptr<preamble_node>> preamble
-// %type <std::unique_ptr<import_node>> import
+%type <std::unique_ptr<chips::preamble_node>> preamble
+%type <std::unique_ptr<chips::import_node>> import
 // %type <std::unique_ptr<function_definition_node>> function_def
 // %type <std::unique_ptr<signature_node>> pure_signature
 // %type <std::unique_ptr<output_node>> output
@@ -90,19 +90,19 @@
 %start chips;
 
 chips:
-    preambles system                    { $$ = std::move(std::make_unique<chips::chips_node>(std::move($2)));
+    preambles system                    { $$ = std::move(std::make_unique<chips::chips_node>(std::move($1), std::move($2)));
                                           drv.ast = std::move($$);                                          }
     ;
 preambles:
-    preamble preambles                  {/* $$ = std::move($2); $$->append($1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<preambles_node>());  $$->hello(); */}
+    preamble preambles                  { $$ = std::move($2); $$->append(std::move($1)); }
+    | /* EMPTY */                       {$$ = std::move(std::make_unique<chips::preambles_node>()); }
     ;
 preamble:
-    import                              {/* $$ = std::move($1);  $$->hello(); */}
+    import                              { $$ = std::move($1); }
     | function_def                      {/* $$ = std::move($1);  $$->hello(); */}
     ;
 import:
-    IMPORT_KW STR AS_KW NAME SEMICOL   {/* $$ = std::move(std::make_unique<import_node>($4, $2));  $$->hello(); */}
+    IMPORT_KW STR AS_KW NAME SEMICOL   { $$ = std::move(std::make_unique<chips::import_node>(std::move($4), std::move($2))); }
     ;
 function_def:
     pure_signature output               {/* $$ = std::move(std::make_unique<function_definition_node>($1,$2));  $$->hello(); */}
