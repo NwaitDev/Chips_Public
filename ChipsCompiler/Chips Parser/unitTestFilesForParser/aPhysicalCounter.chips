@@ -1,0 +1,17 @@
+physical aPhysicalCounter (sensor onOffButton) channels {
+    SerialChannel plug;
+} init {
+    ctx int countSpeed;
+    int counter = 0;
+} then {
+    if (onOffButton) {
+        counter = counter + countSpeed;
+    } else {
+        counter = 0;
+    }
+} -> cnt(counter)
+
+node aPhysicalCounter implemented by "../devices/counterReferenceSuperBrand.json" {
+    having "serial_PIN0" as plug;
+    having "counterSpeedDefaultConfig" as countSpeed;
+}

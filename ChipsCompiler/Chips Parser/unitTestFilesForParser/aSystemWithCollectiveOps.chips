@@ -1,0 +1,85 @@
+// Component producing a signal
+logical aFirstComponent () init {
+    int foo = 10;
+} then {
+    foo = foo -1;
+} -> toBeSpread (foo)
+
+// Some specification to mimic a spatial propagation of signals
+abstract physical aPlaceholder () channels {
+    Neighbor next;
+    Neighbor previous;
+}
+
+// A function that outputs its coef if it is activated
+logical aSubComponentOfTheSecondComponent(bool activation, int coef)
+init {
+    int output;
+}
+then {
+    if (activation) {
+        output = coef;
+    } else {
+        output = 0;
+    }
+} -> toBeCollected(output)
+
+// A dummy component to complete the system ("print" is not yet defined)
+logical aLastComponent(int bar) init {} then {
+    // print(bar);
+}
+
+// spread operator that produces a list of "true"
+// terminating with a "false" as long as
+// the received message is positive
+// propagation is stopped otherwise
+spread (int msg = input) 
+spreadingFunction among aPlaceholder {
+    int myMsg = msg;
+    bool currentActivation = false;
+    bool msgToOthers;
+    if (myMsg > 1) {
+        currentActivation = true;
+        msgToOthers = myMsg - 1;
+    } else {
+        msgToNext = stop;
+    }
+} -> @(currentActivation)
+-> next(msgToOthers)
+-> default(stop)
+
+
+
+// model simulating a 1D example
+system {
+    
+    aFirstComponent componentOne;
+
+    // next line not defined yet with current metamodel
+    spread componentOne.toBeSpread with spreadingFunction;
+
+    int nbSubComponents = 10;
+    aSubComponentOfTheSecondComponent[nbSubComponents] componentTwo;
+    aPlaceholder[nbSubComponents] placeholders;
+
+    link aFirstComponent to placeholders[0];
+
+    // range function is not defined yet either
+    // (it would be ~= to the one in python)
+    for i in range(nbSubComponents) {
+        // setting the virtual position of the function
+        link componentTwo[i] to placeholders[i];
+
+        // defining the configuring parameter of the function
+        componentTwo[i].coef(i+1);
+
+        // plugging the channels together
+        componentTwo[i].activation(componentOne.toBeSpread);
+        if (i > 0){
+            placeholders[i].previous(placeholders[i-1].next);
+            placeholders[i-1].next(placeholders[i].previous);
+        }
+
+    }
+
+}
