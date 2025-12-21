@@ -130,6 +130,13 @@ namespace chips {
 
                 void node_print() override {
                     signature->node_print();
+                    if(init && then){
+                        std::cout << " init {\n";
+                        init->node_print();
+                        std::cout << "\n} then {\n";
+                        then->node_print();
+                        std::cout << "\n} ";
+                    }
                     output->node_print();
                 }
 

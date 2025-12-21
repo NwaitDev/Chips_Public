@@ -58,8 +58,8 @@
 %type <std::unique_ptr<chips::dataflow_declaration_node>> df_decl_lhs
 %type <std::unique_ptr<chips::dataflow_type_node>> df_type
 %type <std::unique_ptr<chips::expressions_node>> exprs
-// %type <std::unique_ptr<signature_node>> object_signature
-// %type <std::unique_ptr<statements_node>> statements
+%type <std::unique_ptr<chips::signature_node>> object_signature
+%type <std::unique_ptr<chips::statements_node>> statements
 // %type <std::unique_ptr<statement_node>> statement
 // %type <std::unique_ptr<loop_node>> loop
 // %type <std::unique_ptr<if_node>> if
@@ -110,7 +110,7 @@ function_def:
         statements 
     R_CURL THEN_KW L_CURL 
         statements 
-    R_CURL output                       {/* $$ = std::move(std::make_unique<function_definition_node>($1,$4,$8,$10));  $$->hello(); */}
+    R_CURL output                       { $$ = std::move(std::make_unique<chips::function_definition_node>(std::move($1),std::move($4),std::move($8),std::move($10))); }
     ;
 pure_signature:
     PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH  { $$ = std::move(std::make_unique<chips::signature_node>(chips::PURE, std::move($2), std::move($4))); }
@@ -135,15 +135,15 @@ output:
     ARROW L_PARENTH exprs R_PARENTH     { $$ = std::move(std::make_unique<chips::output_node>(std::move($3))); }
     ;
 object_signature:
-    VIRT_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH           {/* $$ = std::move(std::make_unique<signature_node>(VIRTUAL, $2, $4));  $$->hello(); */}
-    | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH     {/* $$ = std::move(std::make_unique<signature_node>(PHYSICAL, $2, $4));  $$->hello(); */}
+    VIRT_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH           { $$ = std::move(std::make_unique<chips::signature_node>(chips::VIRTUAL, std::move($2), std::move($4))); }
+    | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH     { $$ = std::move(std::make_unique<chips::signature_node>(chips::PHYSICAL, std::move($2), std::move($4))); }
     ;
 statements: 
     statement SEMICOL statements        {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
     | loop statements                   {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
     | if_else statements                {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
     | if statements                     {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | /* EMPTY */                       {/* $$ = std::move(std::make_unique<statements_node>());  $$->hello(); */}
+    | /* EMPTY */                       { $$ = std::move(std::make_unique<chips::statements_node>()); }
     ;
 statement:
     df_full_decl                        {/* $$ = std::move($1);  $$->hello(); */}
