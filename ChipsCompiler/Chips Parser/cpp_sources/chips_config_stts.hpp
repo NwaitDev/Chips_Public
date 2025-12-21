@@ -22,7 +22,7 @@ namespace chips {
             virtual ~c_statement_node() = default;
             //virtual void accept(chips_visitor& visitor) = 0;
             virtual void node_print() = 0;
-
+            virtual STATEMENT_TYPE get_type() const { return INST_ST; }
         };
 
         class c_statements_node : ast_node {
@@ -55,7 +55,12 @@ namespace chips {
                             continue;
                         }
                         sttmt->node_print();
-                        std::cout << ";" << std::endl;
+                        auto type = sttmt->get_type();
+                        if(type == IF_ST || type == IFELSE_ST || type == LOOP_ST){
+                            std::cout << std::endl;
+                        } else {
+                            std::cout << ";" << std::endl;
+                        }
                     }
                 }
         };
@@ -91,6 +96,7 @@ namespace chips {
         
         class c_if_node : public c_statement_node {
             private:
+                const STATEMENT_TYPE type = IF_ST;
                 std::unique_ptr<expression_node> expr;
                 std::unique_ptr<c_statements_node> sstatements;
             public:
@@ -98,6 +104,8 @@ namespace chips {
                     : expr(std::move(expr)), sstatements(std::move(sstatements)){}
 
                 void accept(chips_visitor& visitor);
+
+                STATEMENT_TYPE get_type() const { return type; }
 
                 void node_print() override {
                     std::cout << "if(";
@@ -110,6 +118,7 @@ namespace chips {
 
         class c_loop_node : public c_statement_node {
             private:
+                const STATEMENT_TYPE type = LOOP_ST;
                 std::string ident;
                 std::unique_ptr<suffixable_node> expr;
                 std::unique_ptr<c_statements_node> ssttmts;
@@ -118,6 +127,8 @@ namespace chips {
                     : ident(std::move(ident)), expr(std::move(expr)), ssttmts(std::move(ssttmts)) {}
 
                 void accept(chips_visitor& visitor);
+
+                STATEMENT_TYPE get_type() const { return type; }
                 
                 void node_print() override {
                     std::cout << "foreach " << ident << " in ";
@@ -131,6 +142,7 @@ namespace chips {
 
         class c_if_else_node : public c_statement_node {
             private:
+                const STATEMENT_TYPE type = IFELSE_ST;
                 std::unique_ptr<c_if_node> sifnode;
                 std::unique_ptr<c_statements_node> elsestts;
             public:
@@ -138,6 +150,8 @@ namespace chips {
                     : sifnode(std::move(sifnode)), elsestts(std::move(elsestts)){}
                 
                 void accept(chips_visitor& visitor);
+
+                STATEMENT_TYPE get_type() const { return type; }
                 
                 void node_print() override {
                     sifnode->node_print();

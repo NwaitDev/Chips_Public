@@ -61,9 +61,9 @@
 %type <std::unique_ptr<chips::signature_node>> object_signature
 %type <std::unique_ptr<chips::statements_node>> statements
 %type <std::unique_ptr<chips::statement_node>> statement
-// %type <std::unique_ptr<loop_node>> loop
-// %type <std::unique_ptr<if_node>> if
-// %type <std::unique_ptr<if_else_node>> if_else
+%type <std::unique_ptr<chips::loop_node>> loop
+%type <std::unique_ptr<chips::if_node>> if
+%type <std::unique_ptr<chips::if_else_node>> if_else
 %type <std::unique_ptr<chips::dataflow_full_declaration_node>> df_full_decl
 %type <std::unique_ptr<chips::assignment_node>> assignment
 %type <std::unique_ptr<chips::function_call_node>> function_call
@@ -139,10 +139,10 @@ object_signature:
     | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH     { $$ = std::move(std::make_unique<chips::signature_node>(chips::PHYSICAL, std::move($2), std::move($4))); }
     ;
 statements: 
-    statement SEMICOL statements        { $$ = std::move($3); $$->append($1); }
-    | loop statements                   {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | if_else statements                {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
-    | if statements                     {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
+    statement SEMICOL statements        { $$ = std::move($3); $$->append(std::move($1)); }
+    | loop statements                   { $$ = std::move($2); $$->append(std::move($1)); }
+    | if_else statements                { $$ = std::move($2); $$->append(std::move($1)); }
+    | if statements                     { $$ = std::move($2); $$->append(std::move($1)); }
     | /* EMPTY */                       { $$ = std::move(std::make_unique<chips::statements_node>()); }
     ;
 statement:
@@ -222,18 +222,18 @@ assignment:
 loop:
     FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
         statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<loop_node>($2,(std::unique_ptr<suffixable_node>&)$4,$6));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::loop_node>(std::move($2), std::move($4),std::move($6))); }
     ;
 if_else:
     if 
     ELSE_KW L_CURL 
         statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<if_else_node>($1,$4));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::if_else_node>(std::move($1), std::move($4))); }
     ;
 if: 
     IF_KW L_PARENTH expr R_PARENTH L_CURL 
         statements 
-    R_CURL                                      {/* $$ = std::move(std::make_unique<if_node>($3,$6));  $$->hello(); */}
+    R_CURL                                      { $$ = std::move(std::make_unique<chips::if_node>(std::move($3), std::move($6))); }
     ;
 c_loop:
     FOREACH_KW NAME IN_KW suffixable_expr L_CURL 
