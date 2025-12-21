@@ -60,7 +60,7 @@
 %type <std::unique_ptr<chips::expressions_node>> exprs
 %type <std::unique_ptr<chips::signature_node>> object_signature
 %type <std::unique_ptr<chips::statements_node>> statements
-// %type <std::unique_ptr<statement_node>> statement
+%type <std::unique_ptr<chips::statement_node>> statement
 // %type <std::unique_ptr<loop_node>> loop
 // %type <std::unique_ptr<if_node>> if
 // %type <std::unique_ptr<if_else_node>> if_else
@@ -139,15 +139,15 @@ object_signature:
     | PHYSICAL_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH     { $$ = std::move(std::make_unique<chips::signature_node>(chips::PHYSICAL, std::move($2), std::move($4))); }
     ;
 statements: 
-    statement SEMICOL statements        {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
+    statement SEMICOL statements        { $$ = std::move($3); $$->append($1); }
     | loop statements                   {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
     | if_else statements                {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
     | if statements                     {/* $$ = std::move($2); $$->append((std::unique_ptr<statement_node>&)$1);  $$->hello(); */}
     | /* EMPTY */                       { $$ = std::move(std::make_unique<chips::statements_node>()); }
     ;
 statement:
-    df_full_decl                        {/* $$ = std::move($1);  $$->hello(); */}
-    | assignment                        {/* $$ = std::move($1);  $$->hello(); */}
+    df_full_decl                        { $$ = std::move($1); }
+    | assignment                        { $$ = std::move($1); }
     ;
 c_statement: 
     NAME suffixes NAME                                              { $$ = std::move(std::make_unique<chips::function_declaration_node>(std::move($1), std::move($2), std::move($3))); }

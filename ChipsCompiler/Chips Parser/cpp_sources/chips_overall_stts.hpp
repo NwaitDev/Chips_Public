@@ -30,7 +30,7 @@ namespace chips {
                     // std::cout << "statements_node: ";
                     for(const auto& sttmt : statements){
                         sttmt->node_print();
-                        std::cout << ";\n";
+                        std::cout << ";";
                     }
                 }
         };
