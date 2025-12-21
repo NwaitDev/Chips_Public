@@ -54,7 +54,7 @@
 %type <std::unique_ptr<chips::signature_node>> pure_signature
 %type <std::unique_ptr<chips::output_node>> output
 %type <std::unique_ptr<chips::dataflow_declarations_node>> df_decl_list_or_nothing
-// %type <std::unique_ptr<dataflow_declarations_node>> df_decl_list
+%type <std::unique_ptr<chips::dataflow_declarations_node>> df_decl_list
 %type <std::unique_ptr<chips::dataflow_declaration_node>> df_decl_lhs
 %type <std::unique_ptr<chips::dataflow_type_node>> df_type
 %type <std::unique_ptr<chips::expressions_node>> exprs
@@ -116,15 +116,15 @@ pure_signature:
     PURE_KW NAME L_PARENTH df_decl_list_or_nothing R_PARENTH  { $$ = std::move(std::make_unique<chips::signature_node>(chips::PURE, std::move($2), std::move($4))); }
     ;
 df_decl_list_or_nothing:
-    df_decl_list                        {/* $$=std::move($1);  $$->hello(); */}
+    df_decl_list                        { $$=std::move($1); }
     | /* EMPTY */                       { $$=std::move(std::make_unique<chips::dataflow_declarations_node>()); }
     ;
 df_decl_list:
-    df_decl_lhs                         {/* $$ = std::move(std::make_unique<dataflow_declarations_node>()); $$->append($1);  $$->hello(); */}
-    | df_decl_lhs COMMA df_decl_list    {/* $$ = std::move($3); $$->append($1);  $$->hello(); */}
+    df_decl_lhs                         { $$ = std::move(std::make_unique<chips::dataflow_declarations_node>()); $$->append($1); }
+    | df_decl_lhs COMMA df_decl_list    { $$ = std::move($3); $$->append($1); }
     ;
 df_decl_lhs:
-    df_type NAME                        {/*std::cout << "df_type NAME\n";*/  $$ = std::move(std::make_unique<chips::dataflow_declaration_node>(std::move($1), $2)); }
+    df_type NAME                        { $$ = std::move(std::make_unique<chips::dataflow_declaration_node>(std::move($1), $2)); }
     ;
 df_type:
     INT_KW suffixes                     { $$ = std::move(std::make_unique<chips::dataflow_type_node>(chips::INT_DF, std::move($2))); }

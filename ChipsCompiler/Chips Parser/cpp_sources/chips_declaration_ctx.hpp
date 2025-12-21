@@ -133,9 +133,9 @@ namespace chips {
                     if(init && then){
                         std::cout << " init {\n";
                         init->node_print();
-                        std::cout << "\n} then {\n";
+                        std::cout << "} then {\n";
                         then->node_print();
-                        std::cout << "\n} ";
+                        std::cout << "} ";
                     }
                     output->node_print();
                 }

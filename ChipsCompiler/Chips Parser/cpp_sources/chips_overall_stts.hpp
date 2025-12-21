@@ -24,13 +24,15 @@ namespace chips {
                 statements_node(std::unique_ptr<statements_node>& stts)
                     : statements(std::move(stts->statements)) {}
                 
-                inline void append(std::unique_ptr<statement_node>& sttmt) {statements.push_back(std::move(sttmt));}
+                inline void append(std::unique_ptr<statement_node>& sttmt) {
+                    statements.insert(statements.begin(), std::move(sttmt));
+                };
                 void accept(chips_visitor& visitor);
                 void node_print() override {
                     // std::cout << "statements_node: ";
                     for(const auto& sttmt : statements){
                         sttmt->node_print();
-                        std::cout << ";";
+                        std::cout << ";" << std::endl;
                     }
                 }
         };

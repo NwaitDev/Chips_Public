@@ -83,12 +83,20 @@ namespace chips {
                 dataflow_declarations_node(dataflow_declarations_node& decls)
                     : decls(std::move(decls.decls)) {}
 
-                inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
+                inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){
+                    decls.insert(decls.begin(), std::move(dfDecl));
+                };
                 
                 
                 void accept(chips_visitor& visitor);
 
-                void node_print() override {}
+                void node_print() override {
+                    for(const auto& decl : decls){
+                        decl->node_print();
+                        if(decls.back() == decl) break;
+                        std::cout << ", ";
+                    }
+                }
         };
 
         class expressions_node : public ast_node {
