@@ -1,0 +1,12 @@
+physical aPhysicalCounter (sensor bool onOffButton) with {
+    SerialChannel plug;
+    ctx int countSpeed = 1;
+} init {
+    int counter = 0;
+} then {
+    if (onOffButton) {
+        counter = counter + countSpeed;
+    } else {
+        counter = 0;
+    }
+} -> cnt(counter)

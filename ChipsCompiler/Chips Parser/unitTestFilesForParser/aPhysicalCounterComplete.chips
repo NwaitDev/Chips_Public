@@ -1,6 +1,6 @@
 physical aPhysicalCounter (sensor bool onOffButton) with {
     SerialChannel plug;
-    ctx int countSpeed = 1;
+    int countSpeed = 1;
 } init {
     int counter = 0;
 } then {
@@ -11,7 +11,7 @@ physical aPhysicalCounter (sensor bool onOffButton) with {
     }
 } -> cnt(counter)
 
-node AbstractObject with {
+object AbstractObject with {
     SerialChannel abstractPlug;
     ctx int abstractObjectSpecificParameter;
 }
@@ -19,4 +19,12 @@ node AbstractObject with {
 implementation abstractObjectByCounter : AbstractObject by aPhysicalCounter {
     having plug as abstractPlug;
     having countSpeed as abstractObjectSpecificParameter;
+}
+
+system {
+    aPhysicalCounter pc;
+    AbstractObject ao;
+    pc implements ao using abstractObjectByCounter;
+
+    pc.onOffButton(true);
 }

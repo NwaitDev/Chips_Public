@@ -6,7 +6,7 @@ logical aFirstComponent () init {
 } -> toBeSpread (foo)
 
 // Some specification to mimic a spatial propagation of signals
-abstract physical aPlaceholder () channels {
+node aPlaceholder with {
     Neighbor next;
     Neighbor previous;
 }
@@ -34,18 +34,18 @@ logical aLastComponent(int bar) init {} then {
 // the received message is positive
 // propagation is stopped otherwise
 spread (int msg = input) 
-spreadingFunction among aPlaceholder {
+trueAsLongAsPositive among aPlaceholder {
     int myMsg = msg;
     bool currentActivation = false;
-    bool msgToOthers;
+    bool msgToNext;
     if (myMsg > 1) {
         currentActivation = true;
-        msgToOthers = myMsg - 1;
+        msgToNext = myMsg - 1;
     } else {
         msgToNext = stop;
     }
 } -> @(currentActivation)
--> next(msgToOthers)
+-> next(msgToNext)
 -> default(stop)
 
 
@@ -55,26 +55,29 @@ system {
     
     aFirstComponent componentOne;
 
-    // next line not defined yet with current metamodel
-    spread componentOne.toBeSpread with spreadingFunction;
 
-    int nbSubComponents = 10;
+    int nbSubComponents = 3;
     aSubComponentOfTheSecondComponent[nbSubComponents] componentTwo;
     aPlaceholder[nbSubComponents] placeholders;
 
-    link aFirstComponent to placeholders[0];
+    link componentOne to placeholders[0];
 
-    // range function is not defined yet either
-    // (it would be ~= to the one in python)
-    for i in range(nbSubComponents) {
+    // Really needs improvement on this part
+    // currently assuming the following array
+    // will contain {0, 1, 2} 
+    int [nbSubComponents] range; // need for a range function like in python
+    for i in range {
+
         // setting the virtual position of the function
         link componentTwo[i] to placeholders[i];
 
         // defining the configuring parameter of the function
         componentTwo[i].coef(i+1);
 
+        
+        componentTwo[i].activation((trueAsLongAsPositive) componentOne.toBeSpread);
+        
         // plugging the channels together
-        componentTwo[i].activation(componentOne.toBeSpread);
         if (i > 0){
             placeholders[i].previous(placeholders[i-1].next);
             placeholders[i-1].next(placeholders[i].previous);
