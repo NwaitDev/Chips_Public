@@ -1,2 +1,0 @@
-pure aPureFunction(float foo = -15.5, float bar)
--> ((foo-bar) * (bar-foo))

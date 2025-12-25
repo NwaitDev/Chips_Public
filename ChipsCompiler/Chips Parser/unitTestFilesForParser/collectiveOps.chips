@@ -1,18 +1,18 @@
 // Component producing a signal
-logical aFirstComponent () init {
+logical Component1 () init {
     int foo = 10;
 } then {
     foo = foo -1;
 } -> toBeSpread (foo)
 
 // Some specification to mimic a spatial propagation of signals
-node aPlaceholder with {
+object Placeholder with {
     Neighbor next;
     Neighbor previous;
 }
 
 // A function that outputs its coef if it is activated
-logical aSubComponentOfTheSecondComponent(bool activation, int coef)
+logical SubComponent(bool activation, int coef)
 init {
     int output;
 }
@@ -25,7 +25,7 @@ then {
 } -> toBeCollected(output)
 
 // A dummy component to complete the system ("print" is not yet defined)
-logical aLastComponent(int bar) init {} then {
+logical DummyCollector(int bar) init {} then {
     // print(bar);
 }
 
@@ -34,10 +34,10 @@ logical aLastComponent(int bar) init {} then {
 // the received message is positive
 // propagation is stopped otherwise
 spread (int msg = input) 
-trueAsLongAsPositive among aPlaceholder {
+TrueAsLongAsPositive among Placeholder {
     int myMsg = msg;
     bool currentActivation = false;
-    bool msgToNext;
+    int msgToNext;
     if (myMsg > 1) {
         currentActivation = true;
         msgToNext = myMsg - 1;
@@ -53,12 +53,12 @@ trueAsLongAsPositive among aPlaceholder {
 // model simulating a 1D example
 system {
     
-    aFirstComponent componentOne;
+    Component1 componentOne;
 
 
     int nbSubComponents = 3;
-    aSubComponentOfTheSecondComponent[nbSubComponents] componentTwo;
-    aPlaceholder[nbSubComponents] placeholders;
+    SubComponent[nbSubComponents] componentTwo;
+    Placeholder[nbSubComponents] placeholders;
 
     link componentOne to placeholders[0];
 
