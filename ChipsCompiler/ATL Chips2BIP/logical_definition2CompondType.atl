@@ -1,0 +1,64 @@
+module chips2bip;
+
+-- @path Chips=/Chips2Bip/Chips1.1.ecore
+-- @path BIP=/Chips2Bip/BIP.ecore
+
+create OUT: BIP from IN: Chips;
+
+rule logical_definition2CompoundType {
+	from
+		ld : Chips!logical_definition
+	to
+		ct: BIP!CompoundType(
+			componentDeclaratiosns <- ,--TODO
+			connectorDeclarations <- ,--TODO
+			exportPortDeclarations <- ,--TODO
+			exportDataDeclarations <- ,--TODO
+			priorities <- Sequence()
+		)
+}
+
+
+unique lazy rule logical_definition2MainAtomType {
+	from
+		ld: Chips!logical_definition
+	to
+		at: BIP!AtomType(
+			name <- ld.name+'_main',
+			native <- false,
+			exportedPortDeclarations <- , --TODO
+			internalPortDeclaration <- , -- TODO
+			behavior <- , -- TODO (petri net)
+			internalDataDeclaration <- , -- TODO
+		)
+}
+
+unique lazy rule logical_parameter2ReceiverAtomType {
+	from 
+		lp: Chips!logical_parameter
+	to
+		at:BIP!AtomType(
+			name <- lp.name,
+			native <- false,
+			exportedPortDeclarations <- , --TODO
+			internalPortDeclaration <- , -- TODO
+			behavior <- , -- TODO (petri net)
+			internalDataDeclaration <- , -- TODO
+		)
+		
+}
+
+unique lazy rule logical_output2SenderAtomType {
+	from 
+		lo:Chips!logical_output
+	to
+		at:BIP!AtomType(
+			name <- lp.name,
+			native <- false,
+			exportedPortDeclarations <- , --TODO
+			internalPortDeclaration <- , -- TODO
+			behavior <- , -- TODO (petri net)
+			internalDataDeclaration <- , -- TODO
+		)
+		
+}
