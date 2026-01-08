@@ -4,3 +4,7 @@ SYSTEM {
     bool g = function();
     float b = function();
 }
+
+
+// ne compile pas car function 
+// ne retourne pas un float ni un bool

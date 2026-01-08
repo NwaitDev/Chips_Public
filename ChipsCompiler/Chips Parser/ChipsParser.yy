@@ -364,10 +364,6 @@ pdf_parameter_type:
     df_type
     | SENSOR_KW df_type
     ;
-pdf_parameter_type:
-    df_type
-    | SENSOR_KW df_type
-    ;
 pdf_parameter_list:
     pdf_parameter_decls
     | /* EMPTY */

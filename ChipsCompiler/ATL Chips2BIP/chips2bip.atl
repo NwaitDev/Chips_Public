@@ -1,0 +1,6 @@
+module chips2bip;
+
+-- @path Chips=/Chips2Bip/Chips1.1.ecore
+-- @path BIP=/Chips2Bip/BIP.ecore
+
+create OUT: BIP from IN: Chips;

@@ -1,3 +1,5 @@
 SYSTEM {
     int hello = 0.1;
 }
+
+// 0.1 n'est pas un integer

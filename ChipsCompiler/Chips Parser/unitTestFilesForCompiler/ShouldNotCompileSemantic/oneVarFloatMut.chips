@@ -2,3 +2,10 @@
 SYSTEM {
     float hello = 4;
 }
+
+// Affectation d'un nombre entier à un flottant
+// Je suppose que je comptais faire la distinction 
+// entre 4 et 4.0 ou 4. (mais ce n'est qu'une supposition)
+// en vérité, les gens qui implantent le parseur peuvent 
+// tout à fait trancher sur la manière de représenter un 
+// flottant en dur dans le code.
