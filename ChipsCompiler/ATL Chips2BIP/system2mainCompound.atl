@@ -1,0 +1,19 @@
+module chips2bip;
+
+-- @path Chips=/Chips2Bip/Chips1.1.ecore
+-- @path BIP=/Chips2Bip/BIP.ecore
+
+create OUT: BIP from IN: Chips;
+
+rule system2CompoundType {
+	from
+		system : Chips!system
+	to
+		mainCompound: BIP!CompoundType(
+			componentDeclarations <- ,--TODO
+			connectorDeclarations <- ,--TODO
+			exportPortDeclarations <- ,--TODO
+			exportDataDeclarations <- ,--TODO
+			priorities <- Sequence()
+		)
+}
