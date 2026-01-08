@@ -7,3 +7,6 @@ SYSTEM {
         }
     }
 }
+
+// ne compile pas parce que fait ref à 
+// des éléments non definis (sensor1, actuator1, ...)

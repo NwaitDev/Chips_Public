@@ -3,3 +3,6 @@ pure function() -> (1,2)
 SYSTEM dimensions(0){
     int i = function();
 }
+
+// ne compile pas car pas i n'est pas
+// du type de retour de function

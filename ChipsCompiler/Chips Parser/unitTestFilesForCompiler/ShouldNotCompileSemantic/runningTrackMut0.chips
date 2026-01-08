@@ -129,3 +129,40 @@ SYSTEM dimensions(1) {
     counter.in(blinkiesPresence);
     output.in(aggregator.out);
 }
+
+
+// La seule véritable erreur à l'époque où je concevais 
+// cette batterie de tests correspond à
+
+// l10 : pas de paramètre à la fonction pcoef
+
+
+
+// Cepedant, avec la prochaine version du méta-modèle,
+// beaucoup de changement rendraient ce code erroné : 
+
+// l42 : je crois qu'à l'époque, je voulais que 
+//      tabVar = 0;
+// soit un raccourci pour
+//      for(int i = 0; i<tabVar.length;++i)
+//          tabVar[i] = 0
+
+// l45 : Je comptais faire qu'il soit possible de comparer 
+// les tableaux par valeur. Ce ne devra pas être possible dans
+// la prochaine version de chips
+
+// l48 : J'envisageais qu'on ait dans chips
+// une fonction "zeros(x)" comme en python
+// pour instancier un tableau de taille x
+// contenant uniquement des 0
+// plus la peine dans la prochaine version
+// ça ferait du travail en plus pour pas grand chose
+
+// l51 : J'envisageais le cast avec la même syntaxe 
+// que python, en fin de compte, on va rester sur un 
+// cast à la Java/C (j'ai sondé auprès des Licence 2
+// quelle syntaxe ils préfèreraient mdr)
+
+// même remarque l74
+
+// plus tout un tas d'autres trucs qui ne seront plus d'actualité

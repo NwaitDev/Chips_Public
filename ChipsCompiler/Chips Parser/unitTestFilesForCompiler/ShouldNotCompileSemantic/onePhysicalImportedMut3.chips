@@ -16,3 +16,9 @@ SYSTEM dimensions(3) {
     myBlock.in(input());
     output(myBlock.out);
 }
+
+// /!\ dans l'ancienne version de Chips,
+// je considérais "t" et "dt" comme des 
+// mots réservés, d'où la ligne 9
+
+// fait référence à une fonction non déclarée (l9, l17)

@@ -2,3 +2,5 @@ SYSTEM {
     int hello = 0.;
     float hi = 1.5;
 }
+
+// 0. n'est pas un integer
