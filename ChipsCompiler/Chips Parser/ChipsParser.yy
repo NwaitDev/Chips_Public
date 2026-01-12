@@ -30,7 +30,7 @@
 
 
 /*defining the terminal tokens of the grammar*/
-%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW PURE_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTED_BY_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW ONTO_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW
+%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTS_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW OBJECT_KW WITH_KW IMPLEMENTATION_KW BY_KW
 
 %left PLUS MINUS
 %left TIMES DIV
@@ -64,114 +64,106 @@ system:
     SYSTEM_KW  L_CURL 
         s_statements
     R_CURL
+    | /* EMPTY */
     ;
 preamble:
-    node_def
+    object_def
     | function_def
+    | collective_op_def
+    | implementation_def
     ;
-node_def:
-    NODE_KW IDENTIFIER IMPLEMENTED_BY_KW STR L_CURL
+object_def:
+    OBJECT_KW IDENTIFIER with_section
+    ;
+implementation_def:
+    IMPLEMTATION_KW IDENTIFIER COLUMN IDENTIFIER BY_KW IDENTIFIER L_CURL
         node_mappings
     R_CURL
     ;
 node_mappings:
-    node_mapping node_mappings
+    HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL node_mappings
     | /* EMPTY */
     ;
-node_mapping:
-    HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL
-    ;
 function_def:
-    pure_function_def
-    | o_function_def
-    | c_function_def
-    ;
-pure_function_def:
-    pure_signature output
-    ;
-o_function_def:
     l_function_def
     | p_function_def
     ;
-c_function_def:
+collective_op_def:
     c_signature L_CURL
         c_statements
     R_CURL
-    ARROW TARGET_KW L_PARENTH c_expr R_PARENTH
-    c_named_outputs
-    ARROW DEFAULT_KW L_PARENTH c_expr R_PARENTH
+    ARROW TARGET_KW L_PARENTH c_list_expr R_PARENTH
+    c_output
+    c_optionnal_outputs
+    ;
+c_optionnal_outputs:
+    c_output c_optionnal_outputs
+    | /* EMPTY */
+    ;
+c_output:
+    ARROW DEFAULT_KW L_PARENTH c_list_expr R_PARENTH
+    | ARROW IDENTIFIER L_PARENTH c_list_expr R_PARENTH
     ;
 l_function_def:
-    l_signature 
-    l_definition_body
-    named_output
+    LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    init_section
+    then_section
     named_outputs
     ;
 p_function_def:
-    p_signature
-    channels_section
-    p_definition_body
-    p_named_output
+    PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
+    with_section
+    init_section
+    then_section
     p_named_outputs
     ;
-pure_signature:
-    PURE_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
-    ;
-l_signature:
-    LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
-    ;
-p_signature:
-    PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
-    ;
 c_signature:
-    SPREAD_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
-    IDENTIFIER ONTO_KW IDENTIFIER
-    | COLLECT_KW L_PARENTH cdf_defaulted_decls R_PARENTH 
+    c_keywords L_PARENTH cdf_defaulted_decls R_PARENTH 
       IDENTIFIER AMONG_KW IDENTIFIER
     ;
-l_definition_body:
-    INIT_KW L_CURL 
-        statements 
-    R_CURL THEN_KW L_CURL 
-        statements 
+c_keywords:
+    SPREAD_KW 
+    | COLLECT_KW
+    ;
+with_section:
+    WITH_KW L_CURL
+        with_statements
     R_CURL
     ;
-p_definition_body:
-    INIT_KW L_CURL 
-        p_statements 
-    R_CURL THEN_KW L_CURL 
-        statements 
-    R_CURL
-    ;
-channels_section:
-    CHANNELS_KW L_CURL
-        channel_decraration
-        channel_decrarations
-    R_CURL
-    ;
-channel_decrarations:
-    channel_decraration channel_decrarations
+with_statements:
+    with_statement with_statements
     | /* EMPTY */
     ;
-channel_decraration:
+with_statement:
     IDENTIFIER IDENTIFIER SEMICOL
+    | CTX_KW df_decraration SEMICOL
+    | statement
+    ;
+init_section:
+    INIT_KW L_CURL 
+        statements 
+    R_CURL
+    ;
+then_section:
+    THEN_KW L_CURL 
+        statements 
+    R_CURL
     ;
 list_expr:
     exprs
+    | /* EMPTY */
+    ;
+c_list_expr:
+    c_exprs
     | /* EMPTY */
     ;
 exprs:
     expr
     | expr COMMA exprs
     ;
-c_expr:
-    STOP_KW
-    | INPUT_KW
-    | expr
-    ;
-stopless_c_expr:
-    INPUT_KW
-    | expr
+c_exprs:
+    c_exprc_expr
+    | c_expr COMMA c_exprs
     ;
 expr:
     expr0 LT expr
@@ -196,43 +188,79 @@ expr1:
     | NOT expr2
     ;
 expr2: 
-    suffixable_expr suffixes
+    IDENTIFIER suffixes
     | INT
     | FLOAT
     | BOOL
     | L_PARENTH expr R_PARENTH
     | cast
-    | function_call
     ;
 cast:
     L_PARENTH df_type R_PARENTH expr
     ;
-function_call:
-    IDENTIFIER L_PARENTH list_expr R_PARENTH
+c_expr:
+    c_stopless_expr
+    | STOP_KW
+    ;
+c_stopless_expr:
+    c_stopless_expr0 LT c_stopless_expr
+    | c_stopless_expr0 GT c_stopless_expr
+    | c_stopless_expr0 LEQ c_stopless_expr
+    | c_stopless_expr0 GEQ c_stopless_expr
+    | c_stopless_expr0 NEQ c_stopless_expr
+    | c_stopless_expr0 EQ c_stopless_expr
+    | c_stopless_expr0
+    ;
+c_stopless_expr0:
+    c_stopless_expr1 PLUS c_stopless_expr0
+    | c_stopless_expr1 MINUS c_stopless_expr0
+    | MINUS c_stopless_expr0
+    | c_stopless_expr1
+    ;
+c_stopless_expr1: 
+    c_stopless_expr2 TIMES c_stopless_expr1
+    | c_stopless_expr2 DIV c_stopless_expr1
+    | c_stopless_expr2 MOD c_stopless_expr1
+    | c_stopless_expr2
+    | NOT c_stopless_expr2
+    ;
+c_stopless_expr2: 
+    IDENTIFIER c_suffixes
+    | INT
+    | FLOAT
+    | BOOL
+    | INPUT_KW
+    | STOP_KW
+    | expr
+    | CTX_KW PERIOD IDENTIFIER c_suffixes
+    | L_PARENTH c_stopless_expr R_PARENTH
+    | cast
+    ;
+c_cast:
+    L_PARENTH df_type R_PARENTH c_stopless_expr
     ;
 suffixes:
-    suffix suffixes
+    L_SQUA expr R_SQUA suffixes
     | /* EMPTY */
     ;
-suffix:
-    L_SQUA expr R_SQUA
-    | L_SQUA R_SQUA
-    ;
-suffixable_expr:
-    IDENTIFIER /* df_variable */
-    | function_call 
+c_suffixes:
+    L_SQUA c_stopless_expr R_SQUA c_suffixes
+    | /* EMPTY */
     ;
 s_suffixable_expr:
-    suffixable_expr
-    | IDENTIFIER PERIOD IDENTIFIER /* block named output */
+    IDENTIFIER
+    | block PERIOD IDENTIFIER
+    ;
+block:
+    IDENTIFIER suffixes
     ;
 loop_statement:
-    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL 
+    FOREACH_KW IDENTIFIER IN_KW IDENTIFIER L_CURL 
         statements 
     R_CURL
     ;
 c_loop_statement:
-    FOREACH_KW IDENTIFIER IN_KW suffixable_expr L_CURL
+    FOREACH_KW IDENTIFIER IN_KW IDENTIFIER L_CURL
         c_statements 
     R_CURL
     ;
@@ -281,11 +309,6 @@ statements:
     | if_statement statements
     | /* EMPTY */
     ;
-p_statements:
-    p_statement p_statements
-    | statements p_statements
-    | /* EMPTY */
-    ;
 s_statements:
     s_statement s_statements
     | s_loop_statement s_statements
@@ -293,19 +316,16 @@ s_statements:
     | s_if_statement s_statements
     | /* EMPTY */
     ;
-p_statement:
-    CTX_KW df_decraration SEMICOL
-    ;
 statement:
     df_decraration SEMICOL
     | IDENTIFIER suffixes ASSIGN expr SEMICOL
     ;
 s_statement:
     IDENTIFIER suffixes IDENTIFIER SEMICOL /* functionnal block instanciation */
-    | IDENTIFIER PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL /* plugging expr to block input */
-    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL /* attaching logical process to another or a physical */
+    | block PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL /* plugging expr to block input */
+    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL /* attaching logical process to a node */
     | df_decraration SEMICOL /* declaring a variable */
-    | function_call SEMICOL
+    | IDENTIFIER suffixes IMPLEMENTS_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL
     | statement
     ;
 c_statements:
@@ -318,9 +338,7 @@ c_statements:
 c_statement:
     cdf_full_declaration SEMICOL
     | IDENTIFIER suffixes ASSIGN c_expr SEMICOL
-    ;
-output:
-    ARROW L_PARENTH list_expr R_PARENTH
+    | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL
     ;
 named_outputs:
     named_output named_outputs
@@ -340,9 +358,6 @@ p_named_output:
 c_named_outputs:
     c_named_output c_named_outputs
     | /* EMPTY */
-    ;
-c_named_output:
-    ARROW IDENTIFIER L_PARENTH c_expr R_PARENTH
     ;
 df_parameter_list:
     df_parameter_decls
@@ -380,7 +395,7 @@ cdf_defaulted_decls:
     | cdf_defaulted_decl COMMA cdf_defaulted_decls
     ;
 cdf_defaulted_decl:
-    df_type IDENTIFIER ASSIGN stopless_c_expr
+    df_type IDENTIFIER ASSIGN c_expr
     ;
 df_decraration:
     df_type IDENTIFIER may_assign
