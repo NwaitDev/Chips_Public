@@ -30,7 +30,7 @@
 
 
 /*defining the terminal tokens of the grammar*/
-%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTS_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW OBJECT_KW WITH_KW IMPLEMENTATION_KW BY_KW
+%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN COLUMN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTS_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW OBJECT_KW WITH_KW IMPLEMENTATION_KW BY_KW TARGET_KW DEFAULT_KW USING_KW ACTUATOR_KW SENSOR_KW
 
 %left PLUS MINUS
 %left TIMES DIV
@@ -76,7 +76,7 @@ object_def:
     OBJECT_KW IDENTIFIER with_section
     ;
 implementation_def:
-    IMPLEMTATION_KW IDENTIFIER COLUMN IDENTIFIER BY_KW IDENTIFIER L_CURL
+    IMPLEMENTATION_KW IDENTIFIER COLUMN IDENTIFIER BY_KW IDENTIFIER L_CURL
         node_mappings
     R_CURL
     ;
@@ -136,7 +136,7 @@ with_statements:
     ;
 with_statement:
     IDENTIFIER IDENTIFIER SEMICOL
-    | CTX_KW df_decraration SEMICOL
+    | CTX_KW df_type IDENTIFIER may_assign SEMICOL
     | statement
     ;
 init_section:
@@ -165,6 +165,8 @@ c_exprs:
     c_exprc_expr
     | c_expr COMMA c_exprs
     ;
+c_exprc_expr:
+    /* EMPTY */
 expr:
     expr0 LT expr
     | expr0 GT expr
@@ -234,7 +236,7 @@ c_stopless_expr2:
     | expr
     | CTX_KW PERIOD IDENTIFIER c_suffixes
     | L_PARENTH c_stopless_expr R_PARENTH
-    | cast
+    | c_cast
     ;
 c_cast:
     L_PARENTH df_type R_PARENTH c_stopless_expr
@@ -317,14 +319,14 @@ s_statements:
     | /* EMPTY */
     ;
 statement:
-    df_decraration SEMICOL
+    df_type IDENTIFIER may_assign SEMICOL
     | IDENTIFIER suffixes ASSIGN expr SEMICOL
     ;
 s_statement:
     IDENTIFIER suffixes IDENTIFIER SEMICOL /* functionnal block instanciation */
     | block PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL /* plugging expr to block input */
     | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL /* attaching logical process to a node */
-    | df_decraration SEMICOL /* declaring a variable */
+    | df_type IDENTIFIER may_assign SEMICOL /* declaring a variable */
     | IDENTIFIER suffixes IMPLEMENTS_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL
     | statement
     ;
@@ -355,10 +357,6 @@ p_named_output:
     ARROW ACTUATOR_KW IDENTIFIER L_PARENTH exprs R_PARENTH
     | named_output
     ;
-c_named_outputs:
-    c_named_output c_named_outputs
-    | /* EMPTY */
-    ;
 df_parameter_list:
     df_parameter_decls
     | /* EMPTY */
@@ -385,7 +383,7 @@ pdf_parameter_list:
     ;
 pdf_parameter_decls:
     pdf_parameter_decl
-    | pdf_parameter_decl COMMA pdf_declaration_decls
+    | pdf_parameter_decl COMMA pdf_parameter_decls
     ;
 pdf_parameter_decl:
     pdf_parameter_type IDENTIFIER may_assign
@@ -396,9 +394,6 @@ cdf_defaulted_decls:
     ;
 cdf_defaulted_decl:
     df_type IDENTIFIER ASSIGN c_expr
-    ;
-df_decraration:
-    df_type IDENTIFIER may_assign
     ;
 cdf_full_declaration:
     df_type IDENTIFIER c_may_assign
