@@ -26,10 +26,16 @@ public:
 
     preambles_node(const std::unique_ptr<preambles_node>& preambles) : preambleList(std::move(preambles->preambleList)){};
 
-    inline void append(std::unique_ptr<preamble_node>& preamble){preambleList.push_back(std::move(preamble));};
+    inline void append(std::unique_ptr<preamble_node>& preamble){
+        preambleList.insert(preambleList.begin(), std::move(preamble));
+    };
     void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from preambles_node\n";}
+    inline void hello() override {
+        for(const auto& preamble : preambleList){
+            preamble.get()->hello();
+        }
+    }
 };
 
 class import_node : public preamble_node {

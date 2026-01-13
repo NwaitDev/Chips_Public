@@ -4,6 +4,10 @@
 
 //#include "./ChipsADS.hpp"
 #include "./chips_ast_classes.hpp"
+#include "./chips_expressions.hpp"
+#include "./chips_overall.hpp"
+#include "./chips_overall_stts.hpp"
+#include "./chips_declaration_ctx.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -41,20 +45,26 @@ class system_node : public ast_node {
     std::unique_ptr<dimension_node> dimension = nullptr;
     std::unique_ptr<c_statements_node> sstatements;
 public:
-    system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
-        : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
+    // system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
+    //     : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
+
+    system_node() : sstatements(nullptr) {}
 
     system_node(std::unique_ptr<c_statements_node>& sstatements)
         : sstatements(std::move(sstatements)) {}
     
     void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from system_node\n";}
+    inline void hello() override {
+        if(sstatements.get()){
+            sstatements.get()->hello();
+        }
+    }
 };
 
 class chips_node : public ast_node{
 private:
-    preambles_node preambles;
+    std::unique_ptr<preambles_node> preambles;
     std::unique_ptr<system_node> system;
 public:
 
@@ -67,8 +77,14 @@ public:
         // TODO
     }
 
-    inline void hello() override {std::cout << "hello from chips_node\n";}
-
+    inline void hello() override {
+        if(preambles){
+            preambles.get()->hello();
+        }
+        if(system){
+            system.get()->hello();
+        }
+    }
 };
 
 

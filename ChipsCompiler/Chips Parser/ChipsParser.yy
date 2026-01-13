@@ -45,30 +45,31 @@
 
 
 /*defining the non-terminal symbols of the grammar*/
-// %type <std::unique_ptr<chips_node>> chips
-// %type <std::unique_ptr<preambles_node>> preambles
-// %type <std::unique_ptr<system_node>> system
+%type <std::unique_ptr<chips_node>> chips
+%type <std::unique_ptr<preambles_node>> preambles
+%type <std::unique_ptr<system_node>> system
 // %type <std::unique_ptr<preamble_node>> preamble
 
 %%
 
 %start chips;
 chips:
-    preambles system
+    preambles system                        { $$ = std::move(std::make_unique<chips_node>($1, $2));
+                                              drv.ast = std::move($$);                                                                  }
     ;
 preambles:
-    preamble preambles
-    | /* EMPTY */
+    preamble preambles                      { $$ = std::move($2); $$->append(std::move($1)); }
+    | /* EMPTY */                           { $$ = std::move(std::make_unique<preambles_node>()); }                       
     ;
 system:
     SYSTEM_KW  L_CURL 
         s_statements
     R_CURL
-    | /* EMPTY */
+    | /* EMPTY */                           { $$ = std::move(std::make_unique<system_node>()); }
     ;
 preamble:
     object_def
-    | function_def
+    | function_def                          
     | collective_op_def
     | implementation_def
     ;

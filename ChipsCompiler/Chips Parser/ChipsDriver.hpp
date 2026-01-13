@@ -2,6 +2,7 @@
 # define DRIVER_HPP
 # include <string>
 # include "location.hh"
+# include "cpp_sources/ChipsAST.hpp"
 
 
 class driver
@@ -17,5 +18,6 @@ public:
   void scan_end ();
   bool trace_scanning;
   yy::location location;
+  std::unique_ptr<chips_node> ast;
 };
 #endif // ! DRIVER_HPP
