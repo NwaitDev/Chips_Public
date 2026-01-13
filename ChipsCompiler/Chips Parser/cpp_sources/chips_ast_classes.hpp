@@ -83,11 +83,18 @@ enum C_STATEMENT_TYPE {
     BASE AST NODE
 */
 class ast_node {
+private:
+    int line = 0;
+    int column = 0;
 public:
     virtual ~ast_node() = default;
     //virtual void accept(chips_visitor& visitor) = 0;
     virtual void hello() = 0;
     
+    int get_line() { return line; }
+    int get_column() { return column; }
+    void set_line(int l) { line = l; }
+    void set_column(int c) { column = c; }
 };
 
 
