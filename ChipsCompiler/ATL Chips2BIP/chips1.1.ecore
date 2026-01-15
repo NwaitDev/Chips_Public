@@ -440,14 +440,20 @@
       <eClassifiers xsi:type="ecore:EClass" name="int_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/int_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue"
+            containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue"
+            containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/bool_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue"
+            containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="physical" nsURI="http://chips/parameters/physical" nsPrefix="chips.parameters.physical">
