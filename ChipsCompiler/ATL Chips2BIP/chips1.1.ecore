@@ -53,6 +53,8 @@
         <eTypeArguments eClassifier="#//rvalues/collective_int_rvalue"/>
       </eGenericSuperTypes>
     </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="functional_block" abstract="true"
+        eSuperTypes="#//variables/system_variable"/>
     <eSubpackages name="primitive" nsURI="http://chips/variables/primitive" nsPrefix="chips.variables.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/primitive_variable">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
@@ -72,7 +74,7 @@
           eSuperTypes="#//variables/node_variable"/>
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/node/contextual_variable">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/node/contextual_int_declaration"/>
+            eType="#//statements/node/contextual_int_declaration" eOpposite="#//statements/node/contextual_int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/node/contextual_variable">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
@@ -110,11 +112,11 @@
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/system/bool_declaration" eOpposite="#//statements/system/bool_declaration/variable"/>
       </eClassifiers>
-      <eClassifiers xsi:type="ecore:EClass" name="logical" eSuperTypes="#//variables/system_variable">
+      <eClassifiers xsi:type="ecore:EClass" name="logical" eSuperTypes="#//variables/functional_block">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/system/logical_declaration" eOpposite="#//statements/system/logical_declaration/variable"/>
       </eClassifiers>
-      <eClassifiers xsi:type="ecore:EClass" name="physical" eSuperTypes="#//variables/system_variable">
+      <eClassifiers xsi:type="ecore:EClass" name="physical" eSuperTypes="#//variables/functional_block">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/system/physical_declaration" eOpposite="#//statements/system/physical_declaration/variable"/>
       </eClassifiers>
@@ -414,7 +416,7 @@
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_int_declaration" eSuperTypes="#//statements/node/contextual_declaration">
         <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//statements/primitive/int_declaration" containment="true"/>
+            eType="#//variables/node/int" containment="true" eOpposite="#//variables/node/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_float_declaration" eSuperTypes="#//statements/node/contextual_declaration">
         <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
@@ -440,14 +442,20 @@
       <eClassifiers xsi:type="ecore:EClass" name="int_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/int_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue"
+            containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue"
+            containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/primitive/bool_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue"
+            containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="physical" nsURI="http://chips/parameters/physical" nsPrefix="chips.parameters.physical">
@@ -472,20 +480,20 @@
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/parameters/collective" nsPrefix="chips.parameters.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_int_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
+            eType="#//rvalues/collective_int_rvalue" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/collective/int_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_float_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
+            eType="#//rvalues/collective_float_rvalue" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/collective/float_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_bool_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
+            eType="#//rvalues/collective_bool_rvalue" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
             eType="#//statements/collective/bool_declaration" containment="true"/>
       </eClassifiers>
@@ -608,7 +616,7 @@
       <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator" lowerBound="1"
           eType="#//definitions/accumulator_definition" containment="true"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="support_object" lowerBound="1"
-          eType="#//definitions/object_definition"/>
+          eType="#//definitions/node_definition"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="operations" eType="#//definitions/collectiveops_section"
           containment="true"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="current_object_output"
@@ -663,6 +671,24 @@
       <eClassifiers xsi:type="ecore:EClass" name="bool_variable_expression" eSuperTypes="#//rvalues/primitive_bool_rvalue #//lvalues/primitive_bool_lvalue">
         <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
             eType="#//variables/primitive/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
+            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="contextual_int_expression" eSuperTypes="#//rvalues/primitive_int_rvalue #//lvalues/primitive_int_lvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
+            eType="#//variables/node/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
+            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="contextual_float_expression" eSuperTypes="#//rvalues/primitive_float_rvalue #//lvalues/primitive_float_lvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
+            eType="#//variables/node/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
+            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="contextual_bool_expression" eSuperTypes="#//rvalues/primitive_bool_rvalue #//lvalues/primitive_bool_lvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
+            eType="#//variables/node/bool"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
             eType="#//rvalues/primitive_int_rvalue" containment="true"/>
       </eClassifiers>
@@ -761,6 +787,12 @@
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/primitive_bool_rvalue">
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
             eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/primitive_int_rvalue #//rvalues/primitive_bool_rvalue #//rvalues/primitive_float_rvalue">
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
+            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+            eType="#//rvalues/primitive_rvalue" containment="true"/>
       </eClassifiers>
       <eSubpackages name="operators" nsURI="http://chips/rvalues/primitive/operators"
           nsPrefix="chips.rvalues.primitive.operators">
@@ -949,6 +981,12 @@
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/system_bool_rvalue">
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
             eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/system_bool_rvalue #//rvalues/system_float_rvalue #//rvalues/system_int_rvalue #//rvalues/system_iterable">
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
+            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+            eType="#//rvalues/system_rvalue" containment="true"/>
       </eClassifiers>
       <eSubpackages name="operators" nsURI="http://chips/rvalues/dataflow/operators"
           nsPrefix="chips.rvalues.dataflow.operators">
@@ -1139,6 +1177,12 @@
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/collective_bool_rvalue">
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
             eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/collective_int_rvalue #//rvalues/collective_bool_rvalue #//rvalues/collective_float_rvalue">
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
+            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
+            eType="#//rvalues/collective_rvalue" containment="true"/>
       </eClassifiers>
       <eSubpackages name="operators" nsURI="http://chips/rvalues/collective/operators"
           nsPrefix="chips.rvalues.collective.operators">
@@ -1340,7 +1384,7 @@
         nsPrefix="chips.systemspecific.expressions">
       <eClassifiers xsi:type="ecore:EClass" name="logical_variable_expression" eSuperTypes="#//systemspecific/linkable #//rvalues/system_iterable">
         <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/logical"/>
+            eType="#//variables/functional_block"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
             eType="#//rvalues/system_int_rvalue" containment="true"/>
       </eClassifiers>
