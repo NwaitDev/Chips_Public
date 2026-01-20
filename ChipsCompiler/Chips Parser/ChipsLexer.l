@@ -75,7 +75,7 @@ ATTRIBUTE       \.[a-zA-Z][a-zA-Z0-9_]*
 "with"              { return yy::parser::make_WITH_KW(loc);                           }
 "implementation"    { return yy::parser::make_IMPLEMENTATION_KW(loc);                 }
 "by"                { return yy::parser::make_BY_KW(loc);                             }
-"target"            { return yy::parser::make_TARGET_KW(loc);                         }
+"@"                 { return yy::parser::make_TARGET_KW(loc);                         }
 "default"           { return yy::parser::make_DEFAULT_KW(loc);                        }
 "using"             { return yy::parser::make_USING_KW(loc);                          }
 "actuator"          { return yy::parser::make_ACTUATOR_KW(loc);                       }

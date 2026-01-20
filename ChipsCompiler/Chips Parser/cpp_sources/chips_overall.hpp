@@ -17,13 +17,45 @@ private:
     std::unique_ptr<suffixes_node> suff;
 public:
 
-    dataflow_type_node (const DATAFLOW_TYPE type, std::unique_ptr<suffixes_node>& suff)
+    dataflow_type_node (const DATAFLOW_TYPE type, std::unique_ptr<suffixes_node> suff)
         : type(type), suff(std::move(suff)) {}
 
+    DATAFLOW_TYPE get_type() { return type; }
+    suffixes_node* get_suffixes() { return suff.get(); }
+
     void accept(chips_visitor& visitor);
-    inline void hello() override {std::cout << "hello from dataflow_type_node\n";}
+    virtual void hello() override; /* {
+        switch(type){
+            case INT_DF: std::cout << "int "; break;
+            case FLOAT_DF: std::cout << "float "; break;
+            case BOOL_DF: std::cout << "bool "; break;
+        }
+        if(suff){
+            suff.get()->hello();
+        }
+    }*/
 };
 
+class physical_dataflow_parameter_type_node : public ast_node {
+    private:
+        bool is_sensor = false;
+        std::unique_ptr<dataflow_type_node> type;
+    public:
+        physical_dataflow_parameter_type_node(std::unique_ptr<dataflow_type_node> type)
+            : type(std::move(type)) {}
+
+        physical_dataflow_parameter_type_node(bool is_sensor, std::unique_ptr<dataflow_type_node> type)
+            : is_sensor(is_sensor), type(std::move(type)) {}
+
+        dataflow_type_node* get_type() { return type.get(); }
+
+        void accept(chips_visitor& visitor) {}
+        virtual void hello() override; /* {
+            if(type){
+                type.get()->hello();
+            }
+        }*/
+};
 
 
 class dataflow_declaration_node : public ast_node {
@@ -31,32 +63,32 @@ class dataflow_declaration_node : public ast_node {
     std::string name;
     std::unique_ptr<dataflow_type_node> type;
 public:
-    dataflow_declaration_node (std::unique_ptr<dataflow_type_node>& type, std::string name) 
+    dataflow_declaration_node (std::unique_ptr<dataflow_type_node> type, std::string name) 
         : name(name), type(std::move(type)) {}
 
     void accept(chips_visitor& visitor);
-    inline void hello() override {std::cout << "hello from dataflow_declaration_node\n";}
+    virtual void hello() override;// {std::cout << "hello from dataflow_declaration_node\n";}
 };
 
 
 
-class dataflow_declarations_node : public ast_node {
-private:
-    std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
-public:
+// class dataflow_declarations_node : public ast_node {
+// private:
+//     std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
+// public:
 
-    dataflow_declarations_node(){}
+//     dataflow_declarations_node(){}
 
-    dataflow_declarations_node(dataflow_declarations_node& decls)
-        : decls(std::move(decls.decls)) {}
+//     dataflow_declarations_node(dataflow_declarations_node& decls)
+//         : decls(std::move(decls.decls)) {}
 
-    inline void append(std::unique_ptr<dataflow_declaration_node>& dfDecl){decls.push_back(std::move(dfDecl));};
+//     void append(std::unique_ptr<dataflow_declaration_node> dfDecl){decls.push_back(std::move(dfDecl));};
     
     
-    void accept(chips_visitor& visitor);
+//     void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from ArgDeclarationsNode\n";}
-};
+//     virtual void hello() override;// {std::cout << "hello from ArgDeclarationsNode\n";}
+// };
 
 class expressions_node : public ast_node {
 private:
@@ -64,15 +96,219 @@ private:
     friend class output_node;
 public:
 
-    expressions_node(){}
+    expressions_node() = default;
 
-    expressions_node(expressions_node& exprs) : exprs(std::move(exprs.exprs)) {}
+    explicit expressions_node(std::vector<std::unique_ptr<expression_node>>&& exprs) noexcept
+        : exprs(std::move(exprs)) {}
+
+    expressions_node(const expressions_node&) = delete;
+    expressions_node& operator=(const expressions_node&) = delete;
     
-    inline void append(std::unique_ptr<expression_node>& expr){exprs.push_back(std::move(expr));};
+    expressions_node(expressions_node&&) = default;
+    expressions_node& operator=(expressions_node&&) = default;
+        
+    const std::vector<std::unique_ptr<expression_node>>& get_expressions() const { return exprs; }
+    
+    void append(std::unique_ptr<expression_node> expr){
+        exprs.insert(exprs.begin(), std::move(expr));
+    };
     
     void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from expressions_node\n";}
+    virtual void hello() override;// {std::cout << "hello from expressions_node\n";}
+};
+
+class dataflow_parameter_list_node : public ast_node {
+    private:
+        std::vector<std::unique_ptr<dataflow_parameter_decl_node>> df_param_decls;
+    public:
+        dataflow_parameter_list_node() = default;
+    
+        dataflow_parameter_list_node(std::vector<std::unique_ptr<dataflow_parameter_decl_node>>&& d) 
+        : df_param_decls(std::move(d)) {}
+        
+        dataflow_parameter_list_node(const dataflow_parameter_list_node&) = delete;
+        dataflow_parameter_list_node& operator=(const dataflow_parameter_list_node&) = delete;
+        
+        dataflow_parameter_list_node(dataflow_parameter_list_node&&) = default;
+        dataflow_parameter_list_node& operator=(dataflow_parameter_list_node&&) = default;
+
+        std::vector<std::unique_ptr<dataflow_parameter_decl_node>>& get_dataflow_parameter_decls() { return df_param_decls; }
+
+        void append(std::unique_ptr<dataflow_parameter_decl_node> item) {
+            df_param_decls.push_back(std::move(item));
+        }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override;/* {
+            if(df_param_decls){
+                df_param_decls.get()->hello();
+            }
+        }*/
+};
+
+class physical_dataflow_parameter_list_node : public ast_node {
+    private:
+        std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>> pdf_param_decls;
+    public:
+        physical_dataflow_parameter_list_node() = default;
+
+        physical_dataflow_parameter_list_node(std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>>&& d) 
+        : pdf_param_decls(std::move(d)) {}
+
+        physical_dataflow_parameter_list_node(const physical_dataflow_parameter_list_node&) = delete;
+        physical_dataflow_parameter_list_node& operator=(const physical_dataflow_parameter_list_node&) = delete;
+        
+        physical_dataflow_parameter_list_node(physical_dataflow_parameter_list_node&&) = default;
+        physical_dataflow_parameter_list_node& operator=(physical_dataflow_parameter_list_node&&) = default;
+    
+
+        std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>>& get_physical_dataflow_parameter_decls() { return pdf_param_decls; }
+
+        void append(std::unique_ptr<physical_dataflow_parameter_decl_node> item) {
+            pdf_param_decls.push_back(std::move(item));
+        }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override; /* {
+            if(pdf_param_decls){
+                pdf_param_decls.get()->hello();
+            }
+        }*/
+};
+
+class dataflow_parameter_decls_node :  public ast_node {
+    private:
+        std::vector<std::unique_ptr<dataflow_parameter_decl_node>> df_param_decls;
+    public:
+        dataflow_parameter_decls_node() = default;
+    
+        explicit dataflow_parameter_decls_node(std::vector<std::unique_ptr<dataflow_parameter_decl_node>>&& decls) noexcept
+            : df_param_decls(std::move(decls)) {}
+        
+        dataflow_parameter_decls_node(const dataflow_parameter_decls_node&) = delete;
+        dataflow_parameter_decls_node& operator=(const dataflow_parameter_decls_node&) = delete;
+    
+        dataflow_parameter_decls_node(dataflow_parameter_decls_node&&) = default;
+        dataflow_parameter_decls_node& operator=(dataflow_parameter_decls_node&&) = default;
+
+        void append(std::unique_ptr<dataflow_parameter_decl_node> decl){
+            df_param_decls.insert(df_param_decls.begin(), std::move(decl));
+        };
+
+        std::vector<std::unique_ptr<dataflow_parameter_decl_node>>& get_df_param_decls() { return df_param_decls; }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override;/* {
+           if(df_param_decls.size() == 1){
+                df_param_decls.at(0).get()->hello();
+           }else{
+                for(int i = 0; i < df_param_decls.size(); i++){
+                    if(i == df_param_decls.size() - 1){
+                        df_param_decls.at(i).get()->hello();
+                    }else{
+                        df_param_decls.at(i).get()->hello();
+                        std::cout << ", ";
+                    }
+                }
+           }
+        }*/
+};
+
+class physical_dataflow_parameter_decls_node :  public ast_node {
+    private:
+        std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>> pdf_param_decls;
+    public:
+        physical_dataflow_parameter_decls_node() = default;
+
+        explicit physical_dataflow_parameter_decls_node(
+            std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>>&& items
+        ) : pdf_param_decls(std::move(items)) {}
+
+        physical_dataflow_parameter_decls_node(const physical_dataflow_parameter_decls_node&) = delete;
+        physical_dataflow_parameter_decls_node& operator=(const physical_dataflow_parameter_decls_node&) = delete;
+        
+        physical_dataflow_parameter_decls_node(physical_dataflow_parameter_decls_node&&) = default;
+        physical_dataflow_parameter_decls_node& operator=(physical_dataflow_parameter_decls_node&&) = default;
+
+        void append(std::unique_ptr<physical_dataflow_parameter_decl_node> decl){
+            pdf_param_decls.insert(pdf_param_decls.begin(), std::move(decl));
+        };
+
+        std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>>& get_pdf_param_decls() { return pdf_param_decls; }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override; /* {
+           if(pdf_param_decls.size() == 1){
+                pdf_param_decls.at(0).get()->hello();
+           }else{
+                for(int i = 0; i < pdf_param_decls.size(); i++){
+                    if(i == pdf_param_decls.size() - 1){
+                        pdf_param_decls.at(i).get()->hello();
+                    }else{
+                        pdf_param_decls.at(i).get()->hello();
+                        std::cout << ", ";
+                    }
+                }
+           }
+        }*/
+};
+
+class dataflow_parameter_decl_node : public ast_node {
+    private:
+        std::unique_ptr<dataflow_type_node> type;
+        std::string identifier;
+        std::unique_ptr<rhs_assignment_node> assign;
+    public:
+        dataflow_parameter_decl_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign) :
+            type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
+
+        dataflow_type_node* get_type() { return type.get(); }
+        std::string get_identifier() { return identifier; }
+        rhs_assignment_node* get_rhs() { return assign.get(); }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override; /* {
+            if(type){
+                type.get()->hello();
+            }
+            
+            std::cout << " " << identifier << " ";
+            if(assign){
+                assign.get()->hello();
+            }
+        }*/
+};
+
+class physical_dataflow_parameter_decl_node : public ast_node {
+    private:
+        std::unique_ptr<physical_dataflow_parameter_type_node> type;
+        std::string identifier;
+        std::unique_ptr<rhs_assignment_node> assign;
+    public:
+        physical_dataflow_parameter_decl_node(std::unique_ptr<physical_dataflow_parameter_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign) :
+            type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
+
+        physical_dataflow_parameter_type_node* get_type() { return type.get(); }
+        std::string get_identifier() { return identifier; }
+        rhs_assignment_node* get_rhs() { return assign.get(); }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override; /*
+            if(type){
+                type.get()->hello();
+            }
+            std::cout << " " << identifier << " ";
+            if(assign){
+                assign.get()->hello();
+            }
+        }*/
 };
 
 #endif

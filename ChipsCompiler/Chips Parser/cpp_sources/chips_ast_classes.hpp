@@ -9,9 +9,8 @@
 enum COMPILE_STATE {
     CONFIGURING,
     DEFINING,
-    IN_PURE,
     IN_PHYSICAL,
-    IN_VIRTUAL
+    IN_LOGICAL
 };
 
 enum DATAFLOW_TYPE{
@@ -20,10 +19,16 @@ enum DATAFLOW_TYPE{
     BOOL_DF
 };
 
+enum COLLECTIVE_KW{
+    SPREAD,
+    COLLECT,
+    INPUT,
+    STOP
+};
+
 enum FUNCTION_TYPE{
-    VIRTUAL,
-    PHYSICAL,
-    PURE
+    LOGICAL,
+    PHYSICAL
 };
 
 enum EXPRESSION_TYPE{
@@ -64,14 +69,25 @@ enum STATEMENT_TYPE {
     FCALL_ST
 };
 
+enum S_STATEMENT_TYPE {
+    S_LOOP_ST,
+    S_IF_ST,
+    S_IFELSE_ST,
+    S_INST_ST,
+    S_LINK_ST,
+    S_DF_INST_ST,
+    S_DF_ASSIGN_ST,
+    S_FUNC_BLOCK_INST_ST,
+    S_EXPR_PLUG_ST,
+    S_IMPLEMENTS_ST
+};
+
 enum C_STATEMENT_TYPE {
     C_LOOP_ST,
     C_IF_ST,
     C_IFELSE_ST,
     C_INST_ST,
     C_FCT_PLUG_ST,
-    C_LINK_ST,
-    C_AT_ST,
     C_DF_INST_ST,
     C_DF_ASSI_ST,
     C_FCALL_ST
@@ -89,7 +105,7 @@ private:
 public:
     virtual ~ast_node() = default;
     //virtual void accept(chips_visitor& visitor) = 0;
-    virtual void hello() = 0;
+    virtual void hello() {}
     
     int get_line() { return line; }
     int get_column() { return column; }
@@ -109,7 +125,7 @@ class chips_visitor {
     GENERAL USAGE NODES
 */
 
-class dataflow_declarations_node;
+// class dataflow_declarations_node;
 
 class dataflow_type_node;
 
@@ -140,7 +156,7 @@ class object_virtual_output_node;
 
 class object_physical_attribute_node;
 
-class suffix_node;
+// class suffix_node;
 
 class cast_node;
 
@@ -148,27 +164,45 @@ class suffixes_node;
 
 class suffixised_node;
 
+/*
+    COLLECTIVE STATEMENTS NODES
+*/
+
+class c_statements_node;
+
+class c_statement_node;
+
+class c_loop_node;
+
+class c_if_node;
+
+class c_if_else_node;
+
+class c_assignment_node;
+
+class c_expressions_node;
+
+class c_expression_node;
 
 /*
     CONFIGURATION STATEMENTS NODES
 */
 
-class c_statement_node;
+class s_statements_node;
 
-class c_assignment_node;
+class s_statement_node;
 
-class at_node;
+class s_loop_node;
+
+class s_if_node;
+
+class s_if_else_node;
 
 class link_node;
 
-class c_statements_node;
+class implements_node;
 
-class c_loop_node;
-
-class c_if_node;;
-
-class c_if_else_node;
-
+class plugging_node;
 
 
 /*
@@ -207,25 +241,103 @@ class preamble_node;
 
 class preambles_node;
 
-class import_node;
+class object_definition_node;
 
-class signature_node;
+class function_definition_node;
+
+class logical_function_definition_node;
+
+class physical_function_definition_node;
+
+class collective_operation_definition_node;
+
+class implementation_definition_node;
+
+class node_mappings_node;
+
+// class signature_node;
 
 class output_node;
 
-class function_definition_node;
+class with_statements_node;
+
+class with_statement_node;
+
+class with_two_identifier_node;
+
+class with_context_statement_node;
+
+
 
 
 /*
     Configuration stuff
 */
 
-class dimension_node;
-
 class system_node;
 
 class function_declaration_node;
 
+/*
+    OTHER CLASS (WE NEED TO REFACTOR CORRECTLY THIS)
+*/
 
+class c_optionnal_outputs_node;
+
+class c_output_node;
+
+class c_signature_node;
+
+class c_keywords_node;
+
+class with_section_node;
+
+class init_section_node;
+
+class then_section_node;
+
+class paren_expression_node;
+
+class c_cast_node;
+
+class c_suffixes_node;
+
+class s_suffixable_node;
+
+class block_node;
+
+class named_outputs_node;
+
+class named_output_node;
+
+class physical_named_outputs_node;
+
+class physical_named_output_node;
+
+class actuator_node;
+
+class dataflow_parameter_list_node;
+
+class dataflow_parameter_decls_node;
+
+class dataflow_parameter_decl_node;
+
+class physical_dataflow_parameter_type_node;
+
+class physical_dataflow_parameter_list_node;
+
+class physical_dataflow_parameter_decls_node;
+
+class physical_dataflow_parameter_decl_node;
+
+class collective_dataflow_defaulted_decls_node;
+
+class collective_dataflow_defaulted_decl_node;
+
+class collective_dataflow_full_declaration_node;
+
+class collective_rhs_assignment_node;
+
+class functionnal_block_instanciation_node;
 
 #endif 
