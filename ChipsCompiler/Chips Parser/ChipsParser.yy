@@ -231,7 +231,6 @@ c_stopless_expr2:
     | BOOL
     | INPUT_KW
     | STOP_KW
-    | expr
     | CTX_KW PERIOD IDENTIFIER c_suffixes
     | L_PARENTH c_stopless_expr R_PARENTH
     | cast
