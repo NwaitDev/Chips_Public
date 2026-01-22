@@ -4,16 +4,16 @@
   <eClassifiers xsi:type="ecore:EClass" name="program">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="fileName" lowerBound="1"
         eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//preamble"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//preamble_section"
         containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="system" eType="#//system"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="system" eType="#//system_section"
         containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="system">
+  <eClassifiers xsi:type="ecore:EClass" name="system_section">
     <eStructuralFeatures xsi:type="ecore:EReference" name="system" upperBound="-1"
         eType="#//statements/system_statement" containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="preamble">
+  <eClassifiers xsi:type="ecore:EClass" name="preamble_section">
     <eStructuralFeatures xsi:type="ecore:EReference" name="definitions" upperBound="-1"
         eType="#//definitions/definition" containment="true"/>
   </eClassifiers>
