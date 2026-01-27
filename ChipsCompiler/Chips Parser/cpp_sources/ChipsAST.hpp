@@ -53,7 +53,7 @@ public:
     system_node* get_system() const { return system.get(); }
 
     void accept(chips_visitor& visitor){
-        // TODO
+        visitor.visit(*this);
     }
 
     virtual void hello() override;/* {
