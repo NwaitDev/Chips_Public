@@ -14,7 +14,10 @@
 */
 
 class preamble_node : public ast_node {
-
+public:
+    void accept(chips_visitor &visitor) override {
+        visitor.visit(*this);
+    }
 };
 
 class preambles_node : public ast_node {
@@ -210,6 +213,8 @@ class with_two_identifier_node : public with_statement_node {
         std::string ident1;
         std::string ident2;
     public:
+        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
+
         with_two_identifier_node(std::string ident1, std::string ident2) : ident1(ident1), ident2(ident2) {}
 
         std::string get_ident1() { return ident1; }
@@ -228,6 +233,7 @@ class with_context_statement_node : public with_statement_node {
         with_context_statement_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> rhs) :
             type(std::move(type)), identifier(identifier), rhs(std::move(rhs)) {}
 
+        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
         dataflow_type_node* get_type() { return type.get(); }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return rhs.get(); }

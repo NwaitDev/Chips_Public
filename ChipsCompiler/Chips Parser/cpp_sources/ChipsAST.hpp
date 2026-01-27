@@ -16,23 +16,12 @@
 #include <iostream>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /*
     Configuration stuff
 */
 
 class system_node : public ast_node {
+private:
     std::unique_ptr<s_statements_node> sstatements;
 public:
     system_node() {}

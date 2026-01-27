@@ -103,6 +103,7 @@ class dataflow_full_declaration_node : public statement_node {
             : type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
         
         dataflow_type_node* get_type() { return type.get(); }
+        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
@@ -127,6 +128,7 @@ class variable_assignment_node : public statement_node {
         variable_assignment_node(std::string identifier, std::unique_ptr<suffixes_node> suff, std::unique_ptr<expression_node> expr)
             : identifier(identifier), suff(std::move(suff)), expr(std::move(expr)) {}
 
+        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
@@ -167,6 +169,7 @@ public:
         : cond(std::move(cond)), stts(std::move(stts)) {}
         
     constexpr STATEMENT_TYPE get_type() { return type; }
+    S_STATEMENT_TYPE get_statement_type() const override { return S_IF_ST; }
     expression_node* get_condition() { return cond.get(); }
     statements_node* get_statements() { return stts.get(); }
 
@@ -195,6 +198,7 @@ public:
         : ifnode(std::move(ifnode)) , elsestts(std::move(elsestts)){} 
 
     constexpr STATEMENT_TYPE get_type() { return type; }
+    S_STATEMENT_TYPE get_statement_type() const override { return S_IFELSE_ST; }
     if_node* get_if_node() { return ifnode.get(); }
     statements_node* get_else_node() { return elsestts.get(); }
 
@@ -223,6 +227,7 @@ public:
         : ident1(ident1), ident2(ident2), stts(std::move(stts)) {} 
 
     constexpr STATEMENT_TYPE get_type() { return type; }
+    S_STATEMENT_TYPE get_statement_type() const override { return S_LOOP_ST; }
     std::string get_ident1() { return ident1; }
     std::string get_ident2() { return ident2; }
     statements_node* get_statements() { return stts.get(); }
@@ -255,4 +260,4 @@ class block_node : public ast_node {
         virtual void hello() override;
 };
 
-#endif
+#endif // OVERALL_STTS_H
