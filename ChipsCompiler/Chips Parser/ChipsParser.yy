@@ -30,7 +30,7 @@
 
 
 /*defining the terminal tokens of the grammar*/
-%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN COLUMN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ NOT INT_KW FLOAT_KW BOOL_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTS_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW OBJECT_KW WITH_KW IMPLEMENTATION_KW BY_KW TARGET_KW DEFAULT_KW USING_KW ACTUATOR_KW SENSOR_KW
+%token COMMA ARROW L_PARENTH R_PARENTH L_CURL R_CURL L_SQUA R_SQUA SEMICOL ASSIGN COLUMN PLUS MINUS TIMES DIV MOD LT GT LEQ GEQ NEQ EQ AND OR NOT INT_KW FLOAT_KW BOOL_KW LOGICAL_KW PHYSICAL_KW AS_KW INIT_KW THEN_KW FOREACH_KW TO_KW IN_KW IF_KW ELSE_KW SYSTEM_KW LINK_KW PERIOD IMPLEMENTS_KW HAVING_KW INPUT_KW STOP_KW CHANNEL_KW CHANNELS_KW AMONG_KW SPREAD_KW COLLECT_KW SRC_CHAN_KW CTX_KW OBJECT_KW WITH_KW IMPLEMENTATION_KW BY_KW TARGET_KW DEFAULT_KW USING_KW ACTUATOR_KW SENSOR_KW
 
 %left PLUS MINUS
 %left TIMES DIV
@@ -53,6 +53,7 @@
 %type <std::unique_ptr<object_definition_node>> object_def
 %type <std::unique_ptr<implementation_definition_node>> implementation_def
 %type <std::unique_ptr<node_mappings_node>> node_mappings
+%type <std::unique_ptr<collective_operation_definition_node>> collective_op_def
 %type <std::unique_ptr<function_definition_node>> function_def p_function_def l_function_def
 
 %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_list
@@ -71,6 +72,7 @@
 %type <std::unique_ptr<then_section_node>> then_section
 %type <std::unique_ptr<statements_node>> statements
 %type <std::unique_ptr<statement_node>> statement
+%type <std::unique_ptr<expression_node>> loop_in
 %type <std::unique_ptr<loop_node>> loop_statement
 %type <std::unique_ptr<if_node>> if_statement
 %type <std::unique_ptr<if_else_node>> if_else_statement
@@ -79,12 +81,40 @@
 %type <std::unique_ptr<physical_named_output_node>> p_named_output
 %type <std::unique_ptr<named_output_node>> named_output
 
-%type <std::unique_ptr<suffixes_node>> suffixes
+%type <std::unique_ptr<suffixes_node>> suffixes c_suffixes
 
 %type <std::unique_ptr<expressions_node>> list_expr
 %type <std::unique_ptr<expressions_node>> exprs
 %type <std::unique_ptr<expression_node>> expr expr0 expr1 expr2
 %type <std::unique_ptr<cast_node>> cast
+
+%type <std::unique_ptr<s_statements_node>> s_statements
+%type <std::unique_ptr<s_statement_node>> s_statement
+%type <std::unique_ptr<s_if_node>> s_if_statement
+%type <std::unique_ptr<s_if_else_node>> s_if_else_statement
+%type <std::unique_ptr<s_loop_node>> s_loop_statement
+
+%type <std::unique_ptr<c_expressions_node>> c_list_expr c_exprs
+%type <std::unique_ptr<c_cast_node>> c_cast
+%type <std::unique_ptr<c_keywords_node>> c_keywords
+%type <std::unique_ptr<c_signature_node>> c_signature
+%type <std::unique_ptr<expression_node>> c_expr c_stopless_expr c_stopless_expr0 c_stopless_expr1 c_stopless_expr2
+%type <std::unique_ptr<collective_dataflow_defaulted_decls_node>> cdf_defaulted_decls
+%type <std::unique_ptr<collective_dataflow_defaulted_decl_node>> cdf_defaulted_decl
+%type <std::unique_ptr<c_output_node>> c_output
+%type <std::unique_ptr<c_optionnal_outputs_node>> c_optionnal_outputs
+%type <std::unique_ptr<c_statements_node>> c_statements
+%type <std::unique_ptr<c_statement_node>> c_statement
+%type <std::unique_ptr<c_loop_node>> c_loop_statement
+%type <std::unique_ptr<c_if_node>> c_if_statement
+%type <std::unique_ptr<c_if_else_node>> c_if_else_statement
+%type <std::unique_ptr<collective_dataflow_full_declaration_node>> cdf_full_declaration
+%type <std::unique_ptr<collective_rhs_assignment_node>> c_may_assign
+
+%type <std::unique_ptr<expression_node>> s_suffixable_expr
+%type <std::unique_ptr<expression_node>> s_expr
+%type <std::unique_ptr<block_node>> block
+%type <std::unique_ptr<collective_operation_node>> collective_operation
 
 %%
 
@@ -100,13 +130,13 @@ preambles:
 system:
     SYSTEM_KW  L_CURL                       
         s_statements
-    R_CURL                                  { /*$$ = std::move(std::make_unique<system_node>(std::move($3)));*/ }
+    R_CURL                                  { $$ = std::move(std::make_unique<system_node>(std::move($3))); }
     | /* EMPTY */                           { $$ = std::move(std::make_unique<system_node>()); }
     ;
 preamble:
     object_def                              { $$ = std::move($1); }
     | function_def                          { $$ = std::move(std::move($1)); }            
-    | collective_op_def                     { /*$$ = std::move($1);*/ }
+    | collective_op_def                     { $$ = std::move($1); }
     | implementation_def                    { $$ = std::move($1); }
     ;
 object_def:
@@ -131,15 +161,15 @@ collective_op_def:
     R_CURL
     ARROW TARGET_KW L_PARENTH c_list_expr R_PARENTH
     c_output
-    c_optionnal_outputs                     { /*$$ = std::move(std::make_unique<collective_operation_definition_node>(std::move($1), std::move($3), std::move($8), std::move($10), std::move($11)));*/ }
+    c_optionnal_outputs                     { $$ = std::move(std::make_unique<collective_operation_definition_node>(std::move($1), std::move($3), std::move($8), std::move($10), std::move($11))); }
     ;
 c_optionnal_outputs:
-    c_output c_optionnal_outputs            { /*$$ = std::move($3); $$->append(std::move($1));*/ }
-    | /* EMPTY */                           { /*$$ = std::move(std::make_unique<c_optionnal_outputs_node>());*/ }
+    c_output c_optionnal_outputs            { $$ = std::move($2); $$->append(std::move($1)); }
+    | /* EMPTY */                           { $$ = std::move(std::make_unique<c_optionnal_outputs_node>()); }
     ;
 c_output:
-    ARROW DEFAULT_KW L_PARENTH c_list_expr R_PARENTH    { /*$$ = std::move(std::make_unique<c_output_node>(std::move($4)));*/ }
-    | ARROW IDENTIFIER L_PARENTH c_list_expr R_PARENTH  { /*$$ = std::move(std::make_unique<c_output_node>(std::move($2), std::move($4)));*/ }
+    ARROW DEFAULT_KW L_PARENTH c_list_expr R_PARENTH    { $$ = std::move(std::make_unique<c_output_node>(std::move($4))); }
+    | ARROW IDENTIFIER L_PARENTH c_list_expr R_PARENTH  { $$ = std::move(std::make_unique<c_output_node>(std::move($2), std::move($4))); }
     ;
 l_function_def:
     LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
@@ -156,11 +186,11 @@ p_function_def:
     ;
 c_signature:
     c_keywords L_PARENTH cdf_defaulted_decls R_PARENTH 
-      IDENTIFIER AMONG_KW IDENTIFIER    { /*$$ = std::move(std::make_unique<c_signature>(std::move($1), std::move($3), std::move($5), std::move($7)));*/ }
+      IDENTIFIER AMONG_KW IDENTIFIER    { $$ = std::move(std::make_unique<c_signature_node>(std::move($1), std::move($3), std::move($5), std::move($7))); }
     ;
 c_keywords:
-    SPREAD_KW           { /*$$ = std::move(SPREAD);*/ }
-    | COLLECT_KW        { /*$$ = std::move(COLLECT);*/ }
+    SPREAD_KW           { $$ = std::move(std::make_unique<spread_node>()); }
+    | COLLECT_KW        { $$ = std::move(std::make_unique<collect_node>()); }
     ;
 with_section:
     WITH_KW L_CURL      
@@ -194,16 +224,16 @@ list_expr:
     | /* EMPTY */       { $$ = std::move(std::make_unique<expressions_node>()); }
     ;
 c_list_expr:
-    c_exprs             { /*$$ = std::move($1);*/ }
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<c_expressions_node>());*/ }
+    c_exprs             { $$ = std::move($1); }
+    | /* EMPTY */       { $$ = std::move(std::make_unique<c_expressions_node>()); }
     ;
 exprs:
     expr                { $$ = std::move(std::make_unique<expressions_node>()); $$->append(std::move($1)); }
     | expr COMMA exprs  { $$ = std::move(std::move($3)); $$->append(std::move($1)); }
     ;
 c_exprs:
-    c_expr                  { /*$$ = std::move(std::make_unique<c_expressions_node>()); $$->append(std::move($1));*/ }
-    | c_expr COMMA c_exprs  { /*$$ = std::move($3); $$->append(std::move($1));*/ }
+    c_expr                  { $$ = std::move(std::make_unique<c_expressions_node>()); $$->append(std::move($1)); }
+    | c_expr COMMA c_exprs  { $$ = std::move($3); $$->append(std::move($1)); }
     ;
 expr:
     expr0 LT expr           { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LT_EXP, std::move($3))); }
@@ -212,6 +242,8 @@ expr:
     | expr0 GEQ expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GEQ_EXP, std::move($3))); }
     | expr0 NEQ expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), NEQ_EXP, std::move($3))); }
     | expr0 EQ expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), EQ_EXP, std::move($3))); }
+    | expr0 AND expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), AND_EXP, std::move($3))); }
+    | expr0 OR expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), OR_EXP, std::move($3))); }
     | expr0                 { $$ = std::move($1); }
     ;
 expr0:
@@ -233,81 +265,91 @@ expr2:
     | FLOAT                     { $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); }
     | BOOL                      { $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); }
     | L_PARENTH expr R_PARENTH  { $$ = std::move(std::make_unique<paren_expression_node>(std::move($2))); }
+    | CTX_KW PERIOD IDENTIFIER suffixes       { $$ = std::move(std::make_unique<context_decl_node>(std::move($3), std::move($4))); }
+    | IDENTIFIER L_PARENTH list_expr R_PARENTH { $$ = std::move(std::make_unique<integrated_function_node>(std::move($1), std::move($3))); }
     | cast                      { $$ = std::move($1); }
     ;
 cast:
     L_PARENTH df_type R_PARENTH expr           { $$ = std::move(std::make_unique<cast_node>(std::move($2), std::move($4))); }
     ;
 c_expr:
-    c_stopless_expr                             { /*$$ = std::move(std::make_unique<c_expressions_node>()); $$->append(std::move($1));*/ }
-    | STOP_KW                                   { /*$$ = std::move(STOP);*/ }
+    c_stopless_expr                             { $$ = std::move($1); }
+    | STOP_KW                                   { $$ = std::move(std::make_unique<stop_node>()); }
     ;
 c_stopless_expr:
-    c_stopless_expr0 LT c_stopless_expr         { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LT_EXP, std::move($3)));*/ }
-    | c_stopless_expr0 GT c_stopless_expr       { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GT_EXP, std::move($3)));*/ }
-    | c_stopless_expr0 LEQ c_stopless_expr      { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LEQ_EXP, std::move($3)));*/ }
-    | c_stopless_expr0 GEQ c_stopless_expr      { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GEQ_EXP, std::move($3)));*/ }
-    | c_stopless_expr0 NEQ c_stopless_expr      { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), NEQ_EXP, std::move($3)));*/ }
-    | c_stopless_expr0 EQ c_stopless_expr       { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), EQ_EXP, std::move($3)));*/ }
-    | c_stopless_expr0                          { /*$$ = std::move($1);*/ }
+    c_stopless_expr0 LT c_stopless_expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LT_EXP, std::move($3))); }
+    | c_stopless_expr0 GT c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GT_EXP, std::move($3))); }
+    | c_stopless_expr0 LEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LEQ_EXP, std::move($3))); }
+    | c_stopless_expr0 GEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GEQ_EXP, std::move($3))); }
+    | c_stopless_expr0 NEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), NEQ_EXP, std::move($3))); }
+    | c_stopless_expr0 EQ c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), EQ_EXP, std::move($3))); }
+    | c_stopless_expr0 AND c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), AND_EXP, std::move($3))); }
+    | c_stopless_expr0 OR c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), OR_EXP, std::move($3))); }
+    | c_stopless_expr0                          { $$ = std::move($1); }
     ;
 c_stopless_expr0:
-    c_stopless_expr1 PLUS c_stopless_expr0      { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), PLUS_EXP, std::move($3)));*/ }
-    | c_stopless_expr1 MINUS c_stopless_expr0   { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MINUS_EXP, std::move($3)));*/ }
-    | MINUS c_stopless_expr0                    { /*$$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP, std::move($2)));*/ }
-    | c_stopless_expr1                          { /*$$ = std::move($1);*/}
+    c_stopless_expr1 PLUS c_stopless_expr0      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), PLUS_EXP, std::move($3))); }
+    | c_stopless_expr1 MINUS c_stopless_expr0   { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MINUS_EXP, std::move($3))); }
+    | MINUS c_stopless_expr0                    { $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP, std::move($2))); }
+    | c_stopless_expr1                          { $$ = std::move($1); }
     ;
 c_stopless_expr1: 
-    c_stopless_expr2 TIMES c_stopless_expr1     { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), TIMES_EXP, std::move($3)));*/ }
-    | c_stopless_expr2 DIV c_stopless_expr1     { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), DIV_EXP, std::move($3)));*/ }
-    | c_stopless_expr2 MOD c_stopless_expr1     { /*$$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MOD_EXP, std::move($3)));*/ }
-    | c_stopless_expr2                          { /*$$ = std::move($1);*/}
-    | NOT c_stopless_expr2                      { /*$$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP, std::move($2)));*/ }
+    c_stopless_expr2 TIMES c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), TIMES_EXP, std::move($3))); }
+    | c_stopless_expr2 DIV c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), DIV_EXP, std::move($3))); }
+    | c_stopless_expr2 MOD c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MOD_EXP, std::move($3))); }
+    | c_stopless_expr2                          { $$ = std::move($1); }
+    | NOT c_stopless_expr2                      { $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP, std::move($2))); }
     ;
 c_stopless_expr2: 
-    IDENTIFIER c_suffixes                       { /*$$ = std::move(std::make_unique<suffixised_node>(std::move($1), std::move($2)));*/ }
-    | INT                                       { /*$$ = std::move(std::make_unique<number_literal_node>(std::move($1)));*/ }
-    | FLOAT                                     { /*$$ = std::move(std::make_unique<number_literal_node>(std::move($1)));*/ }
-    | BOOL                                      { /*$$ = std::move(std::make_unique<number_literal_node>(std::move($1)));*/ }
-    | INPUT_KW                                  { /*$$ = std::move(INPUT);*/ }
-    | STOP_KW                                   { /*$$ = std::move(STOP);*/ }
-    | expr                                      { /*$$ = std::move($1);*/ }
-    | CTX_KW PERIOD IDENTIFIER c_suffixes       
-    | L_PARENTH c_stopless_expr R_PARENTH       { /*$$ = std::move($2);*/ }
-    | c_cast                                    { /*$$ = std::move($1);*/ }
+    IDENTIFIER c_suffixes                       { $$ = std::move(std::make_unique<suffixised_node>(std::move($1), std::move($2))); }
+    | INT                                       { $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); }
+    | FLOAT                                     { $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); }
+    | BOOL                                      { $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); }
+    | INPUT_KW                                  { $$ = std::move(std::make_unique<input_node>()); }
+    | STOP_KW                                   { $$ = std::move(std::make_unique<stop_node>()); }
+    | CTX_KW PERIOD IDENTIFIER c_suffixes       { $$ = std::move(std::make_unique<context_expression_node>(std::move($3), std::move($4))); }
+    | IDENTIFIER L_PARENTH list_expr R_PARENTH  { $$ = std::move(std::make_unique<integrated_function_node>(std::move($1), std::move($3))); }
+    | L_PARENTH c_stopless_expr R_PARENTH       { $$ = std::move($2); }
+    | c_cast                                    { $$ = std::move($1); }
     ;
 c_cast:
-    L_PARENTH df_type R_PARENTH c_stopless_expr { /*$$ = std::move(std::make_unique<c_cast_node>(std::move($2), std::move($4)));*/ }
+    L_PARENTH df_type R_PARENTH c_stopless_expr { $$ = std::move(std::make_unique<c_cast_node>(std::move($2), std::move($4))); }
     ;
 suffixes:
     L_SQUA expr R_SQUA suffixes                 { $$ = std::move($4); $$->append(std::move($2)); }
     | /* EMPTY */                               { $$ = std::move(std::make_unique<suffixes_node>()); }
     ;
 c_suffixes:
-    L_SQUA c_stopless_expr R_SQUA c_suffixes    { /*$$ = std::move(std::move($4)); $$->append(std::move($2));*/ }
-    | /* EMPTY */                               { /*$$ = std::move(std::make_unique<c_suffixes_node>());*/ }
+    L_SQUA c_stopless_expr R_SQUA c_suffixes    { $$ = std::move(std::move($4)); $$->append(std::move($2)); }
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<suffixes_node>()); }
     ;
 s_suffixable_expr:
-    IDENTIFIER                                  { /*$$ = std::move(std::make_unique<variable_node>(std::move($1)));*/ }
-    | block PERIOD IDENTIFIER                   { /*$$ = std::move(std::make_unique<plugging_node>(std::move($1), std::move($3)));*/ }
+    IDENTIFIER                                  { $$ = std::move(std::make_unique<variable_node>(std::move($1))); }
+    | block PERIOD IDENTIFIER                   { $$ = std::move(std::make_unique<plugging_expr_node>(std::move($1), std::move($3))); }
+    | IDENTIFIER L_PARENTH list_expr R_PARENTH { $$ = std::move(std::make_unique<integrated_function_node>(std::move($1), std::move($3))); }
     ;
 block:
-    IDENTIFIER suffixes                         { /*$$ = std::move(std::make_unique<block_node>(std::move($1), std::move($2)));*/ }
+    IDENTIFIER suffixes                         { $$ = std::move(std::make_unique<block_node>(std::move($1), std::move($2))); }
+    ;
+
+loop_in:
+    IDENTIFIER                                 { $$ = std::move(std::make_unique<variable_node>(std::move($1))); }
+    | IDENTIFIER L_PARENTH list_expr R_PARENTH { $$ = std::move(std::make_unique<integrated_function_node>(std::move($1), std::move($3))); }
     ;
 loop_statement:
-    FOREACH_KW IDENTIFIER IN_KW IDENTIFIER L_CURL 
+    FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL 
         statements 
     R_CURL                                      { $$ = std::move(std::make_unique<loop_node>(std::move($2), std::move($4), std::move($6))); }
     ;
 c_loop_statement:
-    FOREACH_KW IDENTIFIER IN_KW IDENTIFIER L_CURL
+    FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
         c_statements 
-    R_CURL                                      { /*$$ = std::move(std::make_unique<c_loop_node>(std::move($2), std::move($4), std::move($6)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<c_loop_node>(std::move($2), std::move($4), std::move($6))); }
     ;
 s_loop_statement:
     FOREACH_KW IDENTIFIER IN_KW s_suffixable_expr L_CURL 
         s_statements 
-    R_CURL                                      { /*$$ = std::move(std::make_unique<s_loop_node>(std::move($2), std::move($4), std::move($6)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<s_loop_node>(std::move($2), std::move($4), std::move($6))); }
     ;
 if_else_statement:
     if_statement 
@@ -319,13 +361,13 @@ s_if_else_statement:
     s_if_statement 
     ELSE_KW L_CURL 
         s_statements 
-    R_CURL                                      { /*$$ = std::move(std::make_unique<s_if_else_node>(std::move($1), std::move($4)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<s_if_else_node>(std::move($1), std::move($4))); }
     ;
 c_if_else_statement:
     c_if_statement
     ELSE_KW L_CURL 
         c_statements 
-    R_CURL                                      { /*$$ = std::move(std::make_unique<c_if_else_node>(std::move($1), std::move($4)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<c_if_else_node>(std::move($1), std::move($4))); }
     ;
 if_statement: 
     IF_KW L_PARENTH expr R_PARENTH L_CURL 
@@ -335,12 +377,12 @@ if_statement:
 s_if_statement: 
     IF_KW L_PARENTH expr R_PARENTH L_CURL 
         s_statements 
-    R_CURL                                      { /*$$ = std::move(std::make_unique<s_if_node>(std::move($3), std::move($6)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<s_if_node>(std::move($3), std::move($6))); }
     ;
 c_if_statement: 
-    IF_KW L_PARENTH expr R_PARENTH L_CURL 
+    IF_KW L_PARENTH c_expr R_PARENTH L_CURL 
         c_statements
-    R_CURL                                      { /*$$ = std::move(std::make_unique<c_if_node>(std::move($3), std::move($6)));*/ }
+    R_CURL                                      { $$ = std::move(std::make_unique<c_if_node>(std::move($3), std::move($6))); }
     ;
 statements: 
     statement statements                        { $$ = std::move($2); $$->append(std::move($1)); }
@@ -350,35 +392,44 @@ statements:
     | /* EMPTY */                               { $$ = std::move(std::make_unique<statements_node>()); }
     ;
 s_statements:
-    s_statement s_statements                    { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | s_loop_statement s_statements             { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | s_if_else_statement s_statements          { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | s_if_statement s_statements               { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | /* EMPTY */                               { /*$$ = std::move(std::make_unique<s_statements_node>());*/ }
+    s_statement s_statements                    { $$ = std::move($2); $$->append(std::move($1)); }
+    | s_loop_statement s_statements             { $$ = std::move($2); $$->append(std::move($1)); }
+    | s_if_else_statement s_statements          { $$ = std::move($2); $$->append(std::move($1)); }
+    | s_if_statement s_statements               { $$ = std::move($2); $$->append(std::move($1)); }
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<s_statements_node>()); }
     ;
 statement:
     df_type IDENTIFIER may_assign SEMICOL       { $$ = std::move(std::make_unique<dataflow_full_declaration_node>(std::move($1), std::move($2), std::move($3))); }
     | IDENTIFIER suffixes ASSIGN expr SEMICOL   { $$ = std::move(std::make_unique<variable_assignment_node>(std::move($1), std::move($2), std::move($4))); }
+    | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL { $$ = std::move(std::make_unique<context_variable_assignment_node>(std::move($3), std::move($4), std::move($6))); };
     ;
 s_statement:
-    IDENTIFIER suffixes IDENTIFIER SEMICOL        { /*$$ = std::move(std::make_unique<functionnal_block_instanciation_node>(std::move($1), std::move($2), std::move($3))); */}/* functionnal block instanciation */
-    | block PERIOD IDENTIFIER suffixes L_PARENTH expr R_PARENTH SEMICOL { /*$$ = std::move(std::make_unique<plugging_node>(std::move($1), std::move($3), std::move($4), std::move($6)));*/ } /* plugging expr to block input */
-    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL { /*$$ = std::move(std::make_unique<link_node>(std::move($2), std::move($4)));*/ }/* attaching logical process to a node */
-    | df_type IDENTIFIER may_assign SEMICOL       { /*$$ = std::move(std::make_unique<dataflow_full_declaration_node>(std::move($1), std::move($2), std::move($3)));*/ }/* declaring a variable */
-    | IDENTIFIER suffixes IMPLEMENTS_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL { /*$$ = std::move(std::make_unique<implements_node>(std::move($1), std::move($2), std::move($4), std::move($5), std::move($7)));*/ }
-    | statement                                 { /*$$ = std::move($1);*/ }
+    IDENTIFIER suffixes IDENTIFIER SEMICOL        { $$ = std::move(std::make_unique<functionnal_block_instanciation_node>(std::move($1), std::move($2), std::move($3))); }/* functionnal block instanciation */
+    | block PERIOD IDENTIFIER suffixes L_PARENTH s_expr R_PARENTH SEMICOL { $$ = std::move(std::make_unique<plugging_node>(std::move($1), std::move($3), std::move($4), std::move($6))); } /* plugging expr to block input */
+    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL { $$ = std::move(std::make_unique<link_node>(std::move($2), std::move($4))); }/* attaching logical process to a node */
+    | IDENTIFIER suffixes IMPLEMENTS_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL { $$ = std::move(std::make_unique<implements_node>(std::move($1), std::move($2), std::move($4), std::move($5), std::move($7))); }
+    | statement                                 { $$ = std::move($1); }
+    ;
+s_expr:
+    block PERIOD IDENTIFIER                        { $$ = std::move(std::make_unique<plugging_expr_node>(std::move($1), std::move($3))); }
+    | collective_operation block PERIOD IDENTIFIER { $$ = std::move(std::make_unique<collective_cast_node>(std::move($1), std::move($2), std::move($4)));  }
+    | expr                                         { $$ = std::move($1); }
+    ;
+
+collective_operation:
+    L_PARENTH IDENTIFIER R_PARENTH { $$ = std::move(std::make_unique<collective_operation_node>(std::move($2))); /* ex l363 all.chips */}
     ;
 c_statements:
-    c_statement c_statements                    { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | c_loop_statement c_statements             { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | c_if_else_statement c_statements          { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | c_if_statement c_statements               { /*$$ = std::move($2); $$->append(std::move($1));*/ }
-    | /* EMPTY */                               { /*$$ = std::move(std::make_unique<c_statements_node>());*/ }
+    c_statement c_statements                    { $$ = std::move($2); $$->append(std::move($1)); }
+    | c_loop_statement c_statements             { $$ = std::move($2); $$->append(std::move($1)); }
+    | c_if_else_statement c_statements          { $$ = std::move($2); $$->append(std::move($1)); }
+    | c_if_statement c_statements               { $$ = std::move($2); $$->append(std::move($1)); }
+    | /* EMPTY */                               { $$ = std::move(std::make_unique<c_statements_node>()); }
     ;
 c_statement:
-    cdf_full_declaration SEMICOL                   { /*$$ = std::move($1);*/}
-    | IDENTIFIER suffixes ASSIGN c_expr SEMICOL    { /*$$ = std::move(std::make_unique<variable_assignment_node>(std::move($1), std::move($2), std::move($4)));*/ }
-    | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL 
+    cdf_full_declaration SEMICOL                   { $$ = std::move($1);}
+    | IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL    { $$ = std::move(std::make_unique<c_variable_assignment_node>(std::move($1), std::move($2), std::move($4))); }
+    | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL { $$ = std::move(std::make_unique<c_context_variable_assignment_node>(std::move($3), std::move($4), std::move($6))); }
     ;
 named_outputs:
     named_output named_outputs                  { $$ = std::move($2); $$->append(std::move($1));   }
@@ -433,19 +484,21 @@ pdf_parameter_decl:
     pdf_parameter_type IDENTIFIER may_assign        { $$ = std::make_unique<physical_dataflow_parameter_decl_node>(std::move($1), std::move($2), std::move($3)); }
     ;
 cdf_defaulted_decls:
-    cdf_defaulted_decl                              { /*$$ = std::move($1);*/ }
-    | cdf_defaulted_decl COMMA cdf_defaulted_decls  { /*$$ = std::move($3); $$->append(std::move($1));*/ }
-    | /* EMPTY */                                   { /*$$ = std::move(std::make_unique<collective_dataflow_defaulted_decls_node>());*/ }
+    cdf_defaulted_decl                              { std::vector<std::unique_ptr<collective_dataflow_defaulted_decl_node>> vec;
+                                                      vec.push_back(std::move($1));
+                                                      $$ = std::make_unique<collective_dataflow_defaulted_decls_node>(std::move(vec)); }
+    | cdf_defaulted_decl COMMA cdf_defaulted_decls  { $3->append(std::move($1)); $$ = std::move($3); }
+    | /* EMPTY */                                   { $$ = std::move(std::make_unique<collective_dataflow_defaulted_decls_node>()); }
     ;
 cdf_defaulted_decl:
-    df_type IDENTIFIER ASSIGN c_expr { /*$$ = std:move(std::make_unique<collective_dataflow_defaulted_decl_node>(std::move($1), std::move($2), std::move($4)));*/ }
+    df_type IDENTIFIER ASSIGN c_expr { $$ = std::move(std::make_unique<collective_dataflow_defaulted_decl_node>(std::move($1), std::move($2), std::move($4))); }
     ;
 cdf_full_declaration:
-    df_type IDENTIFIER c_may_assign { /*$$ = std::move(std::make_unique<collective_dataflow_full_declaration_node>(std::move($1), std::move($2), std::move($3)));*/ }
+    df_type IDENTIFIER c_may_assign { $$ = std::move(std::make_unique<collective_dataflow_full_declaration_node>(std::move($1), std::move($2), std::move($3))); }
     ;
 c_may_assign:
-    ASSIGN c_expr       { /*$$ = std::move(std::make_unique<collective_rhs_assignment_node>(std::move($2)));*/}
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<collective_rhs_assignment_node>());*/ }
+    ASSIGN c_expr       { $$ = std::move(std::make_unique<collective_rhs_assignment_node>(std::move($2))); }
+    | /* EMPTY */       { $$ = std::move(std::make_unique<collective_rhs_assignment_node>()); }
     ;
 may_assign:
     ASSIGN expr         { $$ = std::move(std::make_unique<rhs_assignment_node>(std::move($2))); }
