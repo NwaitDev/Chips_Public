@@ -8,7 +8,10 @@
 #include <utility>
 #include <iostream>
 
-class s_statement_node : public ast_node {};
+class s_statement_node : public ast_node {
+    public:
+        virtual STATEMENT_TYPE get_type() = 0;
+};
 
 class s_statements_node : public ast_node {
     private:
@@ -39,18 +42,18 @@ class s_statements_node : public ast_node {
 
 class s_loop_node : public s_statement_node {
     private:
-        static constexpr STATEMENT_TYPE type = LOOP_ST;
+        STATEMENT_TYPE type = LOOP_ST;
         std::string ident1;
-        std::string ident2;
+        std::unique_ptr<expression_node> loop_expr;
         std::unique_ptr<s_statements_node> stts;
 
     public:
-        s_loop_node(std::string ident1, std::string ident2, std::unique_ptr<s_statements_node> stts)
-            : ident1(ident1), ident2(ident2), stts(std::move(stts)) {}
+        s_loop_node(std::string ident1, std::unique_ptr<expression_node> loop_expr, std::unique_ptr<s_statements_node> stts)
+            : ident1(ident1), loop_expr(std::move(loop_expr)), stts(std::move(stts)) {}
 
-        constexpr STATEMENT_TYPE get_type() { return type; }
-        std::string get_ident1() { return ident1; }
-        std::string get_ident2() { return ident2; }
+        STATEMENT_TYPE get_type() override { return type; }
+        std::string get_identifier() { return ident1; }
+        expression_node* get_loop_expr() { return loop_expr.get();}
         s_statements_node* get_statements() { return stts.get(); }
 
         void accept(chips_visitor& visitor) {}
@@ -60,7 +63,7 @@ class s_loop_node : public s_statement_node {
 
 class s_if_node : public s_statement_node {
     private:
-        static constexpr STATEMENT_TYPE type = IF_ST;
+        STATEMENT_TYPE type = IF_ST;
         std::unique_ptr<expression_node> cond;
         std::unique_ptr<s_statements_node> stts;
 
@@ -68,7 +71,7 @@ class s_if_node : public s_statement_node {
         s_if_node(std::unique_ptr<expression_node> cond, std::unique_ptr<s_statements_node> stts)
             : cond(std::move(cond)), stts(std::move(stts)) {}
 
-        constexpr STATEMENT_TYPE get_type() { return type; }
+        STATEMENT_TYPE get_type() override { return type; }
         expression_node* get_condition() { return cond.get(); }
         s_statements_node* get_statements() { return stts.get(); }
 
@@ -79,7 +82,7 @@ class s_if_node : public s_statement_node {
 
 class s_if_else_node : public s_statement_node {
     private:
-        static constexpr STATEMENT_TYPE type = IFELSE_ST;
+        STATEMENT_TYPE type = IFELSE_ST;
         std::unique_ptr<s_if_node> ifnode;
         std::unique_ptr<s_statements_node> elsestts;
 
@@ -87,7 +90,7 @@ class s_if_else_node : public s_statement_node {
         s_if_else_node(std::unique_ptr<s_if_node> ifnode, std::unique_ptr<s_statements_node> elsestts)
             : ifnode(std::move(ifnode)), elsestts(std::move(elsestts)) {}
 
-        constexpr STATEMENT_TYPE get_type() { return type; }
+        STATEMENT_TYPE get_type() override { return type; }
         s_if_node* get_if_node() { return ifnode.get(); }
         s_statements_node* get_else_node() { return elsestts.get(); }
 
@@ -98,6 +101,7 @@ class s_if_else_node : public s_statement_node {
 
 class functionnal_block_instanciation_node : public s_statement_node {
     private:
+        STATEMENT_TYPE type = S_FUNC_BLOCK_INST_ST;
         std::string ident1;
         std::unique_ptr<suffixes_node> suff;
         std::string ident2;
@@ -106,6 +110,7 @@ class functionnal_block_instanciation_node : public s_statement_node {
         functionnal_block_instanciation_node(std::string ident1, std::unique_ptr<suffixes_node> suff, std::string ident2)
             : ident1(ident1), suff(std::move(suff)), ident2(ident2) {}
 
+        STATEMENT_TYPE get_type() override { return type; }
         std::string get_ident1() { return ident1; }
         suffixes_node* get_suffixes() { return suff.get(); }
         std::string get_ident2() { return ident2; }
@@ -116,6 +121,7 @@ class functionnal_block_instanciation_node : public s_statement_node {
 
 class plugging_node : public s_statement_node {
     private:
+        STATEMENT_TYPE type = S_EXPR_PLUG_ST;
         std::unique_ptr<block_node> block;
         std::string identifier;
         std::unique_ptr<suffixes_node> suff;
@@ -128,6 +134,7 @@ class plugging_node : public s_statement_node {
         plugging_node(std::unique_ptr<block_node> block, std::string identifier)
             : block(std::move(block)), identifier(identifier) {}
 
+        STATEMENT_TYPE get_type() override { return type; }
         block_node* get_block() { return block.get(); }
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
@@ -140,6 +147,7 @@ class plugging_node : public s_statement_node {
 
 class link_node : public s_statement_node {
     private:
+        STATEMENT_TYPE type = S_LINK_ST;
         std::string lk_src;
         std::string lk_target;
 
@@ -147,6 +155,7 @@ class link_node : public s_statement_node {
         link_node(std::string lk_src, std::string lk_target)
             : lk_src(lk_src), lk_target(lk_target) {}
 
+        STATEMENT_TYPE get_type() override { return type; }
         std::string get_source() { return lk_src; }
         std::string get_target() { return lk_target; }
 
@@ -157,6 +166,7 @@ class link_node : public s_statement_node {
 
 class implements_node : public s_statement_node {
     private:
+        STATEMENT_TYPE type = S_IMPLEMENTS_ST;
         std::string ident1;
         std::unique_ptr<suffixes_node> suffixes1;
         std::string ident2;
@@ -167,6 +177,7 @@ class implements_node : public s_statement_node {
         implements_node(std::string ident1, std::unique_ptr<suffixes_node> suffixes1, std::string ident2, std::unique_ptr<suffixes_node> suffixes2, std::string ident3)
             : ident1(ident1), suffixes1(std::move(suffixes1)), ident2(ident2), suffixes2(std::move(suffixes2)), ident3(ident3) {}
 
+        STATEMENT_TYPE get_type() override { return type; }
         std::string get_ident1() { return ident1; }
         suffixes_node* get_suffixes1() { return suffixes1.get(); }
         std::string get_ident2() { return ident2; }
