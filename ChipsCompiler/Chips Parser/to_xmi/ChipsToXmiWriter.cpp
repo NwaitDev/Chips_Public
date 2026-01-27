@@ -120,7 +120,7 @@ void ChipsToXmiWriter::precise_system_node_to_xmi(const s_statement_node* node)
     std::string id = nodeId(node);
     
     switch (node->get_statement_type()) {
-        case S_INST_ST: {
+        case DF_INST_ST: {
             // Déclaration système (ex: PhysicalCounter pc)
             m_out << "    <declarations xmi:id=\"" << id << "\" ";
             m_out << "xsi:type=\"chips.statements.system:physical_declaration\"";
@@ -147,15 +147,15 @@ void ChipsToXmiWriter::precise_system_node_to_xmi(const s_statement_node* node)
             break;
         }
         
-        case S_LOOP_ST: {
+        case LOOP_ST: {
             m_out << "    <statements xmi:id=\"" << id << "\" ";
             m_out << "xsi:type=\"chips.statements.system:loop_statement\"";
             m_out << "/>\n";
             break;
         }
         
-        case S_IF_ST:
-        case S_IFELSE_ST: {
+        case IF_ST:
+        case IFELSE_ST: {
             m_out << "    <statements xmi:id=\"" << id << "\" ";
             m_out << "xsi:type=\"chips.statements.system:if_statement\"";
             m_out << "/>\n";

@@ -31,6 +31,7 @@ public:
         : sstatements(std::move(sstatements)) {}
 
     s_statements_node* get_system_statements() { return sstatements.get(); }
+    const s_statements_node* get_system_statements() const { return sstatements.get(); }
     
     void accept(chips_visitor& visitor);
 
