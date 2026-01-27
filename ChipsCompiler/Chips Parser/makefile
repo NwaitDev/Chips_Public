@@ -9,7 +9,7 @@ ChipsLexer.cpp: ChipsLexer.l ChipsParser.cpp
 	flex -o $@ $<
 
 chipsc: ChipsLexer.cpp ChipsParser.cpp ChipsDriver.cpp cpp_sources/chips_node_print.cpp cpp_sources/chips_exceptions.cpp
-	g++ -fPIC ChipsParser.cpp ChipsLexer.cpp ChipsDriver.cpp cpp_sources/chips_node_print.cpp cpp_sources/chips_exceptions.cpp -lfl -o chipsc
+	g++ ChipsParser.cpp ChipsLexer.cpp ChipsDriver.cpp cpp_sources/chips_node_print.cpp cpp_sources/chips_exceptions.cpp -lfl -o chipsc
 
 test: chipsc
 	./CompilerTests.sh
