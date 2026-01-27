@@ -237,7 +237,8 @@ class with_two_identifier_node : public with_statement_node {
         std::string ident1;
         std::string ident2;
     public:
-        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
+        // TODO : refactor S_STATEMENT_TYPE functions
+        // S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
 
         with_two_identifier_node(std::string ident1, std::string ident2) : ident1(ident1), ident2(ident2) {}
 
