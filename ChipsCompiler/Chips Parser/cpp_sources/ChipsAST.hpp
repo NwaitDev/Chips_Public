@@ -9,6 +9,7 @@
 #include "./chips_overall_system.hpp"
 #include "./chips_config_stts.hpp"
 #include "./chips_overall_stts.hpp"
+#include "./chips_overall_collective.hpp"
 #include "./chips_declaration_ctx.hpp"
 #include <memory>
 #include <string>
@@ -29,15 +30,11 @@ public:
     system_node(std::unique_ptr<s_statements_node> sstatements)
         : sstatements(std::move(sstatements)) {}
 
-    const s_statements_node* get_system_statements() const { return sstatements.get(); }
+    s_statements_node* get_system_statements() { return sstatements.get(); }
     
     void accept(chips_visitor& visitor);
 
-    virtual void hello() override;/* {
-        if(sstatements.get()){
-            sstatements.get()->hello();
-        }
-    }*/
+    virtual void hello() override;
 };
 
 class chips_node : public ast_node{

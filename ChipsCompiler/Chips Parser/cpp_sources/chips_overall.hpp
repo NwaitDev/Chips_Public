@@ -24,16 +24,7 @@ public:
     suffixes_node* get_suffixes() { return suff.get(); }
 
     void accept(chips_visitor& visitor);
-    virtual void hello() override; /* {
-        switch(type){
-            case INT_DF: std::cout << "int "; break;
-            case FLOAT_DF: std::cout << "float "; break;
-            case BOOL_DF: std::cout << "bool "; break;
-        }
-        if(suff){
-            suff.get()->hello();
-        }
-    }*/
+    virtual void hello() override;
 };
 
 class physical_dataflow_parameter_type_node : public ast_node {
@@ -47,48 +38,11 @@ class physical_dataflow_parameter_type_node : public ast_node {
         physical_dataflow_parameter_type_node(bool is_sensor, std::unique_ptr<dataflow_type_node> type)
             : is_sensor(is_sensor), type(std::move(type)) {}
 
-        dataflow_type_node* get_type() { return type.get(); }
+        dataflow_type_node* get_df_type() { return type.get(); }
 
         void accept(chips_visitor& visitor) {}
-        virtual void hello() override; /* {
-            if(type){
-                type.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
-
-
-class dataflow_declaration_node : public ast_node {
-    private:
-    std::string name;
-    std::unique_ptr<dataflow_type_node> type;
-public:
-    dataflow_declaration_node (std::unique_ptr<dataflow_type_node> type, std::string name) 
-        : name(name), type(std::move(type)) {}
-
-    void accept(chips_visitor& visitor);
-    virtual void hello() override;// {std::cout << "hello from dataflow_declaration_node\n";}
-};
-
-
-
-// class dataflow_declarations_node : public ast_node {
-// private:
-//     std::vector<std::unique_ptr<dataflow_declaration_node>> decls;
-// public:
-
-//     dataflow_declarations_node(){}
-
-//     dataflow_declarations_node(dataflow_declarations_node& decls)
-//         : decls(std::move(decls.decls)) {}
-
-//     void append(std::unique_ptr<dataflow_declaration_node> dfDecl){decls.push_back(std::move(dfDecl));};
-    
-    
-//     void accept(chips_visitor& visitor);
-
-//     virtual void hello() override;// {std::cout << "hello from ArgDeclarationsNode\n";}
-// };
 
 class expressions_node : public ast_node {
 private:
@@ -115,7 +69,7 @@ public:
     
     void accept(chips_visitor& visitor);
 
-    virtual void hello() override;// {std::cout << "hello from expressions_node\n";}
+    virtual void hello() override;
 };
 
 class dataflow_parameter_list_node : public ast_node {
@@ -141,11 +95,7 @@ class dataflow_parameter_list_node : public ast_node {
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override;/* {
-            if(df_param_decls){
-                df_param_decls.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
 
 class physical_dataflow_parameter_list_node : public ast_node {
@@ -172,11 +122,7 @@ class physical_dataflow_parameter_list_node : public ast_node {
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override; /* {
-            if(pdf_param_decls){
-                pdf_param_decls.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
 
 class dataflow_parameter_decls_node :  public ast_node {
@@ -202,20 +148,7 @@ class dataflow_parameter_decls_node :  public ast_node {
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override;/* {
-           if(df_param_decls.size() == 1){
-                df_param_decls.at(0).get()->hello();
-           }else{
-                for(int i = 0; i < df_param_decls.size(); i++){
-                    if(i == df_param_decls.size() - 1){
-                        df_param_decls.at(i).get()->hello();
-                    }else{
-                        df_param_decls.at(i).get()->hello();
-                        std::cout << ", ";
-                    }
-                }
-           }
-        }*/
+        virtual void hello() override;
 };
 
 class physical_dataflow_parameter_decls_node :  public ast_node {
@@ -242,20 +175,7 @@ class physical_dataflow_parameter_decls_node :  public ast_node {
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override; /* {
-           if(pdf_param_decls.size() == 1){
-                pdf_param_decls.at(0).get()->hello();
-           }else{
-                for(int i = 0; i < pdf_param_decls.size(); i++){
-                    if(i == pdf_param_decls.size() - 1){
-                        pdf_param_decls.at(i).get()->hello();
-                    }else{
-                        pdf_param_decls.at(i).get()->hello();
-                        std::cout << ", ";
-                    }
-                }
-           }
-        }*/
+        virtual void hello() override;
 };
 
 class dataflow_parameter_decl_node : public ast_node {
@@ -267,22 +187,13 @@ class dataflow_parameter_decl_node : public ast_node {
         dataflow_parameter_decl_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign) :
             type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
 
-        dataflow_type_node* get_type() { return type.get(); }
+        dataflow_type_node* get_df_type() { return type.get(); }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override; /* {
-            if(type){
-                type.get()->hello();
-            }
-            
-            std::cout << " " << identifier << " ";
-            if(assign){
-                assign.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
 
 class physical_dataflow_parameter_decl_node : public ast_node {
@@ -294,21 +205,13 @@ class physical_dataflow_parameter_decl_node : public ast_node {
         physical_dataflow_parameter_decl_node(std::unique_ptr<physical_dataflow_parameter_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign) :
             type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
 
-        physical_dataflow_parameter_type_node* get_type() { return type.get(); }
+        physical_dataflow_parameter_type_node* get_df_type() { return type.get(); }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override; /*
-            if(type){
-                type.get()->hello();
-            }
-            std::cout << " " << identifier << " ";
-            if(assign){
-                assign.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
 
 #endif

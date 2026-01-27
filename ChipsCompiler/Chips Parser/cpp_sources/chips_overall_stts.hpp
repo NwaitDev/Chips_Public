@@ -4,6 +4,9 @@
 #include "./chips_config_stts.hpp"
 #include "./chips_expressions.hpp"
 #include "chips_overall_system.hpp"
+
+
+// TODO : refactor S_STATEMENT_TYPE functions
 /*
         (NOT CONFIGURATION) STATEMENTS NODES
 */
@@ -34,17 +37,7 @@ public:
         statements.insert(statements.begin(), std::move(sttmt));
     }
     void accept(chips_visitor& visitor);
-    virtual void hello() override; /* {
-        for(const auto& sttmt : statements){
-            sttmt.get()->hello();
-            auto type = sttmt.get()->get_type();
-            if(type == IF_ST || type == IFELSE_ST || type == LOOP_ST){
-                std::cout << std::endl;
-            }else{
-                std::cout << ";" << std::endl;
-            }
-        }
-    }*/
+    virtual void hello() override; 
 };
 
 class rhs_assignment_node : public ast_node {
@@ -58,7 +51,7 @@ public:
     rhs_assignment_node() {}
     
     void accept(chips_visitor& visitor);
-    virtual void hello() override;// {std::cout << "hello from rhs_assignment_node\n";}
+    virtual void hello() override;
 };
 
 
@@ -70,8 +63,11 @@ private:
 public:
     assignment_node(std::unique_ptr<suffixised_node> lhs, std::unique_ptr<rhs_assignment_node> rhs)
     : lhs(std::move(lhs)), rhs(std::move(rhs))  {};
+
+    STATEMENT_TYPE get_type() override { return type; }
+
     void accept(chips_visitor& visitor);
-    virtual void hello() override;// {std::cout << "hello from assignment_node\n";}
+    virtual void hello() override;
 };
 
 class this_attribute_node : public suffixised_node {
@@ -86,7 +82,7 @@ public:
     std::string get_element() { return elem; }
     
     void accept(chips_visitor& visitor);
-    virtual void hello() override;// {std::cout << "hello from this_attribute_node\n";}
+    virtual void hello() override;
 };
 
 
@@ -94,6 +90,7 @@ public:
 
 class dataflow_full_declaration_node : public statement_node {
     private:
+        STATEMENT_TYPE s_type = DF_ASSIGN_ST;
         std::unique_ptr<dataflow_type_node> type;
         std::string identifier;
         std::unique_ptr<rhs_assignment_node> assign;
@@ -102,25 +99,18 @@ class dataflow_full_declaration_node : public statement_node {
         dataflow_full_declaration_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign)
             : type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
         
-        dataflow_type_node* get_type() { return type.get(); }
-        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
+        STATEMENT_TYPE get_type() override { return s_type; }
+        dataflow_type_node* get_df_type() { return type.get(); }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
         void accept(chips_visitor& visitor) ;
-        virtual void hello() override; /* {
-            if(type){
-                type.get()->hello();
-            }
-            std::cout << " " << identifier << " ";
-            if(assign){
-                assign.get()->hello();
-            }
-        }*/
+        virtual void hello() override;
 };
 
 class variable_assignment_node : public statement_node {
     private:
+        STATEMENT_TYPE type = ASSI_ST;
         std::string identifier;
         std::unique_ptr<suffixes_node> suff;
         std::unique_ptr<expression_node> expr;
@@ -128,119 +118,105 @@ class variable_assignment_node : public statement_node {
         variable_assignment_node(std::string identifier, std::unique_ptr<suffixes_node> suff, std::unique_ptr<expression_node> expr)
             : identifier(identifier), suff(std::move(suff)), expr(std::move(expr)) {}
 
-        S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
+        STATEMENT_TYPE get_type() override { return type; }
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
 
         void accept(chips_visitor& visitor) {}
-        virtual void hello() override; /* {
-            std::cout << identifier << " ";
-            if(suff){
-                suff.get()->hello();
-            }
-            std::cout << " = ";
-            if(expr){
-                expr.get()->hello();
-            }
-            std::cout << ";\n";
-        }*/
+        virtual void hello() override;
+};
+
+class context_variable_assignment_node : public statement_node {
+    private:
+        STATEMENT_TYPE type = ASSI_ST;
+        std::string identifier;
+        std::unique_ptr<suffixes_node> suff;
+        std::unique_ptr<expression_node> expr;
+
+    public:
+        context_variable_assignment_node(std::string identifier, std::unique_ptr<suffixes_node> suff, std::unique_ptr<expression_node> expr)
+            : identifier(identifier), suff(std::move(suff)), expr(std::move(expr)) {}
+
+        STATEMENT_TYPE get_type() override { return type; }
+        std::string get_identifier() { return identifier; }
+        suffixes_node* get_suffixes() { return suff.get(); }
+        expression_node* get_expression() { return expr.get(); }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override;
 };
 
 class function_call_statement_node : public statement_node {
     private:
+        STATEMENT_TYPE type = FCALL_ST;
         std::unique_ptr<function_call_node> fcall;
     public:
         function_call_statement_node(std::unique_ptr<function_call_node> fcall)
             : fcall(std::move(fcall)) {}
+
+        STATEMENT_TYPE get_type() override { return type; }
         
         void accept(chips_visitor& visitor) ;
-        virtual void hello() override;// {std::cout << "hello from function_call_statement_node\n";}
+        virtual void hello() override;
 };
 
 
 class if_node : public statement_node {
 private:
-    static constexpr STATEMENT_TYPE type = IF_ST;
+    STATEMENT_TYPE type = IF_ST;
     std::unique_ptr<expression_node> cond;
     std::unique_ptr<statements_node> stts;
 public:
     if_node(std::unique_ptr<expression_node> cond, std::unique_ptr<statements_node> stts)
         : cond(std::move(cond)), stts(std::move(stts)) {}
         
-    constexpr STATEMENT_TYPE get_type() { return type; }
-    S_STATEMENT_TYPE get_statement_type() const override { return S_IF_ST; }
+    STATEMENT_TYPE get_type() override { return type; }
     expression_node* get_condition() { return cond.get(); }
     statements_node* get_statements() { return stts.get(); }
 
     void accept(chips_visitor& visitor) ;
 
-    virtual void hello() override; /* {
-        std::cout << "if (";
-        if(cond){
-            cond.get()->hello();
-        }
-        std::cout << "){\n";
-        if(stts){
-            stts.get()->hello();
-        }
-        std::cout << "}";
-    }*/
+    virtual void hello() override;
 };
 
 class if_else_node : public statement_node {
 private:
-    static constexpr STATEMENT_TYPE type = IFELSE_ST;
+    STATEMENT_TYPE type = IFELSE_ST;
     std::unique_ptr<if_node> ifnode;
     std::unique_ptr<statements_node> elsestts;
 public:
     if_else_node(std::unique_ptr<if_node> ifnode, std::unique_ptr<statements_node> elsestts)
         : ifnode(std::move(ifnode)) , elsestts(std::move(elsestts)){} 
 
-    constexpr STATEMENT_TYPE get_type() { return type; }
-    S_STATEMENT_TYPE get_statement_type() const override { return S_IFELSE_ST; }
+    STATEMENT_TYPE get_type() override { return type; }
     if_node* get_if_node() { return ifnode.get(); }
     statements_node* get_else_node() { return elsestts.get(); }
 
     void accept(chips_visitor& visitor) ;
 
-    virtual void hello() override; /* {
-        if(ifnode){
-            ifnode.get()->hello();
-        }
-        std::cout << "else {\n";
-        if(elsestts){
-            elsestts.get()->hello();
-        }
-        std::cout << "}\n";
-    }*/
+    virtual void hello() override; 
 };
 
 class loop_node : public statement_node {
 private:
-    static constexpr STATEMENT_TYPE type = LOOP_ST;
+    STATEMENT_TYPE type = LOOP_ST;
     std::string ident1;
-    std::string ident2;
+    std::unique_ptr<expression_node> loop_expr;
     std::unique_ptr<statements_node> stts;
 public:
-    loop_node(std::string ident1, std::string ident2, std::unique_ptr<statements_node> stts)
-        : ident1(ident1), ident2(ident2), stts(std::move(stts)) {} 
+    loop_node(std::string ident1, std::unique_ptr<expression_node> loop_expr, std::unique_ptr<statements_node> stts)
+        : ident1(ident1), loop_expr(std::move(loop_expr)), stts(std::move(stts)) {} 
 
-    constexpr STATEMENT_TYPE get_type() { return type; }
-    S_STATEMENT_TYPE get_statement_type() const override { return S_LOOP_ST; }
+    STATEMENT_TYPE get_type() override { return type; }
     std::string get_ident1() { return ident1; }
-    std::string get_ident2() { return ident2; }
+    expression_node* get_loop_expr() { return loop_expr.get(); }
     statements_node* get_statements() { return stts.get(); }
 
     void accept(chips_visitor& visitor);
 
-    virtual void hello() override;/* {
-        std::cout << "foreach " << ident1 << "in " << ident2 << "{\n";
-        if(stts){
-            stts.get()->hello();
-        }
-        std::cout << "}\n";
-    }*/
+    virtual void hello() override;
 };
 
 class block_node : public ast_node {

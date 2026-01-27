@@ -52,7 +52,7 @@ ATTRIBUTE       \.[a-zA-Z][a-zA-Z0-9_]*
 "init"              { return yy::parser::make_INIT_KW(loc);                           }
 "then"              { return yy::parser::make_THEN_KW(loc);                           }
 "this"              { /*return yy::parser::make_THIS_KW(loc);*/                           }
-"foreach"           { return yy::parser::make_FOREACH_KW(loc);                        }
+"for"               { return yy::parser::make_FOREACH_KW(loc);                        }
 "at"                { /*return yy::parser::make_AT_KW(loc);*/                             }
 "in"                { return yy::parser::make_IN_KW(loc);                             }
 "if"                { return yy::parser::make_IF_KW(loc);                             }
@@ -94,6 +94,8 @@ ATTRIBUTE       \.[a-zA-Z][a-zA-Z0-9_]*
 "<="                { return yy::parser::make_LEQ(loc);                               }
 ">="                { return yy::parser::make_GEQ(loc);                               }
 "!="                { return yy::parser::make_NEQ(loc);                               }
+"&&"                { return yy::parser::make_AND(loc);                               }
+"\|\|"              { return yy::parser::make_OR(loc);                                }
 "!"                 { return yy::parser::make_NOT(loc);                               }
 
 "="                 { return yy::parser::make_ASSIGN(loc);                            }

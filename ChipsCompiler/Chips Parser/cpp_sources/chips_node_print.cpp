@@ -2,6 +2,7 @@
 #include "chips_expressions.hpp"
 #include "chips_overall_stts.hpp"
 #include "chips_overall_system.hpp"
+#include "chips_overall_collective.hpp"
 #include "chips_declaration_ctx.hpp"
 #include "chips_config_stts.hpp"
 #include "chips_ast_classes.hpp"
@@ -17,8 +18,6 @@ void chips_node::hello() {
     }
 }
 
-// void dataflow_declarations_node::hello() {}
-
 void dataflow_type_node::hello() {
     switch(get_type()){
         case INT_DF: std::cout << "int "; break;
@@ -29,8 +28,6 @@ void dataflow_type_node::hello() {
         get_suffixes()->hello();
     }
 }
-
-void dataflow_declaration_node::hello() {}
 
 void expressions_node::hello() {
     for(const auto& expr : get_expressions()){
@@ -49,6 +46,8 @@ void binary_expression_node::hello() {
         case GEQ_EXP: std::cout << " >= "; break;
         case NEQ_EXP: std::cout << " != "; break;
         case EQ_EXP: std::cout << " == "; break;
+        case AND_EXP: std::cout << " && "; break;
+        case OR_EXP: std::cout << " || "; break;
         case PLUS_EXP: std::cout << " + "; break;
         case MINUS_EXP: std::cout << " - "; break;
         case TIMES_EXP: std::cout << " * "; break;
@@ -80,18 +79,25 @@ void number_literal_node::hello() {
 
 void function_call_node::hello() {}
 
-void variable_node::hello() {}
+void variable_node::hello() {
+    std::cout << get_identifier() << " ";
+}
+
+void plugging_expr_node::hello() {
+    if(get_block()){
+        get_block()->hello();
+        std::cout << "." << get_identifier() << " "; 
+    }
+}
 
 void object_virtual_output_node::hello() {}
 
 void object_physical_attribute_node::hello() {}
 
-// void suffix_node::hello() {}
-
 void cast_node::hello() {
     std::cout << "(";
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
     std::cout << ")";
     if(expr){
@@ -116,37 +122,79 @@ void suffixised_node::hello() {
     }
 }
 
-void c_statements_node::hello() {}
-
-void c_loop_node::hello() {}
-
-void c_if_node::hello() {}
-
-void c_if_else_node::hello() {}
-
-void c_assignment_node::hello() {}
-
-// void c_expressions_node::hello() {}
-
-// void c_expression_node::hello() {}
-
-void s_statements_node::hello() {
+void c_statements_node::hello() {
     for(const auto& sttmt : get_statements()){
-        sttmt->hello();
-        // TODO: get_type() n'existe que sur les sous-classes
-        // auto type = sttmt->get_type();
-        // if(type == IF_ST || type == IFELSE_ST || type == LOOP_ST){
-        //     std::cout << std::endl;
-        // }else{
-        //     std::cout << ";" << std::endl;
-        // }
+        if(sttmt){
+            sttmt->hello();
+            if(sttmt->get_type() == IF_ST || sttmt->get_type() == LOOP_ST || sttmt->get_type() == IFELSE_ST){
+                std::cout << std::endl;
+            }else{
+                std::cout << ";" << std::endl;
+            }
+        }
     }
 }
 
-// void s_statement_node::hello() {}
+void c_loop_node::hello() {
+    std::cout << "for " << get_ident1() << " in ";
+    if(get_loop_expr()){
+        get_loop_expr()->hello();
+    }
+    std::cout << "{\n";
+    if(stts){
+        get_statements()->hello();
+    }
+    std::cout << "}\n";
+}
+
+void c_if_node::hello() {
+    std::cout << "if (";
+    if(cond){
+        get_condition()->hello();
+    }
+    std::cout << "){\n\t";
+    if(stts){
+        get_statements()->hello();
+    }
+    std::cout << "}\n";
+}
+
+void c_if_else_node::hello() {
+    if(ifnode){
+        get_if_node()->hello();
+    }
+    std::cout << "else{\n";
+    if(elsestts){
+        get_else_node()->hello();
+    }
+    std::cout << "}\n";
+}
+
+void c_expressions_node::hello() {
+    for(const auto& expr : get_expressions()){
+        expr.get()->hello();
+    }
+}
+
+void s_statements_node::hello() {
+    for(const auto& sttmt : get_statements()){
+        if(sttmt){
+            sttmt->hello();
+            if(sttmt->get_type() == IF_ST || sttmt->get_type() == LOOP_ST || sttmt->get_type() == IFELSE_ST){
+                std::cout << std::endl;
+            }else{
+                std::cout << ";" << std::endl;
+            }
+        }
+    }
+}
 
 void s_loop_node::hello() {
-    std::cout << "foreach " << get_ident1() << " in " << get_ident2() << "{\n";
+    std::cout << "for " << get_identifier() << " in ";
+    if(get_loop_expr()){
+        get_loop_expr()->hello();
+        std::cout << "{\n\t";
+    }
     if(stts){
         get_statements()->hello();
     }
@@ -177,7 +225,7 @@ void s_if_else_node::hello() {
 }
 
 void link_node::hello() {
-    std::cout << "link " << get_source() << " to " << get_target() << ";\n";
+    std::cout << "link " << get_source() << " to " << get_target();
 }
 
 void implements_node::hello() {
@@ -189,7 +237,7 @@ void implements_node::hello() {
     if(suffixes2){
         get_suffixes2()->hello();
     }
-    std::cout << " using " << get_ident3() << ";\n";
+    std::cout << " using " << get_ident3();
 }
 
 void plugging_node::hello() {
@@ -203,22 +251,18 @@ void plugging_node::hello() {
     if(expr){
         std::cout << "(";
         get_expression()->hello();
-        std::cout << ");\n";
+        std::cout << ")";
     }
 }
-
-// void statement_node::hello() {}
 
 void statements_node::hello() {
     for(const auto& sttmt : get_statements()){
         sttmt->hello();
-        // TODO: get_type() n'existe que sur les sous-classes
-        // auto type = sttmt->get_type();
-        // if(type == IF_ST || type == IFELSE_ST || type == LOOP_ST){
-        //     std::cout << std::endl;
-        // }else{
-        //     std::cout << ";" << std::endl;
-        // }
+        if(sttmt->get_type() == IF_ST || sttmt->get_type() == LOOP_ST || sttmt->get_type() == IFELSE_ST){
+            std::cout << std::endl;
+        }else{
+            std::cout << ";" << std::endl;
+        }
     }
 }
 
@@ -226,7 +270,6 @@ void rhs_assignment_node::hello() {
     if(value){
         std::cout << "= ";
         value->hello();
-        std::cout << ";\n";
     }
 }
 
@@ -241,14 +284,13 @@ void variable_assignment_node::hello() {
     if(expr){
         get_expression()->hello();
     }
-    std::cout << ";\n";
 }
 
 void this_attribute_node::hello() {}
 
 void dataflow_full_declaration_node::hello() {
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
     std::cout << " " << get_identifier() << " ";
     if(assign){
@@ -282,7 +324,11 @@ void if_else_node::hello() {
 }
 
 void loop_node::hello() {
-    std::cout << "foreach " << get_ident1() << " in " << get_ident2() << "{\n";
+    std::cout << "for " << get_ident1() << " in ";
+    if(get_loop_expr()){
+        get_loop_expr()->hello();
+    }
+    std::cout << "{\n";
     if(stts){
         get_statements()->hello();
     }
@@ -346,7 +392,26 @@ void physical_function_definition_node::hello() {
     std::cout << "\n";
 }
 
-// void collective_operation_definition_node::hello() {}
+void collective_operation_definition_node::hello() {
+    if(get_signature()){
+        get_signature()->hello();
+        std::cout << "{\n\t";
+    }
+    if(get_statements()){
+        get_statements()->hello();
+    }
+    std::cout << "}\n-> @(";
+    if(get_expressions()){
+        get_expressions()->hello();
+    }
+    std::cout << ")\n";
+    if(get_output()){
+        get_output()->hello();
+    }
+    if(get_optionnal_output()){
+        get_optionnal_output()->hello();
+    }
+}
 
 void implementation_definition_node::hello() {
     std::cout << "implementation " << get_ident1() 
@@ -365,47 +430,84 @@ void node_mappings_node::hello() {
     }
 }
 
-// void signature_node::hello() {}
-
 void output_node::hello() {}
 
 void with_statements_node::hello() {
     for(const auto& sttm : get_statements()){
         sttm.get()->hello();
+        if(sttm->get_type() == IF_ST || sttm->get_type() == LOOP_ST || sttm->get_type() == IFELSE_ST){
+            std::cout << std::endl;
+        }else{
+            std::cout << ";" << std::endl;
+        }
     }
 }
 
 void with_two_identifier_node::hello() {
-    std::cout << get_ident1() << " " << get_ident2() << ";\n";
+    std::cout << get_ident1() << " " << get_ident2();
 }
 
 void with_context_statement_node::hello() {
     std::cout << "ctx ";
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
     std::cout << " " << get_identifier() << " ";
     if(rhs){
         get_rhs()->hello();
     }
-    std::cout << ";\n";
 }
 
 void system_node::hello() {
-    // if(sstatements){
-    //     get_system_statements()->hello();
-    // }
+    std::cout << "system {\n\t";
+    if(get_system_statements()){
+        get_system_statements()->hello();
+    }
+    std::cout << "}\n";
 }
 
-void function_declaration_node::hello() {}
+// void function_declaration_node::hello() {}
 
-// void c_optionnal_outputs_node::hello() {}
+void c_optionnal_outputs_node::hello() {
+    for(const auto& output : get_outputs()){
+        output->hello();
+    }
+}
 
-// void c_output_node::hello() {}
+void c_output_node::hello() {
+    std::cout << "-> " << get_identifier() << "(";
+    if(exprs){
+        get_expressions()->hello();
+    }
+    std::cout << ")" << std::endl;
+}
 
-// void c_signature_node::hello() {}
+void c_signature_node::hello() {
+    if(keywords){
+        get_keywords()->hello();
+    }
+    std::cout << "(";
+    if(cdf_defaulted_decls){
+        get_collective_dataflow_defaulted_decls()->hello();
+    }
+    std::cout << ") " << get_ident1() << " among " << get_ident2();
+}
 
-// void c_keywords_node::hello() {}
+void spread_node::hello() {
+    std::cout << "spread ";
+}
+
+void collect_node::hello() {
+    std::cout << "collect ";
+}
+
+void stop_node::hello() {
+    std::cout << "stop ";
+}
+
+void input_node::hello() {
+    std::cout << "input ";
+}
 
 void with_section_node::hello() {
     if(sttms){
@@ -446,9 +548,16 @@ void paren_expression_node::hello() {
     std::cout << ")";
 }
 
-// void c_cast_node::hello() {}
-
-// void c_suffixes_node::hello() {}
+void c_cast_node::hello() {
+    std::cout << "(";
+    if(type){
+        get_df_type()->hello();
+    }
+    std::cout << ")";
+    if(expr){
+        get_expr()->hello();
+    }
+}
 
 // void s_suffixable_node::hello() {}
 
@@ -470,7 +579,7 @@ void named_output_node::hello() {
     if(exprs){
         get_expressions()->hello();
     }
-    std::cout << ")";
+    std::cout << ")\n";
 }
 
 void physical_named_outputs_node::hello() {
@@ -484,7 +593,7 @@ void actuator_node::hello() {
     if(exprs){
         get_expressions()->hello();
     }
-    std::cout << ")";
+    std::cout << ")\n";
 }
 
 void dataflow_parameter_list_node::hello() {}
@@ -504,7 +613,7 @@ void dataflow_parameter_decls_node::hello() {
 
 void dataflow_parameter_decl_node::hello() {
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
     std::cout << " " << get_identifier() << " ";
     if(assign){
@@ -517,7 +626,7 @@ void physical_dataflow_parameter_type_node::hello() {
         std::cout << "sensor ";
     }
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
 }
 
@@ -542,7 +651,7 @@ void physical_dataflow_parameter_decls_node::hello() {
 
 void physical_dataflow_parameter_decl_node::hello() {
     if(type){
-        get_type()->hello();
+        get_df_type()->hello();
     }
     std::cout << " " << get_identifier() << " ";
     if(assign){
@@ -550,18 +659,119 @@ void physical_dataflow_parameter_decl_node::hello() {
     }
 }
 
-// void collective_dataflow_defaulted_decls_node::hello() {}
+void collective_dataflow_defaulted_decls_node::hello() {
+    if(cdf_defaulted_decls.size() == 1){
+        cdf_defaulted_decls.at(0).get()->hello();
+    }else{
+        for(int i = 0; i < cdf_defaulted_decls.size(); i++){
+            cdf_defaulted_decls.at(i).get()->hello();
+            if(i != cdf_defaulted_decls.size() - 1){
+                std::cout << ", ";
+            }
+        }
+    }
+}
 
-// void collective_dataflow_defaulted_decl_node::hello() {}
+void collective_dataflow_defaulted_decl_node::hello() {
+    if(type){
+        get_df_type()->hello();
+    }
+    std::cout << get_identifier() << " = ";
+    if(expr){
+        get_expression()->hello();
+    }
+}
 
-// void collective_dataflow_full_declaration_node::hello() {}
-
-// void collective_rhs_assignment_node::hello() {}
+void collective_rhs_assignment_node::hello() {
+    if(expr){
+        std::cout << " = ";
+        get_expression()->hello();
+    }
+}
 
 void functionnal_block_instanciation_node::hello() {
     std::cout << get_ident1() << " ";
     if(suff){
         get_suffixes()->hello();
     }
-    std::cout << " " << get_ident2() << ";\n";
+    std::cout << " " << get_ident2();
+}
+
+void collective_dataflow_full_declaration_node::hello() {
+    if(get_df_type()) {
+        get_df_type()->hello();
+    }
+    std::cout << get_identifier();
+    if(get_rhs()) {
+        get_rhs()->hello();
+    }
+}
+
+void c_variable_assignment_node::hello() {
+    std::cout << get_identifier();
+    if(get_suffixes()) {
+        get_suffixes()->hello();
+    }
+    if(get_expression()) {
+        std::cout << " = ";
+        get_expression()->hello();
+    }
+}
+
+void c_context_variable_assignment_node::hello() {
+    std::cout << "ctx." << get_identifier();
+    if(get_suffixes()){
+        get_suffixes()->hello();
+    }
+    std::cout << " = ";
+    if(get_expression()){
+        get_expression()->hello();
+    }
+}
+
+void context_expression_node::hello() {
+    std::cout << "ctx." << get_identifier();
+    if(get_suffixes()){
+        get_suffixes()->hello();
+    }
+}
+
+void integrated_function_node::hello() {
+    std::cout << get_identifier() << "(";
+    if(get_expressions()){
+        get_expressions()->hello();
+    }
+    std::cout << ")";
+}
+
+void context_variable_assignment_node::hello() {
+    std::cout << "ctx." << get_identifier();
+    if(get_suffixes()){
+        get_suffixes()->hello();
+    }
+    std::cout << " = ";
+    if(get_expression()){
+        get_expression()->hello();
+    }
+}
+
+void context_decl_node::hello() {
+    std::cout << "ctx." << get_identifier();
+    if(get_suffixes()){
+        get_suffixes()->hello();
+    }
+}
+
+void collective_cast_node::hello() {
+    if(get_collective_operation()){
+        get_collective_operation()->hello();
+    }
+    if(get_block()){
+        get_block()->hello();
+    }
+    std::cout << "." << get_identifier();
+}
+
+void collective_operation_node::hello() {
+    std::cout << "(" << get_identifier()  << ")";
 }
