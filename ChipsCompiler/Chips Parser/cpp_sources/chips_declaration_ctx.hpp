@@ -34,11 +34,7 @@ public:
 
     void accept(chips_visitor& visitor);
 
-    virtual void hello() override; /* {
-        for(const auto& preamble : preambleList){
-            preamble.get()->hello();
-        }
-    }*/
+    virtual void hello() override;
 };
 
 class object_definition_node : public preamble_node {
@@ -100,6 +96,31 @@ class node_mappings_node : public ast_node {
         virtual void hello() override;
 };
 
+class collective_operation_definition_node : public preamble_node {
+    private:
+        std::unique_ptr<c_signature_node> signature;
+        std::unique_ptr<c_statements_node> statements;
+        std::unique_ptr<c_expressions_node> exprs;
+        std::unique_ptr<c_output_node> output;
+        std::unique_ptr<c_optionnal_outputs_node> optionnal_output;
+
+    public:
+        collective_operation_definition_node(
+            std::unique_ptr<c_signature_node> signature, std::unique_ptr<c_statements_node> statements, std::unique_ptr<c_expressions_node> exprs, 
+            std::unique_ptr<c_output_node> output, std::unique_ptr<c_optionnal_outputs_node> optionnal_output)
+            : signature(std::move(signature)), statements(std::move(statements)), exprs(std::move(exprs)),
+            output(std::move(output)), optionnal_output(std::move(optionnal_output)) {}
+
+        c_signature_node* get_signature() { return signature.get(); }
+        c_statements_node* get_statements() { return statements.get(); }
+        c_expressions_node* get_expressions() { return exprs.get(); }
+        c_output_node* get_output() { return output.get(); }
+        c_optionnal_outputs_node* get_optionnal_output() { return optionnal_output.get(); }
+
+        void accept(chips_visitor& visitor) {}
+
+        virtual void hello() override;
+};
 
 class output_node : public ast_node {
 private:
@@ -113,7 +134,7 @@ public:
     output_node(std::unique_ptr<output_node> out)
     : outputs(std::move(out->outputs)) {}
 
-    virtual void hello() override;// {std::cout << "hello from output_node\n";}
+    virtual void hello() override;
 };
 
 class function_definition_node : public preamble_node {
@@ -207,11 +228,13 @@ class with_statement_node : public statement_node {
 
 class with_two_identifier_node : public with_statement_node {
     private:
+        STATEMENT_TYPE type = INST_ST;
         std::string ident1;
         std::string ident2;
     public:
         with_two_identifier_node(std::string ident1, std::string ident2) : ident1(ident1), ident2(ident2) {}
 
+        STATEMENT_TYPE get_type() override { return type; }
         std::string get_ident1() { return ident1; }
         std::string get_ident2() { return ident2; }
 
@@ -221,6 +244,7 @@ class with_two_identifier_node : public with_statement_node {
 
 class with_context_statement_node : public with_statement_node {
     private:
+        STATEMENT_TYPE s_type = DF_ASSIGN_ST;
         std::unique_ptr<dataflow_type_node> type;
         std::string identifier;
         std::unique_ptr<rhs_assignment_node> rhs;
@@ -228,7 +252,8 @@ class with_context_statement_node : public with_statement_node {
         with_context_statement_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> rhs) :
             type(std::move(type)), identifier(identifier), rhs(std::move(rhs)) {}
 
-        dataflow_type_node* get_type() { return type.get(); }
+        STATEMENT_TYPE get_type() override { return s_type; }
+        dataflow_type_node* get_df_type() { return type.get(); }
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return rhs.get(); }
 
@@ -331,13 +356,7 @@ class actuator_node : public physical_named_output_node {
         expressions_node* get_expressions() { return exprs.get(); }
 
         void accept(chips_visitor& visitor) {}
-        virtual void hello() override;/* {
-            std::cout << "-> actuator " << identifier << "(";
-            if(exprs){
-                exprs.get()->hello();
-            }
-            std::cout << ")";
-        }*/
+        virtual void hello() override;
 };
 
 class named_output_node : public physical_named_output_node {
@@ -352,13 +371,7 @@ class named_output_node : public physical_named_output_node {
 
         void accept(chips_visitor& visitor) {}
 
-        virtual void hello() override;/* {
-            std::cout << "-> " << identifier << " (";
-            if(exprs){
-                exprs.get()->hello();
-            }
-            std::cout << ")";
-        }*/
+        virtual void hello() override;
 };
 
 #endif
