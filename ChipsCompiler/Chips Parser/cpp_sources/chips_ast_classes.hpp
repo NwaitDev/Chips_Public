@@ -66,32 +66,40 @@ enum STATEMENT_TYPE {
     IF_ST,
     IFELSE_ST,
     LOOP_ST,
-    FCALL_ST
-};
-
-enum S_STATEMENT_TYPE {
-    S_LOOP_ST,
-    S_IF_ST,
-    S_IFELSE_ST,
-    S_INST_ST,
+    FCALL_ST,
     S_LINK_ST,
-    S_DF_INST_ST,
-    S_DF_ASSIGN_ST,
+    DF_INST_ST,
+    DF_ASSIGN_ST,
     S_FUNC_BLOCK_INST_ST,
     S_EXPR_PLUG_ST,
-    S_IMPLEMENTS_ST
+    S_IMPLEMENTS_ST,
+    C_FCT_PLUG_ST,
+    C_DF_ASSI_ST
 };
 
-enum C_STATEMENT_TYPE {
-    C_LOOP_ST,
-    C_IF_ST,
-    C_IFELSE_ST,
-    C_INST_ST,
-    C_FCT_PLUG_ST,
-    C_DF_INST_ST,
-    C_DF_ASSI_ST,
-    C_FCALL_ST
-};
+// enum S_STATEMENT_TYPE {
+//     S_LOOP_ST,
+//     S_IF_ST,
+//     S_IFELSE_ST,
+//     S_INST_ST,
+//     S_LINK_ST,
+//     S_DF_INST_ST,
+//     S_DF_ASSIGN_ST,
+//     S_FUNC_BLOCK_INST_ST,
+//     S_EXPR_PLUG_ST,
+//     S_IMPLEMENTS_ST
+// };
+
+// enum C_STATEMENT_TYPE {
+//     C_LOOP_ST,
+//     C_IF_ST,
+//     C_IFELSE_ST,
+//     C_INST_ST,
+//     C_FCT_PLUG_ST,
+//     C_DF_INST_ST,
+//     C_DF_ASSI_ST,
+//     C_FCALL_ST
+// };
 
 
 
@@ -125,11 +133,9 @@ class chips_visitor {
     GENERAL USAGE NODES
 */
 
-// class dataflow_declarations_node;
-
 class dataflow_type_node;
 
-class dataflow_declaration_node;
+// class dataflow_declaration_node;
 
 class expressions_node;
 
@@ -152,11 +158,11 @@ class function_call_node;
 
 class variable_node;
 
+class plugging_expr_node;
+
 class object_virtual_output_node;
 
 class object_physical_attribute_node;
-
-// class suffix_node;
 
 class cast_node;
 
@@ -178,11 +184,7 @@ class c_if_node;
 
 class c_if_else_node;
 
-class c_assignment_node;
-
 class c_expressions_node;
-
-class c_expression_node;
 
 /*
     CONFIGURATION STATEMENTS NODES
@@ -255,8 +257,6 @@ class implementation_definition_node;
 
 class node_mappings_node;
 
-// class signature_node;
-
 class output_node;
 
 class with_statements_node;
@@ -290,6 +290,10 @@ class c_signature_node;
 
 class c_keywords_node;
 
+class spread_node;
+
+class collect_node;
+
 class with_section_node;
 
 class init_section_node;
@@ -299,8 +303,6 @@ class then_section_node;
 class paren_expression_node;
 
 class c_cast_node;
-
-class c_suffixes_node;
 
 class s_suffixable_node;
 
@@ -338,6 +340,24 @@ class collective_dataflow_full_declaration_node;
 
 class collective_rhs_assignment_node;
 
+class c_variable_assignment_node;
+
+class c_context_variable_assignment_node;
+
 class functionnal_block_instanciation_node;
+
+class context_expression_node;
+
+class collective_cast_node;
+
+class collective_operation_node;
+
+class integrated_function_node;
+
+class context_decl_node;
+
+class context_variable_assignment_node;
+
+class variable_assignment_node;
 
 #endif 
