@@ -8,13 +8,18 @@
 #include <memory>
 #include <vector>
 
+// TODO : refactor S_STATEMENT_TYPE functions
+
 
 /*
     Declaration context stuff
 */
 
 class preamble_node : public ast_node {
-
+public:
+    void accept(chips_visitor &visitor) override {
+        visitor.visit(*this);
+    }
 };
 
 class preambles_node : public ast_node {
@@ -47,9 +52,12 @@ class object_definition_node : public preamble_node {
             : identifier(identifier), with(std::move(with)) {}
 
         std::string get_identifier() { return identifier; }
+        const std::string get_identifier() const { return identifier; }
         with_section_node* get_with() { return with.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) {
+            visitor.visit(*this);
+        }
 
         virtual void hello() override;
 };
@@ -66,11 +74,16 @@ class implementation_definition_node : public preamble_node {
             : ident1(ident1), ident2(ident2), ident3(ident3), node(std::move(node)) {}
 
         std::string get_ident1() { return ident1; }
+        const std::string get_ident1() const { return ident1; }
         std::string get_ident2() { return ident2; }
+        const std::string get_ident2() const { return ident2; }
         std::string get_ident3() { return ident3; }
+        const std::string get_ident3() const { return ident3; }
         node_mappings_node* get_node() { return node.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) {
+            visitor.visit(*this);
+        }
 
         virtual void hello() override;
 };
@@ -91,7 +104,9 @@ class node_mappings_node : public ast_node {
         std::string get_ident2() { return ident2; }
         node_mappings_node* get_node() { return node.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) {
+            visitor.visit(*this);
+        }
 
         virtual void hello() override;
 };
@@ -117,7 +132,7 @@ class collective_operation_definition_node : public preamble_node {
         c_output_node* get_output() { return output.get(); }
         c_optionnal_outputs_node* get_optionnal_output() { return optionnal_output.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -158,13 +173,14 @@ public:
 
     constexpr FUNCTION_TYPE get_type() { return type; }
     std::string get_identifier() { return identifier; }
+    const std::string get_identifier() const { return identifier; }
     physical_dataflow_parameter_decls_node* get_pdf_parameter_list() { return pdf_parameter_list.get(); }
     with_section_node* get_with() { return with.get(); }
     init_section_node* get_init() { return init.get(); }
     then_section_node* get_then() { return then.get(); }
     physical_named_outputs_node* get_outputs() { return outputs.get(); }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
     virtual void hello() override;
 
 };
@@ -188,7 +204,7 @@ public:
     then_section_node* get_then() { return then.get(); }
     named_outputs_node* get_outputs() { return outputs.get(); }
     
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     virtual void hello() override;
 };
@@ -203,7 +219,7 @@ class with_section_node : public ast_node {
 
         with_statements_node* get_statements() { return sttms.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -219,7 +235,7 @@ class with_statements_node : public ast_node {
             sttms.insert(sttms.begin(), std::move(sttm));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -232,13 +248,16 @@ class with_two_identifier_node : public with_statement_node {
         std::string ident1;
         std::string ident2;
     public:
+        // TODO : refactor S_STATEMENT_TYPE functions
+        // S_STATEMENT_TYPE get_statement_type() const override { return S_INST_ST; }
+
         with_two_identifier_node(std::string ident1, std::string ident2) : ident1(ident1), ident2(ident2) {}
 
         STATEMENT_TYPE get_type() override { return type; }
         std::string get_ident1() { return ident1; }
         std::string get_ident2() { return ident2; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -257,7 +276,7 @@ class with_context_statement_node : public with_statement_node {
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return rhs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -271,7 +290,7 @@ class init_section_node : public ast_node {
 
         statements_node* get_statements() { return statements.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override; 
 };
@@ -286,7 +305,7 @@ class then_section_node : public ast_node {
 
         statements_node* get_statements() { return statements.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -312,7 +331,7 @@ class physical_named_outputs_node : public ast_node {
             outputs.insert(outputs.begin(), std::move(output));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };   
@@ -335,7 +354,7 @@ class named_outputs_node : public ast_node {
             outputs.insert(outputs.begin(), std::move(output));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override; 
 };
@@ -355,7 +374,7 @@ class actuator_node : public physical_named_output_node {
         std::string get_identifier() { return identifier; }
         expressions_node* get_expressions() { return exprs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -369,7 +388,7 @@ class named_output_node : public physical_named_output_node {
         std::string get_identifier() { return identifier; }
         expressions_node* get_expressions() { return exprs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };

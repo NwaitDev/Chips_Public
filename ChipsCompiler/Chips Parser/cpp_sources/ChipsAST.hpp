@@ -17,23 +17,12 @@
 #include <iostream>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /*
     Configuration stuff
 */
 
 class system_node : public ast_node {
+private:
     std::unique_ptr<s_statements_node> sstatements;
 public:
     system_node() {}
@@ -42,6 +31,7 @@ public:
         : sstatements(std::move(sstatements)) {}
 
     s_statements_node* get_system_statements() { return sstatements.get(); }
+    const s_statements_node* get_system_statements() const { return sstatements.get(); }
     
     void accept(chips_visitor& visitor);
 
@@ -63,7 +53,7 @@ public:
     system_node* get_system() const { return system.get(); }
 
     void accept(chips_visitor& visitor){
-        // TODO
+        visitor.visit(*this);
     }
 
     virtual void hello() override;/* {

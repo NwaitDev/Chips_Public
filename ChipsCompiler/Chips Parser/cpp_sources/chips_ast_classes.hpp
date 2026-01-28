@@ -2,65 +2,70 @@
 #ifndef AST_H
 #define AST_H
 
+class chips_visitor;
+class ast_node;
 
-
-
-
-enum COMPILE_STATE {
+enum COMPILE_STATE
+{
     CONFIGURING,
     DEFINING,
     IN_PHYSICAL,
     IN_LOGICAL
 };
 
-enum DATAFLOW_TYPE{
+enum DATAFLOW_TYPE
+{
     INT_DF,
     FLOAT_DF,
     BOOL_DF
 };
 
-enum COLLECTIVE_KW{
+enum COLLECTIVE_KW
+{
     SPREAD,
     COLLECT,
     INPUT,
     STOP
 };
 
-enum FUNCTION_TYPE{
+enum FUNCTION_TYPE
+{
     LOGICAL,
     PHYSICAL
 };
 
-enum EXPRESSION_TYPE{
-    PLUS_EXP, // binary
-    MINUS_EXP, // binary
-    U_MINUS_EXP,  // unary
-    TIMES_EXP, // binary
-    DIV_EXP, // binary
-    FCALL_EXP, // Fcall
-    MOD_EXP, // binary
-    AND_EXP, // binary
-    OR_EXP, // binary
-    EQ_EXP, // binary
-    NEQ_EXP, // binary
-    GT_EXP, // binary
-    LT_EXP, // binary
-    GEQ_EXP, // binary
-    LEQ_EXP, // binary
-    NOT_EXP, // unary
-    IDENT_EXP, // Ident
-    CAST_TO_INT_EXP, // unary
+enum EXPRESSION_TYPE
+{
+    PLUS_EXP,          // binary
+    MINUS_EXP,         // binary
+    U_MINUS_EXP,       // unary
+    TIMES_EXP,         // binary
+    DIV_EXP,           // binary
+    FCALL_EXP,         // Fcall
+    MOD_EXP,           // binary
+    AND_EXP,           // binary
+    OR_EXP,            // binary
+    EQ_EXP,            // binary
+    NEQ_EXP,           // binary
+    GT_EXP,            // binary
+    LT_EXP,            // binary
+    GEQ_EXP,           // binary
+    LEQ_EXP,           // binary
+    NOT_EXP,           // unary
+    IDENT_EXP,         // Ident
+    CAST_TO_INT_EXP,   // unary
     CAST_TO_FLOAT_EXP, // unary
-    CAST_TO_BOOL_EXP, // unary
-    INT_EXP, // number literal
-    FLOAT_EXP, // number literal
-    BOOL_EXP, // number literal
-    OBJ_PHY_ATTR_EXP, // (ref to json file)
-    OBJ_VIRT_IN_EXP, // (ref to input/output of functional block)
-    OBJ_VIRT_OUT_EXP // (ref to input/output of functional block)
+    CAST_TO_BOOL_EXP,  // unary
+    INT_EXP,           // number literal
+    FLOAT_EXP,         // number literal
+    BOOL_EXP,          // number literal
+    OBJ_PHY_ATTR_EXP,  // (ref to json file)
+    OBJ_VIRT_IN_EXP,   // (ref to input/output of functional block)
+    OBJ_VIRT_OUT_EXP   // (ref to input/output of functional block)
 };
 
-enum STATEMENT_TYPE {
+enum STATEMENT_TYPE
+{
     INST_ST,
     ASSI_ST,
     IF_ST,
@@ -101,33 +106,7 @@ enum STATEMENT_TYPE {
 //     C_FCALL_ST
 // };
 
-
-
-/*
-    BASE AST NODE
-*/
-class ast_node {
-private:
-    int line = 0;
-    int column = 0;
-public:
-    virtual ~ast_node() = default;
-    //virtual void accept(chips_visitor& visitor) = 0;
-    virtual void hello() {}
-    
-    int get_line() { return line; }
-    int get_column() { return column; }
-    void set_line(int l) { line = l; }
-    void set_column(int c) { column = c; }
-};
-
-
 class chips_node; // PROGRAM BASE NODE
-
-class chips_visitor {
-    public:
-        void visit(chips_node& chips);
-};
 
 /*
     GENERAL USAGE NODES
@@ -138,7 +117,6 @@ class dataflow_type_node;
 // class dataflow_declaration_node;
 
 class expressions_node;
-
 
 /*
     EXPRESSION NODES
@@ -206,7 +184,6 @@ class implements_node;
 
 class plugging_node;
 
-
 /*
         (NOT CONFIGURATION) STATEMENTS NODES
 */
@@ -230,10 +207,6 @@ class if_node;
 class if_else_node;
 
 class loop_node;
-
-
-
-
 
 /*
     DECLARATION CTX ELEMENTS
@@ -266,9 +239,6 @@ class with_statement_node;
 class with_two_identifier_node;
 
 class with_context_statement_node;
-
-
-
 
 /*
     Configuration stuff
@@ -346,6 +316,88 @@ class c_context_variable_assignment_node;
 
 class functionnal_block_instanciation_node;
 
+/*
+    BASE AST NODE
+*/
+class ast_node
+{
+private:
+    int line = 0;
+    int column = 0;
+
+public:
+    virtual ~ast_node() = default;
+    // virtual void accept(chips_visitor& visitor) = 0;
+    virtual void hello() {}
+
+    virtual void accept(chips_visitor &visitor) = 0;
+
+    int get_line() { return line; }
+    int get_column() { return column; }
+    void set_line(int l) { line = l; }
+    void set_column(int c) { column = c; }
+};
+
+class chips_visitor
+{
+public:
+    virtual void visit(ast_node &node) = 0;
+
+    // === PROGRAM & CONTEXT ===
+    virtual void visit(chips_node &chips) = 0;
+    virtual void visit(preambles_node &preambles) = 0;
+    virtual void visit(preamble_node &preamble) = 0;
+    virtual void visit(system_node &system) = 0;
+
+    // === SYSTEM STATEMENTS ===
+    virtual void visit(s_statements_node &sstatements) = 0;
+    virtual void visit(const s_statements_node &sstatements) = 0;
+    virtual void visit(s_statement_node &sstatement) = 0;
+
+    // === S_STATEMENT subtypes ===
+    virtual void visit(s_loop_node &sloop) = 0;
+    virtual void visit(s_if_node &sif) = 0;
+    virtual void visit(s_if_else_node &sifelse) = 0;
+    virtual void visit(functionnal_block_instanciation_node &funcblock) = 0;
+    virtual void visit(implements_node &impl) = 0;
+    virtual void visit(link_node &link) = 0;
+    virtual void visit(plugging_node &plug) = 0;
+
+    // === 4. DECLARATION CONTEXT (preamble children) ===
+    virtual void visit(object_definition_node& node) = 0;
+    virtual void visit(function_definition_node& node) = 0;
+    virtual void visit(logical_function_definition_node& node) = 0;
+    virtual void visit(physical_function_definition_node& node) = 0;
+    virtual void visit(collective_operation_definition_node& node) = 0;
+    virtual void visit(implementation_definition_node& node) = 0;
+    virtual void visit(node_mappings_node& node) = 0;
+    virtual void visit(c_signature_node& node) = 0;
+    virtual void visit(output_node& node) = 0;
+
+    // === 5. WITH / SECTIONS ===
+    virtual void visit(with_section_node& node) = 0;
+    virtual void visit(with_statements_node& node) = 0;
+    virtual void visit(with_statement_node& node) = 0;
+    virtual void visit(with_two_identifier_node& node) = 0;
+    virtual void visit(with_context_statement_node& node) = 0;
+    virtual void visit(init_section_node& node) = 0;
+    virtual void visit(then_section_node& node) = 0;
+
+    // === 6. EXPRESSIONS ===
+    virtual void visit(expression_node& node) = 0;
+    virtual void visit(suffixable_node& node) = 0;
+    virtual void visit(binary_expression_node& node) = 0;
+    virtual void visit(unary_expression_node& node) = 0;
+    virtual void visit(number_literal_node& node) = 0;
+    virtual void visit(function_call_node& node) = 0;
+    virtual void visit(variable_node& node) = 0;
+    virtual void visit(object_virtual_output_node& node) = 0;
+    virtual void visit(object_physical_attribute_node& node) = 0;
+    virtual void visit(cast_node& node) = 0;
+    virtual void visit(suffixes_node& node) = 0;
+    virtual void visit(suffixised_node& node) = 0;
+    virtual void visit(paren_expression_node& node) = 0;
+};
 class context_expression_node;
 
 class collective_cast_node;
@@ -360,4 +412,4 @@ class context_variable_assignment_node;
 
 class variable_assignment_node;
 
-#endif 
+#endif // ! AST_H

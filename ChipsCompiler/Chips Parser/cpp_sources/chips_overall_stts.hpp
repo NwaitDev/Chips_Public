@@ -4,6 +4,9 @@
 #include "./chips_config_stts.hpp"
 #include "./chips_expressions.hpp"
 #include "chips_overall_system.hpp"
+
+
+// TODO : refactor S_STATEMENT_TYPE functions
 /*
         (NOT CONFIGURATION) STATEMENTS NODES
 */
@@ -233,4 +236,4 @@ class block_node : public ast_node {
         virtual void hello() override;
 };
 
-#endif
+#endif // OVERALL_STTS_H
