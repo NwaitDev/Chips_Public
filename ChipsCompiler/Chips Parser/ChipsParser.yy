@@ -406,7 +406,7 @@ statement:
 s_statement:
     IDENTIFIER suffixes IDENTIFIER SEMICOL        { $$ = std::move(std::make_unique<functionnal_block_instanciation_node>(std::move($1), std::move($2), std::move($3))); }/* functionnal block instanciation */
     | block PERIOD IDENTIFIER suffixes L_PARENTH s_expr R_PARENTH SEMICOL { $$ = std::move(std::make_unique<plugging_node>(std::move($1), std::move($3), std::move($4), std::move($6))); } /* plugging expr to block input */
-    | LINK_KW IDENTIFIER TO_KW IDENTIFIER SEMICOL { $$ = std::move(std::make_unique<link_node>(std::move($2), std::move($4))); }/* attaching logical process to a node */
+    | LINK_KW IDENTIFIER suffixes TO_KW IDENTIFIER suffixes SEMICOL { $$ = std::move(std::make_unique<link_node>(std::move($2), std::move($3), std::move($5), std::move($6))); }/* attaching logical process to a node */
     | IDENTIFIER suffixes IMPLEMENTS_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL { $$ = std::move(std::make_unique<implements_node>(std::move($1), std::move($2), std::move($4), std::move($5), std::move($7))); }
     | statement                                 { $$ = std::move($1); }
     ;

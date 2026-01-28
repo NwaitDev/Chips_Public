@@ -30,8 +30,15 @@ void dataflow_type_node::hello() {
 }
 
 void expressions_node::hello() {
-    for(const auto& expr : get_expressions()){
-        expr.get()->hello();
+    if(get_expressions().size() == 1){
+        get_expressions().at(0)->hello();
+    }else{
+        for(int i = 0; i < get_expressions().size(); i++){
+            get_expressions().at(i)->hello();
+            if(i != get_expressions().size() - 1){
+                std::cout << ", ";
+            }
+        }
     }
 }
 
@@ -171,8 +178,15 @@ void c_if_else_node::hello() {
 }
 
 void c_expressions_node::hello() {
-    for(const auto& expr : get_expressions()){
-        expr.get()->hello();
+    if(get_expressions().size() == 1){
+        get_expressions().at(0)->hello();
+    }else{
+        for(int i = 0; i < get_expressions().size(); i++){
+            get_expressions().at(i)->hello();
+            if(i != get_expressions().size() - 1){
+                std::cout << ", ";
+            }
+        }
     }
 }
 
@@ -225,7 +239,14 @@ void s_if_else_node::hello() {
 }
 
 void link_node::hello() {
-    std::cout << "link " << get_source() << " to " << get_target();
+    std::cout << "link " << get_source();
+    if(get_suffixes_source()){
+        get_suffixes_source()->hello();
+    }
+    std::cout << " to " << get_target();
+    if(get_suffixes_target()){
+        get_suffixes_target()->hello();
+    }
 }
 
 void implements_node::hello() {

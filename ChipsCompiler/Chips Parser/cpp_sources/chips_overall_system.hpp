@@ -149,15 +149,19 @@ class link_node : public s_statement_node {
     private:
         STATEMENT_TYPE type = S_LINK_ST;
         std::string lk_src;
+        std::unique_ptr<suffixes_node> suff_src;
         std::string lk_target;
+        std::unique_ptr<suffixes_node> suff_target;
 
     public:
-        link_node(std::string lk_src, std::string lk_target)
-            : lk_src(lk_src), lk_target(lk_target) {}
+        link_node(std::string lk_src, std::unique_ptr<suffixes_node> suff_src, std::string lk_target, std::unique_ptr<suffixes_node> suff_target)
+            : lk_src(lk_src), suff_src(std::move(suff_src)), lk_target(lk_target), suff_target(std::move(suff_target)) {}
 
         STATEMENT_TYPE get_type() override { return type; }
         std::string get_source() { return lk_src; }
+        suffixes_node* get_suffixes_source() { return suff_src.get(); }
         std::string get_target() { return lk_target; }
+        suffixes_node* get_suffixes_target() { return suff_target.get(); }
 
         void accept(chips_visitor& visitor) {}
 
