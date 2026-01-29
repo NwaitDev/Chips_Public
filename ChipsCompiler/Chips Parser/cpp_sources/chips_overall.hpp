@@ -7,7 +7,8 @@
 #include <vector>
 
 
-class expression_node : public ast_node {};
+class expression_node : public ast_node {
+};
 
 
 

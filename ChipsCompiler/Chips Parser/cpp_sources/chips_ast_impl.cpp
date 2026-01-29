@@ -15,11 +15,13 @@ void number_literal_node::accept(chips_visitor& v) { v.visit(*this); }
 void suffixised_node::accept(chips_visitor& v) { v.visit(*this); }
 void variable_node::accept(chips_visitor& v) { v.visit(*this); }
 void cast_node::accept(chips_visitor& v) { v.visit(*this); }
+void function_call_node::accept(chips_visitor& v) { v.visit(*this); }
 // paren_expression_node → SKIP (déjà dans .hpp ligne 79)
 void suffixes_node::accept(chips_visitor& v) { v.visit(*this); }
 void expressions_node::accept(chips_visitor& v) { v.visit(*this); }
 
 // === STATEMENTS ===
+void statement_node::accept(chips_visitor& v) { v.visit(*this); }
 void rhs_assignment_node::accept(chips_visitor& v) { v.visit(*this); }
 void dataflow_full_declaration_node::accept(chips_visitor& v) { v.visit(*this); }
 void if_node::accept(chips_visitor& v) { v.visit(*this); }

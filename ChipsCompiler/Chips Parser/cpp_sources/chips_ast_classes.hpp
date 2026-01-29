@@ -383,6 +383,10 @@ public:
     virtual void visit(init_section_node& node) = 0;
     virtual void visit(then_section_node& node) = 0;
 
+    virtual void visit(physical_named_outputs_node &chips) = 0;
+    virtual void visit(physical_named_output_node &chips) = 0;
+    virtual void visit(statement_node &node) = 0;
+
     // === 6. EXPRESSIONS ===
     virtual void visit(expression_node& node) = 0;
     virtual void visit(suffixable_node& node) = 0;

@@ -595,6 +595,10 @@ void named_outputs_node::hello() {
     }
 }
 
+void physical_named_output_node::hello() {
+    // Base implementation for physical named output nodes
+}
+
 void named_output_node::hello() {
     std::cout << "-> " << get_identifier() << " (";
     if(exprs){
@@ -795,4 +799,8 @@ void collective_cast_node::hello() {
 
 void collective_operation_node::hello() {
     std::cout << "(" << get_identifier()  << ")";
+}
+
+void statement_node::hello() {
+    std::cout << "[Abstract statement_node]" << std::endl;
 }

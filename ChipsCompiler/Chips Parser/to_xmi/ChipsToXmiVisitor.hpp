@@ -10,13 +10,14 @@
 #include "../cpp_sources/chips_config_stts.hpp"
 #include "ChipsToXmiWriter.hpp"
 #include <ostream>
+#include <map>
 
 /// @brief Complete XMI Visitor - implements ALL chips_visitor methods
 class ChipsToXmiVisitor : public chips_visitor
 {
 public:
     ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out)
-        : m_writer(writer), m_out(out) {}
+        : m_writer(writer), m_out(out), m_current_ast_path("/") {}
 
     // === PROGRAM & CONTEXT ===
     void visit(chips_node &chips) override;
@@ -57,6 +58,10 @@ public:
     void visit(with_context_statement_node &node) override;
     void visit(init_section_node &node) override;
     void visit(then_section_node &node) override;
+    void visit(statement_node &node) override;
+
+    void visit(physical_named_outputs_node &node) override;
+    void visit(physical_named_output_node &node) override;
 
     // === 6. EXPRESSIONS ===
     void visit(expression_node &node) override;
@@ -79,13 +84,27 @@ public:
 private:
     // Helpers
     std::ostream &out() { return m_out; }
+    std::string get_ast_path() const { return m_current_ast_path; }
+    std::string get_ast_path_by_name(const std::string &name);
+    void register_variable(const std::string &name, const std::string &path) { m_symbol_table[name] = path; }
+    void push_ast_path(const std::string &segment) { m_current_ast_path += segment; }
+    void pop_ast_path(const std::string &segment) { 
+        size_t pos = m_current_ast_path.rfind(segment);
+        if (pos != std::string::npos) {
+            m_current_ast_path.erase(pos);
+        }
+    }
+    void set_ast_path(const std::string &path) { m_current_ast_path = path; }
     void writeAttribute(const std::string &name, const std::string &value);
     void endEmptyElement();
+    std::string getExpressionValue(expression_node &expr);
     void visit_generic(ast_node &node); // squelette commun
 
     // Members
     ChipsToXmiWriter &m_writer;
     std::ostream &m_out;
+    std::string m_current_ast_path;
+    std::map<std::string, std::string> m_symbol_table;  // nom -> chemin AST
 };
 
 #endif // CHIPS_TO_XMI_VISITOR_HPP

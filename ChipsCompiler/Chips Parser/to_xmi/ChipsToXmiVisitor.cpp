@@ -1,14 +1,19 @@
 #include "ChipsToXmiVisitor.hpp"
 #include <iostream>
 
+/*
+question : quand on entre dans init on tombe sur un statement_node sans plus de précision. est-ce normal ?
+
+*/
+
 // === PROGRAM & CONTEXT ===
 
 void ChipsToXmiVisitor::visit(chips_node &node)
 {
     std::cerr << "\n[DEBUG Visitor] ========================================" << std::endl;
     std::cerr << "[DEBUG Visitor] visit(chips_node) DÉMARRÉ" << std::endl;
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     std::cerr << "[DEBUG Visitor] ========================================" << std::endl;
-
     // Contenu après xmi_header() → directement les enfants
     if (auto pres = node.get_preambles())
     {
@@ -40,17 +45,30 @@ void ChipsToXmiVisitor::visit(preambles_node &node)
 
     out() << "  <preamble>\n";
 
+    push_ast_path("/@preamble");
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+
     int index = 0;
     for (auto &pre : node.get_preamble_list())
     {
         std::cerr << "[DEBUG Visitor] Traitement preamble #" << index++ << std::endl;
-        if (pre) {
+        if (pre)
+        {
+            std::string segment = "/@definitions." + std::to_string(index - 1);
+            push_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
             pre->accept(*this);
-        } else {
-            std::cerr << "[WARNING Visitor] Preamble NULL à l'index " << (index-1) << std::endl;
+            pop_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+        }
+        else
+        {
+            std::cerr << "[WARNING Visitor] Preamble NULL à l'index " << (index - 1) << std::endl;
         }
     }
 
+    pop_ast_path("/@preamble");
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     out() << "  </preamble>\n";
 }
 
@@ -69,15 +87,25 @@ void ChipsToXmiVisitor::visit(system_node &node)
 
     out() << "  <system>\n";
 
+    push_ast_path("/@system");
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+
     // Parcourir les déclarations système
     if (auto statements = node.get_system_statements())
     {
-        std::cerr << "[DEBUG Visitor] System statements trouvé, " 
+        std::cerr << "[DEBUG Visitor] System statements trouvé, "
                   << statements->get_statements().size() << " statements" << std::endl;
+        int index = 0;
         for (auto &st : statements->get_statements())
         {
-            if (st) {
+            if (st)
+            {
+                std::string segment = "/@system." + std::to_string(index++);
+                push_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
                 st->accept(*this);
+                pop_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
             }
         }
     }
@@ -86,6 +114,8 @@ void ChipsToXmiVisitor::visit(system_node &node)
         std::cerr << "[WARNING Visitor] Aucun system statements!" << std::endl;
     }
 
+    pop_ast_path("/@system");
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     out() << "  </system>\n";
 }
 
@@ -94,10 +124,17 @@ void ChipsToXmiVisitor::visit(system_node &node)
 void ChipsToXmiVisitor::visit(s_statements_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(s_statements_node) appelé" << std::endl;
+    int index = 0;
     for (auto &st : node.get_statements())
     {
-        if (st) {
+        if (st)
+        {
+            std::string segment = "/@statements." + std::to_string(index++);
+            push_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
             st->accept(*this);
+            pop_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         }
     }
 }
@@ -105,32 +142,39 @@ void ChipsToXmiVisitor::visit(s_statements_node &node)
 void ChipsToXmiVisitor::visit(const s_statements_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(const s_statements_node) appelé" << std::endl;
+    int index = 0;
     for (auto &st : node.get_statements())
     {
-        if (st) {
+        if (st)
+        {
+            std::string segment = "/@statements." + std::to_string(index++);
+            push_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
             st->accept(*this);
+            pop_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         }
     }
 }
 
 void ChipsToXmiVisitor::visit(s_statement_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(s_statement_node) type: " 
+    std::cerr << "[DEBUG Visitor] visit(s_statement_node) type: "
               << node.get_statement_type() << std::endl;
 
     switch (node.get_statement_type())
     {
-        case S_IMPLEMENTS_ST:
-            if (auto impl = dynamic_cast<implements_node*>(&node))
-                impl->accept(*this);
-            break;
-        case S_LINK_ST:
-            if (auto link = dynamic_cast<link_node*>(&node))
-                link->accept(*this);
-            break;
-        default:
-            out() << "    <!-- s_statement_node type=" 
-                  << node.get_statement_type() << " -->\n";
+    case S_IMPLEMENTS_ST:
+        if (auto impl = dynamic_cast<implements_node *>(&node))
+            impl->accept(*this);
+        break;
+    case S_LINK_ST:
+        if (auto link = dynamic_cast<link_node *>(&node))
+            link->accept(*this);
+        break;
+    default:
+        out() << "    <!-- s_statement_node type="
+              << node.get_statement_type() << " -->\n";
     }
 }
 
@@ -180,7 +224,7 @@ void ChipsToXmiVisitor::visit(functionnal_block_instanciation_node &node)
 
 void ChipsToXmiVisitor::visit(object_definition_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(object_definition_node) name=" 
+    std::cerr << "[DEBUG Visitor] visit(object_definition_node) name="
               << node.get_identifier() << std::endl;
 
     out() << "    <definitions";
@@ -192,7 +236,11 @@ void ChipsToXmiVisitor::visit(object_definition_node &node)
     if (auto with = node.get_with())
     {
         std::cerr << "[DEBUG Visitor] Object a une section with" << std::endl;
+        push_ast_path("/@with");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         with->accept(*this);
+        pop_ast_path("/@with");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     }
     else
     {
@@ -210,7 +258,7 @@ void ChipsToXmiVisitor::visit(function_definition_node &node)
 
 void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(logical_function_definition_node) name=" 
+    std::cerr << "[DEBUG Visitor] visit(logical_function_definition_node) name="
               << node.get_identifier() << std::endl;
 
     out() << "    <definitions";
@@ -218,15 +266,31 @@ void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
     writeAttribute("name", node.get_identifier());
     out() << ">\n";
 
-    // TODO: Visiter sections
-    out() << "      <!-- TODO: init, then, outputs -->\n";
+    if (auto init = node.get_init())
+    {
+        std::cerr << "[DEBUG Visitor] Logical a une section init" << std::endl;
+        push_ast_path("/@init");
+        init->accept(*this);
+        pop_ast_path("/@init");
+    }
+
+    if (auto then = node.get_then())
+    {
+        std::cerr << "[DEBUG Visitor] Logical a une section then" << std::endl;
+        push_ast_path("/@then");
+        then->accept(*this);
+        pop_ast_path("/@then");
+    }
+
+    // outputs not visited here (no visitor overload for named_outputs_node)
+    out() << "      <!-- TODO: outputs -->\n";
 
     out() << "    </definitions>\n";
 }
 
 void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(physical_function_definition_node) name=" 
+    std::cerr << "[DEBUG Visitor] visit(physical_function_definition_node) name="
               << node.get_identifier() << std::endl;
 
     out() << "    <definitions";
@@ -234,25 +298,46 @@ void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
     writeAttribute("name", node.get_identifier());
     out() << ">\n";
 
-    // Visiter les sections (with, init, then, outputs, sensors)
-    if (auto with = node.get_with()) {
+    // Visiter les sections dans l'ordre : with, init, then, puis outputs
+    // (outputs doit être visité après init/then pour avoir accès aux chemins des variables déclarées)
+    if (auto with = node.get_with())
+    {
         std::cerr << "[DEBUG Visitor] Physical a une section with" << std::endl;
+        push_ast_path("/@with");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         with->accept(*this);
+        pop_ast_path("/@with");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     }
 
-    if (auto outputs = node.get_outputs()) {
-        std::cerr << "[DEBUG Visitor] Physical a des outputs" << std::endl;
-        outputs->accept(*this);
-    }
-
-    if (auto init = node.get_init()) {
+    if (auto init = node.get_init())
+    {
         std::cerr << "[DEBUG Visitor] Physical a une section init" << std::endl;
+        push_ast_path("/@init");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         init->accept(*this);
+        pop_ast_path("/@init");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     }
 
-    if (auto then = node.get_then()) {
+    if (auto then = node.get_then())
+    {
         std::cerr << "[DEBUG Visitor] Physical a une section then" << std::endl;
+        push_ast_path("/@then");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         then->accept(*this);
+        pop_ast_path("/@then");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+    }
+
+    if (auto outputs = node.get_outputs())
+    {
+        std::cerr << "[DEBUG Visitor] Physical a des outputs" << std::endl;
+        push_ast_path("/@outputs");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+        outputs->accept(*this);
+        pop_ast_path("/@outputs");
+        std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     }
 
     out() << "    </definitions>\n";
@@ -266,7 +351,7 @@ void ChipsToXmiVisitor::visit(collective_operation_definition_node &node)
 
 void ChipsToXmiVisitor::visit(implementation_definition_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(implementation_definition_node) name=" 
+    std::cerr << "[DEBUG Visitor] visit(implementation_definition_node) name="
               << node.get_ident1() << std::endl;
 
     out() << "    <definitions";
@@ -305,7 +390,8 @@ void ChipsToXmiVisitor::visit(with_section_node &node)
 
     out() << "      <with>\n";
 
-    if (auto statements = node.get_statements()) {
+    if (auto statements = node.get_statements())
+    {
         std::cerr << "[DEBUG Visitor] With section a des statements" << std::endl;
         statements->accept(*this);
     }
@@ -315,13 +401,20 @@ void ChipsToXmiVisitor::visit(with_section_node &node)
 
 void ChipsToXmiVisitor::visit(with_statements_node &node)
 {
-    std::cerr << "[DEBUG Visitor] visit(with_statements_node) - " 
+    std::cerr << "[DEBUG Visitor] visit(with_statements_node) - "
               << node.get_statements().size() << " statements" << std::endl;
 
+    int index = 0;
     for (auto &st : node.get_statements())
     {
-        if (st) {
+        if (st)
+        {
+            std::string segment = "/@statements." + std::to_string(index++);
+            push_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
             st->accept(*this);
+            pop_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         }
     }
 }
@@ -335,20 +428,97 @@ void ChipsToXmiVisitor::visit(with_statement_node &node)
 void ChipsToXmiVisitor::visit(with_two_identifier_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(with_two_identifier_node)" << std::endl;
-    out() << "        <!-- with_two_identifier_node TODO -->\n";
+
+    std::string type_identifier = node.get_ident1();
+    std::string name = node.get_ident2();
+    std::string type = "chips.statements.node:chanel_declaration";
+
+    out() << "        <statements\n";
+    writeAttribute("          xsi:type", type);
+    out() << "\n";
+    writeAttribute("          name", name);
+    out() << "\n";
+    writeAttribute("          type_identifier", type_identifier);
+    out() << ">\n";
+    out() << "        </statements>\n";
 }
 
 void ChipsToXmiVisitor::visit(with_context_statement_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(with_context_statement_node)" << std::endl;
-    out() << "        <!-- with_context_statement_node TODO -->\n";
+
+    bool has_value = true;
+
+    std::string name = node.get_identifier();
+    std::string type_primitive = node.get_df_type()->get_type() == INT_DF ? "int" : node.get_df_type()->get_type() == FLOAT_DF ? "float"
+                                                                                : node.get_df_type()->get_type() == BOOL_DF    ? "bool"
+                                                                                                                               : "Unknown";
+    std::string type = "chips.statements.node:contextual_" + type_primitive + "_declaration";
+
+    std::string segment = "/@variable/@variable";
+    push_ast_path(segment);
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+
+    // Enregistrer la variable dans la table des symboles
+    register_variable(name, get_ast_path());
+    std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+
+    expression_node *rhs = node.get_rhs()->get_rhs();
+
+    std::string rhs_value = getExpressionValue(*rhs);
+
+    out() << "        <statements\n";
+    writeAttribute("        xsi:type", type);
+    out() << "\n";
+    writeAttribute("        type_identifier", name);
+    out() << " >\n          <variable>\n            <variable";
+    writeAttribute("name", name);
+    out() << "/>\n          </variable>\n";
+    if (rhs_value != "0" && rhs_value != "0.0" && rhs_value != "false" && rhs_value != "unknown")
+    {
+        out() << "        </statements>\n        <statements\n";
+        writeAttribute("        xsi:type", "chips.statements.primitive:" + type_primitive + "_assignment");
+        out() << ">\n";
+        out() << "          <lvalue\n";
+        writeAttribute("            xsi:type", "chips.xvalues.primitive:" + type_primitive + "_variable_expression");
+        out() << "\n";
+        writeAttribute("            variable", get_ast_path());
+        out() << "/>\n";
+        out() << "          <rvalue\n";
+        writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type_primitive);
+        out() << "\n";
+        writeAttribute("            value", rhs_value);
+        out() << "/>\n";
+    }
+    out() << "        </statements>\n";
+    pop_ast_path(segment);
+    std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
 }
 
 void ChipsToXmiVisitor::visit(init_section_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(init_section_node)" << std::endl;
     out() << "      <init>\n";
-    out() << "        <!-- TODO: statements -->\n";
+    if (auto statements = node.get_statements())
+    {
+        int index = 0;
+        for (auto &st : statements->get_statements())
+        {
+            if (st)
+            {
+                std::string segment = "/@statements." + std::to_string(index++);
+                push_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+                st->accept(*this);
+                pop_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+            }
+        }
+    }
+    else
+    {
+        out() << "        <!-- TODO: statements -->\n";
+    }
     out() << "      </init>\n";
 }
 
@@ -356,8 +526,125 @@ void ChipsToXmiVisitor::visit(then_section_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(then_section_node)" << std::endl;
     out() << "      <then>\n";
-    out() << "        <!-- TODO: statements -->\n";
+    if (auto statements = node.get_statements())
+    {
+        int index = 0;
+        for (auto &st : statements->get_statements())
+        {
+            if (st)
+            {
+                std::string segment = "/@statements." + std::to_string(index++);
+                push_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+                st->accept(*this);
+                pop_ast_path(segment);
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+            }
+        }
+    }
+    else
+    {
+        out() << "        <!-- TODO: statements -->\n";
+    }
     out() << "      </then>\n";
+}
+
+void ChipsToXmiVisitor::visit(physical_named_outputs_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_named_outputs_node)" << std::endl;
+    out() << "      <outputs\n";
+    int index = 0;
+    for (auto &output : node.get_outputs())
+    {
+        if (output)
+        {
+            std::string segment = "/@output." + std::to_string(index++);
+            push_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+            output->accept(*this);
+            pop_ast_path(segment);
+            std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+        }
+    }
+    out() << "      </outputs>\n";
+}
+
+void ChipsToXmiVisitor::visit(physical_named_output_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_named_output_node)" << std::endl;
+    std::cerr << "[DEBUG Visitor] Output name: " << node.get_identifier() << std::endl;
+    
+    // Récupérer les paramètres
+    expressions_node* params = node.get_parameters();
+    
+    writeAttribute("        xsi:type", "chips.outputs.logical:int_output");
+    out() << "\n";
+    writeAttribute("        name", node.get_identifier());
+    out() << " >\n";
+    
+    // Traiter les paramètres
+    if (params)
+    {
+        const auto& param_list = params->get_expressions();
+        std::cerr << "[DEBUG Visitor] Nombre de paramètres: " << param_list.size() << std::endl;
+        
+        for (const auto& expr : param_list)
+        {
+            if (expr)
+            {
+                // Extraire le nom du paramètre
+                std::string param_name = getExpressionValue(*expr);
+                std::cerr << "[DEBUG Visitor] Paramètre: " << param_name << std::endl;
+                
+                out() << "      <expression\n";
+                writeAttribute("          xsi:type", "chips.xvalues.primitive:int_variable_expression");
+                out() << "\n";
+                writeAttribute("          variable", get_ast_path_by_name(param_name));
+                out() << "/>\n";
+            }
+        }
+    }
+    else
+    {
+        std::cerr << "[WARNING Visitor] Aucun paramètre pour l'output" << std::endl;
+    }
+    
+    out() << "      </output>\n";
+}
+
+
+void ChipsToXmiVisitor::visit(statement_node &node) {
+    std::cerr << "[DEBUG Visitor] visit(statement_node) - classe de base" << std::endl;
+
+    std::string type = node.get_privitve_type();
+    std::string name = node.get_name();
+
+    out() << "    <statements";
+    writeAttribute("xsi:type", "chips.statements.primitive:" + type + "_declaration");
+    out() << ">\n";
+    std::string segment = "/@variable";
+    push_ast_path(segment);
+    
+    // Enregistrer la variable dans la table des symboles
+    register_variable(name, get_ast_path());
+    std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+    
+    out() << "      <variable\n";
+    writeAttribute("        name", name);
+    out() << "/>\n";
+    out() << "    </statements>\n    <statements\n";
+    writeAttribute("xsi:type", "chips.statements.primitive:" + type + "_assignment");
+    out() << ">\n";
+    out() << "      <lvalue\n";
+    writeAttribute("        xsi:type", "chips.xvalues.primitive:" + type + "_variable_expression");
+    out() << "\n";
+    writeAttribute("        variable", get_ast_path());
+    out() << "/>\n";
+    out() << "      <rvalue\n";
+    writeAttribute("        xsi:type", "chips.rvalues.primitive:direct_" + type);
+    out() << "/>\n";
+    out() << "    </statements>\n";
+    pop_ast_path(segment);
 }
 
 // === EXPRESSIONS ===
@@ -445,6 +732,7 @@ void ChipsToXmiVisitor::visit(paren_expression_node &node)
 void ChipsToXmiVisitor::visit(ast_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
+    // TODO : comprendre pourquoi on arrive ici après un noeud with
     out() << "    <!-- ast_node générique -->\n";
 }
 
@@ -452,10 +740,77 @@ void ChipsToXmiVisitor::visit(ast_node &node)
 
 void ChipsToXmiVisitor::writeAttribute(const std::string &name, const std::string &value)
 {
+    if (name == "xsi:type")
+    {
+        std::string ns = value.substr(0, value.find(':'));
+        std::string url = "http://chips." + ns;
+        // remplace les . par des /
+        size_t dot_pos = ns.find('.');
+        if (dot_pos != std::string::npos)
+        {
+            std::string ns_with_slash = ns;
+            ns_with_slash.replace(dot_pos, 1, "/");
+            url.replace(7, ns.length(), ns_with_slash);
+        }
+        m_writer.add_namespace_if_needed(ns, url);
+    }
     out() << " " << name << "=\"" << value << "\"";
 }
 
 void ChipsToXmiVisitor::endEmptyElement()
 {
     out() << " />\n";
+}
+
+std::string ChipsToXmiVisitor::getExpressionValue(expression_node &expr)
+{
+    // Essayer number_literal_node
+    if (auto num = dynamic_cast<number_literal_node *>(&expr))
+    {
+        EXPRESSION_TYPE type = num->get_type();
+        if (type == INT_EXP)
+        {
+            return std::to_string(num->get_int());
+        }
+        else if (type == FLOAT_EXP)
+        {
+            return std::to_string(num->get_float());
+        }
+        else if (type == BOOL_EXP)
+        {
+            return num->get_bool() ? "true" : "false";
+        }
+    }
+    // Essayer suffixised_node (variable ou attribut)
+    else if (auto suf = dynamic_cast<suffixised_node *>(&expr))
+    {
+        return suf->get_identifier();
+    }
+    // Essayer function_call_node
+    else if (auto fcall = dynamic_cast<function_call_node *>(&expr))
+    {
+        return fcall->get_identifier() + "()";
+    }
+    // Essayer variable_node
+    else if (auto var = dynamic_cast<variable_node *>(&expr))
+    {
+        return var->get_identifier();
+    }
+
+    // Fallback
+    return "unknown";
+}
+
+std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
+{
+    // Rechercher dans la table des symboles
+    auto it = m_symbol_table.find(name);
+    if (it != m_symbol_table.end())
+    {
+        std::cerr << "[DEBUG] Variable '" << name << "' trouvée dans la table des symboles: " << it->second << std::endl;
+        return it->second;
+    }
+    
+    std::cerr << "[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
+    return name;  // Fallback: retourner juste le nom
 }

@@ -17,7 +17,7 @@ object AbstractObject with {
 }
 
 implementation abstractObjectByCounter : AbstractObject by aPhysicalCounter {
-    having plug as abstractPlug;
+    having plug as abstractPlug; // [1]*
     having countSpeed as abstractObjectSpecificParameter;
 }
 

@@ -12,7 +12,25 @@
 */
 
 
-class statement_node : public s_statement_node {};
+class statement_node : public s_statement_node {
+    private:
+        std::string name;
+        std::string privitive_type;
+    public:
+        statement_node() = default;
+
+        statement_node(std::string name, std::string privitive_type)
+            : name(name), privitive_type(privitive_type) {}
+
+        std::string get_name() { return name; }
+        const std::string& get_name() const { return name; }
+        std::string get_privitve_type() { return privitive_type; }
+        const std::string& get_privitve_type() const { return privitive_type; }
+
+        void accept(chips_visitor& visitor);
+        virtual void hello() override;
+
+};
 
 class statements_node : public ast_node {
 
@@ -49,6 +67,8 @@ public:
         : value(std::move(value)) {}
 
     rhs_assignment_node() {}
+
+    expression_node* get_rhs() { return value.get(); }
     
     void accept(chips_visitor& visitor);
     virtual void hello() override;
@@ -94,10 +114,23 @@ class dataflow_full_declaration_node : public statement_node {
         std::unique_ptr<dataflow_type_node> type;
         std::string identifier;
         std::unique_ptr<rhs_assignment_node> assign;
+        static std::string dataflow_type_to_string(DATAFLOW_TYPE df_type) {
+            switch (df_type) {
+                case INT_DF:
+                    return "int";
+                case FLOAT_DF:
+                    return "float";
+                case BOOL_DF:
+                    return "bool";
+                default:
+                    return "Unknown";
+            }
+        }
         
     public:
         dataflow_full_declaration_node(std::unique_ptr<dataflow_type_node> type, std::string identifier, std::unique_ptr<rhs_assignment_node> assign)
-            : type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
+            : statement_node(identifier, dataflow_type_to_string(type->get_type())),
+              type(std::move(type)), identifier(identifier), assign(std::move(assign)) {}
         
         STATEMENT_TYPE get_type() override { return s_type; }
         dataflow_type_node* get_df_type() { return type.get(); }

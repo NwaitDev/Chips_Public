@@ -360,6 +360,22 @@ class named_outputs_node : public ast_node {
 };
 
 class physical_named_output_node : public ast_node {
+    private:
+        std::string identifier;
+        std::string expression;
+    public:
+        physical_named_output_node(std::string identifier, std::string expression) : identifier(identifier), expression(expression) {}
+
+        std::string get_identifier() { return identifier; }
+
+        std::string get_expression() { return expression; }
+
+        // Méthode virtuelle pour obtenir les paramètres (implémentée dans les sous-classes)
+        virtual expressions_node* get_parameters() { return nullptr; }
+
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
+
+        virtual void hello() override;
 
 };
 
@@ -369,10 +385,13 @@ class actuator_node : public physical_named_output_node {
         std::unique_ptr<expressions_node> exprs;
     public:
         actuator_node(std::string identifier, std::unique_ptr<expressions_node> exprs) :
-            identifier(identifier), exprs(std::move(exprs)) {}
+            physical_named_output_node(identifier, ""), identifier(identifier), exprs(std::move(exprs)) {}
 
         std::string get_identifier() { return identifier; }
         expressions_node* get_expressions() { return exprs.get(); }
+
+        // Override pour obtenir les paramètres
+        expressions_node* get_parameters() override { return exprs.get(); }
 
         void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
@@ -383,10 +402,13 @@ class named_output_node : public physical_named_output_node {
         std::string identifier;
         std::unique_ptr<expressions_node> exprs;
     public:
-        named_output_node(std::string identifier, std::unique_ptr<expressions_node> exprs) : identifier(identifier), exprs(std::move(exprs)) {}
+        named_output_node(std::string identifier, std::unique_ptr<expressions_node> exprs) : physical_named_output_node(identifier, ""), identifier(identifier), exprs(std::move(exprs)) {}
 
         std::string get_identifier() { return identifier; }
         expressions_node* get_expressions() { return exprs.get(); }
+
+        // Override pour obtenir les paramètres
+        expressions_node* get_parameters() override { return exprs.get(); }
 
         void accept(chips_visitor& visitor) { visitor.visit(*this); }
 

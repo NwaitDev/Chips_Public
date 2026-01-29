@@ -508,12 +508,36 @@ may_assign:
 
 int main(int argc, char *argv[])
 {
-    if(argc != 2){
-        std::cout << "Usage: ./chipsc <file.chips>\n";
+    if(argc < 2){
+        std::cout << "Usage: ./chipsc <file.chips> [options]\n"
+                  << "Options:\n"
+                  << " --skip-semantic : Skip semantic analysis phase\n"
+                  << "  --skip-xmi    : Skip XMI generation phase\n"
+                  << "  --xmi-output <file.xmi> : Specify XMI output file name and file path\n";
         return -1;
     }
-	driver drv;
-	return drv.parse(std::string(argv[1]));
+    driver drv;
+    std::string filename = std::string(argv[1]);
+
+    /* for(int i = 2; i < argc; i++){
+        std::string arg = argv[i];
+        if(arg == "--skip-semantic"){
+            drv.skip_semantic_analysis = true;
+            std::cout << "\033[1;33m[Warning] Semantic analysis phase will be skipped.\033[0m\n";
+        }
+        else if(arg == "--skip-xmi"){
+            drv.skip_xmi_generation = true;
+            std::cout << "\033[1;33m[Warning] XMI generation phase will be skipped.\033[0m\n";
+        }
+        else if(arg == "--xmi-output" && i + 1 < argc){
+            drv.xmi_output_filename = std::string(argv[i + 1]);
+            i++;
+            // TODO : refactor la génération des fichier xmi avec un string builder dans les visiteurs et les writers
+        }
+         
+    } */
+
+    return drv.parse(filename);
 }
 
 

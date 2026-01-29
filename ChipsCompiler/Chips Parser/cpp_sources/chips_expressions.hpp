@@ -85,6 +85,8 @@ public:
         :ident(ident),operands(std::move(operands)){}
     void accept(chips_visitor& visitor);
     virtual void hello() override;
+
+    std::string get_identifier() { return ident; }
 };
 
 class suffixised_node : public expression_node {
