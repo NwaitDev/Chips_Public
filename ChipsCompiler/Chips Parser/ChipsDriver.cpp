@@ -29,12 +29,13 @@ int driver::parse (const std::string &f)
         }
         
         std::cout << "📝 Génération XMI: " << output << "\n";
-        generate_xmi(output);
+        // Passer juste le nom du fichier (sans le chemin) au writer
+        generate_xmi(output, p.filename().string());
     }
     return res;
 }
 
-void driver::generate_xmi(const std::string& output_file)
+void driver::generate_xmi(const std::string& output_file, const std::string& source_filename)
 {
     if (!ast) {
         std::cerr << "❌ Erreur: AST non disponible\n";
@@ -52,10 +53,13 @@ void driver::generate_xmi(const std::string& output_file)
     ChipsToXmiWriter writer(out);
     ChipsToXmiVisitor visitor(writer, out);
     
-    // Écrire le header XMI
-    writer.xmi_header(file);
+    // PREMIÈRE PASSE: Collecter les namespaces nécessaires
+    writer.collect_namespaces(dynamic_cast<chips_node*>(ast.get()));
     
-    // Parcourir l'AST avec le visitor
+    // Écrire le header XMI avec les namespaces collectés
+    writer.xmi_header(source_filename);
+    
+    // DEUXIÈME PASSE: Parcourir l'AST avec le visitor pour générer le contenu
     ast->accept(visitor);
     
     // Écrire le footer XMI

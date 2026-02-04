@@ -17,7 +17,7 @@ public:
     int parse (const std::string& f);
     
     // Nouvelle méthode pour générer le XMI
-    void generate_xmi(const std::string& output_file);
+    void generate_xmi(const std::string& output_file, const std::string& source_filename);
     
     std::string file;
     bool trace_parsing;

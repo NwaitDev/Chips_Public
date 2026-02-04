@@ -19,16 +19,40 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
     std::cerr << "[DEBUG Writer] xmi_header() appelé avec filename: " << filename << std::endl;
 
     m_out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    m_out << "<chips:program xmi:version=\"" << m_xmiVersion << "\"\n"
-          << "    xmlns:xmi=\"" << m_xmiUrl << "\"\n"
-          << "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-          << "    xmlns:chips=\"http://chips\"\n"
-          << "    xmlns:definitions=\"http://chips/definitions\"\n"
-          << "    xmlns:chips.statements.system=\"http://chips/statements/system\"\n"
-          << "    xmlns:chips.statements.node=\"http://chips/statements/node\"\n"
-          << "    xmlns:chips.expressions=\"http://chips/expressions\"\n"
-          << "    fileName=\"" << filename << "\"\n"
-          << ">\n\n";
+    m_out << "<chips:program\n    xmi:version=\"" << m_xmiVersion << "\"\n";
+    
+    // Namespaces de base (toujours présents)
+    m_out << "    xmlns:xmi=\"" << m_xmiUrl << "\"\n";
+    m_out << "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n";
+    m_out << "    xmlns:chips=\"http://chips\"\n";
+    
+    // Namespaces collectés dynamiquement (triés pour un ordre cohérent)
+    std::map<std::string, std::string> sorted_ns(m_namespace_urls.begin(), m_namespace_urls.end());
+    for (const auto& [prefix, url] : sorted_ns) {
+        m_out << "    xmlns:" << prefix << "=\"" << url << "\"\n";
+    }
+    
+    // xsi:schemaLocation (si des namespaces sont présents)
+    if (!m_namespace_urls.empty()) {
+        m_out << "    xsi:schemaLocation=\"http://chips chips2.ecore";
+        
+        for (const auto& [prefix, url] : sorted_ns) {
+            // Extraire le fragment après "http://chips"
+            std::string fragment = url.substr(std::string("http://chips").length());
+            
+            m_out << " " << url << " chips2.ecore";
+            if (!fragment.empty()) {
+                m_out << "#/" << fragment;
+            } else {
+                // Pour "definitions" qui n'a pas de sous-chemin
+                m_out << "#//" << prefix;
+            }
+        }
+        m_out << "\"\n";
+    }
+    
+    m_out << "    fileName=\"" << filename << "\"";
+    m_out << ">\n";
 }
 
 void ChipsToXmiWriter::xmi_footer()
@@ -277,9 +301,107 @@ std::string ChipsToXmiWriter::nodeId(const ast_node* node)
 void ChipsToXmiWriter::add_namespace_if_needed(const std::string& ns_prefix,
                                                 const std::string& url)
 {
-    if (m_used_namespaces.find(ns_prefix) == m_used_namespaces.end()) {
+    if (m_namespace_urls.find(ns_prefix) == m_namespace_urls.end()) {
+        m_namespace_urls[ns_prefix] = url;
         m_used_namespaces.insert(ns_prefix);
-        // Note: Les namespaces sont déjà dans xmi_header()
-        // Dans une impl avancée, on pourrait dynamiquement les ajouter
+    }
+}
+
+// ============================================================================
+// COLLECTION DES NAMESPACES
+// ============================================================================
+
+void ChipsToXmiWriter::collect_namespaces(const chips_node* root)
+{
+    if (!root) return;
+    
+    // Parcourir les preambles
+    if (root->get_preambles()) {
+        collect_namespaces_from_preambles(root->get_preambles());
+    }
+    
+    // Parcourir le system
+    if (root->get_system()) {
+        collect_namespaces_from_system(root->get_system());
+    }
+}
+
+void ChipsToXmiWriter::collect_namespaces_from_preambles(const preambles_node* pres)
+{
+    if (!pres) return;
+    
+    // Toujours ajouter le namespace definitions si on a des preambles
+    add_namespace_if_needed("definitions", "http://chips/definitions");
+    
+    for (const auto& preamble : pres->get_preamble_list()) {
+        if (preamble) {
+            collect_namespaces_from_preamble(preamble.get());
+        }
+    }
+}
+
+void ChipsToXmiWriter::collect_namespaces_from_preamble(const preamble_node* preamble)
+{
+    if (!preamble) return;
+    
+    // En fonction du type de definition, ajouter les namespaces nécessaires
+    if (dynamic_cast<const physical_function_definition_node*>(preamble)) {
+        add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
+        add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
+        add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
+        add_namespace_if_needed("chips.outputs.physical", "http://chips/outputs/physical");
+        add_namespace_if_needed("chips.parameters.physical", "http://chips/parameters/physical");
+        add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
+        add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+        add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
+        // TODO: Ajouter d'autres namespaces selon le contenu réel
+    }
+    else if (dynamic_cast<const logical_function_definition_node*>(preamble)) {
+        add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
+        add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
+        add_namespace_if_needed("chips.parameters.logical", "http://chips/parameters/logical");
+        add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
+        add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+    }
+    else if (dynamic_cast<const object_definition_node*>(preamble)) {
+        add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
+    }
+    else if (dynamic_cast<const implementation_definition_node*>(preamble)) {
+        add_namespace_if_needed("chips.statements.implementation", "http://chips/statements/implementation");
+    }
+}
+
+void ChipsToXmiWriter::collect_namespaces_from_system(const system_node* sys)
+{
+    if (!sys || !sys->get_system_statements()) return;
+    
+    // Toujours ajouter le namespace system si on a des statements
+    add_namespace_if_needed("chips.statements.system", "http://chips/statements/system");
+    
+    for (const auto& stmt : sys->get_system_statements()->get_statements()) {
+        if (stmt) {
+            collect_namespaces_from_statement(stmt.get());
+        }
+    }
+}
+
+void ChipsToXmiWriter::collect_namespaces_from_statement(const s_statement_node* node)
+{
+    if (!node) return;
+    
+    auto stmt_type = node->get_statement_type();
+    
+    // Ajouter les namespaces selon le type de statement
+    switch (stmt_type) {
+        case S_LINK_ST:
+        case S_EXPR_PLUG_ST:  // Type réel pour le plugging
+            add_namespace_if_needed("chips.systemspecific.expressions", "http://chips/systemspecific/expressions");
+            add_namespace_if_needed("chips.systemspecific.expressions.feeder", "http://chips/systemspecific/expressions/feeder");
+            break;
+        case S_IMPLEMENTS_ST:
+            add_namespace_if_needed("chips.systemspecific.expressions", "http://chips/systemspecific/expressions");
+            break;
+        default:
+            break;
     }
 }
