@@ -1,6 +1,8 @@
 #ifndef CHIPS_TO_XMI_VISITOR_HPP
 #define CHIPS_TO_XMI_VISITOR_HPP
 
+/** problem override ? create methode in chips_ast_classes.hpp */
+
 #include "../cpp_sources/chips_ast_classes.hpp"
 #include "../cpp_sources/ChipsAST.hpp"
 #include "../cpp_sources/chips_overall_system.hpp"
@@ -59,9 +61,24 @@ public:
     void visit(init_section_node &node) override;
     void visit(then_section_node &node) override;
     void visit(statement_node &node) override;
+    void visit(dataflow_full_declaration_node &node) override;
+    void visit(variable_assignment_node &node) override;
+    void visit(context_variable_assignment_node &node) override;
 
     void visit(physical_named_outputs_node &node) override;
     void visit(physical_named_output_node &node) override;
+    void visit(named_outputs_node &node) override;
+    void visit(named_output_node &node) override;
+    void visit(actuator_node &node) override;
+    void visit(statements_node &node) override;
+    void visit(rhs_assignment_node &node) override;
+    void visit(assignment_node &node) override;
+    void visit(this_attribute_node &node) override;
+    void visit(function_call_statement_node &node) override;
+    void visit(if_node &node) override;
+    void visit(if_else_node &node) override;
+    void visit(loop_node &node) override;
+    void visit(block_node &node) override;
 
     // === 6. EXPRESSIONS ===
     void visit(expression_node &node) override;
@@ -71,12 +88,51 @@ public:
     void visit(number_literal_node &node) override;
     void visit(function_call_node &node) override;
     void visit(variable_node &node) override;
+    void visit(plugging_expr_node &node) override;
+    void visit(collective_cast_node &node) override;
+    void visit(collective_operation_node &node) override;
     void visit(object_virtual_output_node &node) override;
     void visit(object_physical_attribute_node &node) override;
     void visit(cast_node &node) override;
+    void visit(stop_node &node) override;
+    void visit(input_node &node) override;
+    void visit(c_cast_node &node) override;
+    void visit(context_expression_node &node) override;
+    void visit(integrated_function_node &node) override;
+    void visit(context_decl_node &node) override;
     void visit(suffixes_node &node) override;
     void visit(suffixised_node &node) override;
     void visit(paren_expression_node &node) override;
+
+    // === 6.5. COLLECTIVE / CONFIGURATION HELPERS ===
+    void visit(c_keywords_node &node) override;
+    void visit(spread_node &node) override;
+    void visit(collect_node &node) override;
+    void visit(c_statements_node &node) override;
+    void visit(c_statement_node &node) override;
+    void visit(c_loop_node &node) override;
+    void visit(c_if_node &node) override;
+    void visit(c_if_else_node &node) override;
+    void visit(c_expressions_node &node) override;
+    void visit(c_output_node &node) override;
+    void visit(c_optionnal_outputs_node &node) override;
+    void visit(collective_dataflow_defaulted_decls_node &node) override;
+    void visit(collective_dataflow_defaulted_decl_node &node) override;
+    void visit(collective_dataflow_full_declaration_node &node) override;
+    void visit(collective_rhs_assignment_node &node) override;
+    void visit(c_variable_assignment_node &node) override;
+    void visit(c_context_variable_assignment_node &node) override;
+
+    // === 7. DATAFLOW TYPES & PARAMETERS ===
+    void visit(dataflow_type_node &node) override;
+    void visit(physical_dataflow_parameter_type_node &node) override;
+    void visit(expressions_node &node) override;
+    void visit(dataflow_parameter_list_node &node) override;
+    void visit(physical_dataflow_parameter_list_node &node) override;
+    void visit(dataflow_parameter_decls_node &node) override;
+    void visit(physical_dataflow_parameter_decls_node &node) override;
+    void visit(dataflow_parameter_decl_node &node) override;
+    void visit(physical_dataflow_parameter_decl_node &node) override;
 
     // === 7. FALLBACK (tous les autres) ===
     void visit(ast_node &node) override;

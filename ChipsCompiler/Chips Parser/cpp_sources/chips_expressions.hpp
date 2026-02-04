@@ -48,7 +48,7 @@ class paren_expression_node : public expression_node {
 
         expression_node* get_expr() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -131,7 +131,7 @@ class plugging_expr_node : public suffixised_node {
         block_node* get_block() { return block.get(); }
         std::string get_identifier() { return suffixised_node::get_identifier(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -150,7 +150,7 @@ class collective_cast_node : public expression_node {
         block_node* get_block() { return block.get(); }
         std::string get_identifier() { return identifier; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -165,7 +165,7 @@ class collective_operation_node : public ast_node {
 
         std::string get_identifier() { return identifier; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -216,7 +216,7 @@ class stop_node : public expression_node {
 
         constexpr COLLECTIVE_KW get_keyword() { return kw; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -230,7 +230,7 @@ class input_node : public expression_node {
 
         constexpr COLLECTIVE_KW get_keyword() { return kw; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -247,7 +247,7 @@ class c_cast_node : public expression_node {
         dataflow_type_node* get_df_type() { return type.get(); }
         expression_node* get_expr() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -264,7 +264,7 @@ class context_expression_node : public expression_node {
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -281,7 +281,7 @@ class integrated_function_node : public expression_node {
         std::string get_identifier() { return identifier; }
         expressions_node* get_expressions() { return exprs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -298,7 +298,7 @@ class context_decl_node : public expression_node {
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };

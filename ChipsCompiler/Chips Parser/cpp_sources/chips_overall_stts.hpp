@@ -156,7 +156,7 @@ class variable_assignment_node : public statement_node {
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -176,7 +176,7 @@ class context_variable_assignment_node : public statement_node {
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -264,7 +264,7 @@ class block_node : public ast_node {
         std::string get_identifier() { return identifier; }
         suffixes_node* get_suffixes() { return suff.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };

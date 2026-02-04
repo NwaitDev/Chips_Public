@@ -26,12 +26,14 @@ class c_signature_node : public ast_node {
         std::string get_ident1() { return ident1; }
         std::string get_ident2() { return ident2; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
 
 class c_keywords_node : public ast_node {        
+    public:
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 };
 
 class spread_node : public c_keywords_node {
@@ -43,7 +45,7 @@ class spread_node : public c_keywords_node {
 
         constexpr COLLECTIVE_KW get_keyword() { return kw; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -57,7 +59,7 @@ class collect_node : public c_keywords_node {
 
         constexpr COLLECTIVE_KW get_keyword() { return kw; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -85,7 +87,7 @@ class collective_dataflow_defaulted_decls_node : public ast_node {
 
         std::vector<std::unique_ptr<collective_dataflow_defaulted_decl_node>>& get_cdf_defaulted_decls() { return cdf_defaulted_decls; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
  
@@ -105,7 +107,7 @@ class collective_dataflow_defaulted_decl_node : public ast_node {
         std::string get_identifier() { return identifier; }
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -137,7 +139,7 @@ class c_statements_node : public ast_node {
             statements.insert(statements.begin(), std::move(sttmt));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -157,7 +159,7 @@ class c_output_node : public ast_node {
         std::string get_identifier() { return identifier.value_or("default"); }
         c_expressions_node* get_expressions() { return exprs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -175,7 +177,7 @@ class c_optionnal_outputs_node : public ast_node {
             outputs.insert(outputs.begin(), std::move(output));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -196,7 +198,7 @@ class c_loop_node : public c_statement_node {
         expression_node* get_loop_expr() { return loop_expr.get(); }
         c_statements_node* get_statements() { return stts.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -215,7 +217,7 @@ class c_if_node : public c_statement_node {
         expression_node* get_condition() { return cond.get(); }
         c_statements_node* get_statements() { return stts.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -234,7 +236,7 @@ class c_if_else_node : public c_statement_node {
         c_if_node* get_if_node() { return ifnode.get(); }
         c_statements_node* get_else_node() { return elsestts.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 
@@ -262,7 +264,7 @@ class c_expressions_node : public ast_node {
             exprs.insert(exprs.begin(), std::move(expr));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -285,7 +287,7 @@ class collective_dataflow_full_declaration_node : public c_statement_node {
         std::string get_identifier() { return identifier; }
         collective_rhs_assignment_node* get_rhs() { return rhs.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -302,7 +304,7 @@ class collective_rhs_assignment_node : public ast_node {
 
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 
@@ -324,7 +326,7 @@ class c_variable_assignment_node : public c_statement_node {
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -345,7 +347,7 @@ class c_context_variable_assignment_node : public c_statement_node {
         suffixes_node* get_suffixes() { return suff.get(); }
         expression_node* get_expression() { return expr.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 

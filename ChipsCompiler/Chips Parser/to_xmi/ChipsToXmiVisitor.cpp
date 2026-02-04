@@ -592,14 +592,30 @@ void ChipsToXmiVisitor::visit(physical_named_output_node &node)
         {
             if (expr)
             {
-                // Extraire le nom du paramètre
+                // Extraire la valeur/nom du paramètre
                 std::string param_name = getExpressionValue(*expr);
                 std::cerr << "[DEBUG Visitor] Paramètre: " << param_name << std::endl;
+                
+                // Vérifier si c'est un littéral (true, false, nombre, etc.)
+                bool is_literal = false;
+                std::string variable_path = param_name;
+                
+                if (auto num = dynamic_cast<number_literal_node *>(expr.get())) {
+                    is_literal = true;
+                    // Pour les littéraux, on utilise directement la valeur
+                    variable_path = param_name;
+                } else if (param_name == "true" || param_name == "false") {
+                    is_literal = true;
+                    variable_path = param_name;
+                } else {
+                    // C'est probablement une variable, chercher dans la table des symboles
+                    variable_path = get_ast_path_by_name(param_name);
+                }
                 
                 out() << "      <expression\n";
                 writeAttribute("          xsi:type", "chips.xvalues.primitive:int_variable_expression");
                 out() << "\n";
-                writeAttribute("          variable", get_ast_path_by_name(param_name));
+                writeAttribute("          variable", variable_path);
                 out() << "/>\n";
             }
         }
@@ -612,39 +628,217 @@ void ChipsToXmiVisitor::visit(physical_named_output_node &node)
     out() << "      </output>\n";
 }
 
+void ChipsToXmiVisitor::visit(named_outputs_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(named_outputs_node)" << std::endl;
+    out() << "      <!-- named_outputs_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(named_output_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(named_output_node)" << std::endl;
+    out() << "      <!-- named_output_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(actuator_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(actuator_node)" << std::endl;
+    out() << "      <!-- actuator_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(statements_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(statements_node)" << std::endl;
+    out() << "      <!-- statements_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(rhs_assignment_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(rhs_assignment_node)" << std::endl;
+    out() << "      <!-- rhs_assignment_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(assignment_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(assignment_node)" << std::endl;
+    out() << "      <!-- assignment_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(this_attribute_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(this_attribute_node)" << std::endl;
+    out() << "      <!-- this_attribute_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(function_call_statement_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(function_call_statement_node)" << std::endl;
+    out() << "      <!-- function_call_statement_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(if_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(if_node)" << std::endl;
+    out() << "      <!-- if_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(if_else_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(if_else_node)" << std::endl;
+    out() << "      <!-- if_else_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(loop_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(loop_node)" << std::endl;
+    out() << "      <!-- loop_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(block_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(block_node)" << std::endl;
+    out() << "      <!-- block_node TODO -->\n";
+    (void)node;
+}
+
 
 void ChipsToXmiVisitor::visit(statement_node &node) {
-    std::cerr << "[DEBUG Visitor] visit(statement_node) - classe de base" << std::endl;
+    std::cerr << "[DEBUG Visitor] visit(statement_node) - classe abstraite" << std::endl;
+    // Dispatch vers les sous-classes concrètes
+    if (auto df = dynamic_cast<dataflow_full_declaration_node *>(&node)) {
+        df->accept(*this);
+    } else if (auto var_assign = dynamic_cast<variable_assignment_node *>(&node)) {
+        var_assign->accept(*this);
+    } else if (auto ctx_assign = dynamic_cast<context_variable_assignment_node *>(&node)) {
+        ctx_assign->accept(*this);
+    } else {
+        out() << "    <!-- statement_node type inconnu -->\n";
+    }
+}
 
+void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node) {
+    std::cerr << "[DEBUG Visitor] visit(dataflow_full_declaration_node) name=" 
+              << node.get_identifier() << std::endl;
+    
     std::string type = node.get_privitve_type();
-    std::string name = node.get_name();
-
-    out() << "    <statements";
+    std::string name = node.get_identifier();
+    
+    out() << "        <statements";
     writeAttribute("xsi:type", "chips.statements.primitive:" + type + "_declaration");
     out() << ">\n";
+    
     std::string segment = "/@variable";
     push_ast_path(segment);
-    
-    // Enregistrer la variable dans la table des symboles
     register_variable(name, get_ast_path());
     std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
     
-    out() << "      <variable\n";
-    writeAttribute("        name", name);
+    out() << "          <variable\n";
+    writeAttribute("            name", name);
     out() << "/>\n";
-    out() << "    </statements>\n    <statements\n";
-    writeAttribute("xsi:type", "chips.statements.primitive:" + type + "_assignment");
-    out() << ">\n";
-    out() << "      <lvalue\n";
-    writeAttribute("        xsi:type", "chips.xvalues.primitive:" + type + "_variable_expression");
-    out() << "\n";
-    writeAttribute("        variable", get_ast_path());
-    out() << "/>\n";
-    out() << "      <rvalue\n";
-    writeAttribute("        xsi:type", "chips.rvalues.primitive:direct_" + type);
-    out() << "/>\n";
-    out() << "    </statements>\n";
+    out() << "        </statements>\n";
+    
+    // Traiter l'assignation si elle existe (même pour 0/false)
+    if (auto rhs = node.get_rhs()) {
+        if (auto rhs_expr = rhs->get_rhs()) {
+            std::string rhs_value = getExpressionValue(*rhs_expr);
+            out() << "        <statements\n";
+            writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
+            out() << ">\n";
+            out() << "          <lvalue\n";
+            writeAttribute("            xsi:type", "chips.xvalues.primitive:" + type + "_variable_expression");
+            out() << "\n";
+            writeAttribute("            variable", get_ast_path());
+            out() << "/>\n";
+            out() << "          <rvalue\n";
+            writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
+            out() << "\n";
+            writeAttribute("            value", rhs_value);
+            out() << "/>\n";
+            out() << "        </statements>\n";
+        }
+    }
+    
     pop_ast_path(segment);
+}
+
+void ChipsToXmiVisitor::visit(variable_assignment_node &node) {
+    std::cerr << "[DEBUG Visitor] visit(variable_assignment_node) identifier=" 
+              << node.get_identifier() << std::endl;
+    
+    std::string name = node.get_identifier();
+    std::string path = get_ast_path_by_name(name);
+    
+    if (auto expr = node.get_expression()) {
+        std::string value = getExpressionValue(*expr);
+        std::cerr << "[DEBUG] Assignment value: " << value << std::endl;
+        
+        // Déterminer le type de l'expression
+        std::string type = "int"; // Default
+        if (auto num = dynamic_cast<number_literal_node *>(expr)) {
+            type = num->get_type() == FLOAT_EXP ? "float" : 
+                   num->get_type() == BOOL_EXP ? "bool" : "int";
+        }
+        
+        out() << "        <statements\n";
+        writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
+        out() << ">\n";
+        out() << "          <lvalue\n";
+        writeAttribute("            xsi:type", "chips.xvalues.primitive:" + type + "_variable_expression");
+        out() << "\n";
+        writeAttribute("            variable", path);
+        out() << "/>\n";
+        out() << "          <rvalue\n";
+        writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
+        out() << "\n";
+        writeAttribute("            value", value);
+        out() << "/>\n";
+        out() << "        </statements>\n";
+    }
+}
+
+void ChipsToXmiVisitor::visit(context_variable_assignment_node &node) {
+    std::cerr << "[DEBUG Visitor] visit(context_variable_assignment_node) identifier=" 
+              << node.get_identifier() << std::endl;
+    
+    std::string name = node.get_identifier();
+    std::string path = get_ast_path_by_name(name);
+    
+    if (auto expr = node.get_expression()) {
+        std::string value = getExpressionValue(*expr);
+        std::cerr << "[DEBUG] Context assignment value: " << value << std::endl;
+        
+        std::string type = "int"; // Default
+        if (auto num = dynamic_cast<number_literal_node *>(expr)) {
+            type = num->get_type() == FLOAT_EXP ? "float" : 
+                   num->get_type() == BOOL_EXP ? "bool" : "int";
+        }
+        
+        out() << "        <statements\n";
+        writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
+        out() << ">\n";
+        out() << "          <lvalue\n";
+        writeAttribute("            xsi:type", "chips.xvalues.primitive:" + type + "_variable_expression");
+        out() << "\n";
+        writeAttribute("            variable", path);
+        out() << "/>\n";
+        out() << "          <rvalue\n";
+        writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
+        out() << "\n";
+        writeAttribute("            value", value);
+        out() << "/>\n";
+        out() << "        </statements>\n";
+    }
 }
 
 // === EXPRESSIONS ===
@@ -691,6 +885,27 @@ void ChipsToXmiVisitor::visit(variable_node &node)
     out() << "    <!-- variable_node TODO -->\n";
 }
 
+void ChipsToXmiVisitor::visit(plugging_expr_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(plugging_expr_node)" << std::endl;
+    out() << "    <!-- plugging_expr_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_cast_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_cast_node)" << std::endl;
+    out() << "    <!-- collective_cast_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_operation_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_operation_node)" << std::endl;
+    out() << "    <!-- collective_operation_node TODO -->\n";
+    (void)node;
+}
+
 void ChipsToXmiVisitor::visit(object_virtual_output_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(object_virtual_output_node)" << std::endl;
@@ -709,6 +924,48 @@ void ChipsToXmiVisitor::visit(cast_node &node)
     out() << "    <!-- cast_node TODO -->\n";
 }
 
+void ChipsToXmiVisitor::visit(stop_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(stop_node)" << std::endl;
+    out() << "    <!-- stop_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(input_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(input_node)" << std::endl;
+    out() << "    <!-- input_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_cast_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_cast_node)" << std::endl;
+    out() << "    <!-- c_cast_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(context_expression_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(context_expression_node)" << std::endl;
+    out() << "    <!-- context_expression_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(integrated_function_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(integrated_function_node)" << std::endl;
+    out() << "    <!-- integrated_function_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(context_decl_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(context_decl_node)" << std::endl;
+    out() << "    <!-- context_decl_node TODO -->\n";
+    (void)node;
+}
+
 void ChipsToXmiVisitor::visit(suffixes_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(suffixes_node)" << std::endl;
@@ -725,6 +982,192 @@ void ChipsToXmiVisitor::visit(paren_expression_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(paren_expression_node)" << std::endl;
     out() << "    <!-- paren_expression_node TODO -->\n";
+}
+
+// === COLLECTIVE / CONFIGURATION HELPERS ===
+
+void ChipsToXmiVisitor::visit(c_keywords_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_keywords_node)" << std::endl;
+    out() << "    <!-- c_keywords_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(spread_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(spread_node)" << std::endl;
+    out() << "    <!-- spread_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collect_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collect_node)" << std::endl;
+    out() << "    <!-- collect_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_statements_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_statements_node)" << std::endl;
+    out() << "    <!-- c_statements_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_statement_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_statement_node)" << std::endl;
+    out() << "    <!-- c_statement_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_loop_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_loop_node)" << std::endl;
+    out() << "    <!-- c_loop_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_if_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_if_node)" << std::endl;
+    out() << "    <!-- c_if_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_if_else_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_if_else_node)" << std::endl;
+    out() << "    <!-- c_if_else_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_expressions_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_expressions_node)" << std::endl;
+    out() << "    <!-- c_expressions_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_output_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_output_node)" << std::endl;
+    out() << "    <!-- c_output_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_optionnal_outputs_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_optionnal_outputs_node)" << std::endl;
+    out() << "    <!-- c_optionnal_outputs_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_dataflow_defaulted_decls_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_dataflow_defaulted_decls_node)" << std::endl;
+    out() << "    <!-- collective_dataflow_defaulted_decls_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_dataflow_defaulted_decl_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_dataflow_defaulted_decl_node)" << std::endl;
+    out() << "    <!-- collective_dataflow_defaulted_decl_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_dataflow_full_declaration_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_dataflow_full_declaration_node)" << std::endl;
+    out() << "    <!-- collective_dataflow_full_declaration_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(collective_rhs_assignment_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(collective_rhs_assignment_node)" << std::endl;
+    out() << "    <!-- collective_rhs_assignment_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_variable_assignment_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_variable_assignment_node)" << std::endl;
+    out() << "    <!-- c_variable_assignment_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(c_context_variable_assignment_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(c_context_variable_assignment_node)" << std::endl;
+    out() << "    <!-- c_context_variable_assignment_node TODO -->\n";
+    (void)node;
+}
+
+// === DATAFLOW TYPES & PARAMETERS ===
+
+void ChipsToXmiVisitor::visit(dataflow_type_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(dataflow_type_node)" << std::endl;
+    out() << "    <!-- dataflow_type_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(physical_dataflow_parameter_type_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_dataflow_parameter_type_node)" << std::endl;
+    out() << "    <!-- physical_dataflow_parameter_type_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(expressions_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(expressions_node)" << std::endl;
+    out() << "    <!-- expressions_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(dataflow_parameter_list_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(dataflow_parameter_list_node)" << std::endl;
+    out() << "    <!-- dataflow_parameter_list_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(physical_dataflow_parameter_list_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_dataflow_parameter_list_node)" << std::endl;
+    out() << "    <!-- physical_dataflow_parameter_list_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(dataflow_parameter_decls_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(dataflow_parameter_decls_node)" << std::endl;
+    out() << "    <!-- dataflow_parameter_decls_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(physical_dataflow_parameter_decls_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_dataflow_parameter_decls_node)" << std::endl;
+    out() << "    <!-- physical_dataflow_parameter_decls_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(dataflow_parameter_decl_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(dataflow_parameter_decl_node)" << std::endl;
+    out() << "    <!-- dataflow_parameter_decl_node TODO -->\n";
+    (void)node;
+}
+
+void ChipsToXmiVisitor::visit(physical_dataflow_parameter_decl_node &node)
+{
+    std::cerr << "[DEBUG Visitor] visit(physical_dataflow_parameter_decl_node)" << std::endl;
+    out() << "    <!-- physical_dataflow_parameter_decl_node TODO -->\n";
+    (void)node;
 }
 
 // === FALLBACK ===

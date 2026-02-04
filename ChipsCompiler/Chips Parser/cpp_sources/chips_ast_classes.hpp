@@ -138,11 +138,27 @@ class variable_node;
 
 class plugging_expr_node;
 
+class collective_cast_node;
+
+class collective_operation_node;
+
 class object_virtual_output_node;
 
 class object_physical_attribute_node;
 
 class cast_node;
+
+class stop_node;
+
+class input_node;
+
+class c_cast_node;
+
+class context_expression_node;
+
+class integrated_function_node;
+
+class context_decl_node;
 
 class suffixes_node;
 
@@ -338,6 +354,11 @@ public:
     void set_column(int c) { column = c; }
 };
 
+// Forward declarations for statement sub-nodes
+class dataflow_full_declaration_node;
+class variable_assignment_node;
+class context_variable_assignment_node;
+
 class chips_visitor
 {
 public:
@@ -385,7 +406,19 @@ public:
 
     virtual void visit(physical_named_outputs_node &chips) = 0;
     virtual void visit(physical_named_output_node &chips) = 0;
+    virtual void visit(named_outputs_node &node) = 0;
+    virtual void visit(named_output_node &node) = 0;
+    virtual void visit(actuator_node &node) = 0;
     virtual void visit(statement_node &node) = 0;
+    virtual void visit(statements_node &node) = 0;
+    virtual void visit(rhs_assignment_node &node) = 0;
+    virtual void visit(assignment_node &node) = 0;
+    virtual void visit(this_attribute_node &node) = 0;
+    virtual void visit(function_call_statement_node &node) = 0;
+    virtual void visit(if_node &node) = 0;
+    virtual void visit(if_else_node &node) = 0;
+    virtual void visit(loop_node &node) = 0;
+    virtual void visit(block_node &node) = 0;
 
     // === 6. EXPRESSIONS ===
     virtual void visit(expression_node& node) = 0;
@@ -395,12 +428,56 @@ public:
     virtual void visit(number_literal_node& node) = 0;
     virtual void visit(function_call_node& node) = 0;
     virtual void visit(variable_node& node) = 0;
+    virtual void visit(plugging_expr_node& node) = 0;
+    virtual void visit(collective_cast_node& node) = 0;
+    virtual void visit(collective_operation_node& node) = 0;
     virtual void visit(object_virtual_output_node& node) = 0;
     virtual void visit(object_physical_attribute_node& node) = 0;
     virtual void visit(cast_node& node) = 0;
+    virtual void visit(stop_node& node) = 0;
+    virtual void visit(input_node& node) = 0;
+    virtual void visit(c_cast_node& node) = 0;
+    virtual void visit(context_expression_node& node) = 0;
+    virtual void visit(integrated_function_node& node) = 0;
+    virtual void visit(context_decl_node& node) = 0;
     virtual void visit(suffixes_node& node) = 0;
     virtual void visit(suffixised_node& node) = 0;
     virtual void visit(paren_expression_node& node) = 0;
+
+    // === 6.5. COLLECTIVE / CONFIGURATION HELPERS ===
+    virtual void visit(c_keywords_node& node) = 0;
+    virtual void visit(spread_node& node) = 0;
+    virtual void visit(collect_node& node) = 0;
+    virtual void visit(c_statements_node& node) = 0;
+    virtual void visit(c_statement_node& node) = 0;
+    virtual void visit(c_loop_node& node) = 0;
+    virtual void visit(c_if_node& node) = 0;
+    virtual void visit(c_if_else_node& node) = 0;
+    virtual void visit(c_expressions_node& node) = 0;
+    virtual void visit(c_output_node& node) = 0;
+    virtual void visit(c_optionnal_outputs_node& node) = 0;
+    virtual void visit(collective_dataflow_defaulted_decls_node& node) = 0;
+    virtual void visit(collective_dataflow_defaulted_decl_node& node) = 0;
+    virtual void visit(collective_dataflow_full_declaration_node& node) = 0;
+    virtual void visit(collective_rhs_assignment_node& node) = 0;
+    virtual void visit(c_variable_assignment_node& node) = 0;
+    virtual void visit(c_context_variable_assignment_node& node) = 0;
+
+    // === 7. DATAFLOW TYPES & PARAMETERS ===
+    virtual void visit(dataflow_type_node& node) = 0;
+    virtual void visit(physical_dataflow_parameter_type_node& node) = 0;
+    virtual void visit(expressions_node& node) = 0;
+    virtual void visit(dataflow_parameter_list_node& node) = 0;
+    virtual void visit(physical_dataflow_parameter_list_node& node) = 0;
+    virtual void visit(dataflow_parameter_decls_node& node) = 0;
+    virtual void visit(physical_dataflow_parameter_decls_node& node) = 0;
+    virtual void visit(dataflow_parameter_decl_node& node) = 0;
+    virtual void visit(physical_dataflow_parameter_decl_node& node) = 0;
+
+    // sub statements nodes
+    virtual void visit(dataflow_full_declaration_node &node) = 0 ;
+    virtual void visit(variable_assignment_node &node) = 0 ;
+    virtual void visit(context_variable_assignment_node &node) = 0 ;
 };
 class context_expression_node;
 
@@ -411,9 +488,5 @@ class collective_operation_node;
 class integrated_function_node;
 
 class context_decl_node;
-
-class context_variable_assignment_node;
-
-class variable_assignment_node;
 
 #endif // ! AST_H

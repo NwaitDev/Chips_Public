@@ -41,7 +41,7 @@ class physical_dataflow_parameter_type_node : public ast_node {
 
         dataflow_type_node* get_df_type() { return type.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
         virtual void hello() override;
 };
 
@@ -94,7 +94,7 @@ class dataflow_parameter_list_node : public ast_node {
             df_param_decls.push_back(std::move(item));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -121,7 +121,7 @@ class physical_dataflow_parameter_list_node : public ast_node {
             pdf_param_decls.push_back(std::move(item));
         }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -147,7 +147,7 @@ class dataflow_parameter_decls_node :  public ast_node {
 
         std::vector<std::unique_ptr<dataflow_parameter_decl_node>>& get_df_param_decls() { return df_param_decls; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -174,7 +174,7 @@ class physical_dataflow_parameter_decls_node :  public ast_node {
 
         std::vector<std::unique_ptr<physical_dataflow_parameter_decl_node>>& get_pdf_param_decls() { return pdf_param_decls; }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -192,7 +192,7 @@ class dataflow_parameter_decl_node : public ast_node {
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };
@@ -210,7 +210,7 @@ class physical_dataflow_parameter_decl_node : public ast_node {
         std::string get_identifier() { return identifier; }
         rhs_assignment_node* get_rhs() { return assign.get(); }
 
-        void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
         virtual void hello() override;
 };

@@ -47,7 +47,7 @@ public:
         statements.insert(statements.begin(), std::move(sttmt));
     }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -68,7 +68,7 @@ public:
     expression_node* get_loop_expr() { return loop_expr.get(); }
     s_statements_node* get_statements() { return stts.get(); }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -87,7 +87,7 @@ public:
     expression_node* get_condition() { return cond.get(); }
     s_statements_node* get_statements() { return stts.get(); }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -106,7 +106,7 @@ public:
     s_if_node* get_if_node() { return ifnode.get(); }
     s_statements_node* get_else_node() { return elsestts.get(); }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -127,7 +127,7 @@ public:
     suffixes_node* get_suffixes() { return suff.get(); }
     std::string get_ident2() { return ident2; }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -150,7 +150,7 @@ public:
     suffixes_node* get_suffixes() { return suff.get(); }
     expression_node* get_expression() { return expr.get(); }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -173,7 +173,7 @@ class link_node : public s_statement_node {
         std::string get_target() { return lk_target; }
         suffixes_node* get_suffixes_target() { return suff_target.get(); }
 
-    void accept(chips_visitor& visitor) {}
+        void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
@@ -198,7 +198,7 @@ public:
     suffixes_node* get_suffixes2() { return suffixes2.get(); }
     std::string get_ident3() { return ident3; }
 
-    void accept(chips_visitor& visitor) {}
+    void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
     void hello() override;
 };
