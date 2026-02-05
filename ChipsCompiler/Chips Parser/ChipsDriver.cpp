@@ -1,8 +1,9 @@
 #include "ChipsDriver.hpp"
 #include "ChipsParser.hpp"
+#include <sstream>
 
 driver::driver ()
-: trace_parsing (false), trace_scanning (false)
+: trace_parsing (false), trace_scanning (false), skip_semantic_analysis(false), skip_xmi_generation(false)
 {}
 
 int driver::parse (const std::string &f)
@@ -16,21 +17,28 @@ int driver::parse (const std::string &f)
     scan_end ();
     if(res == 0 && ast){
         ast->hello();
-        
-        // Générer automatiquement le XMI après parsing réussi
-        std::filesystem::path p(f);
-        std::string output = "output_" + p.filename().string();
-        // Remplacer l'extension par .xmi
-        size_t pos = output.find_last_of('.');
-        if (pos != std::string::npos) {
-            output = output.substr(0, pos) + ".xmi";
-        } else {
-            output += ".xmi";
+
+        if (!skip_xmi_generation) {
+            // Générer automatiquement le XMI après parsing réussi
+            std::filesystem::path p(f);
+            std::string output = xmi_output_filename.empty()
+                ? "output_" + p.filename().string()
+                : xmi_output_filename;
+
+            // Remplacer l'extension par .xmi (uniquement si on utilise le nom par defaut)
+            if (xmi_output_filename.empty()) {
+                size_t pos = output.find_last_of('.');
+                if (pos != std::string::npos) {
+                    output = output.substr(0, pos) + ".xmi";
+                } else {
+                    output += ".xmi";
+                }
+            }
+
+            std::cout << "📝 Génération XMI: " << output << "\n";
+            // Passer juste le nom du fichier (sans le chemin) au writer
+            generate_xmi(output, p.filename().string());
         }
-        
-        std::cout << "📝 Génération XMI: " << output << "\n";
-        // Passer juste le nom du fichier (sans le chemin) au writer
-        generate_xmi(output, p.filename().string());
     }
     return res;
 }
@@ -41,6 +49,19 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
         std::cerr << "❌ Erreur: AST non disponible\n";
         return;
     }
+
+    // Visite unique: bufferise le contenu et verifie les erreurs semantiques
+    std::ostringstream body_out;
+    ChipsToXmiWriter body_writer(body_out);
+    ChipsToXmiVisitor visitor(body_writer, body_out);
+    ast->accept(visitor);
+    if (!skip_semantic_analysis && visitor.has_semantic_errors()) {
+        std::cerr << "❌ Erreurs semantiques detectees, XMI non genere." << std::endl;
+        for (const auto &err : visitor.semantic_errors()) {
+            std::cerr << "  - " << err << std::endl;
+        }
+        return;
+    }
     
     // Ouvrir le fichier de sortie
     std::ofstream out(output_file);
@@ -49,20 +70,11 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
         return;
     }
     
-    // Créer le writer et le visitor
+    // Ecrire le XMI final avec les namespaces collectes lors de la visite
     ChipsToXmiWriter writer(out);
-    ChipsToXmiVisitor visitor(writer, out);
-    
-    // PREMIÈRE PASSE: Collecter les namespaces nécessaires
-    writer.collect_namespaces(dynamic_cast<chips_node*>(ast.get()));
-    
-    // Écrire le header XMI avec les namespaces collectés
+    writer.copy_namespaces_from(body_writer);
     writer.xmi_header(source_filename);
-    
-    // DEUXIÈME PASSE: Parcourir l'AST avec le visitor pour générer le contenu
-    ast->accept(visitor);
-    
-    // Écrire le footer XMI
+    out << body_out.str();
     writer.xmi_footer();
     
     out.close();

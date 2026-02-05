@@ -20,6 +20,9 @@ public:
     void generate_xmi(const std::string& output_file, const std::string& source_filename);
     
     std::string file;
+    std::string xmi_output_filename;
+    bool skip_semantic_analysis;
+    bool skip_xmi_generation;
     bool trace_parsing;
     void scan_begin ();
     void scan_end ();

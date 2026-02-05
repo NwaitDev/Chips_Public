@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
     driver drv;
     std::string filename = std::string(argv[1]);
 
-    /* for(int i = 2; i < argc; i++){
+    for(int i = 2; i < argc; i++){
         std::string arg = argv[i];
         if(arg == "--skip-semantic"){
             drv.skip_semantic_analysis = true;
@@ -535,7 +535,7 @@ int main(int argc, char *argv[])
             // TODO : refactor la génération des fichier xmi avec un string builder dans les visiteurs et les writers
         }
          
-    } */
+    }
 
     return drv.parse(filename);
 }
