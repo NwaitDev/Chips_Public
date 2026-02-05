@@ -13,6 +13,7 @@
 #include "ChipsToXmiWriter.hpp"
 #include <ostream>
 #include <map>
+#include <vector>
 
 /// @brief Complete XMI Visitor - implements ALL chips_visitor methods
 class ChipsToXmiVisitor : public chips_visitor
@@ -20,6 +21,9 @@ class ChipsToXmiVisitor : public chips_visitor
 public:
     ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out)
         : m_writer(writer), m_out(out), m_current_ast_path("/") {}
+
+    bool has_semantic_errors() const { return !m_semantic_errors.empty(); }
+    const std::vector<std::string> &semantic_errors() const { return m_semantic_errors; }
 
     // === PROGRAM & CONTEXT ===
     void visit(chips_node &chips) override;
@@ -142,7 +146,13 @@ private:
     std::ostream &out() { return m_out; }
     std::string get_ast_path() const { return m_current_ast_path; }
     std::string get_ast_path_by_name(const std::string &name);
-    void register_variable(const std::string &name, const std::string &path) { m_symbol_table[name] = path; }
+    void register_variable(const std::string &name, const std::string &path) {
+        auto existing = m_symbol_table.find(name);
+        if (existing != m_symbol_table.end()) {
+            report_semantic_error("Duplicate variable declaration: " + name);
+        }
+        m_symbol_table[name] = path;
+    }
     void push_ast_path(const std::string &segment) { m_current_ast_path += segment; }
     void pop_ast_path(const std::string &segment) { 
         size_t pos = m_current_ast_path.rfind(segment);
@@ -155,12 +165,15 @@ private:
     void endEmptyElement();
     std::string getExpressionValue(expression_node &expr);
     void visit_generic(ast_node &node); // squelette commun
+    void report_semantic_error(const std::string &message);
 
     // Members
     ChipsToXmiWriter &m_writer;
     std::ostream &m_out;
     std::string m_current_ast_path;
     std::map<std::string, std::string> m_symbol_table;  // nom -> chemin AST
+    std::string m_statement_tag = "statements";  // Tag name override for if/else sections
+    std::vector<std::string> m_semantic_errors;
 };
 
 #endif // CHIPS_TO_XMI_VISITOR_HPP

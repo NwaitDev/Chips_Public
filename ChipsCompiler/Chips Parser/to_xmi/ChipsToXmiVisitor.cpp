@@ -227,9 +227,10 @@ void ChipsToXmiVisitor::visit(object_definition_node &node)
     std::cerr << "[DEBUG Visitor] visit(object_definition_node) name="
               << node.get_identifier() << std::endl;
 
-    out() << "    <definitions";
-    writeAttribute("xsi:type", "definitions:object_definition");
-    writeAttribute("name", node.get_identifier());
+    out() << "    <definitions\n";
+    writeAttribute("      xsi:type", "definitions:object_definition");
+    out() << "\n";
+    writeAttribute("      name", node.get_identifier());
     out() << ">\n";
 
     // Visiter la section "with" si elle existe
@@ -261,9 +262,10 @@ void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
     std::cerr << "[DEBUG Visitor] visit(logical_function_definition_node) name="
               << node.get_identifier() << std::endl;
 
-    out() << "    <definitions";
-    writeAttribute("xsi:type", "definitions:logical_definition");
-    writeAttribute("name", node.get_identifier());
+    out() << "    <definitions\n";
+    writeAttribute("      xsi:type", "definitions:logical_definition");
+    out() << "\n";
+    writeAttribute("      name", node.get_identifier());
     out() << ">\n";
 
     if (auto init = node.get_init())
@@ -293,10 +295,38 @@ void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
     std::cerr << "[DEBUG Visitor] visit(physical_function_definition_node) name="
               << node.get_identifier() << std::endl;
 
-    out() << "    <definitions";
-    writeAttribute("xsi:type", "definitions:physical_definition");
-    writeAttribute("name", node.get_identifier());
+    out() << "    <definitions\n";
+    writeAttribute("      xsi:type", "definitions:physical_definition");
+    out() << "\n";
+    writeAttribute("      name", node.get_identifier());
     out() << ">\n";
+
+    // Enregistrer les paramètres (sensors, actuators, etc.) dans la table des symboles
+    if (auto params = node.get_pdf_parameter_list())
+    {
+        std::cerr << "[DEBUG Visitor] Physical a des paramètres" << std::endl;
+        int sensor_index = 0;
+        int actuator_index = 0;
+        
+        for (auto &param : params->get_pdf_param_decls())
+        {
+            if (param)
+            {
+                std::string param_name = param->get_identifier();
+                auto param_type = param->get_df_type();
+                
+                // TODO: Vérifier si c'est un sensor ou actuator via is_sensor
+                // Pour l'instant, on suppose que c'est un sensor si le nom du paramètre est typique
+                // Une meilleure approche serait d'ajouter une méthode is_sensor() à physical_dataflow_parameter_type_node
+                
+                // Chemin pour sensor: //@preamble/@definitions.X/@sensor.Y/@declaration/@variable
+                std::string param_path = get_ast_path() + "/@sensor." + std::to_string(sensor_index) + "/@declaration/@variable";
+                register_variable(param_name, param_path);
+                std::cerr << "[DEBUG] Paramètre sensor '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
+                sensor_index++;
+            }
+        }
+    }
 
     // Visiter les sections dans l'ordre : with, init, then, puis outputs
     // (outputs doit être visité après init/then pour avoir accès aux chemins des variables déclarées)
@@ -340,6 +370,60 @@ void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
         std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
     }
 
+    // Générer les sensors
+    if (auto params = node.get_pdf_parameter_list())
+    {
+        std::cerr << "[DEBUG Visitor] Génération des sensors" << std::endl;
+        int sensor_index = 0;
+        
+        for (auto &param : params->get_pdf_param_decls())
+        {
+            if (param)
+            {
+                std::string param_name = param->get_identifier();
+                auto param_type = param->get_df_type();
+                
+                // Déterminer le type du paramètre
+                std::string dataflow_type = "int"; // Default
+                if (param_type && param_type->get_df_type())
+                {
+                    DATAFLOW_TYPE df_type = param_type->get_df_type()->get_type();
+                    if (df_type == INT_DF)
+                        dataflow_type = "int";
+                    else if (df_type == FLOAT_DF)
+                        dataflow_type = "float";
+                    else if (df_type == BOOL_DF)
+                        dataflow_type = "bool";
+                }
+                
+                std::cerr << "[DEBUG] Génération du sensor #" << sensor_index << ": " << param_name << " (" << dataflow_type << ")" << std::endl;
+                
+                push_ast_path("/@sensor." + std::to_string(sensor_index));
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+                
+                out() << "      <sensor\n";
+                writeAttribute("          xsi:type", "chips.parameters.physical:" + dataflow_type + "_physical_parameter");
+                out() << "\n";
+                writeAttribute("          name", param_name);
+                out() << ">\n";
+                
+                out() << "        <declaration>\n";
+                push_ast_path("/@declaration");
+                out() << "          <variable\n";
+                writeAttribute("              name", param_name);
+                out() << "/>\n";
+                pop_ast_path("/@declaration");
+                out() << "        </declaration>\n";
+                
+                out() << "      </sensor>\n";
+                
+                pop_ast_path("/@sensor." + std::to_string(sensor_index));
+                std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
+                sensor_index++;
+            }
+        }
+    }
+
     out() << "    </definitions>\n";
 }
 
@@ -354,9 +438,10 @@ void ChipsToXmiVisitor::visit(implementation_definition_node &node)
     std::cerr << "[DEBUG Visitor] visit(implementation_definition_node) name="
               << node.get_ident1() << std::endl;
 
-    out() << "    <definitions";
-    writeAttribute("xsi:type", "definitions:implementation_definition");
-    writeAttribute("name", node.get_ident1());
+    out() << "    <definitions\n";
+    writeAttribute("      xsi:type", "definitions:implementation_definition");
+    out() << "\n";
+    writeAttribute("      name", node.get_ident1());
     out() << ">\n";
 
     out() << "      <!-- TODO: implemented_object, implementing_node, having -->\n";
@@ -431,7 +516,7 @@ void ChipsToXmiVisitor::visit(with_two_identifier_node &node)
 
     std::string type_identifier = node.get_ident1();
     std::string name = node.get_ident2();
-    std::string type = "chips.statements.node:chanel_declaration";
+    std::string type = "chips.statements.node:channel_declaration";
 
     out() << "        <statements\n";
     writeAttribute("          xsi:type", type);
@@ -439,8 +524,7 @@ void ChipsToXmiVisitor::visit(with_two_identifier_node &node)
     writeAttribute("          name", name);
     out() << "\n";
     writeAttribute("          type_identifier", type_identifier);
-    out() << ">\n";
-    out() << "        </statements>\n";
+    out() << "/>\n";
 }
 
 void ChipsToXmiVisitor::visit(with_context_statement_node &node)
@@ -470,13 +554,13 @@ void ChipsToXmiVisitor::visit(with_context_statement_node &node)
     out() << "        <statements\n";
     writeAttribute("        xsi:type", type);
     out() << "\n";
-    writeAttribute("        type_identifier", name);
-    out() << " >\n          <variable>\n            <variable";
+    writeAttribute("        identifier", name);
+    out() << ">\n          <variable>\n            <variable\n";
     writeAttribute("name", name);
     out() << "/>\n          </variable>\n";
     if (rhs_value != "0" && rhs_value != "0.0" && rhs_value != "false" && rhs_value != "unknown")
     {
-        out() << "        </statements>\n        <statements\n";
+        out() << "        </" << m_statement_tag << ">\n        <" << m_statement_tag << "\n";
         writeAttribute("        xsi:type", "chips.statements.primitive:" + type_primitive + "_assignment");
         out() << ">\n";
         out() << "          <lvalue\n";
@@ -486,11 +570,14 @@ void ChipsToXmiVisitor::visit(with_context_statement_node &node)
         out() << "/>\n";
         out() << "          <rvalue\n";
         writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type_primitive);
-        out() << "\n";
-        writeAttribute("            value", rhs_value);
+        std::cerr << "[Debug] value ?????????????? " << rhs_value << std::endl;
+        if (rhs_value != "0" && rhs_value != "0.0" && rhs_value != "false") {
+            out() << "\n";
+            writeAttribute("            value", rhs_value);
+        }
         out() << "/>\n";
     }
-    out() << "        </statements>\n";
+    out() << "        </" << m_statement_tag << ">\n";
     pop_ast_path(segment);
     std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
 }
@@ -552,7 +639,7 @@ void ChipsToXmiVisitor::visit(then_section_node &node)
 void ChipsToXmiVisitor::visit(physical_named_outputs_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(physical_named_outputs_node)" << std::endl;
-    out() << "      <outputs\n";
+    
     int index = 0;
     for (auto &output : node.get_outputs())
     {
@@ -566,7 +653,6 @@ void ChipsToXmiVisitor::visit(physical_named_outputs_node &node)
             std::cerr << "                                                                                    [DEBUG AST PATH] " << get_ast_path() << std::endl;
         }
     }
-    out() << "      </outputs>\n";
 }
 
 void ChipsToXmiVisitor::visit(physical_named_output_node &node)
@@ -577,12 +663,14 @@ void ChipsToXmiVisitor::visit(physical_named_output_node &node)
     // Récupérer les paramètres
     expressions_node* params = node.get_parameters();
     
-    writeAttribute("        xsi:type", "chips.outputs.logical:int_output");
+    // Balise ouvrante <outputs avec attributs
+    out() << "      <outputs\n";
+    writeAttribute("          xsi:type", "chips.outputs.logical:int_output");
     out() << "\n";
-    writeAttribute("        name", node.get_identifier());
-    out() << " >\n";
+    writeAttribute("          name", node.get_identifier());
+    out() << ">\n";
     
-    // Traiter les paramètres
+    // Traiter les paramètres (expressions)
     if (params)
     {
         const auto& param_list = params->get_expressions();
@@ -596,26 +684,13 @@ void ChipsToXmiVisitor::visit(physical_named_output_node &node)
                 std::string param_name = getExpressionValue(*expr);
                 std::cerr << "[DEBUG Visitor] Paramètre: " << param_name << std::endl;
                 
-                // Vérifier si c'est un littéral (true, false, nombre, etc.)
-                bool is_literal = false;
-                std::string variable_path = param_name;
+                // C'est probablement une variable, chercher dans la table des symboles
+                std::string variable_path = get_ast_path_by_name(param_name);
                 
-                if (auto num = dynamic_cast<number_literal_node *>(expr.get())) {
-                    is_literal = true;
-                    // Pour les littéraux, on utilise directement la valeur
-                    variable_path = param_name;
-                } else if (param_name == "true" || param_name == "false") {
-                    is_literal = true;
-                    variable_path = param_name;
-                } else {
-                    // C'est probablement une variable, chercher dans la table des symboles
-                    variable_path = get_ast_path_by_name(param_name);
-                }
-                
-                out() << "      <expression\n";
-                writeAttribute("          xsi:type", "chips.xvalues.primitive:int_variable_expression");
+                out() << "        <expression\n";
+                writeAttribute("            xsi:type", "chips.xvalues.primitive:int_variable_expression");
                 out() << "\n";
-                writeAttribute("          variable", variable_path);
+                writeAttribute("            variable", variable_path);
                 out() << "/>\n";
             }
         }
@@ -625,7 +700,8 @@ void ChipsToXmiVisitor::visit(physical_named_output_node &node)
         std::cerr << "[WARNING Visitor] Aucun paramètre pour l'output" << std::endl;
     }
     
-    out() << "      </output>\n";
+    // Balise fermante
+    out() << "      </outputs>\n";
 }
 
 void ChipsToXmiVisitor::visit(named_outputs_node &node)
@@ -638,8 +714,50 @@ void ChipsToXmiVisitor::visit(named_outputs_node &node)
 void ChipsToXmiVisitor::visit(named_output_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(named_output_node)" << std::endl;
-    out() << "      <!-- named_output_node TODO -->\n";
-    (void)node;
+    std::cerr << "[DEBUG Visitor] Output name: " << node.get_identifier() << std::endl;
+    
+    // Récupérer les paramètres
+    expressions_node* params = node.get_parameters();
+    
+    // Balise ouvrante <outputs avec attributs
+    out() << "      <outputs\n";
+    writeAttribute("          xsi:type", "chips.outputs.logical:int_output");
+    out() << "\n";
+    writeAttribute("          name", node.get_identifier());
+    out() << ">\n";
+    
+    // Traiter les paramètres (expressions)
+    if (params)
+    {
+        const auto& param_list = params->get_expressions();
+        std::cerr << "[DEBUG Visitor] Nombre de paramètres: " << param_list.size() << std::endl;
+        
+        for (const auto& expr : param_list)
+        {
+            if (expr)
+            {
+                // Extraire la valeur/nom du paramètre
+                std::string param_name = getExpressionValue(*expr);
+                std::cerr << "[DEBUG Visitor] Paramètre: " << param_name << std::endl;
+                
+                // C'est probablement une variable, chercher dans la table des symboles
+                std::string variable_path = get_ast_path_by_name(param_name);
+                
+                out() << "        <expression\n";
+                writeAttribute("            xsi:type", "chips.xvalues.primitive:int_variable_expression");
+                out() << "\n";
+                writeAttribute("            variable", variable_path);
+                out() << "/>\n";
+            }
+        }
+    }
+    else
+    {
+        std::cerr << "[WARNING Visitor] Aucun paramètre pour l'output" << std::endl;
+    }
+    
+    // Balise fermante
+    out() << "      </outputs>\n";
 }
 
 void ChipsToXmiVisitor::visit(actuator_node &node)
@@ -694,8 +812,81 @@ void ChipsToXmiVisitor::visit(if_node &node)
 void ChipsToXmiVisitor::visit(if_else_node &node)
 {
     std::cerr << "[DEBUG Visitor] visit(if_else_node)" << std::endl;
-    out() << "      <!-- if_else_node TODO -->\n";
-    (void)node;
+    
+    out() << "        <statements\n";
+    writeAttribute("            xsi:type", "chips.statements.primitive:if_else");
+    out() << ">\n";
+    
+    // Condition
+    if (auto if_part = node.get_if_node())
+    {
+        if (auto cond = if_part->get_condition())
+        {
+            std::cerr << "[DEBUG Visitor] if_else: traitement de la condition" << std::endl;
+            std::string cond_var_name = getExpressionValue(*cond);
+            std::string cond_var_path = get_ast_path_by_name(cond_var_name);
+            
+            out() << "          <condition\n";
+            writeAttribute("              xsi:type", "chips.xvalues.primitive:bool_variable_expression");
+            out() << "\n";
+            writeAttribute("              variable", cond_var_path);
+            out() << "/>\n";
+        }
+        
+        // Section if
+        out() << "          <if_section>\n";
+        if (auto if_stmts = if_part->get_statements())
+        {
+            std::cerr << "[DEBUG Visitor] if_else: traitement if_section" << std::endl;
+            // Changer le tag pour if_statements
+            std::string old_tag = m_statement_tag;
+            m_statement_tag = "if_statements";
+            
+            int index = 0;
+            for (auto &st : if_stmts->get_statements())
+            {
+                if (st)
+                {
+                    std::string segment = "/@if_statements." + std::to_string(index++);
+                    push_ast_path(segment);
+                    st->accept(*this);
+                    pop_ast_path(segment);
+                }
+            }
+            
+            // Restaurer le tag
+            m_statement_tag = old_tag;
+        }
+        out() << "          </if_section>\n";
+    }
+    
+    // Section else
+    out() << "          <else_section>\n";
+    if (auto else_stmts = node.get_else_node())
+    {
+        std::cerr << "[DEBUG Visitor] if_else: traitement else_section" << std::endl;
+        // Changer le tag pour else_statements
+        std::string old_tag = m_statement_tag;
+        m_statement_tag = "else_statements";
+        
+        int index = 0;
+        for (auto &st : else_stmts->get_statements())
+        {
+            if (st)
+            {
+                std::string segment = "/@else_statements." + std::to_string(index++);
+                push_ast_path(segment);
+                st->accept(*this);
+                pop_ast_path(segment);
+            }
+        }
+        
+        // Restaurer le tag
+        m_statement_tag = old_tag;
+    }
+    out() << "          </else_section>\n";
+    
+    out() << "        </statements>\n";
 }
 
 void ChipsToXmiVisitor::visit(loop_node &node)
@@ -717,10 +908,13 @@ void ChipsToXmiVisitor::visit(statement_node &node) {
     std::cerr << "[DEBUG Visitor] visit(statement_node) - classe abstraite" << std::endl;
     // Dispatch vers les sous-classes concrètes
     if (auto df = dynamic_cast<dataflow_full_declaration_node *>(&node)) {
+        std::cerr << "--> [Dispatch] dataflow_full_declaration_node détecté" << std::endl;
         df->accept(*this);
     } else if (auto var_assign = dynamic_cast<variable_assignment_node *>(&node)) {
+        std::cerr << "--> [Dispatch] variable_assignment_node détecté" << std::endl;
         var_assign->accept(*this);
     } else if (auto ctx_assign = dynamic_cast<context_variable_assignment_node *>(&node)) {
+        std::cerr << "--> [Dispatch] context_variable_assignment_node détecté" << std::endl;
         ctx_assign->accept(*this);
     } else {
         out() << "    <!-- statement_node type inconnu -->\n";
@@ -734,7 +928,7 @@ void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node) {
     std::string type = node.get_privitve_type();
     std::string name = node.get_identifier();
     
-    out() << "        <statements";
+    out() << "        <" << m_statement_tag << "\n";
     writeAttribute("xsi:type", "chips.statements.primitive:" + type + "_declaration");
     out() << ">\n";
     
@@ -746,13 +940,13 @@ void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node) {
     out() << "          <variable\n";
     writeAttribute("            name", name);
     out() << "/>\n";
-    out() << "        </statements>\n";
+    out() << "        </" << m_statement_tag << ">\n";
     
     // Traiter l'assignation si elle existe (même pour 0/false)
     if (auto rhs = node.get_rhs()) {
         if (auto rhs_expr = rhs->get_rhs()) {
             std::string rhs_value = getExpressionValue(*rhs_expr);
-            out() << "        <statements\n";
+            out() << "        <" << m_statement_tag << "\n";
             writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
             out() << ">\n";
             out() << "          <lvalue\n";
@@ -762,10 +956,13 @@ void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node) {
             out() << "/>\n";
             out() << "          <rvalue\n";
             writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
-            out() << "\n";
-            writeAttribute("            value", rhs_value);
+            std::cerr << "[Debug] value ?????????????? " << rhs_value << std::endl;
+            if (rhs_value != "0" && rhs_value != "0.0" && rhs_value != "false") {
+                out() << "\n";
+                writeAttribute("            value", rhs_value);
+            }
             out() << "/>\n";
-            out() << "        </statements>\n";
+            out() << "        </" << m_statement_tag << ">\n";
         }
     }
     
@@ -778,8 +975,24 @@ void ChipsToXmiVisitor::visit(variable_assignment_node &node) {
     
     std::string name = node.get_identifier();
     std::string path = get_ast_path_by_name(name);
+    std::cerr << "[DEBUG] Variable path: " << path << std::endl;
     
     if (auto expr = node.get_expression()) {
+        std::cerr << "[DEBUG] Expression trouvée" << std::endl;
+        
+        // Vérifier le type d'expression
+        if (auto bin_expr = dynamic_cast<binary_expression_node *>(expr)) {
+            std::cerr << "[DEBUG] --> Expression binaire détectée!" << std::endl;
+        } else if (auto num = dynamic_cast<number_literal_node *>(expr)) {
+            std::cerr << "[DEBUG] --> Number literal détecté: " << num->get_int() << std::endl;
+        } else if (auto var = dynamic_cast<variable_node *>(expr)) {
+            std::cerr << "[DEBUG] --> Variable node détecté" << std::endl;
+        } else if (auto suf = dynamic_cast<suffixised_node *>(expr)) {
+            std::cerr << "[DEBUG] --> Suffixised node détecté: " << suf->get_identifier() << std::endl;
+        } else {
+            std::cerr << "[DEBUG] --> Type d'expression inconnu" << std::endl;
+        }
+        
         std::string value = getExpressionValue(*expr);
         std::cerr << "[DEBUG] Assignment value: " << value << std::endl;
         
@@ -790,7 +1003,7 @@ void ChipsToXmiVisitor::visit(variable_assignment_node &node) {
                    num->get_type() == BOOL_EXP ? "bool" : "int";
         }
         
-        out() << "        <statements\n";
+        out() << "        <" << m_statement_tag << "\n";
         writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
         out() << ">\n";
         out() << "          <lvalue\n";
@@ -798,12 +1011,87 @@ void ChipsToXmiVisitor::visit(variable_assignment_node &node) {
         out() << "\n";
         writeAttribute("            variable", path);
         out() << "/>\n";
-        out() << "          <rvalue\n";
-        writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
-        out() << "\n";
-        writeAttribute("            value", value);
-        out() << "/>\n";
-        out() << "        </statements>\n";
+        
+        // Traiter la rvalue
+        if (auto bin_expr = dynamic_cast<binary_expression_node *>(expr)) {
+            std::cerr << "[DEBUG] Génération de la rvalue binaire" << std::endl;
+            EXPRESSION_TYPE op_type = bin_expr->get_type();
+            
+            std::string op_name;
+            switch (op_type) {
+                case PLUS_EXP:
+                    op_name = "plus";
+                    std::cerr << "[DEBUG] Opérateur: addition (+)" << std::endl;
+                    break;
+                case MINUS_EXP:
+                    op_name = "minus";
+                    std::cerr << "[DEBUG] Opérateur: soustraction (-)" << std::endl;
+                    break;
+                case TIMES_EXP:
+                    op_name = "times";
+                    std::cerr << "[DEBUG] Opérateur: multiplication (*)" << std::endl;
+                    break;
+                case DIV_EXP:
+                    op_name = "divide";
+                    std::cerr << "[DEBUG] Opérateur: division (/)" << std::endl;
+                    break;
+                case MOD_EXP:
+                    op_name = "modulo";
+                    std::cerr << "[DEBUG] Opérateur: modulo (%)" << std::endl;
+                    break;
+                default:
+                    op_name = "plus"; // Default
+                    std::cerr << "[DEBUG] Opérateur: inconnu, utilisant plus par défaut" << std::endl;
+            }
+            
+            out() << "          <rvalue\n";
+            writeAttribute("            xsi:type", "chips.rvalues.primitive.operators.int:" + op_name);
+            out() << ">\n";
+            
+            // Opérande gauche
+            if (auto left = bin_expr->get_lhs()) {
+                std::cerr << "[DEBUG] Traitement de l'opérande gauche" << std::endl;
+                std::string left_value = getExpressionValue(*left);
+                std::cerr << "[DEBUG] Valeur gauche: " << left_value << std::endl;
+                
+                out() << "            <left_operand\n";
+                writeAttribute("              xsi:type", "chips.xvalues.primitive:int_variable_expression");
+                out() << "\n";
+                // Chercher le chemin si c'est une variable
+                std::string left_path = get_ast_path_by_name(left_value);
+                writeAttribute("              variable", left_path);
+                out() << "/>\n";
+            }
+            
+            // Opérande droite
+            if (auto right = bin_expr->get_rhs()) {
+                std::cerr << "[DEBUG] Traitement de l'opérande droite" << std::endl;
+                std::string right_value = getExpressionValue(*right);
+                std::cerr << "[DEBUG] Valeur droite: " << right_value << std::endl;
+                
+                out() << "            <right_operand\n";
+                writeAttribute("              xsi:type", "chips.xvalues.primitive:int_variable_expression");
+                out() << "\n";
+                // Chercher le chemin si c'est une variable
+                std::string right_path = get_ast_path_by_name(right_value);
+                writeAttribute("              variable", right_path);
+                out() << "/>\n";
+            }
+            
+            out() << "          </rvalue>\n";
+        } else {
+            // Rvalue simple (nombre, variable)
+            out() << "          <rvalue\n";
+            writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
+            std::cerr << "[Debug] value: " << value << std::endl;
+            if (value != "0" && value != "0.0" && value != "false") {
+                out() << "\n";
+                writeAttribute("            value", value);
+            }
+            out() << "/>\n";
+        }
+        
+        out() << "        </" << m_statement_tag << ">\n";
     }
 }
 
@@ -824,7 +1112,7 @@ void ChipsToXmiVisitor::visit(context_variable_assignment_node &node) {
                    num->get_type() == BOOL_EXP ? "bool" : "int";
         }
         
-        out() << "        <statements\n";
+        out() << "        <" << m_statement_tag << "\n";
         writeAttribute("        xsi:type", "chips.statements.primitive:" + type + "_assignment");
         out() << ">\n";
         out() << "          <lvalue\n";
@@ -834,10 +1122,13 @@ void ChipsToXmiVisitor::visit(context_variable_assignment_node &node) {
         out() << "/>\n";
         out() << "          <rvalue\n";
         writeAttribute("            xsi:type", "chips.rvalues.primitive:direct_" + type);
-        out() << "\n";
-        writeAttribute("            value", value);
+        std::cerr << "[Debug] value ?????????????? " << value << std::endl;
+        if (value != "0" && value != "0.0" && value != "false") {
+            out() << "\n";
+            writeAttribute("            value", value);
+        }
         out() << "/>\n";
-        out() << "        </statements>\n";
+        out() << "        </" << m_statement_tag << ">\n";
     }
 }
 
@@ -1207,9 +1498,19 @@ void ChipsToXmiVisitor::endEmptyElement()
 
 std::string ChipsToXmiVisitor::getExpressionValue(expression_node &expr)
 {
+    std::cerr << "[DEBUG getExpressionValue] Analyse d'une expression" << std::endl;
+    
+    // Essayer binary_expression_node
+    if (auto bin = dynamic_cast<binary_expression_node *>(&expr))
+    {
+        std::cerr << "[DEBUG getExpressionValue] --> Expression binaire détectée" << std::endl;
+        return "binary_expression";
+    }
+    
     // Essayer number_literal_node
     if (auto num = dynamic_cast<number_literal_node *>(&expr))
     {
+        std::cerr << "[DEBUG getExpressionValue] --> Number literal détecté" << std::endl;
         EXPRESSION_TYPE type = num->get_type();
         if (type == INT_EXP)
         {
@@ -1227,20 +1528,24 @@ std::string ChipsToXmiVisitor::getExpressionValue(expression_node &expr)
     // Essayer suffixised_node (variable ou attribut)
     else if (auto suf = dynamic_cast<suffixised_node *>(&expr))
     {
+        std::cerr << "[DEBUG getExpressionValue] --> Suffixised node détecté: " << suf->get_identifier() << std::endl;
         return suf->get_identifier();
     }
     // Essayer function_call_node
     else if (auto fcall = dynamic_cast<function_call_node *>(&expr))
     {
+        std::cerr << "[DEBUG getExpressionValue] --> Function call détecté: " << fcall->get_identifier() << std::endl;
         return fcall->get_identifier() + "()";
     }
     // Essayer variable_node
     else if (auto var = dynamic_cast<variable_node *>(&expr))
     {
+        std::cerr << "[DEBUG getExpressionValue] --> Variable node détecté" << std::endl;
         return var->get_identifier();
     }
 
     // Fallback
+    std::cerr << "[DEBUG getExpressionValue] --> Type inconnu, retour 'unknown'" << std::endl;
     return "unknown";
 }
 
@@ -1250,10 +1555,21 @@ std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
     auto it = m_symbol_table.find(name);
     if (it != m_symbol_table.end())
     {
-        std::cerr << "[DEBUG] Variable '" << name << "' trouvée dans la table des symboles: " << it->second << std::endl;
+        std::cerr << ">>>>>>>>>[DEBUG PATH] Variable '" << name << "' trouvée dans la table des symboles: " << it->second << std::endl;
         return it->second;
     }
     
-    std::cerr << "[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
+    std::cerr << ">>>>>>>>>[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
+    report_semantic_error("Undefined variable: " + name);
     return name;  // Fallback: retourner juste le nom
+}
+
+void ChipsToXmiVisitor::report_semantic_error(const std::string &message)
+{
+    std::string detail = message;
+    if (!m_current_ast_path.empty()) {
+        detail += " (path: " + m_current_ast_path + ")";
+    }
+    m_semantic_errors.push_back(detail);
+    std::cerr << "[SEMANTIC ERROR] " << detail << std::endl;
 }
