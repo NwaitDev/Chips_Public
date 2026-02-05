@@ -61,6 +61,12 @@ void ChipsToXmiWriter::xmi_footer()
     m_out << "</chips:program>\n";
 }
 
+void ChipsToXmiWriter::copy_namespaces_from(const ChipsToXmiWriter& other)
+{
+    m_used_namespaces = other.m_used_namespaces;
+    m_namespace_urls = other.m_namespace_urls;
+}
+
 // ============================================================================
 // CONVERSION PRINCIPALE
 // ============================================================================
@@ -362,12 +368,29 @@ void ChipsToXmiWriter::collect_namespaces_from_preamble(const preamble_node* pre
         add_namespace_if_needed("chips.parameters.logical", "http://chips/parameters/logical");
         add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
         add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+        add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
     }
     else if (dynamic_cast<const object_definition_node*>(preamble)) {
         add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
     }
     else if (dynamic_cast<const implementation_definition_node*>(preamble)) {
         add_namespace_if_needed("chips.statements.implementation", "http://chips/statements/implementation");
+    }
+    else if (dynamic_cast<const collective_operation_definition_node*>(preamble)) {
+        // Namespaces pour les opérations collectives
+        add_namespace_if_needed("chips.parameters.collective", "http://chips/parameters/collective");
+        add_namespace_if_needed("chips.parameters.logical", "http://chips/parameters/logical");
+        add_namespace_if_needed("chips.rvalues.collective", "http://chips/rvalues/collective");
+        add_namespace_if_needed("chips.rvalues.collective.operators.bool", "http://chips/rvalues/collective/operators/bool");
+        add_namespace_if_needed("chips.rvalues.collective.operators.int", "http://chips/rvalues/collective/operators/int");
+        add_namespace_if_needed("chips.rvalues.dataflow.operators.bool", "http://chips/rvalues/dataflow/operators/bool");
+        add_namespace_if_needed("chips.rvalues.dataflow.operators.int", "http://chips/rvalues/dataflow/operators/int");
+        add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+        add_namespace_if_needed("chips.rvalues.system", "http://chips/rvalues/system");
+        add_namespace_if_needed("chips.statements.collective", "http://chips/statements/collective");
+        add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
+        add_namespace_if_needed("chips.xvalues.collective", "http://chips/xvalues/collective");
+        add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
     }
 }
 

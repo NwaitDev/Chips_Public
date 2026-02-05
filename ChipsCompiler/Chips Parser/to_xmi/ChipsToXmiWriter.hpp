@@ -49,6 +49,9 @@ public:
     // Ajoute un namespace dynamiquement
     void add_namespace_if_needed(const std::string& ns_prefix, const std::string& url);
 
+    // Copie les namespaces collectes depuis un autre writer
+    void copy_namespaces_from(const ChipsToXmiWriter& other);
+
 private:
     // === MÉTHODES PRIVÉES DE CONVERSION ===
     
