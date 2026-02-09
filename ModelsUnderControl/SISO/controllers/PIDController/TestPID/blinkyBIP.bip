@@ -1,0 +1,48 @@
+package blinkyBIP
+    use blinky
+
+    atom type SoundScenario()
+        data int cycle
+        data int val
+        data int chaos
+        data int phase
+        export port port1int_t out(val)
+        place START
+        initial to START do { cycle = 0; val = 0; }
+        on out from START to START do {
+            cycle = cycle + 1;
+
+            chaos = (cycle * 17) % 100;
+
+            phase = cycle % 60;
+
+            if (phase < 30) then
+                if (chaos > 90) then
+                    val = 5;
+                else
+                    val = 0;
+                fi
+            else
+                if (phase < 35) then
+                    val = 50 + chaos;
+                else
+                    if (phase < 38) then
+                        val = 200 + (chaos / 2); 
+                    else
+                        val = 100 - ((phase - 38) * 10);
+                        
+                        if (val < 0) then
+                            val = 0;
+                        fi
+                    fi
+                fi
+            fi
+        }
+    end
+
+    compound type System()
+        component BlinkyBlock b1(1)
+        component SoundScenario env_sound()
+        connector flow1int_t conn_mic_1(env_sound.out, b1.sound_input)
+    end
+end
