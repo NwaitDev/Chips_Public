@@ -54,7 +54,10 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
     std::ostringstream body_out;
     ChipsToXmiWriter body_writer(body_out);
     ChipsToXmiVisitor visitor(body_writer, body_out);
+    
+    // Visiter l'AST pour générer le contenu XMI
     ast->accept(visitor);
+    
     if (!skip_semantic_analysis && visitor.has_semantic_errors()) {
         std::cerr << "❌ Erreurs semantiques detectees, XMI non genere." << std::endl;
         for (const auto &err : visitor.semantic_errors()) {
@@ -70,7 +73,7 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
         return;
     }
     
-    // Ecrire le XMI final avec les namespaces collectes lors de la visite
+    // Ecrire le XMI final avec tous les namespaces collectes
     ChipsToXmiWriter writer(out);
     writer.copy_namespaces_from(body_writer);
     writer.xmi_header(source_filename);

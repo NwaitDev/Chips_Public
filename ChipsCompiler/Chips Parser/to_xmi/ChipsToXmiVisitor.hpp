@@ -14,6 +14,7 @@
 #include <ostream>
 #include <map>
 #include <vector>
+#include <string>
 
 /// @brief Complete XMI Visitor - implements ALL chips_visitor methods
 class ChipsToXmiVisitor : public chips_visitor
@@ -142,16 +143,36 @@ public:
     void visit(ast_node &node) override;
 
 private:
+    enum class StatementFamily {
+        Auto,
+        Primitive,
+        System,
+        Node,
+        Collective,
+        Implementation
+    };
+
+    // Structure pour stocker les informations de symbole
+    struct SymbolInfo {
+        std::string path;        // Chemin XMI
+        std::string type;        // Type: "channel", "contextual", "variable", "object", "physical", "logical", "sensor"
+        
+        SymbolInfo() = default;
+        SymbolInfo(const std::string& p, const std::string& t = "unknown") 
+            : path(p), type(t) {}
+    };
+
     // Helpers
     std::ostream &out() { return m_out; }
     std::string get_ast_path() const { return m_current_ast_path; }
     std::string get_ast_path_by_name(const std::string &name);
-    void register_variable(const std::string &name, const std::string &path) {
+    SymbolInfo get_symbol_info(const std::string &name);
+    void register_variable(const std::string &name, const std::string &path, const std::string &type = "variable") {
         auto existing = m_symbol_table.find(name);
         if (existing != m_symbol_table.end()) {
             report_semantic_error("Duplicate variable declaration: " + name);
         }
-        m_symbol_table[name] = path;
+        m_symbol_table[name] = SymbolInfo(path, type);
     }
     void push_ast_path(const std::string &segment) { m_current_ast_path += segment; }
     void pop_ast_path(const std::string &segment) { 
@@ -164,16 +185,35 @@ private:
     void writeAttribute(const std::string &name, const std::string &value);
     void endEmptyElement();
     std::string getExpressionValue(expression_node &expr);
+    void write_collective_rvalue(const std::string &indent, const std::string &tag, expression_node &expr, const std::string &value_type);
+    void write_collective_output_expression(expression_node &expr, const std::string &tag, const std::string &indent);
+    void write_index_from_suffixes(suffixes_node *suffixes,
+                                   const std::string &indent,
+                                   const std::string &xvalue_prefix,
+                                   const std::string &rvalue_prefix,
+                                   bool emit_default);
     void visit_generic(ast_node &node); // squelette commun
     void report_semantic_error(const std::string &message);
+    void ensure_namespace_for_prefix(const std::string &ns_prefix);
+    void ensure_namespace_for_type(const std::string &type_value);
+    StatementFamily detect_statement_family() const;
+    std::string statement_prefix(StatementFamily family = StatementFamily::Auto) const;
+    std::string statement_type(const std::string &suffix, StatementFamily family = StatementFamily::Auto) const;
+    
+    // Get xsi:type for variable expression based on symbol type (physical, logical, object)
+    std::string get_xsi_type_for_symbol(const SymbolInfo &info);
+    
+    // Get xsi:type for system declaration based on definition type (physical->physical_declaration, etc.)
+    std::string get_declaration_type_from_definition(const std::string &definition_type);
 
     // Members
     ChipsToXmiWriter &m_writer;
     std::ostream &m_out;
     std::string m_current_ast_path;
-    std::map<std::string, std::string> m_symbol_table;  // nom -> chemin AST
+    std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
     std::string m_statement_tag = "statements";  // Tag name override for if/else sections
     std::vector<std::string> m_semantic_errors;
+    int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
 };
 
 #endif // CHIPS_TO_XMI_VISITOR_HPP

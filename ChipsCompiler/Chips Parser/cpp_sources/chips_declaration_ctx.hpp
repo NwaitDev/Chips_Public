@@ -149,6 +149,8 @@ public:
     output_node(std::unique_ptr<output_node> out)
     : outputs(std::move(out->outputs)) {}
 
+    const std::vector<std::unique_ptr<expression_node>>& get_outputs() const { return outputs; }
+
     virtual void hello() override;
 };
 

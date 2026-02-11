@@ -19,39 +19,50 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
     std::cerr << "[DEBUG Writer] xmi_header() appelé avec filename: " << filename << std::endl;
 
     m_out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    m_out << "<chips:program\n    xmi:version=\"" << m_xmiVersion << "\"\n";
+    m_out << "<chips:program\n  xmi:version=\"" << m_xmiVersion << "\"\n";
     
     // Namespaces de base (toujours présents)
-    m_out << "    xmlns:xmi=\"" << m_xmiUrl << "\"\n";
-    m_out << "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n";
-    m_out << "    xmlns:chips=\"http://chips\"\n";
+    m_out << "  xmlns:xmi=\"" << m_xmiUrl << "\"\n";
+    m_out << "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n";
+    m_out << "  xmlns:chips=\"http://chips\"\n";
     
     // Namespaces collectés dynamiquement (triés pour un ordre cohérent)
     std::map<std::string, std::string> sorted_ns(m_namespace_urls.begin(), m_namespace_urls.end());
     for (const auto& [prefix, url] : sorted_ns) {
-        m_out << "    xmlns:" << prefix << "=\"" << url << "\"\n";
+        m_out << "  xmlns:" << prefix << "=\"" << url << "\"\n";
     }
     
     // xsi:schemaLocation (si des namespaces sont présents)
     if (!m_namespace_urls.empty()) {
-        m_out << "    xsi:schemaLocation=\"http://chips chips2.ecore";
+        m_out << "  xsi:schemaLocation=\"http://chips chips2.ecore";
         
         for (const auto& [prefix, url] : sorted_ns) {
-            // Extraire le fragment après "http://chips"
-            std::string fragment = url.substr(std::string("http://chips").length());
-            
-            m_out << " " << url << " chips2.ecore";
-            if (!fragment.empty()) {
-                m_out << "#/" << fragment;
+            // Cas spéciaux pour dataflow qui doivent pointer vers system
+            std::string schema_fragment;
+            if (url == "http://chips/rvalues/dataflow/operators/bool") {
+                schema_fragment = "#//rvalues/system/operators/bool";
+            } else if (url == "http://chips/rvalues/dataflow/operators/int") {
+                schema_fragment = "#//rvalues/system/operators/int";
+            } else if (url == "http://chips/rvalues/dataflow/operators/float") {
+                schema_fragment = "#//rvalues/system/operators/float";
             } else {
-                // Pour "definitions" qui n'a pas de sous-chemin
-                m_out << "#//" << prefix;
+                // Mapping par défaut : extraire le fragment après "http://chips"
+                std::string fragment = url.substr(std::string("http://chips").length());
+                
+                if (!fragment.empty()) {
+                    schema_fragment = "#/" + fragment;
+                } else {
+                    // Pour "definitions" qui n'a pas de sous-chemin
+                    schema_fragment = "#//" + prefix;
+                }
             }
+            
+            m_out << "\n                      " << url << " chips2.ecore" << schema_fragment;
         }
         m_out << "\"\n";
     }
     
-    m_out << "    fileName=\"" << filename << "\"";
+    m_out << "  fileName=\"" << filename << "\"";
     m_out << ">\n";
 }
 
