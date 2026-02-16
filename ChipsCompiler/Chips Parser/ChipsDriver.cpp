@@ -57,12 +57,10 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
     
     // Visiter l'AST pour générer le contenu XMI
     ast->accept(visitor);
-    
-    if (!skip_semantic_analysis && visitor.has_semantic_errors()) {
-        std::cerr << "❌ Erreurs semantiques detectees, XMI non genere." << std::endl;
-        for (const auto &err : visitor.semantic_errors()) {
-            std::cerr << "  - " << err << std::endl;
-        }
+    visitor.verifyDependencyGraph();
+    if(!skip_semantic_analysis && visitor.hasErrors()){
+        std::cerr << "Semantics errors detected, no XMI generate." << std::endl;
+        visitor.printErrors();
         return;
     }
     
