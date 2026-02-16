@@ -258,6 +258,9 @@ void ChipsToXmiVisitor::visit(implements_node &node)
 
 void ChipsToXmiVisitor::visit(link_node &node)
 {
+
+    semanticAnalyzer.analyze(node);
+
     std::cerr << "[DEBUG Visitor] visit(link_node)" << std::endl;
     ensure_namespace_for_prefix("chips.statements.system");
     ensure_namespace_for_prefix("chips.systemspecific.expressions");
@@ -910,6 +913,8 @@ void ChipsToXmiVisitor::visit(function_definition_node &node)
 
 void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
 {
+    semanticAnalyzer.analyze(node);
+
     std::cerr << "[DEBUG Visitor] visit(logical_function_definition_node) name=" << node.get_identifier() << std::endl;
 
     // Enregistrer la définition logique dans la table des symboles
@@ -1008,6 +1013,8 @@ void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
 
 void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
 {
+    semanticAnalyzer.analyze(node);
+
     std::cerr << "[DEBUG Visitor] visit(physical_function_definition_node) name=" << node.get_identifier() << std::endl;
 
     // Enregistrer la définition physique dans la table des symboles
@@ -2203,10 +2210,13 @@ void ChipsToXmiVisitor::visit(statement_node &node)
     }
 }
 
-void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node)
-{
-    std::cerr << "[DEBUG Visitor] visit(dataflow_full_declaration_node) name=" << node.get_identifier() << std::endl;
+void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node) {
 
+    semanticAnalyzer.analyze(node);
+
+    std::cerr << "[DEBUG Visitor] visit(dataflow_full_declaration_node) name=" 
+              << node.get_identifier() << std::endl;
+    
     std::string type = node.get_privitve_type();
     std::string name = node.get_identifier();
     bool is_system_context = (m_statement_tag == "system");
@@ -2324,10 +2334,13 @@ void ChipsToXmiVisitor::visit(dataflow_full_declaration_node &node)
     }
 }
 
-void ChipsToXmiVisitor::visit(variable_assignment_node &node)
-{
-    std::cerr << "[DEBUG Visitor] visit(variable_assignment_node) identifier=" << node.get_identifier() << std::endl;
+void ChipsToXmiVisitor::visit(variable_assignment_node &node) {
 
+    semanticAnalyzer.analyze(node);
+
+    std::cerr << "[DEBUG Visitor] visit(variable_assignment_node) identifier=" 
+              << node.get_identifier() << std::endl;
+    
     std::string name = node.get_identifier();
     std::string path = get_ast_path_by_name(name);
     std::cerr << "[DEBUG] Variable path: " << path << std::endl;
@@ -2839,6 +2852,7 @@ void ChipsToXmiVisitor::visit(number_literal_node &node)
 
 void ChipsToXmiVisitor::visit(function_call_node &node)
 {
+    // DOESN'T IN GRAMMAR
     std::cerr << "[DEBUG Visitor] visit(function_call_node)" << std::endl;
     out() << "    <!-- function_call_node TODO -->\n";
 }
@@ -2943,6 +2957,9 @@ void ChipsToXmiVisitor::visit(context_decl_node &node)
 
 void ChipsToXmiVisitor::visit(suffixes_node &node)
 {
+
+    semanticAnalyzer.analyze(node);
+
     std::cerr << "[DEBUG Visitor] visit(suffixes_node)" << std::endl;
     out() << "    <!-- suffixes_node TODO -->\n";
 }
