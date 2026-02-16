@@ -13,6 +13,7 @@ chipsc: ChipsLexer.cpp ChipsParser.cpp ChipsDriver.cpp cpp_sources/chips_node_pr
 	    cpp_sources/chips_node_print.cpp \
 	    cpp_sources/chips_exceptions.cpp \
 	    cpp_sources/chips_ast_impl.cpp \
+		cpp_sources/chips_semantic_analyzer.cpp \
 	    to_xmi/ChipsToXmiWriter.cpp \
 	    to_xmi/ChipsToXmiVisitor.cpp \
 	    -lfl -std=c++17 -o chipsc
