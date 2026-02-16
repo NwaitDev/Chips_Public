@@ -17,7 +17,8 @@ enum DATAFLOW_TYPE
 {
     INT_DF,
     FLOAT_DF,
-    BOOL_DF
+    BOOL_DF,
+    UNKNOWN_DF
 };
 
 enum COLLECTIVE_KW
@@ -61,7 +62,9 @@ enum EXPRESSION_TYPE
     BOOL_EXP,          // number literal
     OBJ_PHY_ATTR_EXP,  // (ref to json file)
     OBJ_VIRT_IN_EXP,   // (ref to input/output of functional block)
-    OBJ_VIRT_OUT_EXP   // (ref to input/output of functional block)
+    OBJ_VIRT_OUT_EXP,   // (ref to input/output of functional block)
+
+    UNKNOWN_EXP
 };
 
 enum STATEMENT_TYPE
