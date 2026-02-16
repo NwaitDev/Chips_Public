@@ -8,6 +8,9 @@
 
 
 class expression_node : public ast_node {
+    public:
+        virtual EXPRESSION_TYPE get_return_type() = 0;
+        virtual bool have_implicit_cast() = 0;
 };
 
 

@@ -288,56 +288,131 @@ c_exprs:
 expr:
     expr0 LT expr           { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LT_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 GT expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GT_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 LEQ expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LEQ_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 GEQ expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GEQ_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 NEQ expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), NEQ_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 EQ expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), EQ_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 AND expr        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), AND_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0 OR expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), OR_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr0                 { $$ = std::move($1); }
     ;
 expr0:
     expr1 PLUS expr0        { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), PLUS_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);         }
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr1 MINUS expr0     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MINUS_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | MINUS expr0           { $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP, std::move($2))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr1                 { $$ = std::move($1); }
     ;
 expr1: 
     expr2 TIMES expr1       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), TIMES_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }  
+                            }
     | expr2 DIV expr1       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), DIV_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr2 MOD expr1       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MOD_EXP, std::move($3))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     | expr2                 { $$ = std::move($1); }
     | NOT expr2             { $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP, std::move($2))); 
                               $$->set_line(@$.begin.line);
-                              $$->set_column(@$.begin.column);}
+                              $$->set_column(@$.begin.column);
+                              
+                              if($$->have_implicit_cast()){
+                                throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                              }
+                            }
     ;
 expr2: 
     IDENTIFIER suffixes         { $$ = std::move(std::make_unique<suffixised_node>(std::move($1), std::move($2))); 
@@ -366,7 +441,12 @@ expr2:
 cast:
     L_PARENTH df_type R_PARENTH expr           { $$ = std::move(std::make_unique<cast_node>(std::move($2), std::move($4))); 
                                                  $$->set_line(@$.begin.line);
-                                                 $$->set_column(@$.begin.column);}
+                                                 $$->set_column(@$.begin.column);
+                                                 
+                                                 if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                 }
+                                                }
     ;
 c_expr:
     c_stopless_expr                             { $$ = std::move($1); }
@@ -377,56 +457,131 @@ c_expr:
 c_stopless_expr:
     c_stopless_expr0 LT c_stopless_expr         { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LT_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 GT c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GT_EXP, std::move($3)));
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column); }
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 LEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), LEQ_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 GEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), GEQ_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 NEQ c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), NEQ_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 EQ c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), EQ_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 AND c_stopless_expr      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), AND_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0 OR c_stopless_expr       { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), OR_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr0                          { $$ = std::move($1); }
     ;
 c_stopless_expr0:
     c_stopless_expr1 PLUS c_stopless_expr0      { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), PLUS_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr1 MINUS c_stopless_expr0   { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MINUS_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | MINUS c_stopless_expr0                    { $$ = std::move(std::make_unique<unary_expression_node>(U_MINUS_EXP, std::move($2))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr1                          { $$ = std::move($1); }
     ;
 c_stopless_expr1: 
     c_stopless_expr2 TIMES c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), TIMES_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr2 DIV c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), DIV_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr2 MOD c_stopless_expr1     { $$ = std::move(std::make_unique<binary_expression_node>(std::move($1), MOD_EXP, std::move($3))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     | c_stopless_expr2                          { $$ = std::move($1); }
     | NOT c_stopless_expr2                      { $$ = std::move(std::make_unique<unary_expression_node>(NOT_EXP, std::move($2))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     ;
 c_stopless_expr2: 
     IDENTIFIER c_suffixes                       { $$ = std::move(std::make_unique<suffixised_node>(std::move($1), std::move($2))); 
@@ -456,7 +611,12 @@ c_stopless_expr2:
 c_cast:
     L_PARENTH df_type R_PARENTH c_stopless_expr { $$ = std::move(std::make_unique<c_cast_node>(std::move($2), std::move($4))); 
                                                   $$->set_line(@$.begin.line);
-                                                  $$->set_column(@$.begin.column);}
+                                                  $$->set_column(@$.begin.column);
+                                                  
+                                                  if($$->have_implicit_cast()){
+                                                    throw syntax_error(@$, "Implicit cast doesn't exist in chips");
+                                                  }
+                                                }
     ;
 suffixes:
     L_SQUA expr R_SQUA suffixes                 { $$ = std::move($4); $$->append(std::move($2)); 
@@ -808,11 +968,13 @@ int main(int argc, char *argv[])
          
     }
 
-    return drv.parse(filename);
+    return drv.parse(filename);   
 }
 
 
 void yy::parser::error(const location_type& l, const std::string& m)
 {
-  std::cerr << l << ": " << m << '\n';
+    std::cerr << "\033[1;31m[Erreur syntaxique]\033[0m ligne " 
+                  << l
+                  << ": " << m << '\n';
 }
