@@ -121,9 +121,9 @@
 %start chips;
 chips:
     preambles system                        { $$ = std::move(std::make_unique<chips_node>(std::move($1), std::move($2)));
-                                              drv.ast = std::move($$);                      
                                               $$->set_line(@$.begin.line);
-                                              $$->set_column(@$.begin.column);                                            }
+                                              $$->set_column(@$.begin.column);
+                                              drv.ast = std::move($$);                                                    }
     ;
 preambles:
     preamble preambles                      { $$ = std::move($2); $$->append(std::move(std::move($1))); 
