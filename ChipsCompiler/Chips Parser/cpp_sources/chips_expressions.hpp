@@ -87,6 +87,7 @@ public:
     virtual void hello() override;
 
     std::string get_identifier() { return ident; }
+    expressions_node* get_expressions() { return operands.get(); }
 };
 
 class suffixised_node : public expression_node {
@@ -196,12 +197,20 @@ class cast_node : public expression_node {
 private:
     std::unique_ptr<dataflow_type_node> type;
     std::unique_ptr<expression_node> expr;
+    EXPRESSION_TYPE cast_type;
 public:
     cast_node(std::unique_ptr<dataflow_type_node> type, std::unique_ptr<expression_node> expr) 
-        : expr(std::move(expr)), type(std::move(type)) {}
+        : expr(std::move(expr)), type(std::move(type)) {
+            switch(this->type->get_type()){
+                case INT_DF: cast_type = CAST_TO_INT_EXP; break;
+                case FLOAT_DF: cast_type = CAST_TO_FLOAT_EXP; break;
+                case BOOL_DF: cast_type = CAST_TO_BOOL_EXP; break;
+            }
+        }
 
     dataflow_type_node* get_df_type() { return type.get(); }
     expression_node* get_expr() { return expr.get(); }
+    EXPRESSION_TYPE get_type() { return cast_type; }
     
     void accept(chips_visitor& visitor);
     virtual void hello() override;
@@ -239,13 +248,20 @@ class c_cast_node : public expression_node {
     private:
         std::unique_ptr<dataflow_type_node> type;
         std::unique_ptr<expression_node> expr;
-
+        EXPRESSION_TYPE cast_type;
     public:
         c_cast_node(std::unique_ptr<dataflow_type_node> type, std::unique_ptr<expression_node> expr)
-            : type(std::move(type)), expr(std::move(expr)) {}
+            : type(std::move(type)), expr(std::move(expr)) {
+                switch(this->type->get_type()){
+                    case INT_DF: cast_type = CAST_TO_INT_EXP; break;
+                    case FLOAT_DF: cast_type = CAST_TO_FLOAT_EXP; break;
+                    case BOOL_DF: cast_type = CAST_TO_BOOL_EXP; break;
+                }
+            }
 
         dataflow_type_node* get_df_type() { return type.get(); }
         expression_node* get_expr() { return expr.get(); }
+        EXPRESSION_TYPE get_type() { return cast_type; }
 
         void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
