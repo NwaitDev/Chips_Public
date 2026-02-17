@@ -181,6 +181,19 @@ private:
             : path(p), type(t) {}
     };
 
+    // Structure pour stocker les informations de définition
+    struct DefinitionInfo {
+        std::string name;           // Nom de la définition
+        std::string type;           // Type: "physical", "object", "logical", etc.
+        std::string path;           // Chemin XMI complet: //@preamble/@definitions.X
+        int index;                  // Index dans la liste des définitions
+        std::map<std::string, SymbolInfo> variables;  // Nom -> info des variables/canaux déclarés dans le with
+        
+        DefinitionInfo() = default;
+        DefinitionInfo(const std::string& n, const std::string& t, const std::string& p, int i) 
+            : name(n), type(t), path(p), index(i) {}
+    };
+
     // Helpers
     std::ostream &out() { return m_out; }
     std::string get_ast_path() const { return m_current_ast_path; }
@@ -193,6 +206,34 @@ private:
         }
         m_symbol_table[name] = SymbolInfo(path, type);
     }
+    
+    // Track a definition (called when visiting definition nodes)
+    void register_definition(const std::string &name, const std::string &type, const std::string &path, int index) {
+        m_definitions_table[name] = DefinitionInfo(name, type, path, index);
+        std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
+    }
+    
+    // Register a variable within a definition (called when visiting with/init/then statements)
+    void register_definition_variable(const std::string &def_name, const std::string &var_name, const std::string &var_path, const std::string &var_type) {
+        auto it = m_definitions_table.find(def_name);
+        if (it != m_definitions_table.end()) {
+            it->second.variables[var_name] = SymbolInfo(var_path, var_type);
+            std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
+        }
+    }
+    
+    // Find the path of a variable within a definition
+    SymbolInfo find_variable_in_definition(const std::string &def_name, const std::string &var_name) {
+        auto it = m_definitions_table.find(def_name);
+        if (it != m_definitions_table.end()) {
+            auto var_it = it->second.variables.find(var_name);
+            if (var_it != it->second.variables.end()) {
+                return var_it->second;
+            }
+        }
+        return SymbolInfo("", "unknown");
+    }
+    
     void push_ast_path(const std::string &segment) { m_current_ast_path += segment; }
     void pop_ast_path(const std::string &segment) { 
         size_t pos = m_current_ast_path.rfind(segment);
@@ -230,6 +271,10 @@ private:
     std::ostream &m_out;
     std::string m_current_ast_path;
     std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
+    std::map<std::string, DefinitionInfo> m_definitions_table;  // nom -> info définition
+    std::string m_current_definition;  // Nom de la définition actuellement visitée
+    std::string m_impl_def_implementing_node;  // Nom du nœud implémentant (défini lors de visit(implementation_definition_node))
+    std::string m_impl_def_implemented_object;  // Nom de l'objet implémenté (défini lors de visit(implementation_definition_node))
     std::string m_statement_tag = "statements";  // Tag name override for if/else sections
     std::vector<std::string> m_semantic_errors;
     int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés

@@ -879,6 +879,23 @@ void ChipsToXmiVisitor::visit(object_definition_node &node)
     // Enregistrer l'objet lui-même dans la table des symboles
     // Le chemin est : //@preamble/@definitions.X (où X est déterminé par le contexte d'appel)
     register_variable(node.get_identifier(), get_ast_path(), "object");
+    
+    // Extract the definition index from the current path
+    int def_index = 0;
+    std::string path = get_ast_path();
+    size_t pos = path.rfind("@definitions.");
+    if (pos != std::string::npos) {
+        try {
+            def_index = std::stoi(path.substr(pos + 13));
+        } catch (...) {
+            def_index = 0;
+        }
+    }
+    
+    // Register the definition in the definitions table
+    register_definition(node.get_identifier(), "object", get_ast_path(), def_index);
+    m_current_definition = node.get_identifier();
+    
     std::cerr << "[DEBUG] Object '" << node.get_identifier() << "' enregistré avec le chemin: " << get_ast_path() << std::endl;
 
     out() << "    <definitions\n";
@@ -902,6 +919,7 @@ void ChipsToXmiVisitor::visit(object_definition_node &node)
         std::cerr << "[DEBUG Visitor] Object SANS section with" << std::endl;
     }
 
+    m_current_definition = "";  // Reset current definition
     out() << "    </definitions>\n";
 }
 
@@ -919,6 +937,23 @@ void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
 
     // Enregistrer la définition logique dans la table des symboles
     register_variable(node.get_identifier(), get_ast_path(), "logical");
+    
+    // Extract the definition index from the current path
+    int def_index = 0;
+    std::string path = get_ast_path();
+    size_t pos = path.rfind("@definitions.");
+    if (pos != std::string::npos) {
+        try {
+            def_index = std::stoi(path.substr(pos + 13));
+        } catch (...) {
+            def_index = 0;
+        }
+    }
+    
+    // Register the definition in the definitions table
+    register_definition(node.get_identifier(), "logical", get_ast_path(), def_index);
+    m_current_definition = node.get_identifier();
+    
     std::cerr << "[DEBUG] Logical definition '" << node.get_identifier() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     out() << "    <definitions\n";
@@ -1008,6 +1043,7 @@ void ChipsToXmiVisitor::visit(logical_function_definition_node &node)
         std::cerr << "[DEBUG Visitor] Logical SANS outputs" << std::endl;
     }
 
+    m_current_definition = "";  // Reset current definition
     out() << "    </definitions>\n";
 }
 
@@ -1020,6 +1056,23 @@ void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
     // Enregistrer la définition physique dans la table des symboles
     // Le chemin est : //@preamble/@definitions.X (déterminé par le contexte d'appel)
     register_variable(node.get_identifier(), get_ast_path(), "physical");
+    
+    // Extract the definition index from the current path (e.g., "//@preamble/@definitions.0" -> 0)
+    int def_index = 0;
+    std::string path = get_ast_path();
+    size_t pos = path.rfind("@definitions.");
+    if (pos != std::string::npos) {
+        try {
+            def_index = std::stoi(path.substr(pos + 13));
+        } catch (...) {
+            def_index = 0;
+        }
+    }
+    
+    // Register the definition in the definitions table
+    register_definition(node.get_identifier(), "physical", get_ast_path(), def_index);
+    m_current_definition = node.get_identifier();
+    
     std::cerr << "[DEBUG] Physical definition '" << node.get_identifier() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     out() << "    <definitions\n";
@@ -1159,6 +1212,7 @@ void ChipsToXmiVisitor::visit(physical_function_definition_node &node)
         }
     }
 
+    m_current_definition = "";  // Reset current definition
     out() << "    </definitions>\n";
 }
 
@@ -1407,10 +1461,41 @@ void ChipsToXmiVisitor::visit(implementation_definition_node &node)
     out() << "\n";
     writeAttribute("      name", node.get_ident1());
     out() << "\n";
-    writeAttribute("      implemented_object", get_ast_path_by_name(node.get_ident2()));
+    
+    // Save the definition names for use in node_mappings_node
+    m_impl_def_implemented_object = node.get_ident2();
+    m_impl_def_implementing_node = node.get_ident3();
+    
+    // Try to find the implemented object definition
+    std::string implemented_obj_name = node.get_ident2();
+    std::string implemented_obj_path = "";
+    auto it = m_definitions_table.find(implemented_obj_name);
+    if (it != m_definitions_table.end()) {
+        implemented_obj_path = it->second.path;
+        std::cerr << "[DEBUG] Found implemented_object '" << implemented_obj_name << "' at path: " << implemented_obj_path << std::endl;
+    } else {
+        // Fallback to get_ast_path_by_name if not found
+        implemented_obj_path = get_ast_path_by_name(implemented_obj_name);
+        std::cerr << "[WARNING] Implemented_object '" << implemented_obj_name << "' not found in definitions_table, using fallback: " << implemented_obj_path << std::endl;
+    }
+    writeAttribute("      implemented_object", implemented_obj_path);
     out() << "\n";
-    writeAttribute("      implementing_node", get_ast_path_by_name(node.get_ident3()));
+    
+    // Try to find the implementing node definition
+    std::string implementing_node_name = node.get_ident3();
+    std::string implementing_node_path = "";
+    it = m_definitions_table.find(implementing_node_name);
+    if (it != m_definitions_table.end()) {
+        implementing_node_path = it->second.path;
+        std::cerr << "[DEBUG] Found implementing_node '" << implementing_node_name << "' at path: " << implementing_node_path << std::endl;
+    } else {
+        // Fallback to get_ast_path_by_name if not found
+        implementing_node_path = get_ast_path_by_name(implementing_node_name);
+        std::cerr << "[WARNING] Implementing_node '" << implementing_node_name << "' not found in definitions_table, using fallback: " << implementing_node_path << std::endl;
+    }
+    writeAttribute("      implementing_node", implementing_node_path);
     out() << ">\n";
+    
     // gestions des having statements
     if (auto having = node.get_node())
     {
@@ -1426,6 +1511,10 @@ void ChipsToXmiVisitor::visit(implementation_definition_node &node)
         std::cerr << "[DEBUG Visitor] Implementation SANS having statements" << std::endl;
     }
 
+    // Reset the implementation definition context
+    m_impl_def_implemented_object = "";
+    m_impl_def_implementing_node = "";
+    
     out() << "    </definitions>\n";
 }
 
@@ -1444,9 +1533,42 @@ void ChipsToXmiVisitor::visit(node_mappings_node &node)
         return;
     }
 
-    // Déterminer le type de la variable implementing pour savoir quel xsi:type utiliser
-    SymbolInfo impl_info = get_symbol_info(implementing_var_name);
-    std::string var_type = impl_info.type;
+    // Find the paths of the variables in the appropriate definitions
+    std::string implementing_var_path = "";
+    std::string implemented_var_path = "";
+    std::string var_type = "unknown";
+    
+    // Find implementing variable in the implementing node definition
+    if (!m_impl_def_implementing_node.empty()) {
+        SymbolInfo var_info = find_variable_in_definition(m_impl_def_implementing_node, implementing_var_name);
+        if (!var_info.path.empty()) {
+            implementing_var_path = var_info.path;
+            var_type = var_info.type;
+            std::cerr << "[DEBUG] Found implementing_var '" << implementing_var_name << "' in '" << m_impl_def_implementing_node << "': " << implementing_var_path << std::endl;
+        }
+    }
+    
+    // Find implemented variable in the implemented object definition
+    if (!m_impl_def_implemented_object.empty()) {
+        SymbolInfo var_info = find_variable_in_definition(m_impl_def_implemented_object, implemented_var_name);
+        if (!var_info.path.empty()) {
+            implemented_var_path = var_info.path;
+            std::cerr << "[DEBUG] Found implemented_var '" << implemented_var_name << "' in '" << m_impl_def_implemented_object << "': " << implemented_var_path << std::endl;
+        }
+    }
+    
+    // If not found using definitions, fallback to symbol table
+    if (implementing_var_path.empty()) {
+        SymbolInfo impl_info = get_symbol_info(implementing_var_name);
+        implementing_var_path = get_ast_path_by_name(implementing_var_name);
+        var_type = impl_info.type;
+        std::cerr << "[WARNING] Could not find implementing_var '" << implementing_var_name << "' in definitions, using fallback" << std::endl;
+    }
+    
+    if (implemented_var_path.empty()) {
+        implemented_var_path = get_ast_path_by_name(implemented_var_name);
+        std::cerr << "[WARNING] Could not find implemented_var '" << implemented_var_name << "' in definitions, using fallback" << std::endl;
+    }
 
     std::cerr << "[DEBUG] Having statement: " << implementing_var_name << " (type=" << var_type << ") as " << implemented_var_name << std::endl;
 
@@ -1457,9 +1579,9 @@ void ChipsToXmiVisitor::visit(node_mappings_node &node)
     {
         writeAttribute("        xsi:type", statement_type("channel_aliasing", StatementFamily::Implementation));
         out() << "\n";
-        writeAttribute("        implementing_channel", get_ast_path_by_name(implementing_var_name));
+        writeAttribute("        implementing_channel", implementing_var_path);
         out() << "\n";
-        writeAttribute("        implemented_channel", get_ast_path_by_name(implemented_var_name));
+        writeAttribute("        implemented_channel", implemented_var_path);
         out() << " />\n";
     }
     else if (var_type == "contextual")
@@ -1469,25 +1591,23 @@ void ChipsToXmiVisitor::visit(node_mappings_node &node)
         // For contextual variables, we need to point to the statement, not the inner variable
         // The symbol table has "/.../@with/@statements.X/@variable/@variable"
         // But we need "/.../@with/@statements.X"
-        std::string implementing_path = get_ast_path_by_name(implementing_var_name);
-        std::string implemented_path = get_ast_path_by_name(implemented_var_name);
-
+        
         // Remove "/@variable/@variable" suffix if present
         std::string var_suffix = "/@variable/@variable";
-        size_t pos = implementing_path.find(var_suffix);
-        if (pos != std::string::npos)
+        size_t pos = implementing_var_path.find(var_suffix);
+        if (pos != std::string::npos && pos + var_suffix.length() == implementing_var_path.length())
         {
-            implementing_path = implementing_path.substr(0, pos);
+            implementing_var_path = implementing_var_path.substr(0, pos);
         }
-        pos = implemented_path.find(var_suffix);
-        if (pos != std::string::npos)
+        pos = implemented_var_path.find(var_suffix);
+        if (pos != std::string::npos && pos + var_suffix.length() == implemented_var_path.length())
         {
-            implemented_path = implemented_path.substr(0, pos);
+            implemented_var_path = implemented_var_path.substr(0, pos);
         }
 
-        writeAttribute("        implementing_var", implementing_path);
+        writeAttribute("        implementing_var", implementing_var_path);
         out() << "\n";
-        writeAttribute("        implemented_var", implemented_path);
+        writeAttribute("        implemented_var", implemented_var_path);
         out() << " />\n";
     }
     else
@@ -1496,9 +1616,9 @@ void ChipsToXmiVisitor::visit(node_mappings_node &node)
         std::cerr << "[WARNING] Type de variable inconnu pour having statement: " << var_type << ", traité comme channel" << std::endl;
         writeAttribute("        xsi:type", statement_type("channel_aliasing", StatementFamily::Implementation));
         out() << "\n";
-        writeAttribute("        implementing_channel", get_ast_path_by_name(implementing_var_name));
+        writeAttribute("        implementing_channel", implementing_var_path);
         out() << "\n";
-        writeAttribute("        implemented_channel", get_ast_path_by_name(implemented_var_name));
+        writeAttribute("        implemented_channel", implemented_var_path);
         out() << " />\n";
     }
 
@@ -1641,6 +1761,12 @@ void ChipsToXmiVisitor::visit(with_two_identifier_node &node)
     // Enregistrer le channel dans la table des symboles
     // Le chemin du channel est juste get_ast_path() car on est déjà dans /@with/@statements.X
     register_variable(name, get_ast_path(), "channel");
+    
+    // Also register in the current definition if we're in one
+    if (!m_current_definition.empty()) {
+        register_definition_variable(m_current_definition, name, get_ast_path(), "channel");
+    }
+    
     std::cerr << "[DEBUG] Channel '" << name << "' enregistré avec le chemin: " << get_ast_path() << std::endl;
 
     out() << "        <statements\n";
@@ -1672,6 +1798,12 @@ void ChipsToXmiVisitor::visit(with_context_statement_node &node)
     // Ce chemin sera utilisé pour les références dans les expressions
     // Pour les having_statements, on devra enlever le suffix "/@variable/@variable"
     register_variable(name, get_ast_path(), "contextual");
+    
+    // Also register in the current definition if we're in one
+    if (!m_current_definition.empty()) {
+        register_definition_variable(m_current_definition, name, get_ast_path(), "contextual");
+    }
+    
     std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     expression_node *rhs = node.get_rhs()->get_rhs();

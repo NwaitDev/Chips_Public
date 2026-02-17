@@ -34,7 +34,7 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
     
     // xsi:schemaLocation (si des namespaces sont présents)
     if (!m_namespace_urls.empty()) {
-        m_out << "  xsi:schemaLocation=\"http://chips chips2.ecore";
+        m_out << "  xsi:schemaLocation=\"http://chips chips1.1.ecore";
         
         for (const auto& [prefix, url] : sorted_ns) {
             // Cas spéciaux pour dataflow qui doivent pointer vers system
