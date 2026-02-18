@@ -16,9 +16,9 @@ object AbstractObject with {
     ctx int specificParameter;
 }
 
-implementation abstractObjectByCounter : AbstractObject by aPhysicalCounter {
+implementation abstractObjectByCounter : AbstractObject by PhysicalCounter {
     having plug as abstractPlug; // [1]*
-    having countSpeed as abstractObjectSpecificParameter;
+    having countSpeed as SpecificParameter;
 }
 
 

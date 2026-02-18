@@ -74,6 +74,18 @@ A **function** that can effectively produce an output is what we call a **source
 
 A system is said to be **deadlock free** if all functions are **sources**. A system must be deadlock free to be compiled and run.
 
+## XMI generation options
+
+The CLI supports choosing the XMI schema version with `--schema-version`.
+Valid values are `1.1` and `2`. The default is `1.1`.
+
+Examples:
+
+```bash
+./chipsc path/to/file.chips --schema-version 1.1
+./chipsc path/to/file.chips --schema-version 2
+```
+
 -------------------------------------------
 
 

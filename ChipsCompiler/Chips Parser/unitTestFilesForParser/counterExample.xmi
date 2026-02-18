@@ -1,202 +1,215 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <chips:program
-    xmi:version="2.0"
-    xmlns:xmi="http://www.omg.org/XMI"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:chips="http://chips"
-    xmlns:chips.outputs.logical="http://chips/outputs/logical"
-    xmlns:chips.outputs.physical="http://chips/outputs/physical"
-    xmlns:chips.parameters.physical="http://chips/parameters/physical"
-    xmlns:chips.rvalues.primitive="http://chips/rvalues/primitive"
-    xmlns:chips.rvalues.primitive.operators.int="http://chips/rvalues/primitive/operators/int"
-    xmlns:chips.statements.implementation="http://chips/statements/implementation"
-    xmlns:chips.statements.node="http://chips/statements/node"
-    xmlns:chips.statements.primitive="http://chips/statements/primitive"
-    xmlns:chips.statements.system="http://chips/statements/system"
-    xmlns:chips.systemspecific.expressions="http://chips/systemspecific/expressions"
-    xmlns:chips.systemspecific.expressions.feeder="http://chips/systemspecific/expressions/feeder"
-    xmlns:chips.xvalues.primitive="http://chips/xvalues/primitive"
-    xmlns:definitions="http://chips/definitions"
-    xsi:schemaLocation="http://chips chips2.ecore http://chips/outputs/logical chips2.ecore#//outputs/logical http://chips/outputs/physical chips2.ecore#//outputs/physical http://chips/parameters/physical chips2.ecore#//parameters/physical http://chips/rvalues/primitive chips2.ecore#//rvalues/primitive http://chips/rvalues/primitive/operators/int chips2.ecore#//rvalues/primitive/operators/int http://chips/statements/implementation chips2.ecore#//statements/implementation http://chips/statements/node chips2.ecore#//statements/node http://chips/statements/primitive chips2.ecore#//statements/primitive http://chips/statements/system chips2.ecore#//statements/system http://chips/systemspecific/expressions chips2.ecore#//systemspecific/expressions http://chips/systemspecific/expressions/feeder chips2.ecore#//systemspecific/expressions/feeder http://chips/xvalues/primitive chips2.ecore#//xvalues/primitive http://chips/definitions chips2.ecore#//definitions"
-    fileName="counterExample.chips">
+  xmi:version="2.0"
+  xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:chips="http://chips"
+  xmlns:chips.outputs.logical="http://chips/outputs/logical"
+  xmlns:chips.outputs.physical="http://chips/outputs/physical"
+  xmlns:chips.parameters.physical="http://chips/parameters/physical"
+  xmlns:chips.rvalues.primitive="http://chips/rvalues/primitive"
+  xmlns:chips.rvalues.primitive.operators.int="http://chips/rvalues/primitive/operators/int"
+  xmlns:chips.statements.implementation="http://chips/statements/implementation"
+  xmlns:chips.statements.node="http://chips/statements/node"
+  xmlns:chips.statements.primitive="http://chips/statements/primitive"
+  xmlns:chips.statements.system="http://chips/statements/system"
+  xmlns:chips.systemspecific.expressions="http://chips/systemspecific/expressions"
+  xmlns:chips.systemspecific.expressions.feeder="http://chips/systemspecific/expressions/feeder"
+  xmlns:chips.xvalues.primitive="http://chips/xvalues/primitive"
+  xmlns:definitions="http://chips/definitions"
+  xsi:schemaLocation="http://chips chips2.ecore
+                      http://chips/outputs/logical chips2.ecore#//outputs/logical
+                      http://chips/outputs/physical chips2.ecore#//outputs/physical
+                      http://chips/parameters/physical chips2.ecore#//parameters/physical
+                      http://chips/rvalues/primitive chips2.ecore#//rvalues/primitive
+                      http://chips/rvalues/primitive/operators/int chips2.ecore#//rvalues/primitive/operators/int
+                      http://chips/statements/implementation chips2.ecore#//statements/implementation
+                      http://chips/statements/node chips2.ecore#//statements/node
+                      http://chips/statements/primitive chips2.ecore#//statements/primitive
+                      http://chips/statements/system chips2.ecore#//statements/system
+                      http://chips/systemspecific/expressions chips2.ecore#//systemspecific/expressions
+                      http://chips/systemspecific/expressions/feeder chips2.ecore#//systemspecific/expressions/feeder
+                      http://chips/xvalues/primitive chips2.ecore#//xvalues/primitive
+                      http://chips/definitions chips2.ecore#//definitions"
+  fileName="counterExample.chips">
   <preamble>
     <definitions
-        xsi:type="definitions:physical_definition"
-        name="PhysicalCounter">
+      xsi:type="definitions:physical_definition"
+      name="PhysicalCounter">
       <with>
         <statements
-            xsi:type="chips.statements.node:channel_declaration"
-            name="plug"
-            type_identifier="SerialChannel"/>
+          xsi:type="chips.statements.node:channel_declaration"
+          name="plug"
+          type_identifier="SerialChannel" />
         <statements
-            xsi:type="chips.statements.node:contextual_int_declaration"
-            identifier="countSpeed">
+          xsi:type="chips.statements.node:contextual_int_declaration"
+          identifier="countSpeed">
           <variable>
             <variable
-                name="countSpeed"/>
+              name="countSpeed" />
           </variable>
         </statements>
         <statements
-            xsi:type="chips.statements.primitive:int_assignment">
+          xsi:type="chips.statements.primitive:int_assignment">
           <lvalue
-              xsi:type="chips.xvalues.primitive:int_variable_expression"
-              variable="//@preamble/@definitions.0/@with/@statements.1/@variable/@variable"/>
+            xsi:type="chips.xvalues.primitive:int_variable_expression"
+            variable="//@preamble/@definitions.0/@with/@statements.1/@variable/@variable" />
           <rvalue
-              xsi:type="chips.rvalues.primitive:direct_int"
-              value="1"/>
+            xsi:type="chips.rvalues.primitive:direct_int"
+            value="1" />
         </statements>
       </with>
-      <outputs
-          xsi:type="chips.outputs.logical:int_output"
-          name="cnt">
-        <expression
-            xsi:type="chips.xvalues.primitive:int_variable_expression"
-            variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
-      </outputs>
       <init>
         <statements
-            xsi:type="chips.statements.primitive:int_declaration">
+          xsi:type="chips.statements.primitive:int_declaration">
           <variable
-              name="counter"/>
+            name="counter" />
         </statements>
         <statements
-            xsi:type="chips.statements.primitive:int_assignment">
+          xsi:type="chips.statements.primitive:int_assignment">
           <lvalue
-              xsi:type="chips.xvalues.primitive:int_variable_expression"
-              variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
+            xsi:type="chips.xvalues.primitive:int_variable_expression"
+            variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
           <rvalue
-              xsi:type="chips.rvalues.primitive:direct_int"/>
+            xsi:type="chips.rvalues.primitive:direct_int" />
         </statements>
       </init>
       <then>
         <statements
-            xsi:type="chips.statements.primitive:if_else">
+          xsi:type="chips.statements.primitive:if_else">
           <condition
-              xsi:type="chips.xvalues.primitive:bool_variable_expression"
-              variable="//@preamble/@definitions.0/@sensor.0/@declaration/@variable"/>
+            xsi:type="chips.xvalues.primitive:bool_variable_expression"
+            variable="//@preamble/@definitions.0/@sensor.0/@declaration/@variable" />
           <if_section>
             <if_statements
-                xsi:type="chips.statements.primitive:int_assignment">
+              xsi:type="chips.statements.primitive:int_assignment">
               <lvalue
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
+                xsi:type="chips.xvalues.primitive:int_variable_expression"
+                variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
               <rvalue
-                  xsi:type="chips.rvalues.primitive.operators.int:plus">
+                xsi:type="chips.rvalues.primitive.operators.int:plus">
                 <left_operand
-                    xsi:type="chips.xvalues.primitive:int_variable_expression"
-                    variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
+                  xsi:type="chips.xvalues.primitive:int_variable_expression"
+                  variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
                 <right_operand
-                    xsi:type="chips.xvalues.primitive:int_variable_expression"
-                    variable="//@preamble/@definitions.0/@with/@statements.1/@variable/@variable"/>
+                  xsi:type="chips.xvalues.primitive:int_variable_expression"
+                  variable="//@preamble/@definitions.0/@with/@statements.1/@variable/@variable" />
               </rvalue>
             </if_statements>
           </if_section>
           <else_section>
             <else_statements
-                xsi:type="chips.statements.primitive:int_assignment">
+              xsi:type="chips.statements.primitive:int_assignment">
               <lvalue
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
+                xsi:type="chips.xvalues.primitive:int_variable_expression"
+                variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
               <rvalue
-                  xsi:type="chips.rvalues.primitive:direct_int"/>
+                xsi:type="chips.rvalues.primitive:direct_int" />
             </else_statements>
           </else_section>
         </statements>
       </then>
+      <outputs
+        xsi:type="chips.outputs.logical:int_output"
+        name="cnt">
+        <expression
+          xsi:type="chips.xvalues.primitive:int_variable_expression"
+          variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
+      </outputs>
       <sensor
-          xsi:type="chips.parameters.physical:bool_physical_parameter"
-          name="onOffButton">
+        xsi:type="chips.parameters.physical:bool_physical_parameter"
+        name="onOffButton">
         <declaration>
           <variable
-              name="onOffButton"/>
+            name="onOffButton" />
         </declaration>
       </sensor>
     </definitions>
     <definitions
-        xsi:type="definitions:object_definition"
-        name="AbstractObject">
+      xsi:type="definitions:object_definition"
+      name="AbstractObject">
       <with>
         <statements
-            xsi:type="chips.statements.node:channel_declaration"
-            name="abstractPlug"
-            type_identifier="AbstractChannel"/>
+          xsi:type="chips.statements.node:channel_declaration"
+          name="abstractPlug"
+          type_identifier="AbstractChannel" />
         <statements
-            xsi:type="chips.statements.node:contextual_int_declaration"
-            identifier="specificParameter">
+          xsi:type="chips.statements.node:contextual_int_declaration"
+          identifier="specificParameter">
           <variable>
             <variable
-                name="specificParameter"/>
+              name="specificParameter" />
           </variable>
         </statements>
       </with>
     </definitions>
     <definitions
-        xsi:type="definitions:implementation_definition"
-        name="abstractObjectByCounter"
-        implemented_object="//@preamble/@definitions.1"
-        implementing_node="//@preamble/@definitions.0">
+      xsi:type="definitions:implementation_definition"
+      name="abstractObjectByCounter"
+      implemented_object="//@preamble/@definitions.1"
+      implementing_node="//@preamble/@definitions.0">
       <having_statements
-          xsi:type="chips.statements.implementation:channel_aliasing"
-          implementing_channel="//@preamble/@definitions.0/@with/@statements.0"
-          implemented_channel="//@preamble/@definitions.1/@with/@statements.0"/>
+        xsi:type="chips.statements.implementation:channel_aliasing"
+        implementing_channel="//@preamble/@definitions.0/@with/@statements.0"
+        implemented_channel="//@preamble/@definitions.1/@with/@statements.0" />
       <having_statements
-          xsi:type="chips.statements.implementation:contextual_aliasing"
-          implementing_var="//@preamble/@definitions.0/@with/@statements.1"
-          implemented_var="//@preamble/@definitions.1/@with/@statements.1"/>
+        xsi:type="chips.statements.implementation:contextual_aliasing"
+        implementing_var="//@preamble/@definitions.0/@with/@statements.1"
+        implemented_var="//@preamble/@definitions.1/@with/@statements.1" />
     </definitions>
     <definitions
-        xsi:type="definitions:physical_definition"
-        name="ButtonPusher">
+      xsi:type="definitions:physical_definition"
+      name="ButtonPusher">
       <actuator
-          xsi:type="chips.outputs.physical:bool_output"
-          name="push">
+        xsi:type="chips.outputs.physical:bool_output"
+        name="push">
         <expression
-            xsi:type="chips.rvalues.primitive:direct_bool"
-            value="true"/>
+          xsi:type="chips.rvalues.primitive:direct_bool"
+          value="true" />
       </actuator>
     </definitions>
   </preamble>
   <system>
     <system
-        xsi:type="chips.statements.system:physical_declaration"
-        def="//@preamble/@definitions.0">
+      xsi:type="chips.statements.system:physical_declaration"
+      def="//@preamble/@definitions.0">
       <variable
-          name="pc"/>
+        name="pc" />
     </system>
     <system
-        xsi:type="chips.statements.system:physical_declaration"
-        def="//@preamble/@definitions.3">
+      xsi:type="chips.statements.system:physical_declaration"
+      def="//@preamble/@definitions.3">
       <variable
-          name="bp"/>
+        name="bp" />
     </system>
     <system
-        xsi:type="chips.statements.system:object_declaration"
-        def="//@preamble/@definitions.1">
+      xsi:type="chips.statements.system:object_declaration"
+      def="//@preamble/@definitions.1">
       <variable
-          name="ao"/>
+        name="ao" />
     </system>
     <system
-        xsi:type="chips.statements.system:implements_statement"
-        implmentation="//@preamble/@definitions.2">
+      xsi:type="chips.statements.system:implements_statement"
+      implmentation="//@preamble/@definitions.2">
       <implemented
-          xsi:type="chips.systemspecific.expressions:object_variable_expression"
-          variable="//@system/@system.2/@variable"/>
+        xsi:type="chips.systemspecific.expressions:object_variable_expression"
+        variable="//@system/@system.2/@variable" />
       <implementer
-          xsi:type="chips.systemspecific.expressions:physical_variable_expression"
-          variable="//@system/@system.0/@variable"/>
+        xsi:type="chips.systemspecific.expressions:physical_variable_expression"
+        variable="//@system/@system.0/@variable" />
     </system>
     <system
-        xsi:type="chips.statements.system:feeding_physical_bool">
+      xsi:type="chips.statements.system:feeding_physical_bool">
       <eater
-          parameter="//@preamble/@definitions.0/@sensor.0">
+        parameter="//@preamble/@definitions.0/@sensor.0">
         <variable_expression
-            variable="//@system/@system.0/@variable"/>
+          variable="//@system/@system.0/@variable" />
       </eater>
       <feeder
-          xsi:type="chips.systemspecific.expressions.feeder:bool_physical_output"
-          output="//@preamble/@definitions.3/@actuator.0">
+        xsi:type="chips.systemspecific.expressions.feeder:bool_physical_output"
+        output="//@preamble/@definitions.3/@actuator.0">
         <variable_expression
-            variable="//@system/@system.1/@variable"/>
+          variable="//@system/@system.1/@variable" />
       </feeder>
     </system>
   </system>

@@ -965,6 +965,11 @@ int main(int argc, char *argv[])
             i++;
             // TODO : refactor la génération des fichier xmi avec un string builder dans les visiteurs et les writers
         }
+        else if(arg == "--schema-version" && i + 1 < argc){
+            drv.schema_version = std::string(argv[i + 1]);
+            std::cout << "\033[1;36m[Info] Using CHIPS schema version: " << drv.schema_version << "\033[0m\n";
+            i++;
+        }
          
     }
 

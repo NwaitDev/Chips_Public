@@ -25,461 +25,483 @@
     xmlns:chips.xvalues.primitive="http://chips/xvalues/primitive"
     xmlns:chips.xvalues.system="http://chips/xvalues/system"
     xmlns:definitions="http://chips/definitions"
-    xsi:schemaLocation="http://chips chips2.ecore http://chips/outputs/logical chips2.ecore#//outputs/logical http://chips/parameters/collective chips2.ecore#//parameters/collective http://chips/parameters/logical chips2.ecore#//parameters/logical http://chips/rvalues/collective chips2.ecore#//rvalues/collective http://chips/rvalues/collective/operators/bool chips2.ecore#//rvalues/collective/operators/bool http://chips/rvalues/collective/operators/int chips2.ecore#//rvalues/collective/operators/int http://chips/rvalues/dataflow/operators/bool chips2.ecore#//rvalues/system/operators/bool http://chips/rvalues/dataflow/operators/int chips2.ecore#//rvalues/system/operators/int http://chips/rvalues/primitive chips2.ecore#//rvalues/primitive http://chips/rvalues/primitive/operators/int chips2.ecore#//rvalues/primitive/operators/int http://chips/rvalues/system chips2.ecore#//rvalues/system http://chips/statements/collective chips2.ecore#//statements/collective http://chips/statements/node chips2.ecore#//statements/node http://chips/statements/primitive chips2.ecore#//statements/primitive http://chips/statements/system chips2.ecore#//statements/system http://chips/systemspecific/expressions chips2.ecore#//systemspecific/expressions http://chips/systemspecific/expressions/feeder chips2.ecore#//systemspecific/expressions/feeder http://chips/xvalues/collective chips2.ecore#//xvalues/collective http://chips/xvalues/primitive chips2.ecore#//xvalues/primitive http://chips/xvalues/system chips2.ecore#//xvalues/system http://chips/definitions chips2.ecore#//definitions"
+    xsi:schemaLocation="http://chips chips2.ecore
+                        http://chips/outputs/logical chips2.ecore#//outputs/logical
+                        http://chips/parameters/collective chips2.ecore#//parameters/collective
+                        http://chips/parameters/logical chips2.ecore#//parameters/logical
+                        http://chips/rvalues/collective chips2.ecore#//rvalues/collective
+                        http://chips/rvalues/collective/operators/bool chips2.ecore#//rvalues/collective/operators/bool
+                        http://chips/rvalues/collective/operators/int chips2.ecore#//rvalues/collective/operators/int
+                        http://chips/rvalues/dataflow/operators/bool chips2.ecore#//rvalues/system/operators/bool
+                        http://chips/rvalues/dataflow/operators/int chips2.ecore#//rvalues/system/operators/int
+                        http://chips/rvalues/primitive chips2.ecore#//rvalues/primitive
+                        http://chips/rvalues/primitive/operators/int chips2.ecore#//rvalues/primitive/operators/int
+                        http://chips/rvalues/system chips2.ecore#//rvalues/system
+                        http://chips/statements/collective chips2.ecore#//statements/collective
+                        http://chips/statements/node chips2.ecore#//statements/node
+                        http://chips/statements/primitive chips2.ecore#//statements/primitive
+                        http://chips/statements/system chips2.ecore#//statements/system
+                        http://chips/systemspecific/expressions chips2.ecore#//systemspecific/expressions
+                        http://chips/systemspecific/expressions/feeder chips2.ecore#//systemspecific/expressions/feeder
+                        http://chips/xvalues/collective chips2.ecore#//xvalues/collective
+                        http://chips/xvalues/primitive chips2.ecore#//xvalues/primitive
+                        http://chips/xvalues/system chips2.ecore#//xvalues/system
+                        http://chips/definitions chips2.ecore#//definitions"
     fileName="collectiveOps.chips">
-  <preamble>
-    <definitions
-        xsi:type="definitions:logical_definition"
-        name="Component1">
-      <outputs
-          xsi:type="chips.outputs.logical:int_output"
-          name="toBeSpread">
-        <expression
-            xsi:type="chips.xvalues.primitive:int_variable_expression"
-            variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
-      </outputs>
-      <init>
-        <statements
-            xsi:type="chips.statements.primitive:int_declaration">
-          <variable
-              name="foo"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.primitive:int_assignment">
-          <lvalue
-              xsi:type="chips.xvalues.primitive:int_variable_expression"
-              variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
-          <rvalue
-              xsi:type="chips.rvalues.primitive:direct_int"
-              value="10"/>
-        </statements>
-      </init>
-      <then>
-        <statements
-            xsi:type="chips.statements.primitive:int_assignment">
-          <lvalue
-              xsi:type="chips.xvalues.primitive:int_variable_expression"
-              variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
-          <rvalue
-              xsi:type="chips.rvalues.primitive.operators.int:minus">
-            <left_operand
-                xsi:type="chips.xvalues.primitive:int_variable_expression"
-                variable="//@preamble/@definitions.0/@init/@statements.0/@variable"/>
-            <right_operand
-                xsi:type="chips.rvalues.primitive:direct_int"
-                value="1"/>
-          </rvalue>
-        </statements>
-      </then>
-    </definitions>
-    <definitions
-        xsi:type="definitions:object_definition"
-        name="Placeholder">
-      <with>
-        <statements
-            xsi:type="chips.statements.node:channel_declaration"
-            name="next"
-            type_identifier="Neighbor"/>
-        <statements
-            xsi:type="chips.statements.node:channel_declaration"
-            name="previous"
-            type_identifier="Neighbor"/>
-      </with>
-    </definitions>
-    <definitions
-        xsi:type="definitions:logical_definition"
-        name="SubComponent">
-      <outputs
-          xsi:type="chips.outputs.logical:int_output"
-          name="toBeCollected">
-        <expression
-            xsi:type="chips.xvalues.primitive:int_variable_expression"
-            variable="//@preamble/@definitions.2/@init/@statements.0/@variable"/>
-      </outputs>
-      <parameters
-          xsi:type="chips.parameters.logical:bool_logical_parameter"
-          name="activation">
-        <declaration>
-          <variable
-              name="activation"/>
-        </declaration>
-      </parameters>
-      <parameters
-          xsi:type="chips.parameters.logical:int_logical_parameter"
-          name="coef">
-        <declaration>
-          <variable
-              name="coef"/>
-        </declaration>
-      </parameters>
-      <init>
-        <statements
-            xsi:type="chips.statements.primitive:int_declaration">
-          <variable
-              name="output"/>
-        </statements>
-      </init>
-      <then>
-        <statements
-            xsi:type="chips.statements.primitive:if_else">
-          <condition
-              xsi:type="chips.xvalues.primitive:bool_variable_expression"
-              variable="//@preamble/@definitions.2/@parameters.0/@declaration/@variable"/>
-          <if_section>
-            <if_statements
-                xsi:type="chips.statements.primitive:int_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.2/@init/@statements.0/@variable"/>
-              <rvalue
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.2/@parameters.1/@declaration/@variable"/>
-            </if_statements>
-          </if_section>
-          <else_section>
-            <else_statements
-                xsi:type="chips.statements.primitive:int_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.2/@init/@statements.0/@variable"/>
-              <rvalue
-                  xsi:type="chips.rvalues.primitive:direct_int"/>
-            </else_statements>
-          </else_section>
-        </statements>
-      </then>
-    </definitions>
-    <definitions
-        xsi:type="definitions:logical_definition"
-        name="DummyCollector">
-      <parameters
-          xsi:type="chips.parameters.logical:int_logical_parameter"
-          name="bar">
-        <declaration>
-          <variable
-              name="bar"/>
-        </declaration>
-      </parameters>
-      <init/>
-      <then/>
-    </definitions>
-    <definitions
-        xsi:type="definitions:collective_function_definition"
-        name="TrueAsLongAsPositive"
-        support_object="//@preamble/@definitions.1">
-      <accumulator>
-        <accumulator
-            xsi:type="chips.parameters.collective:int_collective_parameter">
-          <default_value
-              xsi:type="chips.rvalues.collective:input_kw"/>
-          <declaration>
-            <variable
-                name="msg"/>
-          </declaration>
-        </accumulator>
-      </accumulator>
-      <operations>
-        <statements
-            xsi:type="chips.statements.collective:int_declaration">
-          <variable
-              name="myMsg"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.collective:int_assignment">
-          <lvalue
-              xsi:type="chips.xvalues.collective:int_variable_expression"
-              variable="//@preamble/@definitions.4/@operations/@statements.0/@variable"/>
-          <rvalue
-              xsi:type="chips.xvalues.collective:int_variable_expression"
-              variable="//@preamble/@definitions.4/@accumulator/@accumulator.0/@declaration/@variable"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.collective:bool_declaration">
-          <variable
-              name="currentActivation"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.collective:bool_assignment">
-          <lvalue
-              xsi:type="chips.xvalues.collective:bool_variable_expression"
-              variable="//@preamble/@definitions.4/@operations/@statements.2/@variable"/>
-          <rvalue
-              xsi:type="chips.rvalues.collective:direct_bool"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.collective:int_declaration">
-          <variable
-              name="msgToNext"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.collective:if_else">
-          <condition
-              xsi:type="chips.rvalues.collective.operators.bool:gt_int">
-            <left_operand
-                xsi:type="chips.xvalues.collective:int_variable_expression"
-                variable="//@preamble/@definitions.4/@operations/@statements.0/@variable"/>
-            <right_operand
-                xsi:type="chips.rvalues.collective:direct_int"
-                value="1"/>
-          </condition>
-          <if_section>
-            <if_statements
-                xsi:type="chips.statements.collective:bool_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.collective:bool_variable_expression"
-                  variable="//@preamble/@definitions.4/@operations/@statements.2/@variable"/>
-              <rvalue
-                  xsi:type="chips.rvalues.collective:direct_bool"
-                  value="true"/>
-            </if_statements>
-            <if_statements
-                xsi:type="chips.statements.collective:int_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.collective:int_variable_expression"
-                  variable="//@preamble/@definitions.4/@operations/@statements.4/@variable"/>
-              <rvalue
-                  xsi:type="chips.rvalues.collective.operators.int:minus">
-                <left_operand
+    <preamble>
+        <definitions
+            xsi:type="definitions:logical_definition"
+            name="Component1">
+            <init>
+                <statements
+                    xsi:type="chips.statements.primitive:int_declaration">
+                    <variable
+                        name="foo" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.primitive:int_assignment">
+                    <lvalue
+                        xsi:type="chips.xvalues.primitive:int_variable_expression"
+                        variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
+                    <rvalue
+                        xsi:type="chips.rvalues.primitive:direct_int"
+                        value="10" />
+                </statements>
+            </init>
+            <then>
+                <statements
+                    xsi:type="chips.statements.primitive:int_assignment">
+                    <lvalue
+                        xsi:type="chips.xvalues.primitive:int_variable_expression"
+                        variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
+                    <rvalue
+                        xsi:type="chips.rvalues.primitive.operators.int:minus">
+                        <left_operand
+                            xsi:type="chips.xvalues.primitive:int_variable_expression"
+                            variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
+                        <right_operand
+                            xsi:type="chips.rvalues.primitive:direct_int"
+                            value="1" />
+                    </rvalue>
+                </statements>
+            </then>
+            <outputs
+                xsi:type="chips.outputs.logical:int_output"
+                name="toBeSpread">
+                <expression
+                    xsi:type="chips.xvalues.primitive:int_variable_expression"
+                    variable="//@preamble/@definitions.0/@init/@statements.0/@variable" />
+            </outputs>
+        </definitions>
+        <definitions
+            xsi:type="definitions:object_definition"
+            name="Placeholder">
+            <with>
+                <statements
+                    xsi:type="chips.statements.node:channel_declaration"
+                    name="next"
+                    type_identifier="Neighbor" />
+                <statements
+                    xsi:type="chips.statements.node:channel_declaration"
+                    name="previous"
+                    type_identifier="Neighbor" />
+            </with>
+        </definitions>
+        <definitions
+            xsi:type="definitions:logical_definition"
+            name="SubComponent">
+            <parameters
+                xsi:type="chips.parameters.logical:bool_logical_parameter"
+                name="activation">
+                <declaration>
+                    <variable
+                        name="activation" />
+                </declaration>
+            </parameters>
+            <parameters
+                xsi:type="chips.parameters.logical:int_logical_parameter"
+                name="coef">
+                <declaration>
+                    <variable
+                        name="coef" />
+                </declaration>
+            </parameters>
+            <init>
+                <statements
+                    xsi:type="chips.statements.primitive:int_declaration">
+                    <variable
+                        name="output" />
+                </statements>
+            </init>
+            <then>
+                <statements
+                    xsi:type="chips.statements.primitive:if_else">
+                    <condition
+                        xsi:type="chips.xvalues.primitive:bool_variable_expression"
+                        variable="//@preamble/@definitions.2/@parameters.0/@declaration/@variable" />
+                    <if_section>
+                        <if_statements
+                            xsi:type="chips.statements.primitive:int_assignment">
+                            <lvalue
+                                xsi:type="chips.xvalues.primitive:int_variable_expression"
+                                variable="//@preamble/@definitions.2/@init/@statements.0/@variable" />
+                            <rvalue
+                                xsi:type="chips.xvalues.primitive:int_variable_expression"
+                                variable="//@preamble/@definitions.2/@parameters.1/@declaration/@variable" />
+                        </if_statements>
+                    </if_section>
+                    <else_section>
+                        <else_statements
+                            xsi:type="chips.statements.primitive:int_assignment">
+                            <lvalue
+                                xsi:type="chips.xvalues.primitive:int_variable_expression"
+                                variable="//@preamble/@definitions.2/@init/@statements.0/@variable" />
+                            <rvalue
+                                xsi:type="chips.rvalues.primitive:direct_int" />
+                        </else_statements>
+                    </else_section>
+                </statements>
+            </then>
+            <outputs
+                xsi:type="chips.outputs.logical:int_output"
+                name="toBeCollected">
+                <expression
+                    xsi:type="chips.xvalues.primitive:int_variable_expression"
+                    variable="//@preamble/@definitions.2/@init/@statements.0/@variable" />
+            </outputs>
+        </definitions>
+        <definitions
+            xsi:type="definitions:logical_definition"
+            name="DummyCollector">
+            <parameters
+                xsi:type="chips.parameters.logical:int_logical_parameter"
+                name="bar">
+                <declaration>
+                    <variable
+                        name="bar" />
+                </declaration>
+            </parameters>
+        </definitions>
+        <definitions
+            xsi:type="definitions:collective_function_definition"
+            name="TrueAsLongAsPositive"
+            support_object="//@preamble/@definitions.1">
+            <accumulator>
+                <accumulator
+                    xsi:type="chips.parameters.collective:int_collective_parameter">
+                    <default_value
+                        xsi:type="chips.rvalues.collective:input_kw" />
+                    <declaration>
+                        <variable
+                            name="msg" />
+                    </declaration>
+                </accumulator>
+            </accumulator>
+            <operations>
+                <statements
+                    xsi:type="chips.statements.collective:int_declaration">
+                    <variable
+                        name="myMsg" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.collective:int_assignment">
+                    <lvalue
+                        xsi:type="chips.xvalues.collective:int_variable_expression"
+                        variable="//@preamble/@definitions.4/@operations/@statements.0/@variable" />
+                    <rvalue
+                        xsi:type="chips.xvalues.collective:int_variable_expression"
+                        variable="//@preamble/@definitions.4/@accumulator/@accumulator.0/@declaration/@variable" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.collective:bool_declaration">
+                    <variable
+                        name="currentActivation" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.collective:bool_assignment">
+                    <lvalue
+                        xsi:type="chips.xvalues.collective:bool_variable_expression"
+                        variable="//@preamble/@definitions.4/@operations/@statements.2/@variable" />
+                    <rvalue
+                        xsi:type="chips.rvalues.collective:direct_bool" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.collective:int_declaration">
+                    <variable
+                        name="msgToNext" />
+                </statements>
+                <statements
+                    xsi:type="chips.statements.collective:if_else">
+                    <condition
+                        xsi:type="chips.rvalues.collective.operators.bool:gt_int">
+                        <left_operand
+                            xsi:type="chips.xvalues.collective:int_variable_expression"
+                            variable="//@preamble/@definitions.4/@operations/@statements.0/@variable" />
+                        <right_operand
+                            xsi:type="chips.rvalues.collective:direct_int"
+                            value="1" />
+                    </condition>
+                    <if_section>
+                        <if_statements
+                            xsi:type="chips.statements.collective:bool_assignment">
+                            <lvalue
+                                xsi:type="chips.xvalues.collective:bool_variable_expression"
+                                variable="//@preamble/@definitions.4/@operations/@statements.2/@variable" />
+                            <rvalue
+                                xsi:type="chips.rvalues.collective:direct_bool"
+                                value="true" />
+                        </if_statements>
+                        <if_statements
+                            xsi:type="chips.statements.collective:int_assignment">
+                            <lvalue
+                                xsi:type="chips.xvalues.collective:int_variable_expression"
+                                variable="//@preamble/@definitions.4/@operations/@statements.4/@variable" />
+                            <rvalue
+                                xsi:type="chips.rvalues.collective.operators.int:minus">
+                                <left_operand
+                                    xsi:type="chips.xvalues.collective:int_variable_expression"
+                                    variable="//@preamble/@definitions.4/@operations/@statements.0/@variable" />
+                                <right_operand
+                                    xsi:type="chips.rvalues.collective:direct_int"
+                                    value="1" />
+                            </rvalue>
+                        </if_statements>
+                    </if_section>
+                    <else_section>
+                        <else_statements
+                            xsi:type="chips.statements.collective:int_assignment">
+                            <lvalue
+                                xsi:type="chips.xvalues.collective:int_variable_expression"
+                                variable="//@preamble/@definitions.4/@operations/@statements.4/@variable" />
+                            <rvalue
+                                xsi:type="chips.rvalues.collective:stop_kw" />
+                        </else_statements>
+                    </else_section>
+                </statements>
+            </operations>
+            <current_object_output>
+                <expression
+                    xsi:type="chips.xvalues.collective:bool_variable_expression"
+                    variable="//@preamble/@definitions.4/@operations/@statements.2/@variable" />
+            </current_object_output>
+            <channeled_output
+                channel="//@preamble/@definitions.1/@with/@statements.0">
+                <accumulator_expressions
                     xsi:type="chips.xvalues.collective:int_variable_expression"
-                    variable="//@preamble/@definitions.4/@operations/@statements.0/@variable"/>
-                <right_operand
-                    xsi:type="chips.rvalues.collective:direct_int"
-                    value="1"/>
-              </rvalue>
-            </if_statements>
-          </if_section>
-          <else_section>
-            <else_statements
-                xsi:type="chips.statements.collective:int_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.collective:int_variable_expression"
-                  variable="//@preamble/@definitions.4/@operations/@statements.4/@variable"/>
-              <rvalue
-                  xsi:type="chips.rvalues.collective:stop_kw"/>
-            </else_statements>
-          </else_section>
-        </statements>
-      </operations>
-      <current_object_output>
-        <expression
-            xsi:type="chips.xvalues.collective:bool_variable_expression"
-            variable="//@preamble/@definitions.4/@operations/@statements.2/@variable"/>
-      </current_object_output>
-      <channeled_output
-          channel="//@preamble/@definitions.1/@with/@statements.0">
-        <accumulator_expressions
-            xsi:type="chips.xvalues.collective:int_variable_expression"
-            variable="//@preamble/@definitions.4/@operations/@statements.4/@variable"/>
-      </channeled_output>
-      <default_output>
-        <accumulator_expressions
-            xsi:type="chips.rvalues.collective:stop_kw"/>
-      </default_output>
-    </definitions>
-  </preamble>
-  <system>
-    <system
-        xsi:type="chips.statements.system:logical_declaration"
-        def="//@preamble/@definitions.0">
-      <variable
-          name="componentOne"/>
-    </system>
-    <system
-        xsi:type="chips.statements.system:int_declaration">
-      <variable
-          name="nbSubComponents"/>
-    </system>
-    <system
-        xsi:type="chips.statements.system:int_assignment">
-      <lvalue
-          xsi:type="chips.xvalues.system:int_variable_expression"
-          variable="//@system/@system.1/@variable"/>
-      <rvalue
-          xsi:type="chips.rvalues.system:direct_int"
-          value="3"/>
-    </system>
-    <system
-        xsi:type="chips.statements.system:logical_declaration"
-        def="//@preamble/@definitions.2">
-      <variable
-          name="componentTwo">
-        <dimensions
-            xsi:type="chips.xvalues.system:int_variable_expression"
-            variable="//@system/@system.1/@variable"/>
-      </variable>
-    </system>
-    <system
-        xsi:type="chips.statements.system:object_declaration"
-        def="//@preamble/@definitions.1">
-      <variable
-          name="placeholders">
-        <dimensions
-            xsi:type="chips.xvalues.system:int_variable_expression"
-            variable="//@system/@system.1/@variable"/>
-      </variable>
-    </system>
-    <system
-        xsi:type="chips.statements.system:link">
-      <linked_component
-          xsi:type="chips.systemspecific.expressions:logical_variable_expression"
-          variable="//@system/@system.0/@variable"/>
-      <support_node
-          xsi:type="chips.systemspecific.expressions:object_variable_expression"
-          variable="//@system/@system.4/@variable">
-        <index
-            xsi:type="chips.rvalues.system:direct_int"/>
-      </support_node>
-    </system>
-    <system
-        xsi:type="chips.statements.system:int_declaration">
-      <variable
-          name="range">
-        <dimensions
-            xsi:type="chips.xvalues.system:int_variable_expression"
-            variable="//@system/@system.1/@variable"/>
-      </variable>
-    </system>
-    <system
-        xsi:type="chips.statements.system:foreach">
-      <iterator
-          xsi:type="chips.statements.system:int_declaration">
-        <variable
-            name="i"/>
-      </iterator>
-      <iterable_expr
-          xsi:type="chips.xvalues.system:int_variable_expression"
-          variable="//@system/@system.6/@variable"/>
-      <statements
-          xsi:type="chips.statements.system:link">
-        <linked_component
-            xsi:type="chips.systemspecific.expressions:logical_variable_expression"
-            variable="//@system/@system.3/@variable">
-          <index
-              xsi:type="chips.xvalues.system:int_variable_expression"
-              variable="//@system/@system.7/@iterator/@variable"/>
-        </linked_component>
-        <support_node
-            xsi:type="chips.systemspecific.expressions:object_variable_expression"
-            variable="//@system/@system.4/@variable">
-          <index
-              xsi:type="chips.xvalues.system:int_variable_expression"
-              variable="//@system/@system.7/@iterator/@variable"/>
-        </support_node>
-      </statements>
-      <statements
-          xsi:type="chips.statements.system:feeding_logical_int">
-        <eater
-            parameter="//@preamble/@definitions.2/@parameters.1">
-          <variable_expression
-              variable="//@system/@system.3/@variable">
-            <index
+                    variable="//@preamble/@definitions.4/@operations/@statements.4/@variable" />
+            </channeled_output>
+            <default_output>
+                <accumulator_expressions
+                    xsi:type="chips.rvalues.collective:stop_kw" />
+            </default_output>
+        </definitions>
+    </preamble>
+    <system>
+        <system
+            xsi:type="chips.statements.system:logical_declaration"
+            def="//@preamble/@definitions.0">
+            <variable
+                name="componentOne" />
+        </system>
+        <system
+            xsi:type="chips.statements.system:int_declaration">
+            <variable
+                name="nbSubComponents" />
+        </system>
+        <system
+            xsi:type="chips.statements.system:int_assignment">
+            <lvalue
                 xsi:type="chips.xvalues.system:int_variable_expression"
-                variable="//@system/@system.7/@iterator/@variable"/>
-          </variable_expression>
-        </eater>
-        <feeder
-            xsi:type="chips.rvalues.dataflow.operators.int:plus">
-          <left_operand
-              xsi:type="chips.xvalues.system:int_variable_expression"
-              variable="//@system/@system.7/@iterator/@variable"/>
-          <right_operand
-              xsi:type="chips.rvalues.system:direct_int"
-              value="1"/>
-        </feeder>
-      </statements>
-      <statements
-          xsi:type="chips.statements.system:feeding_logical_bool">
-        <eater
-            parameter="//@preamble/@definitions.2/@parameters.0">
-          <variable_expression
-              variable="//@system/@system.3/@variable">
-            <index
+                variable="//@system/@system.1/@variable" />
+            <rvalue
+                xsi:type="chips.rvalues.system:direct_int"
+                value="3" />
+        </system>
+        <system
+            xsi:type="chips.statements.system:logical_declaration"
+            def="//@preamble/@definitions.2">
+            <variable
+                name="componentTwo">
+                <dimensions
+                    xsi:type="chips.xvalues.system:int_variable_expression"
+                    variable="//@system/@system.1/@variable" />
+            </variable>
+        </system>
+        <system
+            xsi:type="chips.statements.system:object_declaration"
+            def="//@preamble/@definitions.1">
+            <variable
+                name="placeholders">
+                <dimensions
+                    xsi:type="chips.xvalues.system:int_variable_expression"
+                    variable="//@system/@system.1/@variable" />
+            </variable>
+        </system>
+        <system
+            xsi:type="chips.statements.system:link">
+            <linked_component
+                xsi:type="chips.systemspecific.expressions:logical_variable_expression"
+                variable="//@system/@system.0/@variable">
+                <index
+                    xsi:type="chips.rvalues.system:direct_int" />
+            </linked_component>
+            <support_node
+                xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                variable="//@system/@system.4/@variable">
+                <index
+                    xsi:type="chips.rvalues.system:direct_int" />
+            </support_node>
+        </system>
+        <system
+            xsi:type="chips.statements.system:int_declaration">
+            <variable
+                name="range">
+                <dimensions
+                    xsi:type="chips.xvalues.system:int_variable_expression"
+                    variable="//@system/@system.1/@variable" />
+            </variable>
+        </system>
+        <system
+            xsi:type="chips.statements.system:foreach">
+            <iterator
+                xsi:type="chips.statements.system:int_declaration">
+                <variable
+                    name="i" />
+            </iterator>
+            <iterable_expr
                 xsi:type="chips.xvalues.system:int_variable_expression"
-                variable="//@system/@system.7/@iterator/@variable"/>
-          </variable_expression>
-        </eater>
-        <feeder
-            xsi:type="chips.systemspecific.expressions.feeder:logical_collective_cast"
-            collective_function="//@preamble/@definitions.4">
-          <logical_feeder_expression
-              xsi:type="chips.systemspecific.expressions.feeder:int_logical_output"
-              output="//@preamble/@definitions.0/@outputs.0">
-            <variable_expression
-                variable="//@system/@system.0/@variable"/>
-          </logical_feeder_expression>
-        </feeder>
-      </statements>
-      <statements
-          xsi:type="chips.statements.system:if">
-        <condition
-            xsi:type="chips.rvalues.dataflow.operators.bool:gt_int">
-          <left_operand
-              xsi:type="chips.xvalues.system:int_variable_expression"
-              variable="//@system/@system.7/@iterator/@variable"/>
-          <right_operand
-              xsi:type="chips.rvalues.system:direct_int"/>
-        </condition>
-        <if_section>
-          <if_statements
-              xsi:type="chips.statements.system:channel_plugging">
-            <eater
-                eating_channel="//@preamble/@definitions.1/@with/@statements.1">
-              <node
-                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
-                  variable="//@system/@system.4/@variable">
-                <index
-                    xsi:type="chips.xvalues.system:int_variable_expression"
-                    variable="//@system/@system.7/@iterator/@variable"/>
-              </node>
-            </eater>
-            <feeder
-                feeding_channel="//@preamble/@definitions.1/@with/@statements.0">
-              <node
-                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
-                  variable="//@system/@system.4/@variable">
-                <index
-                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
-                  <left_operand
-                      xsi:type="chips.xvalues.system:int_variable_expression"
-                      variable="//@system/@system.7/@iterator/@variable"/>
-                  <right_operand
-                      xsi:type="chips.rvalues.system:direct_int"
-                      value="1"/>
-                </index>
-              </node>
-            </feeder>
-          </if_statements>
-          <if_statements
-              xsi:type="chips.statements.system:channel_plugging">
-            <eater
-                eating_channel="//@preamble/@definitions.1/@with/@statements.0">
-              <node
-                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
-                  variable="//@system/@system.4/@variable">
-                <index
-                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
-                  <left_operand
-                      xsi:type="chips.xvalues.system:int_variable_expression"
-                      variable="//@system/@system.7/@iterator/@variable"/>
-                  <right_operand
-                      xsi:type="chips.rvalues.system:direct_int"
-                      value="1"/>
-                </index>
-              </node>
-            </eater>
-            <feeder
-                feeding_channel="//@preamble/@definitions.1/@with/@statements.1">
-              <node
-                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
-                  variable="//@system/@system.4/@variable">
-                <index
-                    xsi:type="chips.xvalues.system:int_variable_expression"
-                    variable="//@system/@system.7/@iterator/@variable"/>
-              </node>
-            </feeder>
-          </if_statements>
-        </if_section>
-      </statements>
+                variable="//@system/@system.6/@variable" />
+            <statements
+                xsi:type="chips.statements.system:link">
+                <linked_component
+                    xsi:type="chips.systemspecific.expressions:logical_variable_expression"
+                    variable="//@system/@system.3/@variable">
+                    <index
+                        xsi:type="chips.xvalues.system:int_variable_expression"
+                        variable="//@system/@system.7/@iterator/@variable" />
+                </linked_component>
+                <support_node
+                    xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                    variable="//@system/@system.4/@variable">
+                    <index
+                        xsi:type="chips.xvalues.system:int_variable_expression"
+                        variable="//@system/@system.7/@iterator/@variable" />
+                </support_node>
+            </statements>
+            <statements
+                xsi:type="chips.statements.system:feeding_logical_int">
+                <eater
+                    parameter="//@preamble/@definitions.2/@parameters.1">
+                    <variable_expression
+                        variable="//@system/@system.3/@variable">
+                        <index
+                            xsi:type="chips.xvalues.system:int_variable_expression"
+                            variable="//@system/@system.7/@iterator/@variable" />
+                    </variable_expression>
+                </eater>
+                <feeder
+                    xsi:type="chips.rvalues.dataflow.operators.int:plus">
+                    <left_operand
+                        xsi:type="chips.xvalues.system:int_variable_expression"
+                        variable="//@system/@system.7/@iterator/@variable" />
+                    <right_operand
+                        xsi:type="chips.rvalues.system:direct_int"
+                        value="1" />
+                </feeder>
+            </statements>
+            <statements
+                xsi:type="chips.statements.system:feeding_logical_bool">
+                <eater
+                    parameter="//@preamble/@definitions.2/@parameters.0">
+                    <variable_expression
+                        variable="//@system/@system.3/@variable">
+                        <index
+                            xsi:type="chips.xvalues.system:int_variable_expression"
+                            variable="//@system/@system.7/@iterator/@variable" />
+                    </variable_expression>
+                </eater>
+                <feeder
+                    xsi:type="chips.systemspecific.expressions.feeder:logical_collective_cast"
+                    collective_function="//@preamble/@definitions.4">
+                    <logical_feeder_expression
+                        xsi:type="chips.systemspecific.expressions.feeder:int_logical_output"
+                        output="//@preamble/@definitions.0/@outputs.0">
+                        <variable_expression
+                            variable="//@system/@system.0/@variable" />
+                    </logical_feeder_expression>
+                </feeder>
+            </statements>
+            <statements
+                xsi:type="chips.statements.system:if">
+                <condition
+                    xsi:type="chips.rvalues.dataflow.operators.bool:gt_int">
+                    <left_operand
+                        xsi:type="chips.xvalues.system:int_variable_expression"
+                        variable="//@system/@system.7/@iterator/@variable" />
+                    <right_operand
+                        xsi:type="chips.rvalues.system:direct_int" />
+                </condition>
+                <if_section>
+                    <if_statements
+                        xsi:type="chips.statements.system:channel_plugging">
+                        <eater
+                            eating_channel="//@preamble/@definitions.1/@with/@statements.1">
+                            <node
+                                xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                                variable="//@system/@system.4/@variable">
+                                <index
+                                    xsi:type="chips.xvalues.system:int_variable_expression"
+                                    variable="//@system/@system.7/@iterator/@variable" />
+                            </node>
+                        </eater>
+                        <feeder
+                            feeding_channel="//@preamble/@definitions.1/@with/@statements.0">
+                            <node
+                                xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                                variable="//@system/@system.4/@variable">
+                                <index
+                                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
+                                    <left_operand
+                                        xsi:type="chips.xvalues.system:int_variable_expression"
+                                        variable="//@system/@system.7/@iterator/@variable" />
+                                    <right_operand
+                                        xsi:type="chips.rvalues.system:direct_int"
+                                        value="1" />
+                                </index>
+                            </node>
+                        </feeder>
+                    </if_statements>
+                    <if_statements
+                        xsi:type="chips.statements.system:channel_plugging">
+                        <eater
+                            eating_channel="//@preamble/@definitions.1/@with/@statements.0">
+                            <node
+                                xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                                variable="//@system/@system.4/@variable">
+                                <index
+                                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
+                                    <left_operand
+                                        xsi:type="chips.xvalues.system:int_variable_expression"
+                                        variable="//@system/@system.7/@iterator/@variable" />
+                                    <right_operand
+                                        xsi:type="chips.rvalues.system:direct_int"
+                                        value="1" />
+                                </index>
+                            </node>
+                        </eater>
+                        <feeder
+                            feeding_channel="//@preamble/@definitions.1/@with/@statements.1">
+                            <node
+                                xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                                variable="//@system/@system.4/@variable">
+                                <index
+                                    xsi:type="chips.xvalues.system:int_variable_expression"
+                                    variable="//@system/@system.7/@iterator/@variable" />
+                            </node>
+                        </feeder>
+                    </if_statements>
+                </if_section>
+            </statements>
+        </system>
     </system>
-  </system>
 </chips:program>

@@ -25,9 +25,10 @@ class s_statement_node;
 class ChipsToXmiWriter {
 public:
     // Constructeur principal
-    ChipsToXmiWriter(std::ostream& out, 
-                     std::string xmi_version = "2.0", 
-                     std::string xmi_url = "http://www.omg.org/XMI");
+    ChipsToXmiWriter(std::ostream& out,
+                     std::string xmi_version = "2.0",
+                     std::string xmi_url = "http://www.omg.org/XMI",
+                     std::string schema_version = "2");
 
     // === MÉTHODES PUBLIQUES ===
     
@@ -77,6 +78,7 @@ private:
     std::ostream& m_out;
     std::string m_xmiVersion;
     std::string m_xmiUrl;
+    std::string m_schemaVersion;
     
     int m_idCounter;
     std::map<const ast_node*, std::string> m_nodeToId;

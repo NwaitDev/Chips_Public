@@ -2,11 +2,13 @@
 #include <iostream>
 
 ChipsToXmiWriter::ChipsToXmiWriter(std::ostream& out,
-                                   std::string xmi_version,
-                                   std::string xmi_url)
+                         std::string xmi_version,
+                         std::string xmi_url,
+                         std::string schema_version)
     : m_out(out),
       m_xmiVersion(xmi_version),
       m_xmiUrl(xmi_url),
+    m_schemaVersion(schema_version),
       m_idCounter(0)
 {}
 
@@ -34,7 +36,10 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
     
     // xsi:schemaLocation (si des namespaces sont présents)
     if (!m_namespace_urls.empty()) {
-        m_out << "  xsi:schemaLocation=\"http://chips chips1.1.ecore";
+        std::string schema_file = (m_schemaVersion.rfind("2", 0) == 0)
+            ? "chips2.ecore"
+            : "chips1.1.ecore";
+        m_out << "  xsi:schemaLocation=\"http://chips " << schema_file;
         
         for (const auto& [prefix, url] : sorted_ns) {
             // Cas spéciaux pour dataflow qui doivent pointer vers system
@@ -57,7 +62,7 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
                 }
             }
             
-            m_out << "\n                      " << url << " chips2.ecore" << schema_fragment;
+            m_out << "\n                      " << url << " " << schema_file << schema_fragment;
         }
         m_out << "\"\n";
     }

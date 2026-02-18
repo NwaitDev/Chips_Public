@@ -141,6 +141,20 @@ On top of these function types, the language will implement **\<object type>[]**
 
 <img src="img/Compilation.png">
 
+## XMI generation
+
+The parser can generate an XMI file automatically when parsing a `.chips` file.
+You can select the schema version used in `xsi:schemaLocation` with a CLI flag.
+
+Example:
+
+```bash
+./chipsc path/to/file.chips --schema-version 1.1
+./chipsc path/to/file.chips --schema-version 2
+```
+
+Default schema version is `1.1` when the flag is not provided.
+
 ## Current state of the project
 
 Currently, The language can be recognized by the parser, but type check operations are not completed and no complete data structure for a model is available.
