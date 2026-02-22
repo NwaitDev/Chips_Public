@@ -1,0 +1,118 @@
+@cpp(src="../../utils/printing.cpp,blinky_processes.cpp,../../controllers/ControllerBIPInterface.cpp,../../controllers/PIDController/PIDController.cpp", include="../../utils/printing.hpp,blinky_processes.hpp,../../controllers/ControllerBIPInterface.hpp,../../controllers/PIDController/PIDController.hpp")
+
+package blinkyBIP
+    
+    extern data type CppOutStream
+    extern data type ControllerPtr
+    extern function CppOutStream openStream(string)
+    extern function printInStream(CppOutStream, string)
+    extern function printInStream(CppOutStream, float)
+    extern function printInStream(CppOutStream, int)
+    extern function printClapLineInStream(CppOutStream, int, float, int, int, int, float)
+    extern function closeStream(CppOutStream)
+    extern function loop_process(ControllerPtr pid, int command, int r, int g, int b, float sound)
+    extern function float random_clap(int)
+    extern function ControllerPtr create_pid_controller(float kp, float ki, float kd)
+    extern function destroy_controller(ControllerPtr controller)
+    extern function float cast_as_float(int)
+
+    port type port1float_t(float v)
+    port type internal_port_t()
+
+    connector type flow1float_t(port1float_t src, port1float_t target)
+        define src target
+        on src target down { target.v = src.v; }
+    end
+
+    // Automate qui fabrique du bruit en fonction de la commande
+    atom type SoundScenario()
+        data float val
+        data float commande
+        data int cycle
+        export port port1float_t out(val)
+        export port port1float_t in(commande)
+        place APPLY, SEND 
+
+        initial to APPLY do {
+            val = 0;
+            commande = 0;
+            cycle = 0;
+        }
+
+        on out from APPLY to SEND do {
+            val = val + commande;
+            val = val + random_clap(cycle);
+        }
+
+        on in from SEND to APPLY do {
+            cycle = cycle + 1;
+        }
+    end
+
+    // Automate capte le bruit et qui le transmet
+    atom type microphone_t()
+        data float sound
+        export port port1float_t external_sound(sound)
+        export port port1float_t transmission(sound)
+        place LISTEN, TRANSMIT
+        initial to LISTEN do { sound = 0; }
+        on external_sound from LISTEN to TRANSMIT
+        on transmission from TRANSMIT to LISTEN
+    end
+
+    // Automate reçoit le bruit et qui calcule la couleur des led
+    atom type mcu_t()
+        data int nb_loops
+        data CppOutStream fileStream
+        data ControllerPtr myController
+        data int command
+        data int r, g, b
+        data float sound
+        data float exportCommand
+
+        port internal_port_t compute()
+        export port port1float_t saveData(exportCommand)
+        port internal_port_t stop()
+
+        export port port1float_t microphone(sound)
+
+        place IDLE, READY_CALC, SAVE_DATA, FINISHED
+
+        initial to IDLE do {
+            nb_loops = 0;
+            exportCommand = 0;
+            fileStream = openStream("dataPID");
+            printInStream(fileStream, "time,sound,r,g,b,command\n");
+            myController = create_pid_controller(0.6,0.1,0.01);
+            r = 0; g = 0; b = 0; command = 0; sound = 0;
+        }
+
+        on microphone from IDLE to READY_CALC
+
+        on compute from READY_CALC to SAVE_DATA do {
+            loop_process(myController, command, r, g, b, sound);
+            exportCommand = cast_as_float(command);
+        }
+
+        on saveData from SAVE_DATA to IDLE provided (nb_loops < 500) do {
+            printClapLineInStream(fileStream, nb_loops + 1, sound, r, g, b, cast_as_float(command));
+            nb_loops = nb_loops + 1;
+        }
+
+        on stop from SAVE_DATA to FINISHED provided (nb_loops >= 500) do {
+            closeStream(fileStream);
+            destroy_controller(myController);
+        }
+    end
+
+    // Processus principal
+    compound type System()
+        component SoundScenario env_sound()
+        component microphone_t microphone()
+        component mcu_t mcu()
+
+        connector flow1float_t conn_mic_1(env_sound.out, microphone.external_sound)
+        connector flow1float_t mic2mcu(microphone.transmission, mcu.microphone)
+        connector flow1float_t commandMCUtoENV(mcu.saveData, env_sound.in)
+    end
+end
