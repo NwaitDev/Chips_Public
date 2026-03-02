@@ -10,7 +10,7 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="system_section">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="system" upperBound="-1"
+    <eStructuralFeatures xsi:type="ecore:EReference" name="system_statements" upperBound="-1"
         eType="#//statements/system_statement" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="preamble_section">
