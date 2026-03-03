@@ -4,6 +4,7 @@
 #include <variant>
 #include <vector>
 #include <functional>
+#include <optional>
 #include <string>
 #include <iostream>
 
@@ -59,7 +60,10 @@ namespace chips
      */
     enum class node_element {
         CHANNEL, // communication port to refer to when transmitting a signal between nodes
-        CONTEXTUAL // variable shared by all the functional blocks supported by a node
+        // variable shared by all the functional blocks supported by a node
+        CONTEXTUAL_INT,
+        CONTEXTUAL_FLOAT,
+        CONTEXTUAL_BOOL
     };
 
     //////////////// GENERIC ELEMENTS FOR AST MANAGMENT /////////////////////
@@ -194,11 +198,11 @@ namespace chips
 
     ////// Implementation specific statements (work in progress, do not use)
 
-    template <enum node_element>
+    template <node_element ne>
     class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{}; // concrete
 
     ////// Node specific statements
-    template<enum node_element, enum dataflow_type>
+    template<node_element ne>
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>{}; // concrete
 
     ////////////////////////// DEFINITION PARAMETERS MANAGEMENT ///////////////////////////////
@@ -217,10 +221,10 @@ namespace chips
     enum collective_output_kind {
         CHANNELED,
         DEFAULTED,
-        TARGETED
+        TARGET
     };
 
-    template<dataflow_kind, dataflow_type>
+    template<dataflow_kind dfk, dataflow_type dft>
     class function_output : public ast_node{}; // concrete
     
     template<enum collective_output_kind>
@@ -246,7 +250,11 @@ namespace chips
     using node_statement_variant = std::variant<
         node_statement<recurring_statement::IF>*,
         node_statement<recurring_statement::FOREACH>*,
-        node_statement<recurring_statement::DECLARATION>*,
+        node_element_declaration<node_element::CHANNEL>*,
+        node_element_declaration<node_element::CONTEXTUAL_INT>*,
+        node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,
+        node_element_declaration<node_element::CONTEXTUAL_BOOL>*,
+        node_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
         node_statement<recurring_statement::ASSIGNMENT>*>;
 
     class with_section : public ast_node // concrete
@@ -289,14 +297,22 @@ namespace chips
         collective_parameter<dataflow_type::INT>*,
         collective_parameter<dataflow_type::FLOAT>*,
         collective_parameter<dataflow_type::BOOL>*>;
-        
-    class accumulator_definition : public ast_node
+
+    class accumulator_definition : public ast_node // concrete
     {
     private:
-        
+        std::vector<collective_parameter_variant> m_accumulator;
     };
-    class node_definition : public definition{};
-    class object_definition : public node_definition{};
+
+
+    class node_definition : public definition // abstract
+    {
+    private:
+        with_section with;
+    };
+
+    class object_definition : public node_definition {}; // concrete
+
 
 
     using function_parameter_variant = std::variant<
@@ -315,13 +331,52 @@ namespace chips
         init_section init;
         then_section then;
         std::vector<function_parameter_variant> m_parameters;
-        std::vector<function_output_variant> m_parameters;
+        std::vector<function_output_variant> m_outputs;
     };
     class logical_definition : public function_definition{}; // concrete
-    class physical_definition : public function_definition, public node_definition{};
-    class implementation_defintion : public definition{};
-    class collective_function_definition : public definition{};
 
+    using physical_parameter_variant = std::variant<
+        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>*,
+        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
+        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
+    
+    using physical_output_variant = std::variant<
+        function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>*,
+        function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
+        function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
+
+    class physical_definition : public function_definition, public node_definition // concrete
+    {
+    private:
+        std::vector<physical_parameter_variant> m_sensor;
+        std::vector<physical_output_variant> m_actuator;
+    };
+
+    using implementation_statement_variant = std::variant<
+        aliasing_statement<node_element::CHANNEL>*,
+        aliasing_statement<node_element::CONTEXTUAL_BOOL>*,
+        aliasing_statement<node_element::CONTEXTUAL_INT>*,
+        aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
+    
+    class implementation_defintion : public definition // concrete
+    {
+    private:
+        object_definition& m_implemented_object;
+        node_definition& m_implementing_node;
+        std::vector<implementation_statement_variant> m_having_statements;
+    };
+
+    class collective_function_definition : public definition // concrete
+    {
+    private:
+        collective_function_type m_collective_function_type;
+        accumulator_definition m_accumulator;
+        node_definition& m_support_object;
+        collectiveops_section m_operations;
+        collective_output<collective_output_kind::TARGET> m_target_output;
+        std::optional<collective_output<collective_output_kind::DEFAULTED>> m_default_output;
+        std::vector<collective_output<collective_output_kind::CHANNELED>> m_channeled_outputs;
+    };
 
 
 
