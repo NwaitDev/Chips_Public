@@ -7,7 +7,36 @@
 #include "chips_config_stts.hpp"
 #include "chips_ast_classes.hpp"
 #include "ChipsAST.hpp"
+#include "parserXmetamodel/chips_ast_classes.hpp"
 #include <iostream>
+
+namespace chips {
+    void program_node::hello(){
+        std::cout << m_filename << std::endl;
+        if(get_preamble()){
+            get_preamble()->hello();
+        }
+        if(get_system()){
+            get_system()->hello();
+        }
+    }
+
+    void preamble_section_node::hello(){
+        for(const auto& def : get_definitions()){
+            // if(def){
+            //     def->hello();
+            // }
+        }
+    }
+
+    void system_section_node::hello(){
+        for(const auto& statement : get_statements()){
+            // if(statement){
+            //     statement->hello();
+            // }
+        }
+    }
+}
 
 void chips_node::hello() {
     if(preambles){

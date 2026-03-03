@@ -9,7 +9,7 @@ private:
 
 public:
     ~ast_node() = default;
-    void hello(){
+    virtual void hello(){
         std::cout<<"hello!"<<std::endl;
     };
 
