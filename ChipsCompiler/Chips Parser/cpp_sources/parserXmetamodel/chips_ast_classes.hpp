@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <variant>
 
 namespace chips
 {
@@ -95,9 +96,9 @@ namespace chips
     // it is of the given dimension(s).
 
     template<enum rvalue_env> 
-    class array : public ast_node; // concrete
+    class array;// : public ast_node; // concrete
     template<enum rvalue_env V>
-    class variable : public array<V>; // concrete
+    class variable;// : public array<V>; // concrete
 
 
     //////////////////// VARIABLE AST NODES ////////////////////////
@@ -137,10 +138,10 @@ namespace chips
         IMPLEMENTS, // identifier implements identifier using identifier
         PLUGGING, // identifier.identifier(identifier.identifier)
         FEEDING, // identifier.identifier(expression | identifier.identifier)
-        LINKING // link identifier to identifier
+        LINKING, // link identifier to identifier
 
         // specific to implementation section (work in progress, do not use)
-        ALIASING
+        ALIASING,
 
     };
 
@@ -160,16 +161,29 @@ namespace chips
     template<enum statement_env, enum recuring_statements>
     class statement;// : public ast_node; // abstract class
 
-    template<recuring_statements>
-    using system_statement = statement<statement_env::SYSTEM>; // abstract (by definition)
-    template<recuring_statements>
-    using node_statement = statement<statement_env::NODE>; // abstract (by definition)
-    template<recuring_statements>
-    using implementation_statement = statement<statement_env::IMPLEMENTATION>; // abstract (by definition)
-    template<recuring_statements>
-    using primitive_statement = statement<statement_env::PRIMITIVE>; // abstract (by definition)
-    template<recuring_statements>
-    using collective_statement = statement<statement_env::COLLECTIVE>; // abstract (by definition)
+    template<recuring_statements recstt>
+    using system_statement = statement<statement_env::SYSTEM, recstt>; // abstract (by definition)
+    
+    // Variant to hold any system statement type (needed because system_statement is a template alias)
+    using system_statement_variant = std::variant<
+        system_statement<recuring_statements::IF>*,
+        system_statement<recuring_statements::FOREACH>*,
+        system_statement<recuring_statements::DECLARATION>*,
+        system_statement<recuring_statements::ASSIGNMENT>*,
+        system_statement<recuring_statements::IMPLEMENTS>*,
+        system_statement<recuring_statements::PLUGGING>*,
+        system_statement<recuring_statements::FEEDING>*,
+        system_statement<recuring_statements::LINKING>*
+    >;
+
+    template<recuring_statements recstt>
+    using node_statement = statement<statement_env::NODE, recstt>; // abstract (by definition)
+    template<recuring_statements recstt>
+    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; // abstract (by definition)
+    template<recuring_statements recstt>
+    using primitive_statement = statement<statement_env::PRIMITIVE, recstt>; // abstract (by definition)
+    template<recuring_statements recstt>
+    using collective_statement = statement<statement_env::COLLECTIVE, recstt>; // abstract (by definition)
 
 
     ////// Generic statements
@@ -251,50 +265,6 @@ namespace chips
     class accumulator_definition;// : public ast_node;
     class accumulator_definition;// : public ast_node;
 
-
-    ////////////////////////// DEFINITION PARAMETERS MANAGEMENT ///////////////////////////////
-
-    template<dataflow_kind, dataflow_type>
-    class function_parameter : public ast_node;
-    
-    template<dataflow_type>
-    class collective_parameter : public ast_node;
-
-    ////////////////////////// DEFINITION OUTPUTS MANAGEMENT //////////////////////////////////
-
-    /**
-     * Different forms of output to use within the collective primitive definitions
-     */
-    enum collective_output_kind {
-        CHANNELED,
-        DEFAULTED,
-        TARGETED
-    };
-
-    template<dataflow_kind, dataflow_type>
-    class function_output : public ast_node;
-    
-    template<collective_output_kind>
-    class collective_output : public ast_node;
-
-
-    ////////////////////////// DEFINITIONS MANAGEMENT ///////////////////////////////////////
-
-    class definition : public ast_node;
-    class with_section : public ast_node;
-    class init_section : public ast_node;
-    class then_section : public ast_node;
-    class collectiveops_section : public ast_node;
-    class accumulator_definition : public ast_node;
-    class node_definition : public definition;
-    class object_definition : public node_definition;
-    class function_definition : public defintion;
-    class accumulator_definition : public ast_node;
-    class accumulator_definition : public ast_node;
-
-
-
-
     class program_node : public ast_node
     {
     private:
@@ -339,16 +309,17 @@ namespace chips
 
     class system_section_node : public ast_node {
         private:
-            std::vector<system_statement*> statements;
+            std::vector<system_statement_variant> statements;
 
         public:
             system_section_node() = default;
 
-            void append(system_statement& stmt){
+            template<recuring_statements recstt>
+            void append(system_statement<recstt>& stmt){
                 statements.insert(statements.begin(), &stmt);
             }
 
-            std::vector<system_statement*> get_statements() { return statements; }
+            std::vector<system_statement_variant> get_statements() { return statements; }
 
             void accept(visitor& visitor){}
 
