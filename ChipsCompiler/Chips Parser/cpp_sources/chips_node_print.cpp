@@ -30,10 +30,8 @@ namespace chips {
     }
 
     void system_section_node::hello(){
-        for(const auto& statement : get_statements()){
-            // if(statement){
-            //     statement->hello();
-            // }
+        for(auto& statement : get_statements()){
+            // std::visit([](auto* s){ s->hello(); }, statement);
         }
     }
 }
