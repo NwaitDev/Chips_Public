@@ -8,99 +8,151 @@
 
 namespace chips
 {
-    
-
+    /**
+     * Components that can be plugged in system section
+     */ 
     enum block_type {
-        LOGICAL,
-        PHYSICAL,
-        OBJECT
+        LOGICAL, // only using regular in/outputs
+        PHYSICAL, // can use regular in/outputs, sensor/actuators and channel in/outputs
+        OBJECT // can only be plugged to other objects with channel in/outputs
     };
 
+    /** 
+     * Types of the elements that can appear in the preamble section
+     */
     enum definition_type {
-        NODE,
-        FUNCTION,
-        IMPLEMENTATION
+        NODE, // to define objects and physicals
+        FUNCTION, // to define logical and physicals
+        IMPLEMENTATION // to define node inheritance (work in progress, do not use)
     };
 
-    enum rvalue_context {
-        PRIMITIVE,
-        COLLECTIVE,
-        SYSTEM
+    /**
+     * Environments for the interpretation 
+     * of direct values and variables
+     */
+    enum rvalue_env {
+        PRIMITIVE, // each value is interpreted as a regular variable
+        COLLECTIVE, // each value can be interpreted as either a value of its type or a "NULL" (stop value)
+        SYSTEM // each value is interpreted as a regular variable until it is plugged. Then, it represents a constant dataflow
     };
 
-    enum statement_context {
-        PRIMITIVE,
-        COLLECTIVE,
-        SYSTEM,
-        IMPLEMENTATION,
-        NODE
-    };
-
+    /**
+     * Primitive types of data that Chips handles
+     */
     enum dataflow_type {
-        INT,
-        FLOAT,
-        BOOL
+        INT, // regular integers
+        FLOAT, // floating point values
+        BOOL // booleans
     };
 
+    //////////////// GENERIC ELEMENTS FOR AST MANAGMENT /////////////////////
+    class visitor;
+    class ast_node{
+    public:
+        void hello();
+        virtual void accept(visitor& v) = 0;
+    };
+    class visitor{
+    public:
+        virtual void visit(ast_node &node) = 0;
+    };
+
+
+    //////////////// VERY BROAD CONCEPTS FOR CHIPS SPECIFIC AST //////////////
+    class program_node : public ast_node; // concrete
+    class preamble_section_node : public ast_node; // concrete
+    class system_section_node : public ast_node; // concrete
+    class definition : public ast_node; // abstract
+    class system_statement : public ast_node; // abstract
+
+
+    //////////////// VARIABLE CONCEPTS //////////////////////
+    // In chips, each variable is considered as a (dynamic) array.
+    // By default, variables are arrays of dimension 1.
+    // When declared with a [integer expression]+ suffix,
+    // it is of the given dimension(s).
+
+    template<enum rvalue_env> 
+    class array : public ast_node; // concrete
+    template<enum rvalue_env V>
+    class variable : public array<V>; // concrete
+
+
+    //////////////////// VARIABLE AST NODES ////////////////////////
+
+    class primitive_variable : public variable<chips::rvalue_env::PRIMITIVE>; // abstract
+    template<dataflow_type dft> 
+    class dataflow_primitive_variable : public primitive_variable; // concrete
+
+    class node_variable : public variable<chips::rvalue_env::PRIMITIVE>; // abstract
+    template<dataflow_type dft> 
+    class contextual_variable : public node_variable; // concrete
+
+    class collective_variable : public variable<chips::rvalue_env::COLLECTIVE>; // abstract
+    template<dataflow_type dft> 
+    class dataflow_collective_variable; // concrete
+
+
+    class system_variable : public variable<chips::rvalue_env::SYSTEM>; // abstract
+    template<block_type bt> 
+    class block_variable : public system_variable; // concrete
+    template<dataflow_type dft> 
+    class dataflow_system_variable : public system_variable; // concrete
+
+    ////////////////// STATEMENTS MANAGEMENT ////////////////////////
+
+    /**
+     * Statements that are encountered in different environments
+     */
     enum recuring_statements {
-        IF,
-        IF_ELSE,
-        FOREACH,
-        DECLARATION,
-        ASSIGNMENT
+        IF, // if ( bool expr ){ statements } [ else { statements } ]
+        FOREACH, // for variable in iterable { statements }
+        DECLARATION, // type identifier
+        ASSIGNMENT // identifier = identifier
     };
 
-    class ast_node;
-    // all the following node types extend the ast_node class
-    class program_node : public ast_node;
-    class preamble_section_node : public ast_node;
-    class system_section_node : public ast_node;
-    class chips_visitor : public ast_node;
-    class definition : public ast_node;
-    class system_statement : public ast_node;
+    /**
+     * Environments that should allow to distinguish
+     * the kind of statements that can be used in the code
+     */
+    enum statement_env {
+        PRIMITIVE, // in the body of function definitions (init/then sections)
+        COLLECTIVE, // in the body of collective primitive definitions
+        SYSTEM, // in the system description
+        IMPLEMENTATION, // in the body of node implementation definition (work in progress, do not use)
+        NODE // in the body of a node definitions (with sections)
+    };
 
-    template<enum rvalue_context> class array : public ast_node;
-    template<enum rvalue_context V> class variable : public array<V>;
 
+    template<enum statement_env, enum recuring_statements>
+    class statement : public ast_node; // abstract class
 
-    class primitive_variable : public variable<chips::rvalue_context::PRIMITIVE>;
-    template<dataflow_type dft> class dataflow_primitive_variable : public primitive_variable;
+    template<recuring_statements>
+    using system_statement = statement<statement_env::SYSTEM>; // abstract (by definition)
+    template<recuring_statements>
+    using node_statement = statement<statement_env::NODE>; // abstract (by definition)
+    template<recuring_statements>
+    using implementation_statement = statement<statement_env::IMPLEMENTATION>; // abstract (by definition)
+    template<recuring_statements>
+    using primitive_statement = statement<statement_env::PRIMITIVE>; // abstract (by definition)
+    template<recuring_statements>
+    using collective_statement = statement<statement_env::COLLECTIVE>; // abstract (by definition)
 
-    class node_variable : public variable<chips::rvalue_context::PRIMITIVE>;
-    template<dataflow_type dft> class contextual_variable : public node_variable;
+    template<dataflow_type dft, statement_env stctx>
+    class dataflow_declaration : public statement<stctx, recuring_statements::DECLARATION>; // concrete
+    template<dataflow_type dft, statement_env stctx>
+    class dataflow_assignment : public statement<stctx, recuring_statements::ASSIGNMENT>; // concrete
 
-    class collective_variable : public variable<chips::rvalue_context::COLLECTIVE>;
-    template<dataflow_type dft> class dataflow_collective_variable;
-
-    class system_variable : public variable<chips::rvalue_context::SYSTEM>;
-    template<block_type bt> class block_variable : public system_variable;
-    template<dataflow_type dft> class dataflow_system_variable : public system_variable;
-
-    template<statement_context stctx, recuring_statements recstt>
-    class statement : ast_node; // abstract
-
-    template<recuring_statements recstt>
-    using system_statement = statement<statement_context::SYSTEM>;
-    template<recuring_statements recstt>
-    using node_statement = statement<statement_context::NODE>;
-    template<recuring_statements recstt>
-    using implementation_statement = statement<statement_context::IMPLEMENTATION>;
-    template<recuring_statements recstt>
-    using primitive_statement = statement<statement_context::PRIMITIVE>;
-    template<recuring_statements recstt>
-    using collective_statement = statement<statement_context::COLLECTIVE>;
-
-    template<dataflow_type dft, statement_context stctx>
-    class dataflow_declaration : public statement<stctx, recuring_statements::DECLARATION>;
-    template<dataflow_type dft, statement_context stctx>
-    class dataflow_assignment : public statement<stctx, recuring_statements::ASSIGNMENT>;
-
-    template<recuring_statements recstt, statement_context stctx>
-    class if_statement : public statement;
-    class if_else : public if_statement<>;
-    class primitive_foreach : public primitive_statement;
-    class if_section;
-    class else_section;
+    template<statement_env stctx>
+    class if_statement : public statement<recuring_statements::IF>; // concrete
+    template<statement_env stctx>
+    class if_else_statement : public if_statement<stctx>; // concrete
+    template<statement_env stctx>
+    class foreach_statement : public statement<recuring_statements::FOREACH>; // concrete
+    template<statement_env stctx>
+    class if_section; // concrete
+    template<statement_env stctx>
+    class else_section; // concrete
 
     class program_node : public ast_node
     {
@@ -111,13 +163,6 @@ namespace chips
 
     public:
         program_node(std::string filename, preamble_section_node &preamble, system_section_node &system);
-    };
-
-
-    class chips_visitor
-    {
-    public:
-        virtual void visit(ast_node &node) = 0;
     };
 }
 
