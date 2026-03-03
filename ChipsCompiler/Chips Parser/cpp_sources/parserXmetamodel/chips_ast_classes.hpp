@@ -75,11 +75,9 @@ namespace chips
 
 
     //////////////// VERY BROAD CONCEPTS FOR CHIPS SPECIFIC AST //////////////
-    class program_node : public ast_node; // concrete
-    class preamble_section_node : public ast_node; // concrete
-    class system_section_node : public ast_node; // concrete
-    class definition : public ast_node; // abstract
-    class system_statement : public ast_node; // abstract
+    class program_node : public ast_node{}; // concrete
+    class preamble_section_node : public ast_node{}; // concrete
+    class system_section_node : public ast_node{}; // concrete
 
 
     //////////////// VARIABLE CONCEPTS //////////////////////
@@ -202,14 +200,49 @@ namespace chips
     class aliasing_statement : public implementation_statement<recuring_statements::ALIASING>; // concrete
 
     ////// Node specific statements
-    enum node_declarable{
-        CHANNEL,
-        INT,
-        FLOAT,
-        BOOL
-    };
-    template<enum node_declarable>
+    template<enum node_element, enum dataflow_type>
     class node_element_declaration : public node_statement<recuring_statements::DECLARATION>; // concrete
+
+    ////////////////////////// DEFINITION PARAMETERS MANAGEMENT ///////////////////////////////
+
+    template<dataflow_kind, dataflow_type>
+    class function_parameter : public ast_node;
+    
+    template<dataflow_type>
+    class collective_parameter : public ast_node;
+
+    ////////////////////////// DEFINITION OUTPUTS MANAGEMENT //////////////////////////////////
+
+    /**
+     * Different forms of output to use within the collective primitive definitions
+     */
+    enum collective_output_kind {
+        CHANNELED,
+        DEFAULTED,
+        TARGETED
+    };
+
+    template<dataflow_kind, dataflow_type>
+    class function_output : public ast_node;
+    
+    template<collective_output_kind>
+    class collective_output : public ast_node;
+
+
+    ////////////////////////// DEFINITIONS MANAGEMENT ///////////////////////////////////////
+
+    class definition : public ast_node;
+    class with_section : public ast_node;
+    class init_section : public ast_node;
+    class then_section : public ast_node;
+    class collectiveops_section : public ast_node;
+    class accumulator_definition : public ast_node;
+    class node_definition : public definition;
+    class object_definition : public node_definition;
+    class function_definition : public defintion;
+    class accumulator_definition : public ast_node;
+    class accumulator_definition : public ast_node;
+
 
 
 
