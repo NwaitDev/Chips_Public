@@ -45,6 +45,22 @@ namespace chips
         BOOL // booleans
     };
 
+    /**
+     * Kind of signals to be distinguished when working with Cyber Physical Systems
+     */
+    enum dataflow_kind {
+        LOGICAL, // produced by any functional block or system variable
+        PHYSICAL // specific to physical functional blocks
+    };
+
+    /**
+     * Node specific variable kinds
+     */
+    enum node_element {
+        CHANNEL, // communication port to refer to when transmitting a signal between nodes
+        CONTEXTUAL // variable shared by all the functional blocks supported by a node
+    };
+
     //////////////// GENERIC ELEMENTS FOR AST MANAGMENT /////////////////////
     class visitor;
     class ast_node{
@@ -105,10 +121,21 @@ namespace chips
      * Statements that are encountered in different environments
      */
     enum recuring_statements {
+        // generic
         IF, // if ( bool expr ){ statements } [ else { statements } ]
         FOREACH, // for variable in iterable { statements }
         DECLARATION, // type identifier
-        ASSIGNMENT // identifier = identifier
+        ASSIGNMENT, // identifier = expression
+        
+        // specific to system section
+        IMPLEMENTS, // identifier implements identifier using identifier
+        PLUGGING, // identifier.identifier(identifier.identifier)
+        FEEDING, // identifier.identifier(expression | identifier.identifier)
+        LINKING // link identifier to identifier
+
+        // specific to implementation section (work in progress, do not use)
+        ALIASING
+
     };
 
     /**
@@ -138,28 +165,60 @@ namespace chips
     template<recuring_statements>
     using collective_statement = statement<statement_env::COLLECTIVE>; // abstract (by definition)
 
-    template<dataflow_type dft, statement_env stctx>
-    class dataflow_declaration : public statement<stctx, recuring_statements::DECLARATION>; // concrete
-    template<dataflow_type dft, statement_env stctx>
-    class dataflow_assignment : public statement<stctx, recuring_statements::ASSIGNMENT>; // concrete
 
-    template<statement_env stctx>
-    class if_statement : public statement<recuring_statements::IF>; // concrete
-    template<statement_env stctx>
-    class if_else_statement : public if_statement<stctx>; // concrete
-    template<statement_env stctx>
-    class foreach_statement : public statement<recuring_statements::FOREACH>; // concrete
-    template<statement_env stctx>
+    ////// Generic statements
+    template<dataflow_type dft, statement_env stenv>
+    class dataflow_declaration : public statement<stenv, recuring_statements::DECLARATION>; // concrete
+    template<dataflow_type dft, statement_env stenv>
+    class dataflow_assignment : public statement<stenv, recuring_statements::ASSIGNMENT>; // concrete
+
+    template<statement_env stenv>
+    class if_statement : public statement<stenv,recuring_statements::IF>; // concrete
+    template<statement_env stenv>
+    class if_else_statement : public if_statement<stenv>; // concrete
+    template<statement_env stenv>
+    class foreach_statement : public statement<stenv, recuring_statements::FOREACH>; // concrete
+    template<statement_env stenv>
     class if_section; // concrete
-    template<statement_env stctx>
+    template<statement_env stenv>
     class else_section; // concrete
+
+    ////// System specific statements
+    template<block_type bt>
+    class block_declaration : public statement<statement_env::SYSTEM , recuring_statements::DECLARATION>; // concrete
+
+    class implements_statement : public system_statement<recuring_statements::IMPLEMENTS>; // concrete (work in progress, do not use)
+
+    class channel_plugging : public system_statement<recuring_statements::PLUGGING>; // concrete
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    class feeding_statement : public system_statement<recuring_statements::FEEDING>; // concrete
+
+    class linking_statement : public system_statement<recuring_statements::LINKING>; // concrete
+
+    ////// Implementation specific statements (work in progress, do not use)
+
+    template <enum node_element>
+    class aliasing_statement : public implementation_statement<recuring_statements::ALIASING>; // concrete
+
+    ////// Node specific statements
+    enum node_declarable{
+        CHANNEL,
+        INT,
+        FLOAT,
+        BOOL
+    };
+    template<enum node_declarable>
+    class node_element_declaration : public node_statement<recuring_statements::DECLARATION>; // concrete
+
+
 
     class program_node : public ast_node
     {
     private:
         std::string m_filename;
-        preamble_section_node &m_preamble;
-        system_section_node &m_system;
+        preamble_section_node m_preamble;
+        system_section_node m_system;
 
     public:
         program_node(std::string filename, preamble_section_node &preamble, system_section_node &system);
