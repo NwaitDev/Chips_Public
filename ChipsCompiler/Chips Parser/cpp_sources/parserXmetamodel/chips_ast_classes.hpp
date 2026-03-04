@@ -74,6 +74,7 @@ namespace chips
 
         public:
             virtual ~ast_node() = default;
+            virtual void accept(visitor& v) = 0;
             virtual void hello() = 0;
 
             int get_line() { return line; }
@@ -226,7 +227,7 @@ namespace chips
     ////////////////////////// DEFINITION PARAMETERS MANAGEMENT ///////////////////////////////
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class function_parameter : public ast_node{}; // concrete
+    class function_parameter;// : public ast_node{}; // concrete
     
     template<dataflow_type>
     class collective_parameter : public ast_node{}; // concrete
@@ -243,7 +244,7 @@ namespace chips
     };
 
     template<dataflow_kind, dataflow_type>
-    class function_output : public ast_node{}; // concrete
+    class function_output;// : public ast_node{}; // concrete
     
     template<enum collective_output_kind>
     class collective_output : public ast_node{}; // concrete
@@ -287,12 +288,24 @@ namespace chips
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
+
+        public:
+            init_section() = default;
+
+            void accept(visitor& v) override;
+            void hello() override {}
     };
 
     class then_section : public ast_node // concrete
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
+
+        public:
+            then_section() = default;
+
+            void accept(visitor& v) override;
+            void hello() override {}
     };
 
     using collective_statement_variant = std::variant<
@@ -333,13 +346,33 @@ namespace chips
         
     class function_definition : public definition // abstract
     {
-    private:
-        init_section init;
-        then_section then;
+    protected:
+        std::unique_ptr<init_section> m_init;
+        std::unique_ptr<then_section> m_then;
         std::vector<function_parameter_variant> m_parameters;
-        std::vector<function_output_variant> m_parameters;
+        std::vector<function_output_variant> m_outputs;
+
+    public:
+        // Constructor to be called by child classes
+        function_definition(std::vector<function_parameter_variant> parameters,
+                           std::vector<function_output_variant> outputs,
+                           std::unique_ptr<init_section> init,
+                           std::unique_ptr<then_section> then)
+            : m_parameters(std::move(parameters)),
+              m_outputs(std::move(outputs)),
+              m_init(std::move(init)),
+              m_then(std::move(then)) {}
+
+        // Default constructor
+        function_definition() = default;
+
+        // Accessors
+        const std::vector<function_parameter_variant>& get_parameters() const { return m_parameters; }
+        const std::vector<function_output_variant>& get_outputs() const { return m_outputs; }
+        init_section* get_init() const { return m_init.get(); }
+        then_section* get_then() const { return m_then.get(); }
     };
-    class logical_definition : public function_definition{}; // concrete
+    class logical_definition;// : public function_definition{}; // concrete
     class physical_definition : public function_definition, public node_definition{};
     class implementation_defintion : public definition{};
     class collective_function_definition : public definition{};
@@ -365,25 +398,25 @@ namespace chips
         preamble_section_node* get_preamble() { return m_preamble.get(); }
         system_section_node* get_system() { return m_system.get(); }
 
-        void accept(visitor& visitor) { } //TODO
+        void accept(visitor& visitor) override;
 
         virtual void hello() override;
     };
 
     class preamble_section_node : public ast_node {
         private:
-            std::vector<definition*> definitions;
+            std::vector<std::unique_ptr<definition>> definitions;
 
         public:
             preamble_section_node() = default;
 
-            void append(definition& def){
-                definitions.insert(definitions.begin(), &def);
+            void append(std::unique_ptr<definition> def){
+                definitions.insert(definitions.begin(), std::move(def));
             }            
 
-            std::vector<definition*> get_definitions() { return definitions; }
+            const std::vector<std::unique_ptr<definition>>& get_definitions() const { return definitions; }
 
-            void accept(visitor& visitor) {} //TODO
+            void accept(visitor& visitor) override; 
 
             virtual void hello() override;
     };
@@ -402,14 +435,35 @@ namespace chips
 
             std::vector<system_statement_variant> get_statements() { return statements; }
 
-            void accept(visitor& visitor){}
+            void accept(visitor& visitor) override;
 
             virtual void hello() override;
     };
 
     class visitor{
     public:
-        void visit(ast_node &node);
+        virtual void visit(ast_node &node) = 0;
+
+        // === PROGRAM & CONTEXT ===
+        virtual void visit(program_node& node) = 0;
+        virtual void visit(preamble_section_node& node) = 0;
+        virtual void visit(system_section_node& node) = 0;
+
+
+        // === DEFINITIONS ===
+        virtual void visit(definition& node) = 0;
+        virtual void visit(function_definition& node) = 0;
+        virtual void visit(logical_definition& node) = 0;
+
+
+        // === WITH / SECTIONS ===
+        virtual void visit(init_section& node) = 0;
+        virtual void visit(then_section& node) = 0;
+
+        virtual void visit(function_output_variant& node) = 0;
+
+        // === DATAFLOW TYPES & PARAMETERS ===
+        virtual void visit(function_parameter_variant& node) = 0;
     };
 }
 
