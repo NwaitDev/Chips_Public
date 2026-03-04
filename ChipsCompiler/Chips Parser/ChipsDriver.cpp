@@ -17,7 +17,7 @@ int driver::parse (const std::string &f)
     scan_end ();
     if(res == 0 && ast){
         ast->hello();
-/*
+
         if (!skip_xmi_generation) {
             // Générer automatiquement le XMI après parsing réussi
             std::filesystem::path p(f);
@@ -38,7 +38,7 @@ int driver::parse (const std::string &f)
             std::cout << "📝 Génération XMI: " << output << "\n";
             // Passer juste le nom du fichier (sans le chemin) au writer
             generate_xmi(output, p.filename().string());
-        }*/
+        }
     }
     return res;
 }
@@ -56,7 +56,7 @@ void driver::generate_xmi(const std::string& output_file, const std::string& sou
     ChipsToXmiVisitor visitor(body_writer, body_out);
     
     // Visiter l'AST pour générer le contenu XMI
-    // ast->accept(visitor);
+    ast->accept(visitor);
     visitor.verifyDependencyGraph();
     if(!skip_semantic_analysis && visitor.hasErrors()){
         std::cerr << "Semantics errors detected, no XMI generate." << std::endl;
