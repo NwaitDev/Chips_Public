@@ -185,6 +185,14 @@ namespace chips
     class else_section{}; // concrete
 
     ////// System specific statements
+
+    /**
+     * Abstract class modeling an element that produces a dataflow that 
+     * can be eaten in system section
+     */
+    template<dataflow_kind dfk, dataflow_type dft>
+    class feeder{}; 
+
     template<block_type bt>
     class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>{}; // concrete
 
@@ -193,7 +201,12 @@ namespace chips
     class channel_plugging : public system_statement<recurring_statement::PLUGGING>{}; // concrete
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeding_statement : public system_statement<recurring_statement::FEEDING>{}; // concrete
+    class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dft,dfk>  // concrete
+    {
+    private:
+        eater<dft,dfk> m_eater;
+        feeder<dft,dfk> m_feeder;
+    };
 
     class linking_statement : public system_statement<recurring_statement::LINKING>{}; // concrete
 
@@ -386,14 +399,22 @@ namespace chips
 
     ///////////////////////// RVALUES MANAGEMENT //////////////////////////////////
 
-    template<dataflow_type dft, expression_env sttenv>
+    template<dataflow_type dft, expression_env expenv>
     class rvalue : public ast_node{}; // abstract
 
-    // forward declaration // mainly used in system specific ast nodes
-    class system_iterable;
+    /**
+     * rvalue specialization for interfacing "constexpr" in system
+     * section as constant dataflow streams 
+     * (syntactic sugar for additional trival logical blocks)
+     */ 
+    template<dataflow_type dft>
+    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL,dft> {}; // abstract too
+
+    // mainly used in system specific ast nodes
+    class system_iterable{}; // interface
 
     // Primary template for direct values
-    template<dataflow_type DFT>
+    template<dataflow_type dft>
     struct ChipsDftToCppType;
 
     // Specializations
@@ -430,7 +451,7 @@ namespace chips
         rvalue<dataflow_type::BOOL,expenv>*>;
 
     template<dataflow_type dft, expression_env expenv>
-    class function : public rvalue<dft,expenv>, system_iterable concrete
+    class function : public rvalue<dft,expenv>, system_iterable //concrete
     {
     private:
         std::string m_name;
@@ -624,6 +645,118 @@ namespace chips
     };
 
 
+    /////////////////////////////// SYSTEM SECTION SPECIFIC NODES //////////////////
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    class feeder_abstract : public ast_node {}; // abstract class for feeder elements
+    template<dataflow_kind dfk, dataflow_type dft>
+    class eater_abstract : public ast_node {}; // abstract class for eater elements
+
+    class linkable{}; // interface
+    class support{}; // interface
+    class interface{}; // is an interface for interface elements of models (not the regular def of interface in programming languages) // work in progress, do not use
+    class implementer{}; // abstract // work in progress, do not use
+
+    class node_variable_expression : public ast_node{}; // abstract
+    
+
+    template<block_type bt>
+    struct ChipsBlockTypeToAstBlockVariable;
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::LOGICAL>{
+        using type = block_variable<block_type::LOGICAL>;
+    };
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::PHYSICAL>{
+        using type = block_variable<block_type::PHYSICAL>;
+    };
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::OBJECT>{
+        using type = block_variable<block_type::OBJECT>;
+    };
+
+    /**
+     * Base tamplate class for system block variable elements 
+     */
+    template<block_type bt>
+    class system_variable_block_expression : public ast_node, public system_iterable
+    {
+    private:
+        using block_type = typename ChipsBlockTypeToAstBlockVariable<bt>::type;
+        block_type& m_variable;
+        rvalue<dataflow_type::INT,expression_env::SYSTEM> m_index;
+    };
+
+    /**
+     * Template specialization of system_variable_block_expression 
+     * for implementing LOGICAL specific interfaces
+     */
+    template<>
+    class system_variable_block_expression<block_type::LOGICAL> : public linkable{};
+
+    /**
+     * Template specialization of system_variable_block_expression 
+     * for implementing PHYSICAL specific interfaces
+     */
+    template<>
+    class system_variable_block_expression<block_type::PHYSICAL> : public support, public node_variable_expression, implementer {};
+
+    /**
+     * Template specialization of system_variable_block_expression 
+     * for implementing OBJECT specific interfaces
+     */
+    template<>
+    class system_variable_block_expression<block_type::OBJECT> 
+    : public linkable, public support, public node_variable_expression, public interface, public implementer {};
+
+
+    template<dataflow_type dft, dataflow_kind dfk>
+    struct BlockTypeToSystemFunctionalBlockVar;
+
+    template<dataflow_type dft>
+    struct BlockTypeToSystemFunctionalBlockVar<dft, dataflow_kind::LOGICAL> {
+        using type = system_variable_block_expression<block_type::LOGICAL>;
+    };
+
+    template<dataflow_type dft>
+    struct BlockTypeToSystemFunctionalBlockVar<dft, dataflow_kind::PHYSICAL> {
+        using type = system_variable_block_expression<block_type::PHYSICAL>;
+    };
+
+
+    /**
+     * Expression that can eat a dataflow produced by another component
+     */
+    template<dataflow_kind dfk, dataflow_type dft>
+    class eater // concrete
+    {
+    private:
+        using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
+        sys_variable_expression& m_variable_expression;
+        function_parameter<dfk,dft>& m_parameter;
+    }; 
+
+    /**
+     * Expression that can produce a dataflow eaten by another component
+     */
+    template<dataflow_kind dfk, dataflow_type dft>
+    class feeder_block_expression : public feeder<dfk,dft>, public ast_node // concrete (see feeder definition in system specific statements section)
+    {
+    private:
+        using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
+        sys_variable_expression& m_variable_expression;
+        function_output<dfk,dft>& m_output;
+    };
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    class collective_cast : public feeder<dfk,dft> {
+    private:
+        collective_function_definition& variable_expression;
+        feeder m_feeder;
+    };
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
