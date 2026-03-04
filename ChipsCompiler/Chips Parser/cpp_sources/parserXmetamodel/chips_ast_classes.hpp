@@ -281,11 +281,11 @@ namespace chips
         node_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
         node_statement<recurring_statement::ASSIGNMENT>*>;
 
-    class with_section : public ast_node // concrete
+    class with_section;/* : public ast_node // concrete
     {
     private:
         std::vector<node_statement_variant> m_statements;
-    };
+    };*/
 
     using primitive_statement_variant = std::variant<
         primitive_statement<recurring_statement::IF>*,
@@ -323,31 +323,31 @@ namespace chips
         collective_statement<recurring_statement::DECLARATION>*,
         collective_statement<recurring_statement::ASSIGNMENT>*>;
 
-    class collectiveops_section : public ast_node //concrete
+    class collectiveops_section; /*: public ast_node //concrete
     {
     private:
         std::vector<collective_statement_variant> m_statements;
-    };
+    };*/
 
     using collective_parameter_variant = std::variant<
         collective_parameter<dataflow_type::INT>*,
         collective_parameter<dataflow_type::FLOAT>*,
         collective_parameter<dataflow_type::BOOL>*>;
 
-    class accumulator_definition : public ast_node // concrete
+    class accumulator_definition;/* : public ast_node // concrete
     {
     private:
         std::vector<collective_parameter_variant> m_accumulator;
-    };
+    };*/
 
 
-    class node_definition : public definition // abstract
+    class node_definition;/* : public definition // abstract
     {
     private:
         with_section with;
-    };
+    };*/
 
-    class object_definition : public node_definition {}; // concrete
+    class object_definition;// : public node_definition {}; // concrete
 
 
 
@@ -402,12 +402,12 @@ namespace chips
         function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
         function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
 
-    class physical_definition : public function_definition, public node_definition // concrete
+    class physical_definition;/* : public function_definition, public node_definition // concrete
     {
     private:
         std::vector<physical_parameter_variant> m_sensor;
         std::vector<physical_output_variant> m_actuator;
-    };
+    };*/
 
     using implementation_statement_variant = std::variant<
         aliasing_statement<node_element::CHANNEL>*,
@@ -415,15 +415,15 @@ namespace chips
         aliasing_statement<node_element::CONTEXTUAL_INT>*,
         aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
     
-    class implementation_defintion : public definition // concrete
+    class implementation_defintion;/* : public definition // concrete
     {
     private:
         object_definition& m_implemented_object;
         node_definition& m_implementing_node;
         std::vector<implementation_statement_variant> m_having_statements;
-    };
+    };*/
 
-    class collective_function_definition : public definition // concrete
+    class collective_function_definition;/* : public definition // concrete
     {
     private:
         collective_function_type m_collective_function_type;
@@ -433,7 +433,7 @@ namespace chips
         collective_output<collective_output_kind::TARGET> m_target_output;
         std::optional<collective_output<collective_output_kind::DEFAULTED>> m_default_output;
         std::vector<collective_output<collective_output_kind::CHANNELED>> m_channeled_outputs;
-    };
+    };*/
 
     ///////////////////////// LVALUES MANAGEMENT ///////////////////////////////////
 
@@ -486,12 +486,12 @@ namespace chips
         rvalue<dataflow_type::BOOL,expenv>*>;
 
     template<dataflow_type dft, expression_env expenv>
-    class function : public rvalue<dft,expenv>, system_iterable //concrete
+    class function;/* : public rvalue<dft,expenv>, system_iterable //concrete
     {
     private:
         std::string m_name;
         std::vector<rvalue_variant<expenv>> m_parameters;
-    };
+    };*/
 
     /////// Operators as Chips expressions
 
@@ -587,97 +587,97 @@ namespace chips
     };
 
     template<expression_env expenv>
-    class gt : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class gt;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
     template<expression_env expenv>
-    class lt : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class lt;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
     template<expression_env expenv>
-    class geq : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class geq;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
     template<expression_env expenv>
-    class leq : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class leq;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
     ////////////// Bool operands operator nodes
 
     template<expression_env expenv>
-    class or_operator : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class or_operator;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         rvalue<dataflow_type::BOOL, expenv> left_operand;
         rvalue<dataflow_type::BOOL, expenv> right_operand;
-    };
+    };*/
 
     template<expression_env expenv>
-    class and_operator : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class and_operator;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         rvalue<dataflow_type::BOOL, expenv> left_operand;
         rvalue<dataflow_type::BOOL, expenv> right_operand;
-    };
+    };*/
 
     template<expression_env expenv>
-    class not_operator : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class not_operator;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         rvalue<dataflow_type::BOOL, expenv> operand;
-    };
+    };*/
 
     ////////////// Any dataflow operator nodes
 
     template<dataflow_type dft,expression_env expenv>
-    class eq : public rvalue<dataflow_type::BOOL ,expenv> // concrete
+    class eq;/* : public rvalue<dataflow_type::BOOL ,expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type ;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
     template<dataflow_type dft,expression_env expenv>
-    class neq : public rvalue<dataflow_type::BOOL , expenv> // concrete
+    class neq;/* : public rvalue<dataflow_type::BOOL , expenv> // concrete
     {
     private:
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type ;
         operand_type left_operand;
         operand_type right_operand;
-    };
+    };*/
 
 
 
     ///////////////////////////////// XVALUES MANAGEMENT ///////////////////////////
 
     template<dataflow_type dft, expression_env expenv>
-    class variable_expression : rvalue<dft,expenv>, lvalue<dft,expenv> // concrete
+    class variable_expression;/* : rvalue<dft,expenv>, lvalue<dft,expenv> // concrete
     {
     private:
         variable<expenv>& variable;
         rvalue<dataflow_type::INT,expenv> index;
-    };
+    };*/
 
 
 
