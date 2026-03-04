@@ -13,6 +13,7 @@
 %code requires{
     // #include "cpp_sources/ChipsAST.hpp"
     #include "cpp_sources/parserXmetamodel/chips_ast_classes.hpp"
+    #include "cpp_sources/parserXmetamodel/chips_overall_definition.hpp"
     #include "ChipsDriver.hpp"
 }
 
@@ -53,13 +54,16 @@
 // %type <std::unique_ptr<preambles_node>> preambles
 // %type <std::unique_ptr<system_node>> system
 
+%type <std::unique_ptr<chips::definition>> preamble
 // %type <std::unique_ptr<preamble_node>> preamble
 // %type <std::unique_ptr<object_definition_node>> object_def
 // %type <std::unique_ptr<implementation_definition_node>> implementation_def
 // %type <std::unique_ptr<node_mappings_node>> node_mappings
 // %type <std::unique_ptr<collective_operation_definition_node>> collective_op_def
+%type <std::unique_ptr<chips::function_definition>> function_def l_function_def
 // %type <std::unique_ptr<function_definition_node>> function_def p_function_def l_function_def
 
+%type <std::vector<chips::function_parameter_variant>> df_parameter_list
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_list
 // %type <std::unique_ptr<physical_dataflow_parameter_decls_node>> pdf_parameter_list
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_decls
@@ -72,7 +76,9 @@
 // %type <std::unique_ptr<with_section_node>> with_section
 // %type <std::unique_ptr<with_statements_node>> with_statements
 // %type <std::unique_ptr<statement_node>> with_statement
+%type <std::unique_ptr<chips::init_section>> init_section
 // %type <std::unique_ptr<init_section_node>> init_section
+%type <std::unique_ptr<chips::then_section>> then_section
 // %type <std::unique_ptr<then_section_node>> then_section
 // %type <std::unique_ptr<statements_node>> statements
 // %type <std::unique_ptr<statement_node>> statement
@@ -81,6 +87,7 @@
 // %type <std::unique_ptr<if_node>> if_statement
 // %type <std::unique_ptr<if_else_node>> if_else_statement
 // %type <std::unique_ptr<physical_named_outputs_node>> p_named_outputs
+%type <std::vector<chips::function_output_variant>> named_outputs
 // %type <std::unique_ptr<named_outputs_node>> named_outputs
 // %type <std::unique_ptr<physical_named_output_node>> p_named_output
 // %type <std::unique_ptr<named_output_node>> named_output
@@ -136,9 +143,9 @@ chips:
                                               drv.ast = std::move($$);                                                    }
     ;
 preambles:
-    preamble preambles                      { /*$$ = std::move($2); $$->append(std::move(std::move($1))); 
+    preamble preambles                      { $$ = std::move($2); $$->append(std::move(std::move($1))); 
                                               $$->set_line(@$.begin.line);
-                                              $$->set_column(@$.begin.column);*/}
+                                              $$->set_column(@$.begin.column);}
     | /* EMPTY */                           { $$ = std::move(std::make_unique<chips::preamble_section_node>()); /*$$ = std::move(std::make_unique<preambles_node>());*/ }                       
     ;
 system:
@@ -151,7 +158,7 @@ system:
     ;
 preamble:
     object_def                              { /*$$ = std::move($1);*/ }
-    | function_def                          { /*$$ = std::move(std::move($1));*/ }            
+    | function_def                          { $$ = std::move(std::move($1)); }            
     | collective_op_def                     { /*$$ = std::move($1);*/ }
     | implementation_def                    { /*$$ = std::move($1);*/ }
     ;
@@ -174,7 +181,7 @@ node_mappings:
     | /* EMPTY */                                               { /*$$ = std::move(std::make_unique<node_mappings_node>());*/ }
     ;
 function_def:
-    l_function_def                          { /*$$ = std::move($1);*/ }
+    l_function_def                          { $$ = std::move($1); }
     | p_function_def                        { /*$$ = std::move($1);*/ }
     ;
 collective_op_def:
@@ -205,9 +212,15 @@ l_function_def:
     LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
     init_section
     then_section
-    named_outputs                  { /*$$ = std::move(std::make_unique<logical_function_definition_node>(std::move($2), std::move($4), std::move($6), std::move($7), std::move($8)));
+    named_outputs                  { /*$$ = std::move(std::make_unique<chips::logical_definition>(std::move($2), std::move($4), std::move($6), std::move($7), std::move($8)));
                                      $$->set_line(@$.begin.line);
-                                     $$->set_column(@$.begin.column);*/ }
+                                     $$->set_column(@$.begin.column);*/
+                                     auto def = std::make_unique<chips::logical_definition>(
+                                     std::move($2), std::move($4), std::move($6), std::move($7), std::move($8));
+                                     def->set_line(@$.begin.line);
+                                     def->set_column(@$.begin.column);
+                                     $$ = std::move(def);
+                                      }
     ;
 p_function_def:
     PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
@@ -261,7 +274,7 @@ init_section:
     R_CURL              { /*$$ = std::move(std::make_unique<init_section_node>(std::move($3))); 
                           $$->set_line(@$.begin.line);
                           $$->set_column(@$.begin.column);*/}
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<init_section_node>());*/ }
+    | /* EMPTY */       { $$ = std::move(std::make_unique<chips::init_section>()); }
     ;
 then_section:
     THEN_KW L_CURL 
@@ -269,7 +282,7 @@ then_section:
     R_CURL              { /*$$ = std::move(std::make_unique<then_section_node>(std::move($3)));
                           $$->set_line(@$.begin.line);
                           $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<then_section_node>());*/ }
+    | /* EMPTY */       { $$ = std::move(std::make_unique<chips::then_section>()); }
     ;
 list_expr:
     exprs               { /*$$ = std::move($1);*/ }
@@ -830,7 +843,7 @@ named_outputs:
     named_output named_outputs                  { /*$$ = std::move($2); $$->append(std::move($1)); 
                                                   $$->set_line(@$.begin.line);
                                                   $$->set_column(@$.begin.column);*/  }
-    | /* EMPTY */                               { /*$$ = std::move(std::make_unique<named_outputs_node>());*/ }
+    | /* EMPTY */                               { $$ = std::vector<chips::function_output_variant>(); }
     ;
 named_output:
     ARROW IDENTIFIER L_PARENTH list_expr R_PARENTH { /*$$ = std::move(std::make_unique<named_output_node>(std::move($2), std::move($4)));
@@ -853,9 +866,7 @@ p_named_output:
     ;
 df_parameter_list:
     df_parameter_decls                              { /*$$ = std::move($1); */}
-    | /* EMPTY */                                   {/* $$ = std::move(std::make_unique<dataflow_parameter_decls_node>()); 
-                                                      $$->set_line(@$.begin.line);
-                                                      $$->set_column(@$.begin.column);*/}
+    | /* EMPTY */                                   { $$ = std::vector<chips::function_parameter_variant>(); }
     ;
 df_parameter_decls:
     df_parameter_decl                               { /*std::vector<std::unique_ptr<dataflow_parameter_decl_node>> vec;
