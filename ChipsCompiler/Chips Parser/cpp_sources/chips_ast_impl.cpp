@@ -5,6 +5,22 @@
 #include "chips_declaration_ctx.hpp"
 #include "ChipsAST.hpp"
 
+#include "parserXmetamodel/chips_ast_classes.hpp"
+#include "parserXmetamodel/chips_overall_definition.hpp"
+
+namespace chips {
+    void program_node::accept(visitor& v) { v.visit(*this); }
+    void preamble_section_node::accept(visitor& v) { v.visit(*this); }
+    void system_section_node::accept(visitor& v) { v.visit(*this); }
+
+    void logical_definition::accept(visitor& v) { v.visit(*this); }
+
+    void init_section::accept(visitor& v) { v.visit(*this); }
+    void then_section::accept(visitor& v) { v.visit(*this); }
+}
+
+//TODO: deleting this below after because linkage error
+
 // === DATAFLOW ===
 void dataflow_type_node::accept(chips_visitor& v) { v.visit(*this); }
 

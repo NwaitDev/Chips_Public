@@ -7,7 +7,9 @@
 #include "chips_config_stts.hpp"
 #include "chips_ast_classes.hpp"
 #include "ChipsAST.hpp"
+
 #include "parserXmetamodel/chips_ast_classes.hpp"
+#include "parserXmetamodel/chips_overall_definition.hpp"
 #include <iostream>
 
 namespace chips {
@@ -23,9 +25,9 @@ namespace chips {
 
     void preamble_section_node::hello(){
         for(const auto& def : get_definitions()){
-            // if(def){
-            //     def->hello();
-            // }
+            if(def){
+                def->hello();
+            }
         }
     }
 
@@ -34,6 +36,26 @@ namespace chips {
             // std::visit([](auto* s){ s->hello(); }, statement);
         }
     }
+
+    void logical_definition::hello(){
+        std::cout << "logical " << get_identifier() << "(";
+        for(auto& param : get_parameters()){
+            std::visit([](auto* p){ p->hello(); }, param);
+        }
+        std::cout << ")" << std::endl;
+        if(get_init()){
+            get_init()->hello();
+        }
+        if(get_then()){
+            get_then()->hello();
+        }
+        for(auto& output : get_outputs()){
+            std::visit([](auto* o){ o->hello(); }, output);
+        }
+    }
+
+    // function_parameter and function_output are templates - their hello() methods
+    // are defined inline in their base classes (function_parameter_base, function_output_base)
 }
 
 void chips_node::hello() {
