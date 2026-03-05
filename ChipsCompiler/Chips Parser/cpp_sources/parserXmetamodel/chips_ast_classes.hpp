@@ -198,14 +198,23 @@ namespace chips
 
     class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{}; // concrete (work in progress, do not use)
 
-    class channel_plugging : public system_statement<recurring_statement::PLUGGING>{}; // concrete
+    template<dataflow_kind dfk, dataflow_type dft>
+    class channel_plugging : public system_statement<recurring_statement::PLUGGING>  // concrete
+    {
+    private:
+        // need to perform check on channel types
+        // need to perform check on connectivity
+        // (only connect channels 1-to-1, never 1-to-many or many-to-one)
+        channel_eater m_eater;
+        channel_feeder m_feeder;
+    };
 
     template<dataflow_kind dfk, dataflow_type dft>
     class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dft,dfk>  // concrete
     {
     private:
-        eater<dft,dfk> m_eater;
-        feeder<dft,dfk> m_feeder;
+        eater<dfk,dft> m_eater;
+        feeder<dfk,dft> m_feeder;
     };
 
     class linking_statement : public system_statement<recurring_statement::LINKING>{}; // concrete
@@ -216,6 +225,7 @@ namespace chips
     class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{}; // concrete
 
     ////// Node specific statements
+    
     template<node_element ne>
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>{}; // concrete
 
@@ -735,7 +745,7 @@ namespace chips
     {
     private:
         using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
-        sys_variable_expression& m_variable_expression;
+        sys_variable_expression m_variable_expression;
         function_parameter<dfk,dft>& m_parameter;
     }; 
 
@@ -747,8 +757,21 @@ namespace chips
     {
     private:
         using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
-        sys_variable_expression& m_variable_expression;
+        sys_variable_expression m_variable_expression;
         function_output<dfk,dft>& m_output;
+    };
+
+
+    class channel_eater : public ast_node // concrete
+    {
+        node_variable_expression m_node;
+        node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+    };
+
+    class channel_feeder : public ast_node // concrete
+    {
+        node_variable_expression m_node;
+        node_element_declaration<node_element::CHANNEL>& m_eating_channel;
     };
 
     template<dataflow_kind dfk, dataflow_type dft>
