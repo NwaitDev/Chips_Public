@@ -211,33 +211,219 @@ namespace chips
     using collective_statement = statement<statement_env::COLLECTIVE, recstt>{}; // abstract (by definition)
 
 
+    template<dataflow_type dft, statement_env sttenv>
+    struct ChipsEnvToVariableKind;
+
+    /////// All dataflow types specializations
+
+    template<dataflow_type dft>
+    struct ChipsEnvToVariableKind<dft,statement_env::DEFINITION>{
+        using type = dataflow_primitive_variable<dft>;
+    };
+
+    template<dataflow_type dft>
+    struct ChipsEnvToVariableKind<dft,statement_env::COLLECTIVE>{
+        using type = dataflow_collective_variable<dft>;
+    };
+
+    // work in progress, do not use
+    template<dataflow_type dft>
+    struct ChipsEnvToVariableKind<dft,statement_env::IMPLEMENTATION>{
+        using type = dataflow_primitive_variable<dft>;
+    };
+
+    template<dataflow_type dft>
+    struct ChipsEnvToVariableKind<dft,statement_env::NODE>{
+        using type = dataflow_primitive_variable<dft>;
+    };
+
+    template<dataflow_type dft>
+    struct ChipsEnvToVariableKind<dft,statement_env::SYSTEM>{
+        using type = dataflow_primitive_variable<dft>;
+    };
+    
+    //////////////////////////////////////////////////////////////////////
+
+    template<statement_env sttenv>
+    struct ChipsEnvToExpressionEnv;
+
+    /////// All evironment types specializations
+
+    template<>
+    struct ChipsEnvToExpressionEnv<statement_env::DEFINITION>{
+        static constexpr expression_env value = expression_env::PRIMITIVE;
+    };
+
+    template<>
+    struct ChipsEnvToExpressionEnv<statement_env::COLLECTIVE>{
+        static constexpr expression_env value = expression_env::COLLECTIVE;
+    };
+
+    // work in progress, do not use
+    template<>
+    struct ChipsEnvToExpressionEnv<statement_env::IMPLEMENTATION>{
+        static constexpr expression_env value = expression_env::PRIMITIVE;
+    };
+
+    template<>
+    struct ChipsEnvToExpressionEnv<statement_env::NODE>{
+        static constexpr expression_env value = expression_env::PRIMITIVE;
+    };
+
+    template<>
+    struct ChipsEnvToExpressionEnv<statement_env::SYSTEM>{
+        static constexpr expression_env value = expression_env::SYSTEM;
+    };
+
     ////// Generic statements
+
+    /**
+     * Generic type for the nodes representing a dataflow declarations in any context
+     * Only treating generic dataflows, other kinds of variables 
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
     template<dataflow_type dft, statement_env stenv>
     class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>  // concrete
     {
         private:
-
+        using df_variable_type = typename ChipsEnvToVariableKind<dft,stenv>::type;
+        df_variable_type m_variable;
     };
+
+    /**
+     * Generic type for the nodes representing a dataflow assignements in any context
+     * Only treating generic dataflows, other kinds of variables 
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
     template<dataflow_type dft, statement_env stenv>
-    class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT>{}; // concrete
+    class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT> // concrete
+    {
+    private:
+        static constexpr expression_env expr_env = ChipsEnvToExpressionEnv<stenv>::value;
+        lvalue<dft, expr_env> m_lvalue;
+        rvalue<dft, expr_env> m_rvalue;
+    };
+
+
+
+    template<statement_env>
+    struct ChipsStatementEnvToStatementVariant{};
+
+    using node_statement_variant = std::variant<
+        node_statement<recurring_statement::IF>*,
+        node_statement<recurring_statement::FOREACH>*,
+        node_element_declaration<node_element::CHANNEL>*,
+        node_element_declaration<node_element::CONTEXTUAL_INT>*,
+        node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,
+        node_element_declaration<node_element::CONTEXTUAL_BOOL>*,
+        node_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
+        node_statement<recurring_statement::ASSIGNMENT>*>;
+
+    template<>
+    struct ChipsStatementEnvToStatementVariant<statement_env::NODE>{
+        using type = node_statement_variant;
+    };
+
+    using primitive_statement_variant = std::variant<
+        primitive_statement<recurring_statement::IF>*,
+        primitive_statement<recurring_statement::FOREACH>*,
+        primitive_statement<recurring_statement::DECLARATION>*,
+        primitive_statement<recurring_statement::ASSIGNMENT>*>;
+
+    template<>
+    struct ChipsStatementEnvToStatementVariant<statement_env::DEFINITION>{
+        using type = primitive_statement_variant;
+    };
+
+    using collective_statement_variant = std::variant<
+        collective_statement<recurring_statement::IF>*,
+        collective_statement<recurring_statement::FOREACH>*,
+        collective_statement<recurring_statement::DECLARATION>*,
+        collective_statement<recurring_statement::ASSIGNMENT>*>;
+
+    template<>
+    struct ChipsStatementEnvToStatementVariant<statement_env::COLLECTIVE>{
+        using type = collective_statement_variant;
+    };
+
+    using system_statement_variant = std::variant<
+        system_statement<recurring_statement::IF>*,
+        system_statement<recurring_statement::FOREACH>*,
+        system_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
+        system_statement<recurring_statement::IMPLEMENTS>*, // work in progress, do not use
+        system_statement<recurring_statement::FEEDING>*,
+        system_statement<recurring_statement::LINKING>*,
+        system_statement<recurring_statement::PLUGGING>*,
+        system_statement<recurring_statement::ASSIGNMENT>*>;
+
+    template<>
+    struct ChipsStatementEnvToStatementVariant<statement_env::COLLECTIVE>{
+        using type = collective_statement_variant;
+    };
+
+    // do not use, work in progress
+    using implementation_statement_variant = std::variant<
+        aliasing_statement<node_element::CHANNEL>*,
+        aliasing_statement<node_element::CONTEXTUAL_BOOL>*,
+        aliasing_statement<node_element::CONTEXTUAL_INT>*,
+        aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
+
+    template<>
+    struct ChipsStatementEnvToStatementVariant<statement_env::IMPLEMENTATION>{
+        using type = implementation_statement_variant;
+    };
+    
+
+    template<statement_env stenv>
+    class if_section : public ast_node  // concrete
+    {
+        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
+        std::vector<statement_type> m_if_statements;
+    };
+    template<statement_env stenv>
+    class else_section: public ast_node  // concrete
+    {
+        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
+        std::vector<statement_type> m_else_statements;
+    };
 
     template<statement_env stenv>
     class if_statement : public statement<stenv,recurring_statement::IF> // concrete
     {
-        // boolean<stenv>rvalue 
-        // if section object 
+    private:
+        static constexpr expression_env expr_env = ChipsEnvToExpressionEnv<stenv>::value;
+        rvalue<dataflow_type::BOOL, expr_env> m_condition;
+        if_section<stenv> m_if_section;
     };
+
     template<statement_env stenv>
     class if_else_statement : public if_statement<stenv> // concrete
     {
-        // else section
+    private:
+        else_section<stenv> m_else_section;
     };
-    template<statement_env stenv>
-    class foreach_statement : public statement<stenv, recurring_statement::FOREACH>{}; // concrete
-    template<statement_env stenv>
-    class if_section{}; // concrete
-    template<statement_env stenv>
-    class else_section{}; // concrete
+
+
+    template<statement_env stenv, dataflow_type dft>
+    class foreach_statement : public statement<stenv, recurring_statement::FOREACH>  // concrete (but reserved to dataflows)
+    {
+    private:
+        static constexpr expression_env expenv = ChipsEnvToExpressionEnv<stenv>::value;
+        dataflow_declaration<dft,stenv> m_iterator;
+        rvalue<dft,expenv>  m_iterable_expr;
+        std::vector<> m_statements;
+    };
+    
+    template<block_type bt>
+    class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH> // concrete (but reserved to functional blocks and nodes)
+    {
+    private:
+        block_declaration<bt> m_iterator;
+        system_variable_block_expression<bt> m_iterable_expression;
+        std::vector<system_statement_variant> m_statements;
+    };
 
     ////// System specific statements
 
@@ -249,7 +435,10 @@ namespace chips
     class feeder{}; 
 
     template<block_type bt>
-    class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>{}; // concrete
+    class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>  // concrete
+    {
+    private:
+    };
 
     class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{}; // concrete (work in progress, do not use)
 
@@ -326,15 +515,7 @@ namespace chips
         std::string m_name;
     };
 
-    using node_statement_variant = std::variant<
-        node_statement<recurring_statement::IF>*,
-        node_statement<recurring_statement::FOREACH>*,
-        node_element_declaration<node_element::CHANNEL>*,
-        node_element_declaration<node_element::CONTEXTUAL_INT>*,
-        node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,
-        node_element_declaration<node_element::CONTEXTUAL_BOOL>*,
-        node_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
-        node_statement<recurring_statement::ASSIGNMENT>*>;
+    
 
     class with_section : public ast_node // concrete
     {
@@ -342,11 +523,7 @@ namespace chips
         std::vector<node_statement_variant> m_statements;
     };
 
-    using primitive_statement_variant = std::variant<
-        primitive_statement<recurring_statement::IF>*,
-        primitive_statement<recurring_statement::FOREACH>*,
-        primitive_statement<recurring_statement::DECLARATION>*,
-        primitive_statement<recurring_statement::ASSIGNMENT>*>;
+    
     
     class init_section : public ast_node // concrete
     {
@@ -359,12 +536,6 @@ namespace chips
     private:
         std::vector<primitive_statement_variant> m_statements;
     };
-
-    using collective_statement_variant = std::variant<
-        collective_statement<recurring_statement::IF>*,
-        collective_statement<recurring_statement::FOREACH>*,
-        collective_statement<recurring_statement::DECLARATION>*,
-        collective_statement<recurring_statement::ASSIGNMENT>*>;
 
     class collectiveops_section : public ast_node //concrete
     {
@@ -430,14 +601,8 @@ namespace chips
         std::vector<physical_parameter_variant> m_sensor;
         std::vector<physical_output_variant> m_actuator;
     };
-
-    using implementation_statement_variant = std::variant<
-        aliasing_statement<node_element::CHANNEL>*,
-        aliasing_statement<node_element::CONTEXTUAL_BOOL>*,
-        aliasing_statement<node_element::CONTEXTUAL_INT>*,
-        aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
     
-    class implementation_defintion : public definition // concrete
+    class implementation_defintion : public definition // concrete // do not use, work in progress
     {
     private:
         object_definition& m_implemented_object;
@@ -475,7 +640,7 @@ namespace chips
     template<dataflow_type dft>
     class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL,dft> {}; // abstract too
 
-    // mainly used in system specific ast nodes
+    // used in system specific ast nodes
     class system_iterable{}; // interface
 
     // Primary template for direct values
