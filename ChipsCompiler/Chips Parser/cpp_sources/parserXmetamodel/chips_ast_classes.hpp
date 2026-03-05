@@ -100,24 +100,68 @@ namespace chips
 
     //////////////////// VARIABLE AST NODES ////////////////////////
 
+    template<dataflow_type dft>
+    struct ChipsTypeToContextualDeclarationType;
+
+    /////// All dataflow types specializations
+
+    template<>
+    struct ChipsTypeToContextualDeclarationType<dataflow_type::INT>{
+        using type = node_element_declaration<node_element::CONTEXTUAL_INT>;
+    };
+
+    struct ChipsTypeToContextualDeclarationType<dataflow_type::FLOAT>{
+        using type = node_element_declaration<node_element::CONTEXTUAL_FLOAT>;
+    };
+
+    struct ChipsTypeToContextualDeclarationType<dataflow_type::BOOL>{
+        using type = node_element_declaration<node_element::CONTEXTUAL_BOOL>;
+    };
+
+    template<dataflow_type dft, statement_env sttenv>
+    class dataflow_declaration;
+
     class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
-    class dataflow_primitive_variable : public primitive_variable{}; // concrete
+    class dataflow_primitive_variable : public primitive_variable  // concrete
+    {
+    private:
+        dataflow_declaration<dft,statement_env::DEFINITION>& m_declaration;
+    };
 
     class node_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
-    class contextual_variable : public node_variable{}; // concrete
+    class contextual_variable : public node_variable // concrete
+    {
+    private:
+        using node_element_declaration_type = typename ChipsTypeToContextualDeclarationType<dft>::type;
+        node_element_declaration_type& m_declaration;
+    };
 
     class collective_variable : public variable<chips::expression_env::COLLECTIVE>{}; // abstract
     template<dataflow_type dft> 
-    class dataflow_collective_variable{}; // concrete
+    class dataflow_collective_variable : public collective_variable// concrete
+    {
+    private:
+        dataflow_declaration<dft,statement_env::COLLECTIVE>& m_declaration;
+    };
 
 
     class system_variable : public variable<chips::expression_env::SYSTEM>{}; // abstract
+    
     template<block_type bt> 
-    class block_variable : public system_variable{}; // concrete
+    class block_variable : public system_variable // concrete
+    {
+    private:
+        block_declaration<bt>& m_declaration;
+    };
+    
     template<dataflow_type dft> 
-    class dataflow_system_variable : public system_variable{}; // concrete
+    class dataflow_system_variable : public system_variable // concrete
+    {
+    private:
+        dataflow_declaration<dft,statement_env::SYSTEM>& m_declaration;
+    };
 
     ////////////////// STATEMENTS MANAGEMENT ////////////////////////
 
@@ -169,14 +213,25 @@ namespace chips
 
     ////// Generic statements
     template<dataflow_type dft, statement_env stenv>
-    class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>{}; // concrete
+    class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>  // concrete
+    {
+        private:
+
+    };
     template<dataflow_type dft, statement_env stenv>
     class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT>{}; // concrete
 
     template<statement_env stenv>
-    class if_statement : public statement<stenv,recurring_statement::IF>{}; // concrete
+    class if_statement : public statement<stenv,recurring_statement::IF> // concrete
+    {
+        // boolean<stenv>rvalue 
+        // if section object 
+    };
     template<statement_env stenv>
-    class if_else_statement : public if_statement<stenv>{}; // concrete
+    class if_else_statement : public if_statement<stenv> // concrete
+    {
+        // else section
+    };
     template<statement_env stenv>
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>{}; // concrete
     template<statement_env stenv>
