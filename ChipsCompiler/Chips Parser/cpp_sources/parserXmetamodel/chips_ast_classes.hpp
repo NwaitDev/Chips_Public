@@ -405,7 +405,6 @@ namespace chips
         else_section<stenv> m_else_section;
     };
 
-
     template<statement_env stenv, dataflow_type dft>
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>  // concrete (but reserved to dataflows)
     {
