@@ -548,7 +548,7 @@
         <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator_expressions"
             lowerBound="1" upperBound="-1" eType="#//rvalues/collective_rvalue" containment="true"/>
       </eClassifiers>
-      <eClassifiers xsi:type="ecore:EClass" name="current_output" eSuperTypes="#//outputs/collective_output">
+      <eClassifiers xsi:type="ecore:EClass" name="target_output" eSuperTypes="#//outputs/collective_output">
         <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
             upperBound="-1" eType="#//rvalues/collective_rvalue" containment="true"/>
       </eClassifiers>
@@ -619,8 +619,8 @@
           eType="#//definitions/node_definition"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="operations" eType="#//definitions/collectiveops_section"
           containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="current_object_output"
-          lowerBound="1" eType="#//outputs/collective/current_output" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="target_output" lowerBound="1"
+          eType="#//outputs/collective/target_output" containment="true"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="channeled_output" ordered="false"
           upperBound="-1" eType="#//outputs/collective/channeled_output" containment="true"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="default_output" eType="#//outputs/collective/default_output"
