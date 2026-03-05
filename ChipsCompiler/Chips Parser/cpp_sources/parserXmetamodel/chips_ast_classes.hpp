@@ -112,7 +112,7 @@ namespace chips
 
     class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
-    class dataflow_primitive_variable : public primitive_variable{}; // concrete
+    class dataflow_primitive_variable;// : public primitive_variable{}; // concrete
 
     class node_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
@@ -194,7 +194,7 @@ namespace chips
     template<dataflow_type dft, statement_env stenv>
     class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>{}; // concrete
     template<dataflow_type dft, statement_env stenv>
-    class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT>{}; // concrete
+    class dataflow_assignment;// : public statement<stenv, recurring_statement::ASSIGNMENT>{}; // concrete
 
     template<statement_env stenv>
     class if_statement : public statement<stenv,recurring_statement::IF>{}; // concrete
@@ -388,6 +388,30 @@ namespace chips
         const std::vector<function_output_variant>& get_outputs() const { return m_outputs; }
         init_section* get_init() const { return m_init.get(); }
         then_section* get_then() const { return m_then.get(); }
+
+        // === APPEND METHODS ===
+        
+        // Ajouter UN paramètre (via variant)
+        void append_parameter(function_parameter_variant param) {
+            m_parameters.insert(m_parameters.begin(), param);
+        }
+
+        // Ajouter UN paramètre (via pointeur typé)
+        template<dataflow_kind dfk, dataflow_type dft>
+        void append_parameter(function_parameter<dfk, dft>* param) {
+            m_parameters.insert(m_parameters.begin(), param);
+        }
+
+        // Ajouter UN output (via variant)
+        void append_output(function_output_variant output) {
+            m_outputs.insert(m_outputs.begin(), output);
+        }
+
+        // Ajouter UN output (via pointeur typé)
+        template<dataflow_kind dfk, dataflow_type dft>
+        void append_output(function_output<dfk, dft>* output) {
+            m_outputs.insert(m_outputs.begin(), output);
+        }
     };
     
     class logical_definition;// : public function_definition{}; // concrete

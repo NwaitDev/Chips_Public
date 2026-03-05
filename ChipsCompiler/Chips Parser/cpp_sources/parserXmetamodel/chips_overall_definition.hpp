@@ -8,23 +8,27 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class function_parameter : public ast_node{
         private:
-            std::vector<function_parameter_variant> params;
+            std::unique_ptr<dataflow_primitive_variable> type;
+            std::string identifier;
+            std::unique_ptr<dataflow_assignment> rhs;
 
         public:
 
             function_parameter() = default;
 
-            void append(std::unique_ptr<function_parameter_variant> param){
-                params.insert(params.begin(), std::move(*param));
-            }
+            function_parameter(std::string identifier)
+                : identifier(identifier) {}
 
-            std::vector<function_parameter_variant> get_parameters() { return params; }
+            std::string get_identifier() { return identifier; }
+            static constexpr dataflow_kind get_kind() { return dfk; }
+            static constexpr dataflow_type get_type() { return dft; }
 
             void accept(visitor& visitor) { visitor.visit(*this); } 
 
             virtual void hello() override;
     };
 
+    //TODO: modifier pas un vector en attribut
     template<dataflow_kind, dataflow_type>
     class function_output : public ast_node{
         private:

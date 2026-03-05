@@ -14,6 +14,8 @@
     // #include "cpp_sources/ChipsAST.hpp"
     #include "cpp_sources/parserXmetamodel/chips_ast_classes.hpp"
     #include "cpp_sources/parserXmetamodel/chips_overall_definition.hpp"
+    #include "cpp_sources/parserXmetamodel/chips_overall_variable.hpp"
+    #include "cpp_sources/parserXmetamodel/chips_overall_stts.hpp"
     #include "ChipsDriver.hpp"
 }
 
@@ -63,16 +65,17 @@
 %type <std::unique_ptr<chips::function_definition>> function_def l_function_def
 // %type <std::unique_ptr<function_definition_node>> function_def p_function_def l_function_def
 
-%type <std::vector<chips::function_parameter_variant>> df_parameter_list
+%type <std::vector<chips::function_parameter_variant>> df_parameter_list df_parameter_decls
+%type <chips::function_parameter_variant> df_parameter_decl
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_list
 // %type <std::unique_ptr<physical_dataflow_parameter_decls_node>> pdf_parameter_list
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_decls
 // %type <std::unique_ptr<physical_dataflow_parameter_decls_node>> pdf_parameter_decls
 // %type <std::unique_ptr<dataflow_parameter_decl_node>> df_parameter_decl
 // %type <std::unique_ptr<physical_dataflow_parameter_decl_node>> pdf_parameter_decl
-// %type <std::unique_ptr<dataflow_type_node>> df_type
+%type <std::unique_ptr<chips::primitive_variable>> df_type
 // %type <std::unique_ptr<physical_dataflow_parameter_type_node>> pdf_parameter_type
-// %type <std::unique_ptr<rhs_assignment_node>> may_assign
+%type <std::unique_ptr<chips::dataflow_assignment>> may_assign
 // %type <std::unique_ptr<with_section_node>> with_section
 // %type <std::unique_ptr<with_statements_node>> with_statements
 // %type <std::unique_ptr<statement_node>> with_statement
@@ -865,33 +868,39 @@ p_named_output:
     | named_output                                          { /*$$ = std::move(std::move($1)); */}
     ;
 df_parameter_list:
-    df_parameter_decls                              { /*$$ = std::move($1); */}
+    df_parameter_decls                              { $$ = std::move($1); }
     | /* EMPTY */                                   { $$ = std::vector<chips::function_parameter_variant>(); }
     ;
 df_parameter_decls:
-    df_parameter_decl                               { /*std::vector<std::unique_ptr<dataflow_parameter_decl_node>> vec;
+    df_parameter_decl                               { $$ = std::vector<chips::function_parameter_variant>();
+                                                      $$.push_back($1);/*std::vector<std::unique_ptr<dataflow_parameter_decl_node>> vec;
                                                       vec.push_back(std::move($1));
-                                                      $$ = std::make_unique<dataflow_parameter_decls_node>(std::move(vec));
-                                                      $$->set_line(@$.begin.line);
-                                                      $$->set_column(@$.begin.column); */}
-    | df_parameter_decl COMMA df_parameter_decls    { /*$3->append(std::move($1)); $$ = std::move($3);
+                                                      //$$ = std::make_unique<dataflow_parameter_decls_node>(std::move(vec));
+                                                      $$ = vec;*/
+                                                      /*$$->set_line(@$.begin.line);
+                                                      $$->set_column(@$.begin.column);*/ }
+    | df_parameter_decl COMMA df_parameter_decls    { $$ = std::move($3);
+                                                      $$.insert($$.begin(), $1);/*$3->append(std::move($1)); $$ = std::move($3);
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */                                   { /*$$ = std::make_unique<dataflow_parameter_decls_node>();*/ }
+    | /* EMPTY */                                   { $$ = std::make_unique<chips::function_parameter_variant>(); }
     ;
 df_parameter_decl:
-    df_type IDENTIFIER may_assign                   { /*$$ = std::make_unique<dataflow_parameter_decl_node>(std::move($1), std::move($2), std::move($3));
+    df_type IDENTIFIER may_assign                   { $$ = std::make_unique<chips::function_parameter_variant>(std::move($1), std::move($2), std::move($3));
                                                       $$->set_line(@$.begin.line);
-                                                      $$->set_column(@$.begin.column);*/ }
+                                                      $$->set_column(@$.begin.column); }
     ;
 df_type:
-    INT_KW suffixes                                 { /*$$ = std::move(std::make_unique<dataflow_type_node>(INT_DF, std::move(std::move($2))));
+    INT_KW suffixes                                 { $$ = std::move(std::make_unique<chips::dataflow_primitive_variable<dataflow_type::INT>>());
+                                                      /*$$ = std::move(std::make_unique<dataflow_type_node>(INT_DF, std::move(std::move($2))));
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column); */}
-    | FLOAT_KW suffixes                             {/* $$ = std::move(std::make_unique<dataflow_type_node>(FLOAT_DF, std::move(std::move($2))));
+    | FLOAT_KW suffixes                             { $$ = std::move(std::make_unique<chips::dataflow_primitive_variable<dataflow_type::FLOAT>>());
+                                                    /* $$ = std::move(std::make_unique<dataflow_type_node>(FLOAT_DF, std::move(std::move($2))));
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column);*/ }
-    | BOOL_KW suffixes                              { /*$$ = std::move(std::make_unique<dataflow_type_node>(BOOL_DF, std::move(std::move($2))));
+    | BOOL_KW suffixes                              { $$ = std::move(std::make_unique<chips::dataflow_primitive_variable<dataflow_type::BOOL>>());
+                                                    /*$$ = std::move(std::make_unique<dataflow_type_node>(BOOL_DF, std::move(std::move($2))));
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column);*/ }
     ;
@@ -954,7 +963,7 @@ may_assign:
     ASSIGN expr         {/* $$ = std::move(std::make_unique<rhs_assignment_node>(std::move($2)));
                           $$->set_line(@$.begin.line);
                           $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<rhs_assignment_node>());*/ }
+    | /* EMPTY */       { $$ = std::move(std::make_unique<chips::dataflow_assignment>()); }
     ;
 %%
 
