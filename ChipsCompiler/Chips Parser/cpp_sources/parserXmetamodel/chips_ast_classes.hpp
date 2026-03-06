@@ -103,31 +103,31 @@ namespace chips
     // it is of the given dimension(s).
 
     template<expression_env expenv> 
-    class array : public ast_node{}; // concrete
+    class array;// : public ast_node{}; // concrete
     template<expression_env expenv>
-    class variable : public array<expenv>{}; // abstract
+    class variable;// : public array<expenv>{}; // abstract
 
 
     //////////////////// VARIABLE AST NODES ////////////////////////
 
-    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
+    class primitive_variable;// : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
     class dataflow_primitive_variable;// : public primitive_variable{}; // concrete
 
-    class node_variable : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
+    class node_variable;// : public variable<chips::expression_env::PRIMITIVE>{}; // abstract
     template<dataflow_type dft> 
-    class contextual_variable : public node_variable{}; // concrete
+    class contextual_variable;// : public node_variable{}; // concrete
 
-    class collective_variable : public variable<chips::expression_env::COLLECTIVE>{}; // abstract
+    class collective_variable;// : public variable<chips::expression_env::COLLECTIVE>{}; // abstract
     template<dataflow_type dft> 
-    class dataflow_collective_variable{}; // concrete
+    class dataflow_collective_variable; // concrete
 
 
-    class system_variable : public variable<chips::expression_env::SYSTEM>{}; // abstract
+    class system_variable;// : public variable<chips::expression_env::SYSTEM>{}; // abstract
     template<block_type bt> 
-    class block_variable : public system_variable{}; // concrete
+    class block_variable;// : public system_variable{}; // concrete
     template<dataflow_type dft> 
-    class dataflow_system_variable : public system_variable{}; // concrete
+    class dataflow_system_variable;// : public system_variable{}; // concrete
 
     ////////////////// STATEMENTS MANAGEMENT ////////////////////////
 
@@ -192,7 +192,7 @@ namespace chips
 
     ////// Generic statements
     template<dataflow_type dft, statement_env stenv>
-    class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>{}; // concrete
+    class dataflow_declaration;// : public statement<stenv, recurring_statement::DECLARATION>{}; // concrete
     template<dataflow_type dft, statement_env stenv>
     class dataflow_assignment;// : public statement<stenv, recurring_statement::ASSIGNMENT>{}; // concrete
 
@@ -224,12 +224,12 @@ namespace chips
     class channel_plugging : public system_statement<recurring_statement::PLUGGING>{}; // concrete
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dft,dfk>  // concrete
+    class feeding_statement;/* : public system_statement<recurring_statement::FEEDING>, public feeder<dfk,dft>  // concrete
     {
     private:
-        eater<dft,dfk> m_eater;
-        feeder<dft,dfk> m_feeder;
-    };
+        eater<dfk,dft> m_eater;
+        feeder<dfk,dft> m_feeder;
+    };*/
 
     class linking_statement : public system_statement<recurring_statement::LINKING>{}; // concrete
 
@@ -278,11 +278,11 @@ namespace chips
         COLLECT // generalization of the merge operation
     };
 
-    class definition : public ast_node // abstract
+    class definition;/* : public ast_node // abstract
     {
     private:
         std::string m_name;
-    };
+    };*/
 
     using node_statement_variant = std::variant<
         node_statement<recurring_statement::IF>*,
@@ -306,7 +306,7 @@ namespace chips
         primitive_statement<recurring_statement::DECLARATION>*,
         primitive_statement<recurring_statement::ASSIGNMENT>*>;
     
-    class init_section : public ast_node // concrete
+    class init_section;/* : public ast_node // concrete
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
@@ -316,9 +316,9 @@ namespace chips
 
             void accept(visitor& v) override;
             void hello() override {}
-    };
+    };*/
 
-    class then_section : public ast_node // concrete
+    class then_section;/* : public ast_node // concrete
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
@@ -328,7 +328,7 @@ namespace chips
 
             void accept(visitor& v) override;
             void hello() override {}
-    };
+    };*/
 
     using collective_statement_variant = std::variant<
         collective_statement<recurring_statement::IF>*,
@@ -374,7 +374,7 @@ namespace chips
         function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,
         function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>;
         
-    class function_definition : public definition // abstract
+    class function_definition;/* : public definition // abstract
     {
     protected:
         std::unique_ptr<init_section> m_init;
@@ -425,7 +425,7 @@ namespace chips
         void append_output(function_output<dfk, dft>* output) {
             m_outputs.insert(m_outputs.begin(), output);
         }
-    };
+    };*/
     
     class logical_definition;// : public function_definition{}; // concrete
 
@@ -832,11 +832,11 @@ namespace chips
     };
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class collective_cast : public feeder<dfk,dft> {
+    class collective_cast;/* : public feeder<dfk,dft> {
     private:
         collective_function_definition& variable_expression;
         feeder m_feeder;
-    };
+    };*/
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
