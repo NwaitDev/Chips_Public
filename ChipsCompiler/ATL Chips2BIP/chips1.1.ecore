@@ -2,127 +2,78 @@
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="chips" nsURI="http://chips" nsPrefix="chips">
   <eClassifiers xsi:type="ecore:EClass" name="program">
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fileName" lowerBound="1"
-        eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//preamble_section"
-        containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="system" eType="#//system_section"
-        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="fileName" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="preamble" eType="#//preamble_section" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="system" eType="#//system_section" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="system_section">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="system_statements" upperBound="-1"
-        eType="#//statements/system_statement" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="system_statements" eType="#//statements/system_statement" upperBound="-1" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="preamble_section">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="definitions" upperBound="-1"
-        eType="#//definitions/definition" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="definitions" eType="#//definitions/definition" upperBound="-1" containment="true"/>
   </eClassifiers>
   <eSubpackages name="variables" nsURI="http://chips/variables" nsPrefix="chips.variables">
-    <eClassifiers xsi:type="ecore:EClass" name="array">
-      <eTypeParameters name="appropriate_int_rvalue"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="dimensions" upperBound="-1"
-          containment="true">
-        <eGenericType eTypeParameter="#//variables/array/appropriate_int_rvalue"/>
-      </eStructuralFeatures>
-    </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="array"/>
     <eClassifiers xsi:type="ecore:EClass" name="variable" abstract="true">
-      <eTypeParameters name="appropiate_int_rvalue"/>
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-      <eGenericSuperTypes eClassifier="#//variables/array">
-        <eTypeArguments eTypeParameter="#//variables/variable/appropiate_int_rvalue"/>
-      </eGenericSuperTypes>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_variable" abstract="true">
-      <eGenericSuperTypes eClassifier="#//variables/variable">
-        <eTypeArguments eClassifier="#//rvalues/primitive_int_rvalue"/>
-      </eGenericSuperTypes>
-    </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="node_variable" abstract="true">
-      <eGenericSuperTypes eClassifier="#//variables/variable">
-        <eTypeArguments eClassifier="#//rvalues/primitive_int_rvalue"/>
-      </eGenericSuperTypes>
-    </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="system_variable" abstract="true">
-      <eGenericSuperTypes eClassifier="#//variables/variable">
-        <eTypeArguments eClassifier="#//rvalues/system_int_rvalue"/>
-      </eGenericSuperTypes>
-    </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_variable" abstract="true">
-      <eGenericSuperTypes eClassifier="#//variables/variable">
-        <eTypeArguments eClassifier="#//rvalues/collective_int_rvalue"/>
-      </eGenericSuperTypes>
-    </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="functional_block" abstract="true"
-        eSuperTypes="#//variables/system_variable"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_variable" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="node_variable" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_variable" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_variable" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="functional_block" eSuperTypes="#//variables/system_variable" abstract="true"/>
     <eSubpackages name="primitive" nsURI="http://chips/variables/primitive" nsPrefix="chips.variables.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/int_declaration" eOpposite="#//statements/primitive/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/int_declaration" eOpposite="#//statements,primitive/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/float_declaration" eOpposite="#//statements/primitive/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/float_declaration" eOpposite="#//statements,primitive/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/bool_declaration" eOpposite="#//statements/primitive/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/bool_declaration" eOpposite="#//statements,primitive/bool_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="node" nsURI="http://chips/variables/node" nsPrefix="chips.variables.node">
-      <eClassifiers xsi:type="ecore:EClass" name="contextual_variable" abstract="true"
-          eSuperTypes="#//variables/node_variable"/>
+      <eClassifiers xsi:type="ecore:EClass" name="contextual_variable" eSuperTypes="#//variables/node_variable" abstract="true"/>
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/node/contextual_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/node/contextual_int_declaration" eOpposite="#//statements/node/contextual_int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_int_declaration" eOpposite="#//statements,node/contextual_int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/node/contextual_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/node/contextual_float_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_float_declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/node/contextual_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/node/contextual_bool_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_bool_declaration"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/variables/collective" nsPrefix="chips.variables.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/int_declaration" eOpposite="#//statements/collective/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/int_declaration" eOpposite="#//statements,collective/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/float_declaration" eOpposite="#//statements/collective/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/float_declaration" eOpposite="#//statements,collective/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/bool_declaration" eOpposite="#//statements/collective/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/bool_declaration" eOpposite="#//statements,collective/bool_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/variables/system" nsPrefix="chips.variables.system">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/int_declaration" eOpposite="#//statements/system/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/int_declaration" eOpposite="#//statements,system/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/float_declaration" eOpposite="#//statements/system/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/float_declaration" eOpposite="#//statements,system/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/bool_declaration" eOpposite="#//statements/system/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/bool_declaration" eOpposite="#//statements,system/bool_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="logical" eSuperTypes="#//variables/functional_block">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/logical_declaration" eOpposite="#//statements/system/logical_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/logical_declaration" eOpposite="#//statements,system/logical_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="physical" eSuperTypes="#//variables/functional_block">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/physical_declaration" eOpposite="#//statements/system/physical_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/physical_declaration" eOpposite="#//statements,system/physical_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="object" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/system/object_declaration" eOpposite="#//statements/system/object_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/object_declaration" eOpposite="#//statements,system/object_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
@@ -130,501 +81,353 @@
     <eClassifiers xsi:type="ecore:EClass" name="system_statement" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="node_statement" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="implementation_statement" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_statement" abstract="true"
-        eSuperTypes="#//statements/node_statement"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_statement" eSuperTypes="#//statements/node_statement" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="collective_statement" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_declaration" abstract="true"
-        eSuperTypes="#//statements/primitive_statement"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_declaration" abstract="true"
-        eSuperTypes="#//statements/collective_statement"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_declaration" abstract="true"
-        eSuperTypes="#//statements/system_statement"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_declaration" eSuperTypes="#//statements/primitive_statement" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_declaration" eSuperTypes="#//statements/collective_statement" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_declaration" eSuperTypes="#//statements/system_statement" abstract="true"/>
     <eSubpackages name="primitive" nsURI="http://chips/statements/primitive" nsPrefix="chips.statements.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/int" containment="true" eOpposite="#//variables/primitive/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/int" containment="true" eOpposite="#//variables,primitive/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/float" containment="true" eOpposite="#//variables/primitive/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/float" containment="true" eOpposite="#//variables,primitive/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/bool" containment="true" eOpposite="#//variables/primitive/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/bool" containment="true" eOpposite="#//variables,primitive/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/primitive_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/primitive_int_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/primitive_int_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_assignment" eSuperTypes="#//statements/primitive_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/primitive_float_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/primitive_float_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_assignment" eSuperTypes="#//statements/primitive_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/primitive_bool_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/primitive_bool_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if" eSuperTypes="#//statements/primitive_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" lowerBound="1"
-            eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/primitive/if_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/primitive/if_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_else" eSuperTypes="#//statements/primitive/if">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/primitive/else_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/primitive/else_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="foreach" eSuperTypes="#//statements/primitive_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" lowerBound="1"
-            eType="#//statements/primitive_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" lowerBound="1"
-            eType="#//rvalues/primitive_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-            eType="#//statements/primitive_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" eType="#//statements/primitive_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" eType="#//rvalues/primitive_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/primitive_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" upperBound="-1"
-            eType="#//statements/primitive_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" eType="#//statements/primitive_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="else_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" upperBound="-1"
-            eType="#//statements/primitive_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" eType="#//statements/primitive_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/statements/collective" nsPrefix="chips.statements.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/int" containment="true" eOpposite="#//variables/collective/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/int" containment="true" eOpposite="#//variables,collective/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/float" containment="true" eOpposite="#//variables/collective/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/float" containment="true" eOpposite="#//variables,collective/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/bool" containment="true" eOpposite="#//variables/collective/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/bool" containment="true" eOpposite="#//variables,collective/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/collective_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/collective_int_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/collective_int_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/collective_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_assignment" eSuperTypes="#//statements/collective_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/collective_float_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/collective_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/collective_float_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/collective_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_assignment" eSuperTypes="#//statements/collective_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/collective_bool_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/collective_bool_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if" eSuperTypes="#//statements/collective_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" lowerBound="1"
-            eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/collective/if_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/collective/if_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_else" eSuperTypes="#//statements/collective/if">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/collective/else_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/collective/else_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" upperBound="-1"
-            eType="#//statements/collective_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" eType="#//statements/collective_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="else_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" upperBound="-1"
-            eType="#//statements/collective_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" eType="#//statements/collective_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="foreach" eSuperTypes="#//statements/collective_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" lowerBound="1"
-            eType="#//statements/collective_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" lowerBound="1"
-            eType="#//rvalues/collective_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-            eType="#//statements/collective_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" eType="#//statements/collective_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" eType="#//rvalues/collective_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/collective_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/statements/system" nsPrefix="chips.statements.system">
       <eClassifiers xsi:type="ecore:EClass" name="logical_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/logical" containment="true" eOpposite="#//variables/system/logical/declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="def" lowerBound="1"
-            eType="#//definitions/logical_definition"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/logical" containment="true" eOpposite="#//variables,system/logical/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/logical_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="physical_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/physical" containment="true" eOpposite="#//variables/system/physical/declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="def" lowerBound="1"
-            eType="#//definitions/physical_definition"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/physical" containment="true" eOpposite="#//variables,system/physical/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/physical_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="object_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/object" containment="true" eOpposite="#//variables/system/object/declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="def" lowerBound="1"
-            eType="#//definitions/object_definition"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/object" containment="true" eOpposite="#//variables,system/object/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/object_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/int" containment="true" eOpposite="#//variables/system/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/int" containment="true" eOpposite="#//variables,system/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/float" containment="true" eOpposite="#//variables/system/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/float" containment="true" eOpposite="#//variables,system/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/bool" containment="true" eOpposite="#//variables/system/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/bool" containment="true" eOpposite="#//variables,system/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/system_int_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/system_int_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/system_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_assignment" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/system_float_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/system_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/system_float_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/system_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_assignment" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" lowerBound="1"
-            eType="#//lvalues/system_bool_lvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" lowerBound="1"
-            eType="#//rvalues/system_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/system_bool_lvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="rvalue" eType="#//rvalues/system_bool_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" lowerBound="1"
-            eType="#//rvalues/system_bool_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/system/if_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="condition" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_section" eType="#//statements/system/if_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_else" eSuperTypes="#//statements/system/if">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/system/else_section"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_section" eType="#//statements/system/else_section" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="foreach" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" lowerBound="1"
-            eType="#//statements/system_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" lowerBound="1"
-            eType="#//rvalues/system_iterable" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-            eType="#//statements/system_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterator" eType="#//statements/system_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterable_expr" eType="#//rvalues/system_iterable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/system_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="if_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" upperBound="-1"
-            eType="#//statements/system_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="if_statements" eType="#//statements/system_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="else_section">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" upperBound="-1"
-            eType="#//statements/system_statement" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" eType="#//statements/system_statement" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="implements_statement" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented" lowerBound="1"
-            eType="#//systemspecific/interface" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implementer" lowerBound="1"
-            eType="#//systemspecific/implementer" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implmentation" lowerBound="1"
-            eType="#//definitions/implementation_definition"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented" eType="#//systemspecific/interface" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implementer" eType="#//systemspecific/implementer" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implmentation" eType="#//definitions/implementation_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="channel_plugging" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/channel_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/expressions/feeder/channel_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/channel_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/expressions/feeder/channel_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="link" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="linked_component" lowerBound="1"
-            eType="#//systemspecific/linkable" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="support_node" lowerBound="1"
-            eType="#//systemspecific/support" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="linked_component" eType="#//systemspecific/linkable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="support_node" eType="#//systemspecific/support" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_physical_int" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/physical_int_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/int_physical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/physical_int_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/int_physical_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_physical_float" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/physical_float_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/float_physical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/physical_float_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/float_physical_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_physical_bool" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/physical_bool_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/bool_physical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/physical_bool_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/bool_physical_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_logical_int" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/logical_int_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/int_logical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/logical_int_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/int_logical_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_logical_float" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/logical_float_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/float_logical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/logical_float_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/float_logical_feeder" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="feeding_logical_bool" eSuperTypes="#//statements/system_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" lowerBound="1"
-            eType="#//systemspecific/expressions/eater/logical_bool_eater" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" lowerBound="1"
-            eType="#//systemspecific/bool_logical_feeder" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="eater" eType="#//systemspecific/expressions/eater/logical_bool_eater" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="feeder" eType="#//systemspecific/bool_logical_feeder" containment="true"/>
       </eClassifiers>
     </eSubpackages>
-    <eSubpackages name="implementation" nsURI="http://chips/statements/implementation"
-        nsPrefix="chips.statements.implementation">
+    <eSubpackages name="implementation" nsURI="http://chips/statements/implementation" nsPrefix="chips.statements.implementation">
       <eClassifiers xsi:type="ecore:EClass" name="channel_aliasing" eSuperTypes="#//statements/implementation_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_channel"
-            lowerBound="1" eType="#//statements/node/channel_declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_channel"
-            lowerBound="1" eType="#//statements/node/channel_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_channel" eType="#//statements/node/channel_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_channel" eType="#//statements/node/channel_declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_aliasing" eSuperTypes="#//statements/implementation_statement">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_var" lowerBound="1"
-            eType="#//statements/node/contextual_declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_var" lowerBound="1"
-            eType="#//statements/node/contextual_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_var" eType="#//statements/node/contextual_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_var" eType="#//statements/node/contextual_declaration"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="node" nsURI="http://chips/statements/node" nsPrefix="chips.statements.node">
       <eClassifiers xsi:type="ecore:EClass" name="channel_declaration" eSuperTypes="#//statements/node_statement">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="type_identifier" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="type_identifier" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
       </eClassifiers>
-      <eClassifiers xsi:type="ecore:EClass" name="contextual_declaration" abstract="true"
-          eSuperTypes="#//statements/node_statement">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="identifier" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eClassifiers xsi:type="ecore:EClass" name="contextual_declaration" eSuperTypes="#//statements/node_statement" abstract="true">
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="identifier" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_int_declaration" eSuperTypes="#//statements/node/contextual_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/int" containment="true" eOpposite="#//variables/node/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/int" containment="true" eOpposite="#//variables,node/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_float_declaration" eSuperTypes="#//statements/node/contextual_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//statements/primitive/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//statements/primitive/float_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_bool_declaration" eSuperTypes="#//statements/node/contextual_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//statements/primitive/bool_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//statements/primitive/bool_declaration"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
   <eSubpackages name="parameters" nsURI="http://chips/parameters" nsPrefix="chips.parameters">
     <eClassifiers xsi:type="ecore:EClass" name="logical_parameter" abstract="true">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="physical_parameter" abstract="true">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="collective_parameter" abstract="true"/>
     <eSubpackages name="logical" nsURI="http://chips/parameters/logical" nsPrefix="chips.parameters.logical">
       <eClassifiers xsi:type="ecore:EClass" name="int_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/int_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/int_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/float_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_logical_parameter" eSuperTypes="#//parameters/logical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/bool_declaration" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue"
-            containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/bool_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="physical" nsURI="http://chips/parameters/physical" nsPrefix="chips.parameters.physical">
       <eClassifiers xsi:type="ecore:EClass" name="int_physical_parameter" eSuperTypes="#//parameters/physical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue"
-            containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/int_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/int_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_physical_parameter" eSuperTypes="#//parameters/physical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue"
-            containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/float_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_physical_parameter" eSuperTypes="#//parameters/physical_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue"
-            containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/primitive/bool_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/bool_declaration" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/parameters/collective" nsPrefix="chips.parameters.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/int_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/int_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
-            eType="#//rvalues/collective_float_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/float_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/float_declaration" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_collective_parameter" eSuperTypes="#//parameters/collective_parameter">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" lowerBound="1"
-            eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" lowerBound="1"
-            eType="#//statements/collective/bool_declaration" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="default_value" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/bool_declaration" containment="true"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
   <eSubpackages name="outputs" nsURI="http://chips/outputs" nsPrefix="chips.outputs">
     <eClassifiers xsi:type="ecore:EClass" name="physical_output" abstract="true">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="logical_output" abstract="true">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_output"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_output" abstract="true"/>
     <eSubpackages name="logical" nsURI="http://chips/outputs/logical" nsPrefix="chips.outputs.logical">
       <eClassifiers xsi:type="ecore:EClass" name="int_output" eSuperTypes="#//outputs/logical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_output" eSuperTypes="#//outputs/logical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_output" eSuperTypes="#//outputs/logical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="physical" nsURI="http://chips/outputs/physical" nsPrefix="chips.outputs.physical">
       <eClassifiers xsi:type="ecore:EClass" name="int_output" eSuperTypes="#//outputs/physical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_output" eSuperTypes="#//outputs/physical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_output" eSuperTypes="#//outputs/physical_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/outputs/collective" nsPrefix="chips.outputs.collective">
       <eClassifiers xsi:type="ecore:EClass" name="channeled_output" eSuperTypes="#//outputs/collective_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="channel" lowerBound="1"
-            eType="#//statements/node/channel_declaration"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator_expressions"
-            lowerBound="1" upperBound="-1" eType="#//rvalues/collective_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="channel" eType="#//statements/node/channel_declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator_expressions" eType="#//rvalues/collective_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="default_output" eSuperTypes="#//outputs/collective_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator_expressions"
-            lowerBound="1" upperBound="-1" eType="#//rvalues/collective_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator_expressions" eType="#//rvalues/collective_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="target_output" eSuperTypes="#//outputs/collective_output">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
-            upperBound="-1" eType="#//rvalues/collective_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" eType="#//rvalues/collective_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
   <eSubpackages name="definitions" nsURI="http://chips/definitions" nsPrefix="definitions">
     <eClassifiers xsi:type="ecore:EClass" name="definition" abstract="true">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-          eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="with_section">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-          eType="#//statements/node_statement" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/node_statement" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="init_section">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-          eType="#//statements/primitive_statement" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/primitive_statement" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="then_section">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-          eType="#//statements/primitive_statement" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/primitive_statement" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="collectiveops_section">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" upperBound="-1"
-          eType="#//statements/collective_statement" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="statements" eType="#//statements/collective_statement" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="accumulator_definition">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator" lowerBound="1"
-          upperBound="-1" eType="#//parameters/collective_parameter" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator" eType="#//parameters/collective_parameter" upperBound="-1" containment="true"/>
     </eClassifiers>
-    <eClassifiers xsi:type="ecore:EClass" name="node_definition" abstract="true" eSuperTypes="#//definitions/definition">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="with" eType="#//definitions/with_section"
-          containment="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="node_definition" eSuperTypes="#//definitions/definition" abstract="true">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="with" eType="#//definitions/with_section" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="object_definition" eSuperTypes="#//definitions/node_definition"/>
-    <eClassifiers xsi:type="ecore:EClass" name="function_definition" abstract="true"
-        eSuperTypes="#//definitions/definition">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="outputs" ordered="false"
-          upperBound="-1" eType="#//outputs/logical_output" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
-          eType="#//parameters/logical_parameter" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="init" eType="#//definitions/init_section"
-          containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="then" eType="#//definitions/then_section"
-          containment="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="function_definition" eSuperTypes="#//definitions/definition" abstract="true">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="outputs" eType="#//outputs/logical_output" upperBound="-1" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//parameters/logical_parameter" upperBound="-1" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="init" eType="#//definitions/init_section" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="then" eType="#//definitions/then_section" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="logical_definition" eSuperTypes="#//definitions/function_definition"/>
     <eClassifiers xsi:type="ecore:EClass" name="physical_definition" eSuperTypes="#//definitions/node_definition #//definitions/function_definition">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="sensor" upperBound="-1"
-          eType="#//parameters/physical_parameter" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="actuator" upperBound="-1"
-          eType="#//outputs/physical_output" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="sensor" eType="#//parameters/physical_parameter" upperBound="-1" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="actuator" eType="#//outputs/physical_output" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="implementation_definition" eSuperTypes="#//definitions/definition">
-      <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_object" lowerBound="1"
-          eType="#//definitions/object_definition"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_node" lowerBound="1"
-          eType="#//definitions/node_definition"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="having_statements" upperBound="-1"
-          eType="#//statements/implementation_statement" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="implemented_object" eType="#//definitions/object_definition"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="implementing_node" eType="#//definitions/node_definition"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="having_statements" eType="#//statements/implementation_statement" upperBound="-1" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="collective_function_definition" eSuperTypes="#//definitions/definition">
-      <eStructuralFeatures xsi:type="ecore:EAttribute" name="collective_function_type"
-          eType="#//definitions/collective_function_type"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator" lowerBound="1"
-          eType="#//definitions/accumulator_definition" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="support_object" lowerBound="1"
-          eType="#//definitions/node_definition"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="operations" eType="#//definitions/collectiveops_section"
-          containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="target_output" lowerBound="1"
-          eType="#//outputs/collective/target_output" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="channeled_output" ordered="false"
-          upperBound="-1" eType="#//outputs/collective/channeled_output" containment="true"/>
-      <eStructuralFeatures xsi:type="ecore:EReference" name="default_output" eType="#//outputs/collective/default_output"
-          containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EAttribute" name="collective_function_type" eType="#//definitions/collective_function_type"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="accumulator" eType="#//definitions/accumulator_definition" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="support_object" eType="#//definitions/node_definition"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="operations" eType="#//definitions/collectiveops_section" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="target_output" eType="#//outputs/collective/target_output" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="channeled_output" eType="#//outputs/collective/channeled_output" upperBound="-1" containment="true"/>
+      <eStructuralFeatures xsi:type="ecore:EReference" name="default_output" eType="#//outputs/collective/default_output" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EEnum" name="collective_function_type">
       <eLiterals name="spread"/>
@@ -633,532 +436,360 @@
   </eSubpackages>
   <eSubpackages name="lvalues" nsURI="http://chips/lvalues" nsPrefix="chips.lvalues">
     <eClassifiers xsi:type="ecore:EClass" name="primitive_lvalue" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_int_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/primitive_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_float_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/primitive_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_bool_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/primitive_lvalue"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_int_lvalue" eSuperTypes="#//lvalues/primitive_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_float_lvalue" eSuperTypes="#//lvalues/primitive_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_bool_lvalue" eSuperTypes="#//lvalues/primitive_lvalue" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="collective_lvalue" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_int_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/collective_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_float_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/collective_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_bool_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/collective_lvalue"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_int_lvalue" eSuperTypes="#//lvalues/collective_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_float_lvalue" eSuperTypes="#//lvalues/collective_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_bool_lvalue" eSuperTypes="#//lvalues/collective_lvalue" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="system_lvalue" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_int_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/system_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_float_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/system_lvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_bool_lvalue" abstract="true"
-        eSuperTypes="#//lvalues/system_lvalue"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_int_lvalue" eSuperTypes="#//lvalues/system_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_float_lvalue" eSuperTypes="#//lvalues/system_lvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_bool_lvalue" eSuperTypes="#//lvalues/system_lvalue" abstract="true"/>
   </eSubpackages>
   <eSubpackages name="xvalues" nsURI="http://chips/xvalues" nsPrefix="chips.xvalues">
     <eSubpackages name="primitive" nsURI="http://chips/xvalues/primitive" nsPrefix="chips.xvalues.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int_variable_expression" eSuperTypes="#//rvalues/primitive_int_rvalue #//lvalues/primitive_int_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/int"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_variable_expression" eSuperTypes="#//rvalues/primitive_float_rvalue #//lvalues/primitive_float_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/float"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_variable_expression" eSuperTypes="#//rvalues/primitive_bool_rvalue #//lvalues/primitive_bool_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/bool"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_int_expression" eSuperTypes="#//rvalues/primitive_int_rvalue #//lvalues/primitive_int_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/int"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_float_expression" eSuperTypes="#//rvalues/primitive_float_rvalue #//lvalues/primitive_float_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/float"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_bool_expression" eSuperTypes="#//rvalues/primitive_bool_rvalue #//lvalues/primitive_bool_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/bool"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/primitive_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/xvalues/collective" nsPrefix="chips.xvalues.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_variable_expression" eSuperTypes="#//rvalues/collective_int_rvalue #//lvalues/collective_int_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/int"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_variable_expression" eSuperTypes="#//rvalues/collective_float_rvalue #//lvalues/collective_float_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/float"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_variable_expression" eSuperTypes="#//rvalues/collective_bool_rvalue #//lvalues/collective_bool_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/collective/bool"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_int_expression" eSuperTypes="#//rvalues/collective_int_rvalue #//lvalues/collective_int_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/int"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_float_expression" eSuperTypes="#//rvalues/collective_float_rvalue #//lvalues/collective_float_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/float"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_bool_expression" eSuperTypes="#//rvalues/collective_bool_rvalue #//lvalues/collective_bool_lvalue">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/node/bool"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/collective_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/collective_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/xvalues/system" nsPrefix="chips.xvalues.system">
       <eClassifiers xsi:type="ecore:EClass" name="int_variable_expression" eSuperTypes="#//rvalues/system_int_rvalue #//lvalues/system_int_lvalue #//rvalues/system_iterable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/int"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/int"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_variable_expression" eSuperTypes="#//rvalues/system_float_rvalue #//lvalues/system_float_lvalue #//rvalues/system_iterable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/float"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/float"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_variable_expression" eSuperTypes="#//rvalues/system_bool_rvalue #//lvalues/system_bool_lvalue #//rvalues/system_iterable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/primitive/bool"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/bool"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
   <eSubpackages name="rvalues" nsURI="http://chips/rvalues" nsPrefix="chips.rvalues">
     <eClassifiers xsi:type="ecore:EClass" name="primitive_rvalue" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_int_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/primitive_rvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_float_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/primitive_rvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="primitive_bool_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/primitive_rvalue"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_int_rvalue" eSuperTypes="#//rvalues/primitive_rvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_float_rvalue" eSuperTypes="#//rvalues/primitive_rvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="primitive_bool_rvalue" eSuperTypes="#//rvalues/primitive_rvalue" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="collective_rvalue" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_int_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/collective_rvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_float_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/collective_rvalue"/>
-    <eClassifiers xsi:type="ecore:EClass" name="collective_bool_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/collective_rvalue"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_int_rvalue" eSuperTypes="#//rvalues/collective_rvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_float_rvalue" eSuperTypes="#//rvalues/collective_rvalue" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="collective_bool_rvalue" eSuperTypes="#//rvalues/collective_rvalue" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="system_rvalue" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="system_iterable" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_int_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/system_rvalue #//systemspecific/int_logical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_float_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/system_rvalue #//systemspecific/float_logical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="system_bool_rvalue" abstract="true"
-        eSuperTypes="#//rvalues/system_rvalue #//systemspecific/bool_logical_feeder"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_int_rvalue" eSuperTypes="#//rvalues/system_rvalue #//systemspecific/int_logical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_float_rvalue" eSuperTypes="#//rvalues/system_rvalue #//systemspecific/float_logical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="system_bool_rvalue" eSuperTypes="#//rvalues/system_rvalue #//systemspecific/bool_logical_feeder" abstract="true"/>
     <eSubpackages name="primitive" nsURI="http://chips/rvalues/primitive" nsPrefix="chips.rvalues.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="direct_int" eSuperTypes="#//rvalues/primitive_int_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_float" eSuperTypes="#//rvalues/primitive_float_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/primitive_int_rvalue #//rvalues/primitive_bool_rvalue #//rvalues/primitive_float_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
-            eType="#//rvalues/primitive_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//rvalues/primitive_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
-      <eSubpackages name="operators" nsURI="http://chips/rvalues/primitive/operators"
-          nsPrefix="chips.rvalues.primitive.operators">
-        <eSubpackages name="int" nsURI="http://chips/rvalues/primitive/operators/int"
-            nsPrefix="chips.rvalues.primitive.operators.int">
+      <eSubpackages name="operators" nsURI="http://chips/rvalues/primitive/operators" nsPrefix="chips.rvalues.primitive.operators">
+        <eSubpackages name="int" nsURI="http://chips/rvalues/primitive/operators/int" nsPrefix="chips.rvalues.primitive.operators.int">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mod" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_int" eSuperTypes="#//rvalues/primitive_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="float" nsURI="http://chips/rvalues/primitive/operators/float"
-            nsPrefix="chips.rvalues.primitive.operators.float">
+        <eSubpackages name="float" nsURI="http://chips/rvalues/primitive/operators/float" nsPrefix="chips.rvalues.primitive.operators.float">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/primitive_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/primitive_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/primitive_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/primitive_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_float" eSuperTypes="#//rvalues/primitive_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="bool" nsURI="http://chips/rvalues/primitive/operators/bool"
-            nsPrefix="chips.rvalues.primitive.operators.bool">
+        <eSubpackages name="bool" nsURI="http://chips/rvalues/primitive/operators/bool" nsPrefix="chips.rvalues.primitive.operators.bool">
           <eClassifiers xsi:type="ecore:EClass" name="not" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" lowerBound="1"
-                eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="or" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="and" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_bool" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_bool" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_float" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_int" eSuperTypes="#//rvalues/primitive_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/primitive_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/primitive_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
       </eSubpackages>
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/rvalues/system" nsPrefix="chips.rvalues.system">
       <eClassifiers xsi:type="ecore:EClass" name="direct_int" eSuperTypes="#//rvalues/system_int_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_float" eSuperTypes="#//rvalues/system_float_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/system_bool_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/system_bool_rvalue #//rvalues/system_float_rvalue #//rvalues/system_int_rvalue #//rvalues/system_iterable">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
-            eType="#//rvalues/system_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//rvalues/system_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
-      <eSubpackages name="operators" nsURI="http://chips/rvalues/dataflow/operators"
-          nsPrefix="chips.rvalues.dataflow.operators">
-        <eSubpackages name="int" nsURI="http://chips/rvalues/dataflow/operators/int"
-            nsPrefix="chips.rvalues.dataflow.operators.int">
+      <eSubpackages name="operators" nsURI="http://chips/rvalues/dataflow/operators" nsPrefix="chips.rvalues.dataflow.operators">
+        <eSubpackages name="int" nsURI="http://chips/rvalues/dataflow/operators/int" nsPrefix="chips.rvalues.dataflow.operators.int">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mod" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_int" eSuperTypes="#//rvalues/system_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="float" nsURI="http://chips/rvalues/dataflow/operators/float"
-            nsPrefix="chips.rvalues.dataflow.operators.float">
+        <eSubpackages name="float" nsURI="http://chips/rvalues/dataflow/operators/float" nsPrefix="chips.rvalues.dataflow.operators.float">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/system_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/system_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/system_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/system_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_float" eSuperTypes="#//rvalues/system_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="bool" nsURI="http://chips/rvalues/dataflow/operators/bool"
-            nsPrefix="chips.rvalues.dataflow.operators.bool">
+        <eSubpackages name="bool" nsURI="http://chips/rvalues/dataflow/operators/bool" nsPrefix="chips.rvalues.dataflow.operators.bool">
           <eClassifiers xsi:type="ecore:EClass" name="not" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" lowerBound="1"
-                eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="or" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="and" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_bool" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_bool" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_float" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_float_rvalue"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_float_rvalue"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_int" eSuperTypes="#//rvalues/system_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/system_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/system_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
       </eSubpackages>
@@ -1167,192 +798,131 @@
       <eClassifiers xsi:type="ecore:EClass" name="input_kw" eSuperTypes="#//rvalues/collective_int_rvalue #//rvalues/collective_bool_rvalue #//rvalues/collective_float_rvalue"/>
       <eClassifiers xsi:type="ecore:EClass" name="stop_kw" eSuperTypes="#//rvalues/collective_int_rvalue #//rvalues/collective_float_rvalue #//rvalues/collective_bool_rvalue"/>
       <eClassifiers xsi:type="ecore:EClass" name="direct_int" eSuperTypes="#//rvalues/collective_int_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_float" eSuperTypes="#//rvalues/collective_float_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="direct_bool" eSuperTypes="#//rvalues/collective_bool_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="function" eSuperTypes="#//rvalues/collective_int_rvalue #//rvalues/collective_bool_rvalue #//rvalues/collective_float_rvalue">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
-            eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
-            eType="#//rvalues/collective_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" eType="#//rvalues/collective_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
-      <eSubpackages name="operators" nsURI="http://chips/rvalues/collective/operators"
-          nsPrefix="chips.rvalues.collective.operators">
-        <eSubpackages name="int" nsURI="http://chips/rvalues/collective/operators/int"
-            nsPrefix="chips.rvalues.collective.operators.int">
+      <eSubpackages name="operators" nsURI="http://chips/rvalues/collective/operators" nsPrefix="chips.rvalues.collective.operators">
+        <eSubpackages name="int" nsURI="http://chips/rvalues/collective/operators/int" nsPrefix="chips.rvalues.collective.operators.int">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mod" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_int" eSuperTypes="#//rvalues/collective_int_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="float" nsURI="http://chips/rvalues/collective/operators/float"
-            nsPrefix="chips.rvalues.collective.operators.float">
+        <eSubpackages name="float" nsURI="http://chips/rvalues/collective/operators/float" nsPrefix="chips.rvalues.collective.operators.float">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="mult" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="div" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="cast_as_float" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="numeric" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
-        <eSubpackages name="bool" nsURI="http://chips/rvalues/collective/operators/bool"
-            nsPrefix="chips.rvalues.collective.operators.bool">
+        <eSubpackages name="bool" nsURI="http://chips/rvalues/collective/operators/bool" nsPrefix="chips.rvalues.collective.operators.bool">
           <eClassifiers xsi:type="ecore:EClass" name="not" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" lowerBound="1"
-                eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="or" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="and" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_bool" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_bool" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_bool_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_bool_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_float" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_float_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="neq_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="eq_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="gt_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="lt_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="geq_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="leq_int" eSuperTypes="#//rvalues/collective_bool_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
-                eType="#//rvalues/collective_int_rvalue" containment="true"/>
-            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand"
-                lowerBound="1" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" eType="#//rvalues/collective_int_rvalue" containment="true"/>
           </eClassifiers>
         </eSubpackages>
       </eSubpackages>
@@ -1368,149 +938,91 @@
     <eClassifiers xsi:type="ecore:EClass" name="physical_eater" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="logical_feeder" abstract="true"/>
     <eClassifiers xsi:type="ecore:EClass" name="physical_feeder" abstract="true"/>
-    <eClassifiers xsi:type="ecore:EClass" name="int_physical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/physical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="float_physical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/physical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="bool_physical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/physical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="int_logical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/logical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="float_logical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/logical_feeder"/>
-    <eClassifiers xsi:type="ecore:EClass" name="bool_logical_feeder" abstract="true"
-        eSuperTypes="#//systemspecific/logical_feeder"/>
-    <eSubpackages name="expressions" nsURI="http://chips/systemspecific/expressions"
-        nsPrefix="chips.systemspecific.expressions">
+    <eClassifiers xsi:type="ecore:EClass" name="int_physical_feeder" eSuperTypes="#//systemspecific/physical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="float_physical_feeder" eSuperTypes="#//systemspecific/physical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="bool_physical_feeder" eSuperTypes="#//systemspecific/physical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="int_logical_feeder" eSuperTypes="#//systemspecific/logical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="float_logical_feeder" eSuperTypes="#//systemspecific/logical_feeder" abstract="true"/>
+    <eClassifiers xsi:type="ecore:EClass" name="bool_logical_feeder" eSuperTypes="#//systemspecific/logical_feeder" abstract="true"/>
+    <eSubpackages name="expressions" nsURI="http://chips/systemspecific/expressions" nsPrefix="chips.systemspecific.expressions">
       <eClassifiers xsi:type="ecore:EClass" name="logical_variable_expression" eSuperTypes="#//systemspecific/linkable #//rvalues/system_iterable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/functional_block"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/functional_block"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="physical_variable_expression" eSuperTypes="#//systemspecific/support #//rvalues/system_iterable #//systemspecific/node_variable_expression #//systemspecific/implementer">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/physical"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/physical"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="object_variable_expression" eSuperTypes="#//systemspecific/support #//systemspecific/linkable #//rvalues/system_iterable #//systemspecific/node_variable_expression #//systemspecific/interface #//systemspecific/implementer">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-            eType="#//variables/system/object"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" upperBound="-1"
-            eType="#//rvalues/system_int_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/object"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index" eType="#//rvalues/system_int_rvalue" upperBound="-1" containment="true"/>
       </eClassifiers>
-      <eSubpackages name="eater" nsURI="http://chips/systemspecific/expressions/eater"
-          nsPrefix="chips.systemspecific.expressions.eater">
+      <eSubpackages name="eater" nsURI="http://chips/systemspecific/expressions/eater" nsPrefix="chips.systemspecific.expressions.eater">
         <eClassifiers xsi:type="ecore:EClass" name="logical_int_eater" eSuperTypes="#//systemspecific/logical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/logical/int_logical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/logical/int_logical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="logical_float_eater" eSuperTypes="#//systemspecific/logical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/logical/float_logical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/logical/float_logical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="logical_bool_eater" eSuperTypes="#//systemspecific/logical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/logical/bool_logical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/logical/bool_logical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="physical_int_eater" eSuperTypes="#//systemspecific/physical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-              eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/physical/int_physical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/physical/int_physical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="physical_float_eater" eSuperTypes="#//systemspecific/physical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/physical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/physical/float_physical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/physical/float_physical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="physical_bool_eater" eSuperTypes="#//systemspecific/physical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/physical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
-              eType="#//parameters/physical/bool_physical_parameter"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" eType="#//parameters/physical/bool_physical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="channel_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="node" lowerBound="1"
-              eType="#//systemspecific/node_variable_expression" containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="eating_channel" lowerBound="1"
-              eType="#//statements/node/channel_declaration"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="node" eType="#//systemspecific/node_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="eating_channel" eType="#//statements/node/channel_declaration"/>
         </eClassifiers>
       </eSubpackages>
-      <eSubpackages name="feeder" nsURI="http://chips/systemspecific/expressions/feeder"
-          nsPrefix="chips.systemspecific.expressions.feeder">
+      <eSubpackages name="feeder" nsURI="http://chips/systemspecific/expressions/feeder" nsPrefix="chips.systemspecific.expressions.feeder">
         <eClassifiers xsi:type="ecore:EClass" name="int_logical_output" eSuperTypes="#//systemspecific/int_logical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/logical/int_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/logical/int_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="float_logical_output" eSuperTypes="#//systemspecific/float_logical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/logical/float_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/logical/float_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="bool_logical_output" eSuperTypes="#//systemspecific/bool_logical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/logical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/logical/bool_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/logical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/logical/bool_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="int_physical_output" eSuperTypes="#//systemspecific/int_physical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/physical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/physical/int_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/physical/int_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="float_physical_output" eSuperTypes="#//systemspecific/float_physical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/physical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/physical/float_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/physical/float_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="bool_physical_output" eSuperTypes="#//systemspecific/bool_physical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression"
-              lowerBound="1" eType="#//systemspecific/expressions/physical_variable_expression"
-              containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="output" lowerBound="1"
-              eType="#//outputs/physical/bool_output"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="output" eType="#//outputs/physical/bool_output"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="logical_collective_cast" eSuperTypes="#//systemspecific/int_logical_feeder #//systemspecific/float_logical_feeder #//systemspecific/bool_logical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="logical_feeder_expression"
-              lowerBound="1" eType="#//systemspecific/logical_feeder" containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="collective_function"
-              lowerBound="1" eType="#//definitions/collective_function_definition"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="logical_feeder_expression" eType="#//systemspecific/logical_feeder" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="collective_function" eType="#//definitions/collective_function_definition"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="physical_collective_cast" eSuperTypes="#//systemspecific/int_physical_feeder #//systemspecific/float_physical_feeder #//systemspecific/bool_physical_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="physical_feeder_expression"
-              lowerBound="1" eType="#//systemspecific/physical_feeder" containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="collective_function"
-              lowerBound="1" eType="#//definitions/collective_function_definition"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="physical_feeder_expression" eType="#//systemspecific/physical_feeder" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="collective_function" eType="#//definitions/collective_function_definition"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="channel_feeder">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="node" lowerBound="1"
-              eType="#//systemspecific/node_variable_expression" containment="true"/>
-          <eStructuralFeatures xsi:type="ecore:EReference" name="feeding_channel"
-              lowerBound="1" eType="#//statements/node/channel_declaration"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="node" eType="#//systemspecific/node_variable_expression" containment="true"/>
+          <eStructuralFeatures xsi:type="ecore:EReference" name="feeding_channel" eType="#//statements/node/channel_declaration"/>
         </eClassifiers>
       </eSubpackages>
     </eSubpackages>

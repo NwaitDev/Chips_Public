@@ -409,10 +409,11 @@ namespace chips
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>  // concrete (but reserved to dataflows)
     {
     private:
+        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
         static constexpr expression_env expenv = ChipsEnvToExpressionEnv<stenv>::value;
         dataflow_declaration<dft,stenv> m_iterator;
         rvalue<dft,expenv>  m_iterable_expr;
-        std::vector<> m_statements;
+        std::vector<statement_type> m_statements;
     };
     
     template<block_type bt>
@@ -433,10 +434,59 @@ namespace chips
     template<dataflow_kind dfk, dataflow_type dft>
     class feeder{}; 
 
+
+    template<block_type>
+    struct BlockTypeToAstBlockDefinition{};
+
+    class physical_definition;
+    class logical_definition; 
+    class object_definition;
+
+    template<>
+    struct BlockTypeToAstBlockDefinition<block_type::LOGICAL>{
+        using type = logical_definition;
+    };
+
+    template<>
+    struct BlockTypeToAstBlockDefinition<block_type::PHYSICAL>{
+        using type = physical_definition;
+    };
+
+    template<>
+    struct BlockTypeToAstBlockDefinition<block_type::OBJECT>{
+        using type = object_definition;
+    };
+
+
+    template<block_type bt>
+    struct ChipsBlockTypeToAstBlockVariable;
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::LOGICAL>{
+        using type = block_variable<block_type::LOGICAL>;
+    };
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::PHYSICAL>{
+        using type = block_variable<block_type::PHYSICAL>;
+    };
+
+    template<>
+    struct ChipsBlockTypeToAstBlockVariable<block_type::OBJECT>{
+        using type = block_variable<block_type::OBJECT>;
+    };
+
+
     template<block_type bt>
     class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>  // concrete
     {
     private:
+        using block_definition_t = typename BlockTypeToAstBlockDefinition<bt>::type;
+        using block_variable_t = typename ChipsBlockTypeToAstBlockVariable<bt>::type;
+
+        block_definition_t& m_defintion;
+        block_variable_t m_variable;
+        
     };
 
     class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{}; // concrete (work in progress, do not use)
@@ -460,25 +510,72 @@ namespace chips
         feeder<dfk,dft> m_feeder;
     };
 
-    class linking_statement : public system_statement<recurring_statement::LINKING>{}; // concrete
+    class linking_statement : public system_statement<recurring_statement::LINKING>  // concrete
+    {
+    private:
+        linkable m_linked_component;
+        support m_support_node;
+    };
 
-    ////// Implementation specific statements (work in progress, do not use)
+    ////// Implementation specific statements 
 
     template <node_element ne>
-    class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{}; // concrete
+    class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{}; // concrete (work in progress, do not use)
 
     ////// Node specific statements
     
     template<node_element ne>
-    class node_element_declaration : public node_statement<recurring_statement::DECLARATION>{}; // concrete
+    struct ChipsNodeElementToAstNodeVariable;
+
+    template<>
+    struct ChipsNodeElementToAstNodeVariable<node_element::CHANNEL>{
+        using type = std::string;
+    };
+
+    template<>
+    struct ChipsNodeElementToAstNodeVariable<node_element::CONTEXTUAL_BOOL>{
+        using type = contextual_variable<dataflow_type::BOOL>;
+    };
+
+    template<>
+    struct ChipsNodeElementToAstNodeVariable<node_element::CONTEXTUAL_FLOAT>{
+        using type = contextual_variable<dataflow_type::FLOAT>;
+    };
+
+    template<>
+    struct ChipsNodeElementToAstNodeVariable<node_element::CONTEXTUAL_INT>{
+        using type = contextual_variable<dataflow_type::INT>;
+    };
+
+    template<node_element ne>
+    class node_element_declaration : public node_statement<recurring_statement::DECLARATION>  // concrete
+    {
+    private:
+        using node_variable_t = ChipsNodeElementToAstNodeVariable<ne>::type;
+        node_variable_t m_variable; // == type_identifier in case of channel declaration
+        std::string m_declared_name; // == identifier in case of contextual variable
+    };
+
 
     ////////////////////////// DEFINITION PARAMETERS MANAGEMENT ///////////////////////////////
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class function_parameter : public ast_node{}; // concrete
+    class function_parameter : public ast_node  // concrete
+    {
+    private:
+        std::optional<rvalue<dft,expression_env::PRIMITIVE>> m_default_value;
+        dataflow_declaration<dft,statement_env::DEFINITION> m_declaration;
+        std::string m_name;
+    };
     
     template<dataflow_type>
-    class collective_parameter : public ast_node{}; // concrete
+    class collective_parameter : public ast_node  // concrete
+    {
+    private:
+        rvalue<dft,expression_env::COLLECTIVE> m_default_value;
+        dataflow_declaration<dft,statement_env::COLLECTIVE> m_declaration;
+        std::string m_name;
+    };
 
     ////////////////////////// DEFINITION OUTPUTS MANAGEMENT //////////////////////////////////
 
@@ -492,11 +589,38 @@ namespace chips
     };
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class function_output : public ast_node{}; // concrete
+    class function_output : public ast_node // concrete
+    {
+    private:
+        std::string m_name;
+        // Be careful, the metamodel didn't cope with multiple 
+        // expressions outputs though the grammar allows it... Here, we allow it too
+        std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions;
+    };
     
     template<enum collective_output_kind>
-    class collective_output : public ast_node{}; // concrete
+    class collective_output : public ast_node /* abstract */ {};
 
+    class channeled_output : collective_output<collective_output_kind::CHANNELED> // concrete
+    {
+    private:
+        node_element_declaration<node_element::CHANNEL> m_channel;
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
+    };
+
+    class channeled_output : collective_output<collective_output_kind::DEFAULTED> // concrete
+    {
+    private:
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
+    };
+    
+
+    class channeled_output : collective_output<collective_output_kind::TARGET> // concrete
+    {
+    private:
+        // you should only allow stopless expressions 
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_expressions;
+    };
 
     ////////////////////////// DEFINITIONS MANAGEMENT ///////////////////////////////////////
 
@@ -561,7 +685,6 @@ namespace chips
     };
 
     class object_definition : public node_definition {}; // concrete
-
 
 
     using function_parameter_variant = std::variant<
@@ -888,24 +1011,6 @@ namespace chips
 
     class node_variable_expression : public ast_node{}; // abstract
     
-
-    template<block_type bt>
-    struct ChipsBlockTypeToAstBlockVariable;
-
-    template<>
-    struct ChipsBlockTypeToAstBlockVariable<block_type::LOGICAL>{
-        using type = block_variable<block_type::LOGICAL>;
-    };
-
-    template<>
-    struct ChipsBlockTypeToAstBlockVariable<block_type::PHYSICAL>{
-        using type = block_variable<block_type::PHYSICAL>;
-    };
-
-    template<>
-    struct ChipsBlockTypeToAstBlockVariable<block_type::OBJECT>{
-        using type = block_variable<block_type::OBJECT>;
-    };
 
     /**
      * Base tamplate class for system block variable elements 
