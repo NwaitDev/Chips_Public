@@ -185,7 +185,7 @@ namespace chips {
      * Chips code environment.
      */
     template<statement_env, recurring_statement>
-    class statement;
+    class statement{};
 
     // abstract (by definition of statement class)
     template<recurring_statement recstt>
@@ -751,14 +751,14 @@ namespace chips {
     class interface{};
     
     /**
-     * Abstract class
+     * Interface
      * Node of the AST that represents the reference to a node that
      * implements another node interface.
      * Will maybe be renamed as "refiner" or something like
      * that in future versions of Chips.
      * Work in progress, do not use.
      */
-    class implementer;
+    class implementer{};
     
     /**
      * Abstract class

@@ -1,8 +1,10 @@
-#ifndef __chips_program_level__
-#define __chips_program_level__
+#ifndef __chips_program__
+#define __chips_program__
 #include "ast_base.hpp"
 #include "forward_declarations.hpp"
+#include "meta_type_conversions.hpp"
 #include <string>
+#include <vector>
 
 namespace chips {
     
@@ -17,8 +19,14 @@ namespace chips {
     };
 
 
-    class preamble_section_node : public ast_node{}; // concrete
-    class system_section_node : public ast_node{}; // concrete
+    class preamble_section_node : public ast_node{
+        private:
+        std::vector<definition_variant> m_definitions;
+    };
+    class system_section_node : public ast_node{
+        private:
+        std::vector<system_statement_variant> m_system_statements;
+    };
 }
 
 #endif

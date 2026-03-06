@@ -1,5 +1,5 @@
-#ifndef __chips_ast_base__
-#define __chips_ast_base__
+#ifndef __chips_base__
+#define __chips_base__
 
 namespace chips{
 
