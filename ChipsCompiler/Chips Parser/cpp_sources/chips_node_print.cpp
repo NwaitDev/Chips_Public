@@ -23,10 +23,10 @@ namespace chips {
         }
     }
 
-    void preamble_section_node::hello(){
+    void preamble_section_node::hello(){        
         for(const auto& def : get_definitions()){
-            if(def){
-                def->hello();
+            if(def.get()){
+                def.get()->hello();
             }
         }
     }
@@ -50,7 +50,22 @@ namespace chips {
             get_then()->hello();
         }
         for(auto& output : get_outputs()){
+            std::cout << "output" << std::endl;
             std::visit([](auto* o){ o->hello(); }, output);
+        }
+    }
+
+    void init_section::hello(){
+        // std::cout << "nombre stts init = " << get_statements().size() << std::endl;
+        for(auto& statement : get_statements()){
+            std::visit([](auto* s){ s->hello(); }, statement);
+        }
+    }
+
+    void then_section::hello(){
+        // std::cout << "nombre stts then = " << get_statements().size() << std::endl;
+        for(auto& statement : get_statements()){
+            std::visit([](auto* s){ s->hello(); }, statement);
         }
     }
 
