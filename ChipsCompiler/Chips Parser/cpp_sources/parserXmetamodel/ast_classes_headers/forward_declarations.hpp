@@ -341,6 +341,7 @@ namespace chips {
      * or of a channel by another channel.
      * Work in progress, do not use 
      */
+    template <node_element ne>
     class aliasing_statement;
     
     /**
@@ -392,6 +393,7 @@ namespace chips {
      * Node of the AST that represents one output 
      * of a functional block.
      */
+    template<dataflow_kind dfk, dataflow_type dft>
     class function_output;
     
     /**
@@ -570,7 +572,7 @@ namespace chips {
      * Node of the AST that represents something 
      * that can be iterated on in the system section
      */
-    class system_iterable;
+    class system_iterable{};
     
     /**
      * Concrete class
@@ -729,14 +731,14 @@ namespace chips {
      * Node of the AST that represents something that
      * can be linked to another Chips Node
      */
-    class linkable;
+    class linkable{};
     
     /**
      * Interface
      * Node of the AST that represents something that
      * can support another Chips Object
      */
-    class support;
+    class support{};
     
     /**
      * Interface
@@ -746,7 +748,7 @@ namespace chips {
      * that in future versions of Chips.
      * Work in progress, do not use.
      */
-    class interface;
+    class interface{};
     
     /**
      * Abstract class

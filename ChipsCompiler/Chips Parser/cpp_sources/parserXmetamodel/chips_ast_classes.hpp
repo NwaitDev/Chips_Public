@@ -491,7 +491,6 @@ namespace chips
 
     class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{}; // concrete (work in progress, do not use)
 
-    template<dataflow_kind dfk, dataflow_type dft>
     class channel_plugging : public system_statement<recurring_statement::PLUGGING>  // concrete
     {
     private:
@@ -593,7 +592,8 @@ namespace chips
     {
     private:
         std::string m_name;
-        // Be careful, the metamodel didn't cope with multiple 
+        // Note to the model 2 model transformations developer,
+        // Chips 1.1 metamodel didn't cope with multiple 
         // expressions outputs though the grammar allows it... Here, we allow it too
         std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions;
     };
@@ -608,14 +608,14 @@ namespace chips
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
     };
 
-    class channeled_output : collective_output<collective_output_kind::DEFAULTED> // concrete
+    class default_output : collective_output<collective_output_kind::DEFAULTED> // concrete
     {
     private:
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
     };
     
 
-    class channeled_output : collective_output<collective_output_kind::TARGET> // concrete
+    class target_output : collective_output<collective_output_kind::TARGET> // concrete
     {
     private:
         // you should only allow stopless expressions 
