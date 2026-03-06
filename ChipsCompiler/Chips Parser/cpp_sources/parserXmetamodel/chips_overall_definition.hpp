@@ -5,43 +5,112 @@
 
 namespace chips {
 
+    class definition : public ast_node {
+        private:
+            std::string m_name;
+        
+        public:
+            definition(const std::string name) : m_name(name) {}
+
+            const std::string get_identifier() const { return m_name; }
+    };
+
+    class function_definition : public definition {
+        private:
+            std::unique_ptr<init_section> m_init;
+            std::unique_ptr<then_section> m_then;
+            std::vector<function_parameter_variant> m_parameters;
+            std::vector<function_output_variant> m_outputs;
+
+        public:
+            function_definition(const std::string identifier, std::vector<function_parameter_variant> parameters,
+                                std::unique_ptr<init_section> init, std::unique_ptr<then_section> then, std::vector<function_output_variant> outputs)
+                                : definition(identifier), m_parameters(std::move(parameters)), m_init(std::move(init)), m_then(std::move(then)),
+                                  m_outputs(std::move(outputs)) {}
+
+
+            const std::vector<function_parameter_variant>& get_parameters() const { return m_parameters; }
+            const std::vector<function_output_variant>& get_outputs() const { return m_outputs; }
+            init_section* get_init() const { return m_init.get(); }
+            then_section* get_then() const { return m_then.get(); }
+    };
+
+    // class with_section : public ast_node {
+    //     private:
+    //         std::vector<node_statement_variant> m_statements;
+
+    //     public:
+    //         with_section() = default;
+    // };
+
+    // class node_definition : public definition {
+    //     private:
+    //         std::unique_ptr<with_section> with;
+
+    //     public:
+    //         node_definition() = default;
+    // };
+
+    class init_section : public ast_node{
+        private:
+            std::vector<primitive_statement_variant> m_statements;
+
+        public:
+            init_section() = default;
+
+            init_section(std::vector<primitive_statement_variant> statements)
+                : m_statements(std::move(statements)){}
+
+            void append(primitive_statement_variant statement){
+                m_statements.insert(m_statements.begin(), statement);
+            }
+
+            const std::vector<primitive_statement_variant>& get_statements() const { return m_statements; }
+
+            void accept(visitor& v) override;
+            virtual void hello() override;
+    };
+
+    class then_section : public ast_node{
+        private:
+            std::vector<primitive_statement_variant> m_statements;
+
+        public:
+            then_section() = default;
+
+            then_section(std::vector<primitive_statement_variant> statements)
+                : m_statements(std::move(statements)){}
+
+            void append(primitive_statement_variant statement){
+                m_statements.insert(m_statements.begin(), statement);
+            }
+
+            const std::vector<primitive_statement_variant>& get_statements() const { return m_statements; }
+
+            void accept(visitor& v) override;
+            virtual void hello() override;
+    };
+
+    //TODO
     template<dataflow_kind dfk, dataflow_type dft>
     class function_parameter : public ast_node{
         private:
-            std::unique_ptr<dataflow_primitive_variable> type;
-            std::string identifier;
-            std::unique_ptr<dataflow_assignment> rhs;
+            
 
         public:
 
             function_parameter() = default;
-
-            function_parameter(std::string identifier)
-                : identifier(identifier) {}
-
-            std::string get_identifier() { return identifier; }
-            static constexpr dataflow_kind get_kind() { return dfk; }
-            static constexpr dataflow_type get_type() { return dft; }
 
             void accept(visitor& visitor) { visitor.visit(*this); } 
 
             virtual void hello() override;
     };
 
-    //TODO: modifier pas un vector en attribut
+    //TODO
     template<dataflow_kind, dataflow_type>
     class function_output : public ast_node{
-        private:
-            std::vector<function_output_variant> outputs;
-
         public:
             function_output() = default;
-
-            void append(std::unique_ptr<function_output_variant> output){
-                outputs.insert(outputs.begin(), std::move(*output));
-            }
-
-            std::vector<function_output_variant> get_outputs() { return outputs; }
 
             void accept(visitor& visitor) { visitor.visit(*this); } 
 
@@ -49,25 +118,27 @@ namespace chips {
     };
 
     class logical_definition : public function_definition {
-    private:
-        std::string m_identifier;
-
     public:
         logical_definition(std::string identifier, 
                           std::vector<function_parameter_variant> parameters,
                           std::unique_ptr<init_section> init,
                           std::unique_ptr<then_section> then,
                           std::vector<function_output_variant> outputs)
-            : function_definition(std::move(parameters), std::move(outputs), 
-                                  std::move(init), std::move(then)),
-              m_identifier(std::move(identifier)) {}
-
-        std::string get_identifier() const { return m_identifier; }
+            : function_definition(identifier, std::move(parameters), std::move(init), std::move(then), std::move(outputs)) {}
 
         void accept(visitor& visitor) override;
         
         virtual void hello() override;
     };
+
+    // class physical_definition : public function_definition, public node_definition {
+    //     private:
+    //         std::vector<physical_parameter_variant> m_sensor;
+    //         std::vector<physical_output_variant> m_actuator;
+
+    //     public:
+    //         physical_definition() = default;
+    // };
 
 }
 
