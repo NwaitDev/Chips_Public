@@ -50,8 +50,7 @@ namespace chips {
     class eater
     {
     private:
-        using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
-        sys_variable_expression m_variable_expression;
+        functional_block_variant m_variable_expression;
         function_parameter<dfk,dft>& m_parameter;
     }; 
 
@@ -59,8 +58,7 @@ namespace chips {
     class feeder_block_expression : public feeder<dfk,dft>, public ast_node
     {
     private:
-        using sys_variable_expression = typename BlockTypeToSystemFunctionalBlockVar<dft,dfk>::type;
-        sys_variable_expression m_variable_expression;
+        functional_block_variant m_variable_expression;
         function_output<dfk,dft>& m_output;
     };
 
