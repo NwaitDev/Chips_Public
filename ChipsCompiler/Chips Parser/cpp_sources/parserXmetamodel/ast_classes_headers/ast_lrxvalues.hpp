@@ -71,11 +71,11 @@ namespace chips{
         operand_type right_operand;
     };
 
-    template<dataflow_type dft, expression_env expenv>
-    class mod : public rvalue<dft, expenv>
+    template<expression_env expenv>
+    class mod : public rvalue<dataflow_type::INT, expenv>
     {
     private:
-        using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
+        using operand_type = typename ChipsOperandToAstNumericType<dataflow_type::INT,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
     };
@@ -88,7 +88,7 @@ namespace chips{
         operand_type numeric;
     };
 
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class gt : public rvalue<dataflow_type::BOOL ,expenv>
     {
     private:
@@ -97,7 +97,7 @@ namespace chips{
         operand_type right_operand;
     };
 
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class lt : public rvalue<dataflow_type::BOOL ,expenv>
     {
     private:
@@ -106,7 +106,7 @@ namespace chips{
         operand_type right_operand;
     };
 
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class geq : public rvalue<dataflow_type::BOOL ,expenv>
     {
     private:
@@ -115,7 +115,7 @@ namespace chips{
         operand_type right_operand;
     };
 
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class leq : public rvalue<dataflow_type::BOOL ,expenv>
     {
     private:
