@@ -629,7 +629,7 @@ namespace chips {
      * Concrete class
      * Node of the AST that represents % (modulo) operator
      */
-    template<dataflow_type dft, expression_env expenv>
+    template<expression_env expenv>
     class mod;
     
     /**
@@ -643,28 +643,28 @@ namespace chips {
      * Concrete class
      * Node of the AST that represents > (greater than) operator
      */
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class gt;
     
     /**
      * Concrete class
      * Node of the AST that represents < (lower than) operator
      */
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class lt;
     
     /**
      * Concrete class
      * Node of the AST that represents the >= (greater or equal) operator
      */
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class geq;
     
     /**
      * Concrete class
      * Node of the AST that represents <= (lower or equal) operator
      */
-    template<expression_env expenv>
+    template<expression_env expenv, dataflow_type dft>
     class leq;
     
     /**
