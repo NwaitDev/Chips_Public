@@ -24,19 +24,19 @@
     <eClassifiers xsi:type="ecore:EClass" name="functional_block" eSuperTypes="#//variables/system_variable" abstract="true"/>
     <eSubpackages name="primitive" nsURI="http://chips/variables/primitive" nsPrefix="chips.variables.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/int_declaration" eOpposite="#//statements,primitive/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/int_declaration" eOpposite="#//statements/primitive/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/float_declaration" eOpposite="#//statements,primitive/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/float_declaration" eOpposite="#//statements/primitive/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/primitive_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/bool_declaration" eOpposite="#//statements,primitive/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/primitive/bool_declaration" eOpposite="#//statements/primitive/bool_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="node" nsURI="http://chips/variables/node" nsPrefix="chips.variables.node">
       <eClassifiers xsi:type="ecore:EClass" name="contextual_variable" eSuperTypes="#//variables/node_variable" abstract="true"/>
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/node/contextual_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_int_declaration" eOpposite="#//statements,node/contextual_int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_int_declaration" eOpposite="#//statements/node/contextual_int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/node/contextual_variable">
         <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/node/contextual_float_declaration"/>
@@ -47,33 +47,33 @@
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/variables/collective" nsPrefix="chips.variables.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/int_declaration" eOpposite="#//statements,collective/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/int_declaration" eOpposite="#//statements/collective/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/float_declaration" eOpposite="#//statements,collective/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/float_declaration" eOpposite="#//statements/collective/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/collective_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/bool_declaration" eOpposite="#//statements,collective/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/collective/bool_declaration" eOpposite="#//statements/collective/bool_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/variables/system" nsPrefix="chips.variables.system">
       <eClassifiers xsi:type="ecore:EClass" name="int" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/int_declaration" eOpposite="#//statements,system/int_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/int_declaration" eOpposite="#//statements/system/int_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/float_declaration" eOpposite="#//statements,system/float_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/float_declaration" eOpposite="#//statements/system/float_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/bool_declaration" eOpposite="#//statements,system/bool_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/bool_declaration" eOpposite="#//statements/system/bool_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="logical" eSuperTypes="#//variables/functional_block">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/logical_declaration" eOpposite="#//statements,system/logical_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/logical_declaration" eOpposite="#//statements/system/logical_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="physical" eSuperTypes="#//variables/functional_block">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/physical_declaration" eOpposite="#//statements,system/physical_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/physical_declaration" eOpposite="#//statements/system/physical_declaration/variable"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="object" eSuperTypes="#//variables/system_variable">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/object_declaration" eOpposite="#//statements,system/object_declaration/variable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="declaration" eType="#//statements/system/object_declaration" eOpposite="#//statements/system/object_declaration/variable"/>
       </eClassifiers>
     </eSubpackages>
   </eSubpackages>
@@ -88,13 +88,13 @@
     <eClassifiers xsi:type="ecore:EClass" name="system_declaration" eSuperTypes="#//statements/system_statement" abstract="true"/>
     <eSubpackages name="primitive" nsURI="http://chips/statements/primitive" nsPrefix="chips.statements.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/int" containment="true" eOpposite="#//variables,primitive/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/int" containment="true" eOpposite="#//variables/primitive/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/float" containment="true" eOpposite="#//variables,primitive/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/float" containment="true" eOpposite="#//variables/primitive/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/primitive_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/bool" containment="true" eOpposite="#//variables,primitive/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/primitive/bool" containment="true" eOpposite="#//variables/primitive/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/primitive_statement">
         <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/primitive_int_lvalue" containment="true"/>
@@ -129,13 +129,13 @@
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/statements/collective" nsPrefix="chips.statements.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/int" containment="true" eOpposite="#//variables,collective/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/int" containment="true" eOpposite="#//variables/collective/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/float" containment="true" eOpposite="#//variables,collective/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/float" containment="true" eOpposite="#//variables/collective/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/collective_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/bool" containment="true" eOpposite="#//variables,collective/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/collective/bool" containment="true" eOpposite="#//variables/collective/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/collective_statement">
         <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/collective_int_lvalue" containment="true"/>
@@ -170,25 +170,25 @@
     </eSubpackages>
     <eSubpackages name="system" nsURI="http://chips/statements/system" nsPrefix="chips.statements.system">
       <eClassifiers xsi:type="ecore:EClass" name="logical_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/logical" containment="true" eOpposite="#//variables,system/logical/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/logical" containment="true" eOpposite="#//variables/system/logical/declaration"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/logical_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="physical_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/physical" containment="true" eOpposite="#//variables,system/physical/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/physical" containment="true" eOpposite="#//variables/system/physical/declaration"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/physical_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="object_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/object" containment="true" eOpposite="#//variables,system/object/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/object" containment="true" eOpposite="#//variables/system/object/declaration"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="def" eType="#//definitions/object_definition"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/int" containment="true" eOpposite="#//variables,system/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/int" containment="true" eOpposite="#//variables/system/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="float_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/float" containment="true" eOpposite="#//variables,system/float/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/float" containment="true" eOpposite="#//variables/system/float/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="bool_declaration" eSuperTypes="#//statements/system_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/bool" containment="true" eOpposite="#//variables,system/bool/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/system/bool" containment="true" eOpposite="#//variables/system/bool/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="int_assignment" eSuperTypes="#//statements/system_statement">
         <eStructuralFeatures xsi:type="ecore:EReference" name="lvalue" eType="#//lvalues/system_int_lvalue" containment="true"/>
@@ -277,7 +277,7 @@
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="identifier" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_int_declaration" eSuperTypes="#//statements/node/contextual_declaration">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/int" containment="true" eOpposite="#//variables,node/int/declaration"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//variables/node/int" containment="true" eOpposite="#//variables/node/int/declaration"/>
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="contextual_float_declaration" eSuperTypes="#//statements/node/contextual_declaration">
         <eStructuralFeatures xsi:type="ecore:EReference" name="variable" eType="#//statements/primitive/float_declaration" containment="true"/>
