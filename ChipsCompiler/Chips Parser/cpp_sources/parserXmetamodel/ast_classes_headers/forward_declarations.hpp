@@ -189,19 +189,19 @@ namespace chips {
 
     // abstract (by definition of statement class)
     template<recurring_statement recstt>
-    using system_statement = statement<statement_env::SYSTEM, recstt>{};
+    using system_statement = statement<statement_env::SYSTEM, recstt>;
     // abstract (by definition of statement class) 
     template<recurring_statement recstt>
-    using node_statement = statement<statement_env::NODE, recstt>{};
+    using node_statement = statement<statement_env::NODE, recstt>;
     // abstract (by definition of statement class) // do not use, work in progress
     template<recurring_statement recstt>
-    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>{}; 
+    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; 
      // abstract (by definition of statement class)
     template<recurring_statement recstt>
-    using primitive_statement = statement<statement_env::DEFINITION, recstt>{};
+    using primitive_statement = statement<statement_env::DEFINITION, recstt>;
      // abstract (by definition of statement class)
     template<recurring_statement recstt>
-    using collective_statement = statement<statement_env::COLLECTIVE, recstt>{};
+    using collective_statement = statement<statement_env::COLLECTIVE, recstt>;
 
     /**
      * Concrete class

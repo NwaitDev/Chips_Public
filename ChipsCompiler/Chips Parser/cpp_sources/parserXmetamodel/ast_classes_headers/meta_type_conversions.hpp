@@ -23,10 +23,12 @@ namespace chips {
         using type = node_element_declaration<node_element::CONTEXTUAL_INT>;
     };
 
+    template<>
     struct DfTypeToContextualDeclType<dataflow_type::FLOAT>{
         using type = node_element_declaration<node_element::CONTEXTUAL_FLOAT>;
     };
 
+    template<>
     struct DfTypeToContextualDeclType<dataflow_type::BOOL>{
         using type = node_element_declaration<node_element::CONTEXTUAL_BOOL>;
     };

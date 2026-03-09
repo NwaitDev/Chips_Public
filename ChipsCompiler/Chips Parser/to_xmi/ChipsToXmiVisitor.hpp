@@ -12,7 +12,7 @@
 #include "../cpp_sources/chips_config_stts.hpp"
 #include "../cpp_sources/chips_semantic_analyzer.hpp"
 
-#include "../cpp_sources/parserXmetamodel/chips_ast_classes.hpp"
+#include "../cpp_sources/parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
 #include "../cpp_sources/parserXmetamodel/chips_overall_definition.hpp"
 
 #include "ChipsToXmiWriter.hpp"
@@ -31,26 +31,26 @@ public:
     bool has_semantic_errors() const { return !m_semantic_errors.empty(); }
     const std::vector<std::string> &semantic_errors() const { return m_semantic_errors; }
 
-    // === PROGRAM & CONTEXT ===
-    void visit(chips::program_node& node) override;
-    void visit(chips::preamble_section_node& node) override;
-    void visit(chips::system_section_node& node) override;
+    // // === PROGRAM & CONTEXT ===
+    // void visit(chips::program_node& node) override;
+    // void visit(chips::preamble_section_node& node) override;
+    // void visit(chips::system_section_node& node) override;
 
 
-    // === DEFINITIONS ===
-    void visit(chips::definition& node) override;
-    void visit(chips::function_definition& node) override;
-    void visit(chips::logical_definition& node) override;
+    // // === DEFINITIONS ===
+    // void visit(chips::definition& node) override;
+    // void visit(chips::function_definition& node) override;
+    // void visit(chips::logical_definition& node) override;
 
 
-    // === WITH / SECTIONS ===
-    void visit(chips::init_section& node) override;
-    void visit(chips::then_section& node) override;
+    // // === WITH / SECTIONS ===
+    // void visit(chips::init_section& node) override;
+    // void visit(chips::then_section& node) override;
 
-    void visit(chips::function_output_variant& node) override;
+    // void visit(chips::function_output_variant& node) override;
 
-    // === DATAFLOW TYPES & PARAMETERS ===
-    void visit(chips::function_parameter_variant& node) override;
+    // // === DATAFLOW TYPES & PARAMETERS ===
+    // void visit(chips::function_parameter_variant& node) override;
 
     // // === PROGRAM & CONTEXT ===
     // void visit(chips_node &chips) override;

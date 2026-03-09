@@ -5,18 +5,18 @@
 #include "chips_declaration_ctx.hpp"
 #include "ChipsAST.hpp"
 
-#include "parserXmetamodel/chips_ast_classes.hpp"
+#include "parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
 #include "parserXmetamodel/chips_overall_definition.hpp"
 
 namespace chips {
-    void program_node::accept(visitor& v) { v.visit(*this); }
-    void preamble_section_node::accept(visitor& v) { v.visit(*this); }
-    void system_section_node::accept(visitor& v) { v.visit(*this); }
+    // void program_node::accept(visitor& v) { v.visit(*this); }
+    // void preamble_section_node::accept(visitor& v) { v.visit(*this); }
+    // void system_section_node::accept(visitor& v) { v.visit(*this); }
 
-    void logical_definition::accept(visitor& v) { v.visit(*this); }
+    // void logical_definition::accept(visitor& v) { v.visit(*this); }
 
-    void init_section::accept(visitor& v) { v.visit(*this); }
-    void then_section::accept(visitor& v) { v.visit(*this); }
+    // void init_section::accept(visitor& v) { v.visit(*this); }
+    // void then_section::accept(visitor& v) { v.visit(*this); }
 }
 
 //TODO: deleting this below after because linkage error

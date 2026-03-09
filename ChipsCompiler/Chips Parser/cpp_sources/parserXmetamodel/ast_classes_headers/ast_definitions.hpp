@@ -20,30 +20,55 @@ namespace chips {
     {
     private:
         std::vector<node_statement_variant> m_statements;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
     
     class init_section : public ast_node
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
 
     class then_section : public ast_node
     {
     private:
         std::vector<primitive_statement_variant> m_statements;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
 
     class collectiveops_section : public ast_node
     {
     private:
         std::vector<collective_statement_variant> m_statements;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
 
     class accumulator_definition : public ast_node
     {
     private:
         std::vector<collective_parameter_variant> m_accumulator;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
 
     class node_definition : public definition
@@ -52,7 +77,12 @@ namespace chips {
         with_section with;
     };
 
-    class object_definition : public node_definition {};
+    class object_definition : public node_definition {
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
+    };
 
     class function_definition : public definition
     {
@@ -62,13 +92,23 @@ namespace chips {
         std::vector<function_parameter_variant> m_parameters;
         std::vector<function_output_variant> m_outputs;
     };
-    class logical_definition : public function_definition{};
+    class logical_definition : public function_definition{
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
+    };
 
     class physical_definition : public function_definition, public node_definition
     {
     private:
         std::vector<physical_parameter_variant> m_sensor;
         std::vector<physical_output_variant> m_actuator;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
     
     class implementation_defintion : public definition // do not use, work in progress
@@ -86,9 +126,14 @@ namespace chips {
         accumulator_definition m_accumulator;
         node_definition& m_support_object;
         collectiveops_section m_operations;
-        collective_output<collective_output_kind::TARGET> m_target_output;
-        std::optional<collective_output<collective_output_kind::DEFAULTED>> m_default_output;
+        std::unique_ptr<collective_output<collective_output_kind::TARGET>> m_target_output;
+        std::unique_ptr<collective_output<collective_output_kind::DEFAULTED>> m_default_output;
         std::vector<collective_output<collective_output_kind::CHANNELED>> m_channeled_outputs;
+
+        public:
+
+            // void accept(visitor& v) override;
+            // void hello() override;
     };
 
 }

@@ -12,10 +12,17 @@
 
 %code requires{
     // #include "cpp_sources/ChipsAST.hpp"
-    #include "cpp_sources/parserXmetamodel/chips_ast_classes.hpp"
-    #include "cpp_sources/parserXmetamodel/chips_overall_definition.hpp"
-    #include "cpp_sources/parserXmetamodel/chips_overall_variable.hpp"
-    #include "cpp_sources/parserXmetamodel/chips_overall_stts.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_base.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_definitions.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_inoutputs.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_lrxvalues.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_program.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_statements.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_system_specific.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_variables.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/meta_type_conversions.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/metamodel_enums.hpp"
     #include "ChipsDriver.hpp"
 }
 

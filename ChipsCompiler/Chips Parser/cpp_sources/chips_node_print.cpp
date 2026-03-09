@@ -8,66 +8,65 @@
 #include "chips_ast_classes.hpp"
 #include "ChipsAST.hpp"
 
-#include "parserXmetamodel/chips_ast_classes.hpp"
-#include "parserXmetamodel/chips_overall_definition.hpp"
+#include "parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
 #include <iostream>
 
 namespace chips {
-    void program_node::hello(){
-        std::cout << m_filename << std::endl;
-        if(get_preamble()){
-            get_preamble()->hello();
-        }
-        if(get_system()){
-            get_system()->hello();
-        }
-    }
+    // void program_node::hello(){
+    //     std::cout << m_filename << std::endl;
+    //     if(get_preamble()){
+    //         get_preamble()->hello();
+    //     }
+    //     if(get_system()){
+    //         get_system()->hello();
+    //     }
+    // }
 
-    void preamble_section_node::hello(){        
-        for(const auto& def : get_definitions()){
-            if(def.get()){
-                def.get()->hello();
-            }
-        }
-    }
+    // void preamble_section_node::hello(){        
+    //     for(const auto& def : get_definitions()){
+    //         if(def.get()){
+    //             def.get()->hello();
+    //         }
+    //     }
+    // }
 
-    void system_section_node::hello(){
-        for(auto& statement : get_statements()){
-            // std::visit([](auto* s){ s->hello(); }, statement);
-        }
-    }
+    // void system_section_node::hello(){
+    //     for(auto& statement : get_statements()){
+    //         // std::visit([](auto* s){ s->hello(); }, statement);
+    //     }
+    // }
 
-    void logical_definition::hello(){
-        std::cout << "logical " << get_identifier() << "(";
-        for(auto& param : get_parameters()){
-            std::visit([](auto* p){ p->hello(); }, param);
-        }
-        std::cout << ")" << std::endl;
-        if(get_init()){
-            get_init()->hello();
-        }
-        if(get_then()){
-            get_then()->hello();
-        }
-        for(auto& output : get_outputs()){
-            std::cout << "output" << std::endl;
-            std::visit([](auto* o){ o->hello(); }, output);
-        }
-    }
+    // void logical_definition::hello(){
+    //     std::cout << "logical " << get_identifier() << "(";
+    //     for(auto& param : get_parameters()){
+    //         std::visit([](auto* p){ p->hello(); }, param);
+    //     }
+    //     std::cout << ")" << std::endl;
+    //     if(get_init()){
+    //         get_init()->hello();
+    //     }
+    //     if(get_then()){
+    //         get_then()->hello();
+    //     }
+    //     for(auto& output : get_outputs()){
+    //         std::cout << "output" << std::endl;
+    //         std::visit([](auto* o){ o->hello(); }, output);
+    //     }
+    // }
 
-    void init_section::hello(){
-        // std::cout << "nombre stts init = " << get_statements().size() << std::endl;
-        for(auto& statement : get_statements()){
-            std::visit([](auto* s){ s->hello(); }, statement);
-        }
-    }
+    // void init_section::hello(){
+    //     // std::cout << "nombre stts init = " << get_statements().size() << std::endl;
+    //     for(auto& statement : get_statements()){
+    //         std::visit([](auto* s){ s->hello(); }, statement);
+    //     }
+    // }
 
-    void then_section::hello(){
-        // std::cout << "nombre stts then = " << get_statements().size() << std::endl;
-        for(auto& statement : get_statements()){
-            std::visit([](auto* s){ s->hello(); }, statement);
-        }
-    }
+    // void then_section::hello(){
+    //     // std::cout << "nombre stts then = " << get_statements().size() << std::endl;
+    //     for(auto& statement : get_statements()){
+    //         std::visit([](auto* s){ s->hello(); }, statement);
+    //     }
+    // }
 
     // function_parameter and function_output are templates - their hello() methods
     // are defined inline in their base classes (function_parameter_base, function_output_base)

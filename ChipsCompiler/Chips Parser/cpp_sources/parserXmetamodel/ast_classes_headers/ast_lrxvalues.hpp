@@ -23,7 +23,7 @@ namespace chips{
     class direct: public rvalue<dft,expenv>
     {
     private:
-        using value_type = typename ChipsDftToCppType<dft>::type;
+        using value_type = typename DfTypeToCppType<dft>::type;
         value_type m_value;
     };
 
@@ -92,7 +92,7 @@ namespace chips{
     class gt : public rvalue<dataflow_type::BOOL ,expenv>
     {
     private:
-        using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
+        using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
     };
@@ -170,7 +170,7 @@ namespace chips{
     class variable_expression : rvalue<dft,expenv>, lvalue<dft,expenv>
     {
     private:
-        variable<expenv>& variable;
+        variable<expenv>& m_variable;
         rvalue<dataflow_type::INT,expenv> index;
     };
 }

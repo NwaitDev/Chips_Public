@@ -10,7 +10,7 @@ namespace chips {
     class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>
     {
         private:
-        using df_variable_type = typename ChipsEnvToVariableKind<dft,stenv>::type;
+        using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
         df_variable_type m_variable;
     };
 
@@ -19,7 +19,7 @@ namespace chips {
     class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT> 
     {
     private:
-        static constexpr expression_env expr_env = ChipsEnvToExpressionEnv<stenv>::value;
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         lvalue<dft, expr_env> m_lvalue;
         rvalue<dft, expr_env> m_rvalue;
     };
@@ -27,13 +27,13 @@ namespace chips {
     template<statement_env stenv>
     class if_section : public ast_node  
     {
-        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_if_statements;
     };
     template<statement_env stenv>
     class else_section: public ast_node  
     {
-        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_else_statements;
     };
 
@@ -41,7 +41,7 @@ namespace chips {
     class if_statement : public statement<stenv,recurring_statement::IF> 
     {
     private:
-        static constexpr expression_env expr_env = ChipsEnvToExpressionEnv<stenv>::value;
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         rvalue<dataflow_type::BOOL, expr_env> m_condition;
         if_section<stenv> m_if_section;
     };
@@ -57,7 +57,7 @@ namespace chips {
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>  
     {
     private:
-        using statement_type = typename ChipsStatementEnvToStatementVariant<stenv>::type;
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
         static constexpr expression_env expenv = ChipsEnvToExpressionEnv<stenv>::value;
         dataflow_declaration<dft,stenv> m_iterator;
         rvalue<dft,expenv>  m_iterable_expr;
@@ -80,8 +80,8 @@ namespace chips {
     class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>  
     {
     private:
-        using block_definition_t = typename BlockTypeToAstBlockDefinition<bt>::type;
-        using block_variable_t = typename ChipsBlockTypeToAstBlockVariable<bt>::type;
+        using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
+        using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
 
         block_definition_t& m_defintion;
         block_variable_t m_variable;
@@ -124,7 +124,7 @@ namespace chips {
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>  
     {
     private:
-        using node_variable_t = ChipsNodeElementToAstNodeVariable<ne>::type;
+        using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
         node_variable_t m_variable; // == type_identifier in case of channel declaration
         std::string m_declared_name; // == identifier in case of contextual variable
     };

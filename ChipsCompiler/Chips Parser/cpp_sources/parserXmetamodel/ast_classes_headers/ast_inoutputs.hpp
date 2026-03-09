@@ -18,7 +18,7 @@ namespace chips {
         std::string m_name;
     };
     
-    template<dataflow_type>
+    template<dataflow_type dft>
     class collective_parameter : public ast_node
     {
     private:
@@ -44,7 +44,7 @@ namespace chips {
     class channeled_output : collective_output<collective_output_kind::CHANNELED>
     {
     private:
-        node_element_declaration<node_element::CHANNEL> m_channel;
+        node_element_declaration<node_element::CHANNEL>& m_channel;
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
     };
 

@@ -27,7 +27,7 @@ namespace chips {
     class contextual_variable : public node_variable 
     {
     private:
-        using node_element_declaration_type = typename ChipsTypeToContextualDeclarationType<dft>::type;
+        using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
         node_element_declaration_type& m_declaration;
     };
 

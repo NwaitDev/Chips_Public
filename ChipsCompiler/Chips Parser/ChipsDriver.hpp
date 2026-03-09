@@ -2,7 +2,7 @@
 #define DRIVER_HPP
 #include "location.hh"
 #include "cpp_sources/ChipsAST.hpp"
-#include "cpp_sources/parserXmetamodel/chips_ast_classes.hpp"
+#include "cpp_sources/parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
 #include "to_xmi/ChipsToXmiWriter.hpp"
 #include "to_xmi/ChipsToXmiVisitor.hpp"
 #include <string>
