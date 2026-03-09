@@ -45,39 +45,39 @@ int driver::parse (const std::string &f)
 
 void driver::generate_xmi(const std::string& output_file, const std::string& source_filename)
 {
-    if (!ast) {
-        std::cerr << "❌ Erreur: AST non disponible\n";
-        return;
-    }
+    // if (!ast) {
+    //     std::cerr << "❌ Erreur: AST non disponible\n";
+    //     return;
+    // }
 
-    // Visite unique: bufferise le contenu et verifie les erreurs semantiques
-    std::ostringstream body_out;
-    ChipsToXmiWriter body_writer(body_out);
-    ChipsToXmiVisitor visitor(body_writer, body_out);
+    // // Visite unique: bufferise le contenu et verifie les erreurs semantiques
+    // std::ostringstream body_out;
+    // ChipsToXmiWriter body_writer(body_out);
+    // ChipsToXmiVisitor visitor(body_writer, body_out);
     
-    // Visiter l'AST pour générer le contenu XMI
-    ast->accept(visitor);
-    visitor.verifyDependencyGraph();
-    if(!skip_semantic_analysis && visitor.hasErrors()){
-        std::cerr << "Semantics errors detected, no XMI generate." << std::endl;
-        visitor.printErrors();
-        return;
-    }
+    // // Visiter l'AST pour générer le contenu XMI
+    // //ast->accept(visitor);
+    // visitor.verifyDependencyGraph();
+    // if(!skip_semantic_analysis && visitor.hasErrors()){
+    //     std::cerr << "Semantics errors detected, no XMI generate." << std::endl;
+    //     visitor.printErrors();
+    //     return;
+    // }
     
-    // Ouvrir le fichier de sortie
-    std::ofstream out(output_file);
-    if (!out) {
-        std::cerr << "❌ Impossible de créer le fichier: " << output_file << "\n";
-        return;
-    }
+    // // Ouvrir le fichier de sortie
+    // std::ofstream out(output_file);
+    // if (!out) {
+    //     std::cerr << "❌ Impossible de créer le fichier: " << output_file << "\n";
+    //     return;
+    // }
     
-    // Ecrire le XMI final avec tous les namespaces collectes
-    ChipsToXmiWriter writer(out);
-    writer.copy_namespaces_from(body_writer);
-    writer.xmi_header(source_filename);
-    out << body_out.str();
-    writer.xmi_footer();
+    // // Ecrire le XMI final avec tous les namespaces collectes
+    // ChipsToXmiWriter writer(out);
+    // writer.copy_namespaces_from(body_writer);
+    // writer.xmi_header(source_filename);
+    // out << body_out.str();
+    // writer.xmi_footer();
     
-    out.close();
-    std::cout << "✅ XMI généré: " << output_file << "\n";
+    // out.close();
+    // std::cout << "✅ XMI généré: " << output_file << "\n";
 }

@@ -12,6 +12,11 @@ namespace chips {
         private:
         using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
         df_variable_type m_variable;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     
@@ -22,19 +27,36 @@ namespace chips {
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         lvalue<dft, expr_env> m_lvalue;
         rvalue<dft, expr_env> m_rvalue;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<statement_env stenv>
     class if_section : public ast_node  
     {
-        using statement_type = typename SttEnvToSttVariant<stenv>::type;
-        std::vector<statement_type> m_if_statements;
+        private:
+            using statement_type = typename SttEnvToSttVariant<stenv>::type;
+            std::vector<statement_type> m_if_statements;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
     template<statement_env stenv>
     class else_section: public ast_node  
     {
-        using statement_type = typename SttEnvToSttVariant<stenv>::type;
-        std::vector<statement_type> m_else_statements;
+        private:
+            using statement_type = typename SttEnvToSttVariant<stenv>::type;
+            std::vector<statement_type> m_else_statements;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<statement_env stenv>
@@ -44,6 +66,11 @@ namespace chips {
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         rvalue<dataflow_type::BOOL, expr_env> m_condition;
         if_section<stenv> m_if_section;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<statement_env stenv>
@@ -51,6 +78,11 @@ namespace chips {
     {
     private:
         else_section<stenv> m_else_section;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<statement_env stenv, dataflow_type dft>
@@ -58,10 +90,15 @@ namespace chips {
     {
     private:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
-        static constexpr expression_env expenv = ChipsEnvToExpressionEnv<stenv>::value;
+        static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
         dataflow_declaration<dft,stenv> m_iterator;
         rvalue<dft,expenv>  m_iterable_expr;
         std::vector<statement_type> m_statements;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
     
     template<block_type bt>
@@ -71,6 +108,11 @@ namespace chips {
         block_declaration<bt> m_iterator;
         system_variable_block_expression<bt> m_iterable_expression;
         std::vector<system_statement_variant> m_statements;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     
@@ -85,10 +127,20 @@ namespace chips {
 
         block_definition_t& m_defintion;
         block_variable_t m_variable;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
         
     };
 
-    class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{}; 
+    class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
+    }; 
 
     class channel_plugging : public system_statement<recurring_statement::PLUGGING>  
     {
@@ -99,14 +151,24 @@ namespace chips {
         
         channel_eater m_eater;
         channel_feeder m_feeder;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dft,dfk>  
+    class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dfk,dft>  
     {
     private:
         eater<dfk,dft> m_eater;
         feeder<dfk,dft> m_feeder;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     class linking_statement : public system_statement<recurring_statement::LINKING>  
@@ -114,11 +176,21 @@ namespace chips {
     private:
         linkable m_linked_component;
         support m_support_node;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
 
     template <node_element ne>
-    class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{}; 
+    class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
+    }; 
 
     template<node_element ne>
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>  
@@ -127,6 +199,11 @@ namespace chips {
         using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
         node_variable_t m_variable; // == type_identifier in case of channel declaration
         std::string m_declared_name; // == identifier in case of contextual variable
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 }
 

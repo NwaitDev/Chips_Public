@@ -8,11 +8,21 @@
 #include "chips_ast_classes.hpp"
 #include "ChipsAST.hpp"
 
+#include "parserXmetamodel/ast_classes_headers/ast_base.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_definitions.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_inoutputs.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_lrxvalues.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_program.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_statements.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_system_specific.hpp"
+#include "parserXmetamodel/ast_classes_headers/ast_variables.hpp"
 #include "parserXmetamodel/ast_classes_headers/forward_declarations.hpp"
+
+
 #include <iostream>
 
 namespace chips {
-    // void program_node::hello(){
+    void program_node::hello(){
     //     std::cout << m_filename << std::endl;
     //     if(get_preamble()){
     //         get_preamble()->hello();
@@ -20,23 +30,120 @@ namespace chips {
     //     if(get_system()){
     //         get_system()->hello();
     //     }
-    // }
+    }
 
-    // void preamble_section_node::hello(){        
+    void preamble_section_node::hello(){        
     //     for(const auto& def : get_definitions()){
     //         if(def.get()){
     //             def.get()->hello();
     //         }
     //     }
-    // }
+    }
 
-    // void system_section_node::hello(){
+    void system_section_node::hello(){
     //     for(auto& statement : get_statements()){
     //         // std::visit([](auto* s){ s->hello(); }, statement);
     //     }
-    // }
+    }
 
-    // void logical_definition::hello(){
+    template<expression_env expenv>
+    void array<expenv>::hello(){}
+
+    template<dataflow_type dft>
+    void dataflow_primitive_variable<dft>::hello(){}
+
+    template<dataflow_type dft>
+    void contextual_variable<dft>::hello(){}
+
+    template<dataflow_type dft>
+    void dataflow_collective_variable<dft>::hello(){}
+
+    template<block_type bt>
+    void block_variable<bt>::hello(){}
+
+    template<dataflow_type dft>
+    void dataflow_system_variable<dft>::hello(){}
+
+    template<dataflow_type dft, statement_env sttenv>
+    void dataflow_declaration<dft, sttenv>::hello(){}
+
+    template<dataflow_type dft, statement_env sttenv>
+    void dataflow_assignment<dft, sttenv>::hello(){}
+
+    template<statement_env sttenv>
+    void if_section<sttenv>::hello(){}
+
+    template<statement_env sttenv>
+    void else_section<sttenv>::hello(){}
+
+    template<statement_env sttenv>
+    void if_statement<sttenv>::hello(){}
+
+    template<statement_env sttenv>
+    void if_else_statement<sttenv>::hello(){}
+
+    template<statement_env sttenv, dataflow_type dft>
+    void foreach_statement<sttenv, dft>::hello(){}
+
+    template<block_type bt>
+    void block_foreach_statement<bt>::hello(){}
+
+    template<block_type bt>
+    void block_declaration<bt>::hello(){}
+
+    void implements_statement::hello(){}
+
+    void channel_plugging::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void feeding_statement<dfk, dft>::hello(){}
+
+    void linking_statement::hello(){}
+
+    template<node_element ne>
+    void aliasing_statement<ne>::hello(){}
+
+    template<node_element ne>
+    void node_element_declaration<ne>::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void function_parameter<dfk, dft>::hello(){}
+
+    template<dataflow_type dft>
+    void collective_parameter<dft>::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void function_output<dfk, dft>::hello(){}
+
+    void default_output::hello(){}
+
+    void target_output::hello(){}
+
+    void channeled_output::hello(){}
+
+    void with_section::hello(){}
+
+    void init_section::hello(){
+    // std::cout << "nombre stts init = " << get_statements().size() << std::endl;
+    //     for(auto& statement : get_statements()){
+    //         std::visit([](auto* s){ s->hello(); }, statement);
+    //     }
+    }
+
+    void then_section::hello(){
+    //     // std::cout << "nombre stts then = " << get_statements().size() << std::endl;
+    //     for(auto& statement : get_statements()){
+    //         std::visit([](auto* s){ s->hello(); }, statement);
+    //     }
+    }
+
+    void collectiveops_section::hello(){}
+
+    void accumulator_definition::hello(){}
+
+    void object_definition::hello(){}
+
+    void logical_definition::hello(){
     //     std::cout << "logical " << get_identifier() << "(";
     //     for(auto& param : get_parameters()){
     //         std::visit([](auto* p){ p->hello(); }, param);
@@ -52,24 +159,81 @@ namespace chips {
     //         std::cout << "output" << std::endl;
     //         std::visit([](auto* o){ o->hello(); }, output);
     //     }
-    // }
+    }
 
-    // void init_section::hello(){
-    //     // std::cout << "nombre stts init = " << get_statements().size() << std::endl;
-    //     for(auto& statement : get_statements()){
-    //         std::visit([](auto* s){ s->hello(); }, statement);
-    //     }
-    // }
+    void physical_definition::hello(){}
 
-    // void then_section::hello(){
-    //     // std::cout << "nombre stts then = " << get_statements().size() << std::endl;
-    //     for(auto& statement : get_statements()){
-    //         std::visit([](auto* s){ s->hello(); }, statement);
-    //     }
-    // }
+    void implementation_defintion::hello(){}
 
-    // function_parameter and function_output are templates - their hello() methods
-    // are defined inline in their base classes (function_parameter_base, function_output_base)
+    void collective_function_definition::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void direct<dft, expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void function<dft, expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void plus<dft, expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void minus<dft, expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void mult<dft, expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void div<dft, expenv>::hello(){}
+
+    template<expression_env expenv>
+    void mod<expenv>::hello(){}
+
+    template<dataflow_type dft, expression_env expenv>
+    void cast_as<dft, expenv>::hello(){}
+
+    template<expression_env expenv, dataflow_type dft>
+    void gt<expenv, dft>::hello(){}
+
+    template<expression_env expenv, dataflow_type dft>
+    void lt<expenv, dft>::hello(){}
+
+    template<expression_env expenv, dataflow_type dft>
+    void leq<expenv, dft>::hello(){}
+
+    template<expression_env expenv, dataflow_type dft>
+    void geq<expenv, dft>::hello(){}
+
+    template<expression_env expenv>
+    void or_operator<expenv>::hello(){}
+
+    template<expression_env expenv>
+    void and_operator<expenv>::hello(){}
+
+    template<expression_env expenv>
+    void not_operator<expenv>::hello(){}
+
+    template<dataflow_type dft,expression_env expenv>
+    void eq<dft, expenv>::hello(){}
+
+    template<dataflow_type dft,expression_env expenv>
+    void neq<dft, expenv>::hello(){}
+
+    template<dataflow_type dft,expression_env expenv>
+    void variable_expression<dft, expenv>::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void eater<dfk, dft>::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void feeder_block_expression<dfk, dft>::hello(){}
+
+    void channel_eater::hello(){}
+
+    void channel_feeder::hello(){}
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    void collective_cast<dfk, dft>::hello(){}
+
 }
 
 void chips_node::hello() {

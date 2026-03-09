@@ -25,6 +25,11 @@ namespace chips{
     private:
         using value_type = typename DfTypeToCppType<dft>::type;
         value_type m_value;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -33,6 +38,11 @@ namespace chips{
     private:
         std::string m_name;
         std::vector<rvalue_variant<expenv>> m_parameters;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -42,6 +52,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -51,6 +66,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+            
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -60,6 +80,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -69,6 +94,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv>
@@ -78,6 +108,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dataflow_type::INT,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft, expression_env expenv>
@@ -86,6 +121,11 @@ namespace chips{
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type numeric;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv, dataflow_type dft>
@@ -95,6 +135,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv, dataflow_type dft>
@@ -104,6 +149,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv, dataflow_type dft>
@@ -113,6 +163,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv, dataflow_type dft>
@@ -122,6 +177,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstNumericType<dft,expenv>::type;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv>
@@ -130,6 +190,11 @@ namespace chips{
     private:
         rvalue<dataflow_type::BOOL, expenv> left_operand;
         rvalue<dataflow_type::BOOL, expenv> right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv>
@@ -138,6 +203,11 @@ namespace chips{
     private:
         rvalue<dataflow_type::BOOL, expenv> left_operand;
         rvalue<dataflow_type::BOOL, expenv> right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<expression_env expenv>
@@ -145,6 +215,11 @@ namespace chips{
     {
     private:
         rvalue<dataflow_type::BOOL, expenv> operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft,expression_env expenv>
@@ -154,6 +229,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type ;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_type dft,expression_env expenv>
@@ -163,6 +243,11 @@ namespace chips{
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type ;
         operand_type left_operand;
         operand_type right_operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
 
@@ -172,6 +257,11 @@ namespace chips{
     private:
         variable<expenv>& m_variable;
         rvalue<dataflow_type::INT,expenv> index;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 }
 

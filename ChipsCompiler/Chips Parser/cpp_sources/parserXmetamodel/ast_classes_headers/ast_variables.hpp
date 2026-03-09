@@ -7,7 +7,13 @@ namespace chips {
     
 
     template<expression_env expenv> 
-    class array : public ast_node{};
+    class array : public ast_node{
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
+    };
 
     template<expression_env expenv>
     class variable : public array<expenv>{};
@@ -19,6 +25,11 @@ namespace chips {
     {
     private:
         dataflow_declaration<dft,statement_env::DEFINITION>& m_declaration;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     class node_variable : public variable<chips::expression_env::PRIMITIVE>{};
@@ -29,6 +40,11 @@ namespace chips {
     private:
         using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
         node_element_declaration_type& m_declaration;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     class collective_variable : public variable<chips::expression_env::COLLECTIVE>{};
@@ -38,6 +54,11 @@ namespace chips {
     {
     private:
         dataflow_declaration<dft,statement_env::COLLECTIVE>& m_declaration;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
 
@@ -48,6 +69,11 @@ namespace chips {
     {
     private:
         block_declaration<bt>& m_declaration;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
     
     template<dataflow_type dft> 
@@ -55,6 +81,11 @@ namespace chips {
     {
     private:
         dataflow_declaration<dft,statement_env::SYSTEM>& m_declaration;
+
+        public:
+
+            // void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
     
 }

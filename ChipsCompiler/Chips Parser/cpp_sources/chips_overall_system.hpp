@@ -49,7 +49,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class s_loop_node : public s_statement_node {
@@ -70,7 +70,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class s_if_node : public s_statement_node {
@@ -89,7 +89,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class s_if_else_node : public s_statement_node {
@@ -108,7 +108,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class functionnal_block_instanciation_node : public s_statement_node {
@@ -129,7 +129,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class plugging_node : public s_statement_node {
@@ -152,7 +152,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class link_node : public s_statement_node {
@@ -175,7 +175,7 @@ class link_node : public s_statement_node {
 
         void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 class implements_node : public s_statement_node {
@@ -200,7 +200,7 @@ public:
 
     void accept(chips_visitor& visitor) { visitor.visit(*this); }
 
-    void hello() override;
+    virtual void hello() override;
 };
 
 #endif

@@ -1,6 +1,7 @@
 #ifndef __forward_declarations__
 #define __forward_declarations__
 #include "metamodel_enums.hpp"
+#include "ast_base.hpp"
 
 namespace chips {
 
@@ -185,7 +186,7 @@ namespace chips {
      * Chips code environment.
      */
     template<statement_env, recurring_statement>
-    class statement{};
+    class statement : public ast_node{};
 
     // abstract (by definition of statement class)
     template<recurring_statement recstt>

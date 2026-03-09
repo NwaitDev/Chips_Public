@@ -144,16 +144,16 @@ chips:
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);
                                               drv.ast = std::move($$);*/
-                                              $$ = std::make_unique<chips::program_node>(drv.file, std::move($1), std::move($2));
+                                              /*$$ = std::make_unique<chips::program_node>(drv.file, std::move($1), std::move($2));
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);
-                                              drv.ast = std::move($$);                                                    }
+                                              drv.ast = std::move($$);*/                                                    }
     ;
 preambles:
-    preamble preambles                      { $$ = std::move($2); $$->append(std::move(std::move($1))); 
+    preamble preambles                      { /*$$ = std::move($2); $$->append(std::move(std::move($1))); 
                                               $$->set_line(@$.begin.line);
-                                              $$->set_column(@$.begin.column);}
-    | /* EMPTY */                           { $$ = std::move(std::make_unique<chips::preamble_section_node>()); /*$$ = std::move(std::make_unique<preambles_node>());*/ }                       
+                                              $$->set_column(@$.begin.column);*/}
+    | /* EMPTY */                           { /*$$ = std::move(std::make_unique<chips::preamble_section_node>());*/ /*$$ = std::move(std::make_unique<preambles_node>());*/ }                       
     ;
 system:
     SYSTEM_KW  L_CURL                       
@@ -161,11 +161,11 @@ system:
     R_CURL                                  { /*$$ = std::move(std::make_unique<system_node>(std::move($3)));
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */                           { $$ = std::move(std::make_unique<chips::system_section_node>()); /*$$ = std::move(std::make_unique<system_node>());*/ }
+    | /* EMPTY */                           { /*$$ = std::move(std::make_unique<chips::system_section_node>());*/ /*$$ = std::move(std::make_unique<system_node>());*/ }
     ;
 preamble:
     object_def                              { /*$$ = std::move($1);*/ }
-    | function_def                          { $$ = std::move(std::move($1)); }            
+    | function_def                          { /*$$ = std::move(std::move($1));*/ }            
     | collective_op_def                     { /*$$ = std::move($1);*/ }
     | implementation_def                    { /*$$ = std::move($1);*/ }
     ;
@@ -188,7 +188,7 @@ node_mappings:
     | /* EMPTY */                                               { /*$$ = std::move(std::make_unique<node_mappings_node>());*/ }
     ;
 function_def:
-    l_function_def                          { $$ = std::move($1); }
+    l_function_def                          { /*$$ = std::move($1);*/ }
     | p_function_def                        { /*$$ = std::move($1);*/ }
     ;
 collective_op_def:
@@ -222,11 +222,11 @@ l_function_def:
     named_outputs                  { /*$$ = std::move(std::make_unique<chips::logical_definition>(std::move($2), std::move($4), std::move($6), std::move($7), std::move($8)));
                                      $$->set_line(@$.begin.line);
                                      $$->set_column(@$.begin.column);*/
-                                     auto def = std::make_unique<chips::logical_definition>(
+                                     /*auto def = std::make_unique<chips::logical_definition>(
                                      std::move($2), std::move($4), std::move($6), std::move($7), std::move($8));
                                      def->set_line(@$.begin.line);
                                      def->set_column(@$.begin.column);
-                                     $$ = std::move(def);
+                                     $$ = std::move(def);*/
                                       }
     ;
 p_function_def:
@@ -278,18 +278,18 @@ with_statement:
 init_section:
     INIT_KW L_CURL      
         statements 
-    R_CURL              { $$ = std::move(std::make_unique<chips::init_section>(std::move($3))); 
+    R_CURL              { /*$$ = std::move(std::make_unique<chips::init_section>(std::move($3))); 
                           $$->set_line(@$.begin.line);
-                          $$->set_column(@$.begin.column);}
-    | /* EMPTY */       { $$ = nullptr; }
+                          $$->set_column(@$.begin.column);*/}
+    | /* EMPTY */       { /*$$ = nullptr;*/ }
     ;
 then_section:
     THEN_KW L_CURL 
         statements      
-    R_CURL              { $$ = std::move(std::make_unique<chips::then_section>(std::move($3)));
+    R_CURL              { /*$$ = std::move(std::make_unique<chips::then_section>(std::move($3)));
                           $$->set_line(@$.begin.line);
-                          $$->set_column(@$.begin.column); }
-    | /* EMPTY */       { $$ = nullptr; }
+                          $$->set_column(@$.begin.column);*/ }
+    | /* EMPTY */       { /*$$ = nullptr;*/ }
     ;
 list_expr:
     exprs               { /*$$ = std::move($1);*/ }
@@ -764,7 +764,7 @@ statements:
     | if_statement statements                   { /*$$ = std::move($2); $$->append(std::move($1)); 
                                                   $$->set_line(@$.begin.line);
                                                   $$->set_column(@$.begin.column);*/}
-    | /* EMPTY */                               { $$ = std::vector<chips::primitive_statement_variant>(); }
+    | /* EMPTY */                               { /*$$ = std::vector<chips::primitive_statement_variant>();*/ }
     ;
 s_statements:
     s_statement s_statements                    { /*$$ = std::move($2); $$->append(std::move($1)); 
@@ -850,7 +850,7 @@ named_outputs:
     named_output named_outputs                  { /*$$ = std::move($2); $$->append(std::move($1)); 
                                                   $$->set_line(@$.begin.line);
                                                   $$->set_column(@$.begin.column);*/  }
-    | /* EMPTY */                               { $$ = std::vector<chips::function_output_variant>(); }
+    | /* EMPTY */                               { /*$$ = std::vector<chips::function_output_variant>();*/ }
     ;
 named_output:
     ARROW IDENTIFIER L_PARENTH list_expr R_PARENTH { /*$$ = std::move(std::make_unique<named_output_node>(std::move($2), std::move($4)));
@@ -873,7 +873,7 @@ p_named_output:
     ;
 df_parameter_list:
     df_parameter_decls                              { /*$$ = std::move($1);*/ }
-    | /* EMPTY */                                   { $$ = std::vector<chips::function_parameter_variant>(); }
+    | /* EMPTY */                                   { /*$$ = std::vector<chips::function_parameter_variant>();*/ }
     ;
 df_parameter_decls:
     df_parameter_decl                               { /*$$ = std::vector<chips::function_parameter_variant>();

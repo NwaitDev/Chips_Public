@@ -8,6 +8,8 @@
 namespace chips {
 
     template<dataflow_kind dfk, dataflow_type dft>
+    class feeder : public ast_node{};
+    template<dataflow_kind dfk, dataflow_type dft>
     class feeder_abstract : public ast_node {}; 
     template<dataflow_kind dfk, dataflow_type dft>
     class eater_abstract : public ast_node {};
@@ -18,8 +20,8 @@ namespace chips {
     class system_variable_block_expression : public ast_node, public system_iterable
     {
     private:
-        using block_type = typename ChipsBlockTypeToAstBlockVariable<bt>::type;
-        block_type& m_variable;
+        using block_variable_type = typename BlockTypeToBlockVariable<bt>::type;
+        block_variable_type& m_variable;
         rvalue<dataflow_type::INT,expression_env::SYSTEM> m_index;
     };
 
@@ -52,6 +54,11 @@ namespace chips {
     private:
         functional_block_variant m_variable_expression;
         function_parameter<dfk,dft>& m_parameter;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     }; 
 
     template<dataflow_kind dfk, dataflow_type dft>
@@ -60,6 +67,11 @@ namespace chips {
     private:
         functional_block_variant m_variable_expression;
         function_output<dfk,dft>& m_output;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
 
@@ -68,19 +80,35 @@ namespace chips {
         private:
         node_variable_expression m_node;
         node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     class channel_feeder : public ast_node
     {
-        node_variable_expression m_node;
-        node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+        private:
+            node_variable_expression m_node;
+            node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template<dataflow_kind dfk, dataflow_type dft>
     class collective_cast : public feeder<dfk,dft> {
     private:
         collective_function_definition& variable_expression;
-        feeder m_feeder;
+        feeder<dfk, dft> m_feeder;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 }
 

@@ -1,6 +1,8 @@
 #ifndef __chips_base__
 #define __chips_base__
 
+#include "metamodel_enums.hpp"
+
 namespace chips{
 
     class visitor;
@@ -10,8 +12,10 @@ namespace chips{
             int column;
 
     public:
-        // virtual void hello() = 0;
-        // virtual void accept(visitor& v) = 0;
+        virtual ~ast_node() = default;
+
+        virtual void hello() {};
+        // virtual void accept(visitor& v) { v.visit(*this); }
 
         int get_line() { return line; }
         int get_column() { return column; }
@@ -20,7 +24,8 @@ namespace chips{
     };
     class visitor{
     public:
-        virtual void visit(ast_node &node) = 0;
+        virtual ~visitor() = default;
+        virtual void visit(ast_node& node) = 0;        
     };
     
 }

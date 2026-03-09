@@ -221,8 +221,8 @@ namespace chips {
     };
 
     using functional_block_variant = std::variant<
-        block_variable<block_type::LOGICAL>,
-        block_variable<block_type::PHYSICAL>>;
+        block_variable<block_type::LOGICAL>*,
+        block_variable<block_type::PHYSICAL>*>;
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////

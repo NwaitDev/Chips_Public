@@ -23,8 +23,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
     
     class init_section : public ast_node
@@ -34,8 +34,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class then_section : public ast_node
@@ -45,8 +45,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class collectiveops_section : public ast_node
@@ -56,8 +56,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class accumulator_definition : public ast_node
@@ -67,8 +67,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class node_definition : public definition
@@ -80,8 +80,8 @@ namespace chips {
     class object_definition : public node_definition {
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class function_definition : public definition
@@ -95,8 +95,8 @@ namespace chips {
     class logical_definition : public function_definition{
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
     class physical_definition : public function_definition, public node_definition
@@ -107,8 +107,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
     
     class implementation_defintion : public definition // do not use, work in progress
@@ -117,6 +117,11 @@ namespace chips {
         object_definition& m_implemented_object;
         node_definition& m_implementing_node;
         std::vector<implementation_statement_variant> m_having_statements;
+
+        public:
+
+            // void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     class collective_function_definition : public definition
@@ -132,8 +137,8 @@ namespace chips {
 
         public:
 
-            // void accept(visitor& v) override;
-            // void hello() override;
+            //void accept(visitor& v) { v.visit(*this); };
+            virtual void hello() override;
     };
 
 }

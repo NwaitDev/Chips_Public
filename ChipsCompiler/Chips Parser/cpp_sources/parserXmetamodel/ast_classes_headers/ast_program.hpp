@@ -10,22 +10,36 @@ namespace chips {
     
     class program_node : public ast_node
     {
+        private:
         std::string m_filename;
         preamble_section_node& m_preamble;
         system_section_node& m_system;
 
     public:
         program_node(std::string filename, preamble_section_node &preamble, system_section_node &system);
+
+        //void accept(visitor& v) { v.visit(*this); }
+        virtual void hello() override;
     };
 
 
     class preamble_section_node : public ast_node{
         private:
         std::vector<definition_variant> m_definitions;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
     class system_section_node : public ast_node{
         private:
         std::vector<system_statement_variant> m_system_statements;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 }
 
