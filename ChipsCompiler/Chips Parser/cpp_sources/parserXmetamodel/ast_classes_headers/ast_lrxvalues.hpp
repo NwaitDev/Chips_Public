@@ -27,7 +27,7 @@ namespace chips{
         value_type m_value;
 
         public:
-
+            direct(value_type value);
             //void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };

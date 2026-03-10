@@ -6,7 +6,7 @@
 // namespace chips {
 
 //     class definition : public ast_node {
-//         private:
+//         private:²
 //             std::string m_name;
         
 //         public:
