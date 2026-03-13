@@ -1,0 +1,118 @@
+-- @atlcompiler emftvm
+-- @path chips=/Chips2bip/Chips1.1.ecore
+-- @path bip=/Chips2Bip/bip.ecore
+module chips2bip;
+
+create OUT: bip from IN: chips;
+
+rule makeChipsDataType(typename : String) {
+	to chipsdatatype : bip!DataType(
+		name <- 'chips_'+typename,
+		native <- false,
+		superTypes <- Sequence{},
+		castableTypes <- Sequence{},
+		backendName <- 'chips_'+typename
+	)
+}
+
+
+helper context chips!definition def: isFunctionalBlockDefinition() : Boolean = self.oclIsKindOf(chips!function_definition);
+
+rule Program2BipPackage {
+	from chipsprogram: chips!program
+	
+	to bippackage: bip!BipPackage(
+		name <- chipsprogram.fileName,
+		atomTypes <- chipsprogram.preamble.definitions.select(d | d.isFunctionalBlockDefinition()),
+		compoundTypes <- Sequence{},
+		connectorTypes <- Sequence{},
+		portTypes <- Sequence{},
+		dataTypes <- Sequence{ 
+			thisModule.makeChipsDataType('bool'),
+			thisModule.makeChipsDataType('float'),
+			thisModule.makeChipsDataType('int')
+		},
+		used_packages <- Sequence{},
+		constData <- Sequence{},
+		prototypes <- Sequence{}
+	)
+}
+
+abstract rule LogicalParameter2PortType {
+	from chipslogicalparameter: chips!logical_parameter
+	
+	to bip:bip!PortType(
+		native <- false,
+		superTypes <- Sequence{},
+		castableTypes <- Sequence{}
+	)
+	
+}
+
+rule IntLogicalParameter2PortType extends LogicalParameter2PortType {
+	from chipsintlogicalparameter: chips!int_logical_parameter
+	
+	to bip:bip!PortType(
+		name <- 'int_port_t',
+		dataParametersDeclarations <- Sequence{}
+	)
+}
+
+rule FloatLogicalParameter2PortType extends LogicalParameter2PortType {
+	from chipsintlogicalparameter: chips!float_logical_parameter
+	
+	to bip:bip!PortType(
+		name <- 'float_port_t',
+		dataParametersDeclarations <- Sequence{}
+	)
+}
+
+rule BoolLogicalParameter2PortType extends LogicalParameter2PortType {
+	from chipsintlogicalparameter: chips!bool_logical_parameter
+	
+	to bip:bip!PortType(
+		name <- 'bool_port_t',
+		dataParametersDeclarations <- Sequence{}
+	)
+}
+
+abstract rule Definition2ComponentType {
+	from chipsfunction: chips!definition
+
+    to componenttype: bip!ComponentType
+}
+
+
+
+abstract rule FunctionDefinition2ComponentType {
+    
+    from chipsfunction: chips!function_definition
+
+    to componenttype: bip!ComponentType(
+    	name <- chipsfunction.name + '_core',
+        native <- false,
+        superTypes <- Sequence{},
+        castableTypes <- Sequence{},
+        exportedPortDeclarations <- Sequence{}, --TODO
+        exportedDataDeclarations <- Sequence{}, --TODO
+        dataParameterDeclarations <- Sequence{}
+    )
+
+}
+
+
+rule FunctionDefinition2AtomType extends FunctionDefinition2ComponentType {
+    
+    from chipsfunction: chips!function_definition
+
+    to componenttype: bip!AtomType(
+        internalPortDeclarations <- Sequence{}, --TODO
+        internalPortDeclarations <- Sequence{}, --TODO
+        behavior <- OclUndefined, --TODO
+        internalDataDeclarations <- Sequence{}, --TODO
+        exportPortDeclarations <- Sequence{}, --TODO
+        priorities <- Sequence{},
+        invariants <- Sequence{}
+    )
+
+}
