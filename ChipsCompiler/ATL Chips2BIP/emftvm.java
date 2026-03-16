@@ -169,7 +169,7 @@ public class emftvm {
 
             ModuleResolver mr = new DefaultModuleResolver(modulePath, rs);
             TimingData td = new TimingData();
-            env.loadModule(mr, "chips2bip");
+            env.loadModule(mr, moduleName);
             td.finishLoading();
             env.run(td);
             td.finish();
