@@ -5,7 +5,7 @@ module chips2bip;
 
 create OUT: bip from IN: chips;
 
-rule makeChipsDataType(typename : String) {
+rule MakeChipsDataType(typename : String) {
 	to chipsdatatype : bip!DataType(
 		name <- 'chips_'+typename,
 		native <- false,
@@ -23,15 +23,15 @@ rule Program2BipPackage {
 	
 	to bippackage: bip!BipPackage(
 		name <- chipsprogram.fileName,
-		atomTypes <- chipsprogram.preamble.definitions.select(d | d.isFunctionalBlockDefinition()),
+		atomTypes <- chipsprogram.preamble.definitions->select(d | d.isFunctionalBlockDefinition()),
 		compoundTypes <- Sequence{},
 		connectorTypes <- Sequence{},
 		portTypes <- Sequence{},
-		dataTypes <- Sequence{ 
-			thisModule.makeChipsDataType('bool'),
-			thisModule.makeChipsDataType('float'),
-			thisModule.makeChipsDataType('int')
-		},
+		dataTypes <- Sequence{},
+--			thisModule.MakeChipsDataType('bool'),
+--			thisModule.MakeChipsDataType('float'),
+--			thisModule.MakeChipsDataType('int')
+--		},
 		used_packages <- Sequence{},
 		constData <- Sequence{},
 		prototypes <- Sequence{}
