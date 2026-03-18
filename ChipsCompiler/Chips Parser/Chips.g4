@@ -152,7 +152,7 @@ expr
 expr0
     : expr1 PLUS expr0      # PLUS
     | expr1 MINUS expr0     # SUB
-    | MINUS expr0           # Negate
+    | MINUS expr1           # Negate
     | expr1                 # PassExpr1
     ;
 
@@ -160,7 +160,7 @@ expr1
     : expr2 TIMES expr1     # MULT
     | expr2 DIV expr1       # DIV
     | expr2 MOD expr1       # MOD
-    | NOT expr2             # NOT
+    | NOT expr2             # NNegateOT
     | expr2                 # PassExpr2
     ;
 

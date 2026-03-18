@@ -298,6 +298,19 @@ namespace chips{
             virtual void hello() override;
     };
 
+    template<dataflow_type dft, expression_env expenv>
+    class uminus_operator : public rvalue<dft ,expenv>
+    {
+    private:
+        using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
+        std::shared_ptr<operand_type> operand;
+
+        public:
+
+            //void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
+    };
+
     template<dataflow_type dft,expression_env expenv>
     class eq : public rvalue<dataflow_type::BOOL ,expenv>
     {

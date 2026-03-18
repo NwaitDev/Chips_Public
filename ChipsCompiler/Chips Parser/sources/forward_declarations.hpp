@@ -636,6 +636,13 @@ namespace chips {
     
     /**
      * Concrete class
+     * Node of the AST that represents the unary minus operator
+     */
+    template<dataflow_type dft, expression_env expenv>
+    class uminus_operator;
+
+    /**
+     * Concrete class
      * Node of the AST that represents the type casting operation
      */
     template<dataflow_type dft, expression_env expenv>
