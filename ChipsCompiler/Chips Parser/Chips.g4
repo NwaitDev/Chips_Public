@@ -227,15 +227,24 @@ c_cast
     : L_PARENTH df_type R_PARENTH c_stopless_expr
     ;
 
+
 suffixes
-    : L_SQUA expr R_SQUA suffixes
-    | NEWLINE
+    : (L_SQUA expr R_SQUA)*
     ;
 
 c_suffixes
-    : L_SQUA c_stopless_expr R_SQUA c_suffixes
-    | NEWLINE
+    : (L_SQUA c_stopless_expr R_SQUA)*
     ;
+
+// suffixes
+//    : L_SQUA expr R_SQUA suffixes
+//    | NEWLINE
+//    ;
+
+//c_suffixes
+//    : L_SQUA c_stopless_expr R_SQUA c_suffixes
+//    | NEWLINE
+//    ;
 
 s_suffixable_expr
     : IDENTIFIER
