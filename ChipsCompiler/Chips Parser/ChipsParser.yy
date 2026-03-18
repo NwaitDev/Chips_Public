@@ -23,6 +23,8 @@
     #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_variables.hpp"
     #include "cpp_sources/parserXmetamodel/ast_classes_headers/meta_type_conversions.hpp"
     #include "cpp_sources/parserXmetamodel/ast_classes_headers/metamodel_enums.hpp"
+    #include "cpp_sources/parserXmetamodel/ast_classes_headers/ast_wrappers.hpp"
+    #include "cpp_sources/situation.hpp"
     #include "ChipsDriver.hpp"
 }
 
@@ -35,6 +37,9 @@
     // Give Flex the prototype of yylex we want ...
     # define YY_DECL yy::parser::symbol_type yylex ()
     // ... and declare it for the parser's sake.
+
+    situation situ;
+
     YY_DECL;
 %}
 
@@ -57,7 +62,7 @@
 
 /*defining the non-terminal symbols of the grammar*/
 %type <std::unique_ptr<chips::program_node>> chips
-%type <std::unique_ptr<chips::preamble_section_node>> preambles
+// %type <std::unique_ptr<chips::preamble_section_node>> preambles
 %type <std::unique_ptr<chips::system_section_node>> system
 // %type <std::unique_ptr<chips_node>> chips
 // %type <std::unique_ptr<preambles_node>> preambles
@@ -72,17 +77,17 @@
 %type <std::unique_ptr<chips::function_definition>> function_def l_function_def
 // %type <std::unique_ptr<function_definition_node>> function_def p_function_def l_function_def
 
-%type <std::vector<chips::function_parameter_variant>> df_parameter_list
-// %type <chips::function_parameter_variant> df_parameter_decl
+%type <std::vector<chips::function_parameter_variant>> df_parameter_list df_parameter_decls
+%type <std::unique_ptr<chips::function_parameter_variant>> df_parameter_decl
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_list
 // %type <std::unique_ptr<physical_dataflow_parameter_decls_node>> pdf_parameter_list
 // %type <std::unique_ptr<dataflow_parameter_decls_node>> df_parameter_decls
 // %type <std::unique_ptr<physical_dataflow_parameter_decls_node>> pdf_parameter_decls
 // %type <std::unique_ptr<dataflow_parameter_decl_node>> df_parameter_decl
 // %type <std::unique_ptr<physical_dataflow_parameter_decl_node>> pdf_parameter_decl
-// %type <std::unique_ptr<chips::primitive_variable>> df_type
+%type <chips::dataflow_type> df_type
 // %type <std::unique_ptr<physical_dataflow_parameter_type_node>> pdf_parameter_type
-// %type <std::unique_ptr<chips::dataflow_assignment>> may_assign
+// %type <std::unique_ptr<chips::rvalue>> may_assign
 // %type <std::unique_ptr<with_section_node>> with_section
 // %type <std::unique_ptr<with_statements_node>> with_statements
 // %type <std::unique_ptr<statement_node>> with_statement
@@ -104,6 +109,7 @@
 // %type <std::unique_ptr<expressions_node>> list_expr
 // %type <std::unique_ptr<expressions_node>> exprs
 // %type <std::unique_ptr<expression_node>> expr expr0 expr1 expr2
+%type <std::unique_ptr<chips::rvalue_primitive_wrapper>> preambles expr2
 // %type <std::unique_ptr<cast_node>> cast
 
 // %type <std::unique_ptr<s_statements_node>> s_statements
@@ -144,15 +150,19 @@ chips:
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);
                                               drv.ast = std::move($$);*/
-                                              /*$$ = std::make_unique<chips::program_node>(drv.file, std::move($1), std::move($2));
+                                              $$ = std::make_unique<chips::program_node>(drv.file, std::move($1), std::move($2));
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);
-                                              drv.ast = std::move($$);*/                                                    }
+                                              drv.ast = std::move($$);                                                    }
     ;
 preambles:
-    preamble preambles                      { /*$$ = std::move($2); $$->append(std::move(std::move($1))); 
+    expr2                                   { std::move($1); }
+    | preamble preambles                      { /*situ.push("preamble");
+                                              $$ = std::move($2);
+                                              $$->append(std::move($1));
                                               $$->set_line(@$.begin.line);
-                                              $$->set_column(@$.begin.column);*/}
+                                              $$->set_column(@$.begin.column);
+                                              situ.pop();*/}
     | /* EMPTY */                           { /*$$ = std::move(std::make_unique<chips::preamble_section_node>());*/ /*$$ = std::move(std::make_unique<preambles_node>());*/ }                       
     ;
 system:
@@ -161,7 +171,7 @@ system:
     R_CURL                                  { /*$$ = std::move(std::make_unique<system_node>(std::move($3)));
                                               $$->set_line(@$.begin.line);
                                               $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */                           { /*$$ = std::move(std::make_unique<chips::system_section_node>());*/ /*$$ = std::move(std::make_unique<system_node>());*/ }
+    | /* EMPTY */                           { $$ = std::move(std::make_unique<chips::system_section_node>()); /*$$ = std::move(std::make_unique<system_node>());*/ }
     ;
 preamble:
     object_def                              { /*$$ = std::move($1);*/ }
@@ -448,9 +458,10 @@ expr2:
     IDENTIFIER suffixes         { /*$$ = std::move(std::make_unique<suffixised_node>(std::move($1), std::move($2))); 
                                   $$->set_line(@$.begin.line);
                                   $$->set_column(@$.begin.column);*/}
-    | INT                       {/* $$ = std::move(std::make_unique<number_literal_node>(std::move($1))); 
-                                  $$->set_line(@$.begin.line);
-                                  $$->set_column(@$.begin.column);*/}
+    | INT                       { chips::direct_value dv; dv.int_val = $1;
+                                  $$ = std::make_unique<chips::rvalue_primitive_wrapper>(dv, chips::dataflow_type::INT);
+                                  /*$$->set_line(@$.begin.line);
+                                  $$->set_column(@$.begin.column);*/ }
     | FLOAT                     { /*$$ = std::move(std::make_unique<number_literal_node>(std::move($1))); 
                                   $$->set_line(@$.begin.line);
                                   $$->set_column(@$.begin.column);*/}
@@ -872,12 +883,20 @@ p_named_output:
     | named_output                                          { /*$$ = std::move(std::move($1)); */}
     ;
 df_parameter_list:
-    df_parameter_decls                              { /*$$ = std::move($1);*/ }
+    df_parameter_decls                              { /*std::cout << "df_parameter_list\n"; situ.push("definition");
+                                                      $$ = std::move($1);
+                                                      situ.pop();*/ }
     | /* EMPTY */                                   { /*$$ = std::vector<chips::function_parameter_variant>();*/ }
     ;
 df_parameter_decls:
-    df_parameter_decl                               { /*$$ = std::vector<chips::function_parameter_variant>();
-                                                      $$.push_back($1);*//*std::vector<std::unique_ptr<dataflow_parameter_decl_node>> vec;
+    df_parameter_decl                               { /*std::cout << "df_parameter_decls\n"; $$ = std::vector<chips::function_parameter_variant>();
+                                                      auto ptr = $1.get();
+                                                      if(ptr){
+                                                        std::visit([&](auto& val){
+                                                            $$.push_back(val);
+                                                        }, *ptr);
+                                                      }*/
+                                                      /*std::vector<std::unique_ptr<dataflow_parameter_decl_node>> vec;
                                                       vec.push_back(std::move($1));
                                                       //$$ = std::make_unique<dataflow_parameter_decls_node>(std::move(vec));
                                                       $$ = vec;*/
@@ -887,7 +906,7 @@ df_parameter_decls:
                                                       $$.insert($$.begin(), $1);*//*$3->append(std::move($1)); $$ = std::move($3);
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */                                   { /*$$ = std::make_unique<chips::function_parameter_variant>();*/ }
+    | /* EMPTY */                                   { /*$$ = std::vector<chips::function_parameter_variant>();*/ }
     ;
 df_parameter_decl:
     df_type IDENTIFIER may_assign                   { /*$$ = std::make_unique<chips::function_parameter_variant>(std::move($1), std::move($2), std::move($3));
@@ -895,7 +914,8 @@ df_parameter_decl:
                                                       $$->set_column(@$.begin.column);*/ }
     ;
 df_type:
-    INT_KW suffixes                                 { /*$$ = std::move(std::make_unique<chips::dataflow_primitive_variable<dataflow_type::INT>>());*/
+    INT_KW suffixes                                 { /*$$ = std::move(std::make_unique<chips::dataflow_declaration_variant>());*/
+                                                    /*$$ = std::move(std::make_unique<chips::dataflow_primitive_variable<dataflow_type::INT>>());*/
                                                       /*$$ = std::move(std::make_unique<dataflow_type_node>(INT_DF, std::move(std::move($2))));
                                                       $$->set_line(@$.begin.line);
                                                       $$->set_column(@$.begin.column); */}
@@ -967,7 +987,7 @@ may_assign:
     ASSIGN expr         {/* $$ = std::move(std::make_unique<rhs_assignment_node>(std::move($2)));
                           $$->set_line(@$.begin.line);
                           $$->set_column(@$.begin.column);*/ }
-    | /* EMPTY */       { /*$$ = std::move(std::make_unique<chips::dataflow_assignment>());*/ }
+    | /* EMPTY */       { /*$$ = nullptr;*/ }
     ;
 %%
 

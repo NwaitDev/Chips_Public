@@ -1,0 +1,197 @@
+#ifndef CHIPS_TO_XMI_VISITOR_HPP
+#define CHIPS_TO_XMI_VISITOR_HPP
+
+#include "forward_declarations.hpp"
+#include "ast_base.hpp"
+// #include "ast_definitions.hpp"
+// #include "ast_inoutputs.hpp"
+// #include "ast_lrxvalues.hpp"
+// #include "ast_program.hpp"
+// #include "ast_statements.hpp"
+// #include "ast_system_specific.hpp"
+// #include "ast_variables.hpp"
+// #include "meta_type_conversions.hpp"
+// #include "metamodel_enums.hpp"
+
+#include "ChipsToXmiWriter.hpp"
+
+#include <ostream>
+#include <iostream>
+#include <map>
+#include <vector>
+#include <string>
+
+using namespace chips;
+
+/// @brief  @brief Complete XMI Visitor - implements ALL chips::visitor methods
+class ChipsToXmiVisitor : public visitor{
+    public:
+        ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out) 
+        : m_writer(writer), m_out(out), m_current_ast_path("/"){}
+
+        template<dataflow_type dft, expression_env expenv>
+        void visit(direct<dft, expenv>& node);
+
+
+        void visit(ast_node& node) override;
+
+        // ── FIX BUG 5 : 34 méthodes virtuelles pures manquantes ──────────────
+        // chips::visitor déclare 35 méthodes = 0. ChipsToXmiVisitor n'en
+        // implémentait que 2 → classe abstraite, impossible à instancier.
+        // Stubs à compléter progressivement avec la vraie logique XMI.
+        // void visit(program_node& node) override              { out() << "<!-- program_node -->\n"; }
+        // void visit(preamble_section_node& node) override     { out() << "<!-- preamble_section_node -->\n"; }
+        // void visit(system_section_node& node) override       { out() << "<!-- system_section_node -->\n"; }
+        // void visit(primitive_variable& node) override        { out() << "<!-- primitive_variable -->\n"; }
+        // void visit(node_variable& node) override             { out() << "<!-- node_variable -->\n"; }
+        // void visit(collective_variable& node) override       { out() << "<!-- collective_variable -->\n"; }
+        // void visit(system_variable& node) override           { out() << "<!-- system_variable -->\n"; }
+        // void visit(implements_statement& node) override      { out() << "<!-- implements_statement -->\n"; }
+        // void visit(channel_plugging& node) override          { out() << "<!-- channel_plugging -->\n"; }
+        // void visit(linking_statement& node) override         { out() << "<!-- linking_statement -->\n"; }
+        // void visit(default_output& node) override            { out() << "<!-- default_output -->\n"; }
+        // void visit(target_output& node) override             { out() << "<!-- target_output -->\n"; }
+        // void visit(channeled_output& node) override          { out() << "<!-- channeled_output -->\n"; }
+        // void visit(definition& node) override                { out() << "<!-- definition -->\n"; }
+        // void visit(with_section& node) override              { out() << "<!-- with_section -->\n"; }
+        // void visit(init_section& node) override              { out() << "<!-- init_section -->\n"; }
+        // void visit(then_section& node) override              { out() << "<!-- then_section -->\n"; }
+        // void visit(collectiveops_section& node) override     { out() << "<!-- collectiveops_section -->\n"; }
+        // void visit(accumulator_definition& node) override    { out() << "<!-- accumulator_definition -->\n"; }
+        // void visit(node_definition& node) override           { out() << "<!-- node_definition -->\n"; }
+        // void visit(object_definition& node) override         { out() << "<!-- object_definition -->\n"; }
+        // void visit(function_definition& node) override       { out() << "<!-- function_definition -->\n"; }
+        // void visit(logical_definition& node) override        { out() << "<!-- logical_definition -->\n"; }
+        // void visit(physical_definition& node) override       { out() << "<!-- physical_definition -->\n"; }
+        // void visit(implementation_defintion& node) override  { out() << "<!-- implementation_defintion -->\n"; }
+        // void visit(collective_function_definition& node) override { out() << "<!-- collective_function_definition -->\n"; }
+        // void visit(system_iterable& node) override           { out() << "<!-- system_iterable -->\n"; }
+        // void visit(linkable& node) override                  { out() << "<!-- linkable -->\n"; }
+        // void visit(support& node) override                   { out() << "<!-- support -->\n"; }
+        // void visit(interface& node) override                 { out() << "<!-- interface -->\n"; }
+        // void visit(implementer& node) override               { out() << "<!-- implementer -->\n"; }
+        // void visit(node_variable_expression& node) override  { out() << "<!-- node_variable_expression -->\n"; }
+        // void visit(channel_eater& node) override             { out() << "<!-- channel_eater -->\n"; }
+        // void visit(channel_feeder& node) override            { out() << "<!-- channel_feeder -->\n"; }
+        // ── FIN stubs ─────────────────────────────────────────────────────────
+
+    private:
+        enum class StatementFamily {
+            Auto,
+            Primitive,
+            System,
+            Node,
+            Collective,
+            Implementation
+        };
+
+        // Structure pour stocker les informations de symbole
+        struct SymbolInfo {
+            std::string path;        // Chemin XMI
+            std::string type;        // Type: "channel", "contextual", "variable", "object", "physical", "logical", "sensor"
+            
+            SymbolInfo() = default;
+            SymbolInfo(const std::string& p, const std::string& t = "unknown") 
+                : path(p), type(t) {}
+        };
+
+        // Structure pour stocker les informations de définition
+        struct DefinitionInfo {
+            std::string name;           // Nom de la définition
+            std::string type;           // Type: "physical", "object", "logical", etc.
+            std::string path;           // Chemin XMI complet: //@preamble/@definitions.X
+            int index;                  // Index dans la liste des définitions
+            std::map<std::string, SymbolInfo> variables;  // Nom -> info des variables/canaux déclarés dans le with
+            
+            DefinitionInfo() = default;
+            DefinitionInfo(const std::string& n, const std::string& t, const std::string& p, int i) 
+                : name(n), type(t), path(p), index(i) {}
+        };
+
+        // Helpers
+        std::ostream &out() { return m_out; }
+        std::string get_ast_path() const { return m_current_ast_path; }
+        std::string get_ast_path_by_name(const std::string &name);
+        SymbolInfo get_symbol_info(const std::string &name);
+        void register_variable(const std::string &name, const std::string &path, const std::string &type = "variable") {
+            auto existing = m_symbol_table.find(name);
+            if (existing != m_symbol_table.end()) {
+                report_semantic_error("Duplicate variable declaration: " + name);
+            }
+            m_symbol_table[name] = SymbolInfo(path, type);
+        }
+        
+        // Track a definition (called when visiting definition nodes)
+        void register_definition(const std::string &name, const std::string &type, const std::string &path, int index) {
+            m_definitions_table[name] = DefinitionInfo(name, type, path, index);
+            std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
+        }
+        
+        // Register a variable within a definition (called when visiting with/init/then statements)
+        void register_definition_variable(const std::string &def_name, const std::string &var_name, const std::string &var_path, const std::string &var_type) {
+            auto it = m_definitions_table.find(def_name);
+            if (it != m_definitions_table.end()) {
+                it->second.variables[var_name] = SymbolInfo(var_path, var_type);
+                std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
+            }
+        }
+        
+        // Find the path of a variable within a definition
+        SymbolInfo find_variable_in_definition(const std::string &def_name, const std::string &var_name) {
+            auto it = m_definitions_table.find(def_name);
+            if (it != m_definitions_table.end()) {
+                auto var_it = it->second.variables.find(var_name);
+                if (var_it != it->second.variables.end()) {
+                    return var_it->second;
+                }
+            }
+            return SymbolInfo("", "unknown");
+        }
+        
+        void push_ast_path(const std::string &segment) { m_current_ast_path += segment; }
+        void pop_ast_path(const std::string &segment) { 
+            size_t pos = m_current_ast_path.rfind(segment);
+            if (pos != std::string::npos) {
+                m_current_ast_path.erase(pos);
+            }
+        }
+        void set_ast_path(const std::string &path) { m_current_ast_path = path; }
+        void writeAttribute(const std::string &name, const std::string &value);
+        void endEmptyElement();
+        // std::string getExpressionValue(expression_node &expr);
+        // void write_collective_rvalue(const std::string &indent, const std::string &tag, expression_node &expr, const std::string &value_type);
+        // void write_collective_output_expression(expression_node &expr, const std::string &tag, const std::string &indent);
+        // void write_index_from_suffixes(suffixes_node *suffixes,
+        //                             const std::string &indent,
+        //                             const std::string &xvalue_prefix,
+        //                             const std::string &rvalue_prefix,
+        //                             bool emit_default);
+        void visit_generic(ast_node &node); // squelette commun
+        void report_semantic_error(const std::string &message);
+        void ensure_namespace_for_prefix(const std::string &ns_prefix);
+        void ensure_namespace_for_type(const std::string &type_value);
+        StatementFamily detect_statement_family() const;
+        std::string statement_prefix(StatementFamily family = StatementFamily::Auto) const;
+        std::string statement_type(const std::string &suffix, StatementFamily family = StatementFamily::Auto) const;
+        
+        // Get xsi:type for variable expression based on symbol type (physical, logical, object)
+        std::string get_xsi_type_for_symbol(const SymbolInfo &info);
+        
+        // Get xsi:type for system declaration based on definition type (physical->physical_declaration, etc.)
+        std::string get_declaration_type_from_definition(const std::string &definition_type);
+
+        // Members
+        ChipsToXmiWriter &m_writer;
+        std::ostream &m_out;
+        std::string m_current_ast_path;
+        std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
+        std::map<std::string, DefinitionInfo> m_definitions_table;  // nom -> info définition
+        std::string m_current_definition;  // Nom de la définition actuellement visitée
+        std::string m_impl_def_implementing_node;  // Nom du nœud implémentant (défini lors de visit(implementation_definition_node))
+        std::string m_impl_def_implemented_object;  // Nom de l'objet implémenté (défini lors de visit(implementation_definition_node))
+        std::string m_statement_tag = "statements";  // Tag name override for if/else sections
+        std::vector<std::string> m_semantic_errors;
+        int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
+};
+
+#endif
