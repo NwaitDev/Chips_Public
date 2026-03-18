@@ -174,7 +174,7 @@ public class emftvm {
             env.run(td);
             td.finish();
 
-            // Save model
+
             outModel.getResource().save(Collections.emptyMap());
 
             System.out.println("Transformation finished successfully.");
