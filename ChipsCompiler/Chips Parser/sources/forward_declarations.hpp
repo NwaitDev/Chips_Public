@@ -718,6 +718,14 @@ namespace chips {
      */
     template<dataflow_type dft, expression_env expenv>
     class variable_expression;
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a contextual expression 
+     * referencing a dataflow variable
+     */
+    template<dataflow_type dft, expression_env expenv>
+    class variable_contextual_expression;
     
     /**
      * Abstract class

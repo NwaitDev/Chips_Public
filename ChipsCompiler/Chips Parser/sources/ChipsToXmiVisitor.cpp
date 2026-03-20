@@ -1,4 +1,5 @@
 #include "ChipsToXmiVisitor.hpp"
+#include "ast_lrxvalues.hpp"
 
 namespace {
     std::string dft_to_string(dataflow_type dft){
@@ -22,16 +23,50 @@ namespace {
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
+    std::cerr << "[DEBUG Visitor] visit(direct<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << ")" << std::endl;
     out() <<       "        <rvalue\n";
     writeAttribute("            xsi:type","chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string(dft));
     out() << "\n";
-    writeAttribute("            value", node.get_value());
+    writeAttribute("            value", std::to_string(node.get_value()));
     out() << " />\n";
 }
 
 void ChipsToXmiVisitor::visit(ast_node& node){
-    std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
-    out() << "    <!-- ast_node générique -->\n";
+    // std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
+    // out() << "    <!-- ast_node générique -->\n";
+
+    if(auto* dir = dynamic_cast<direct<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
+        visit(*dir);
+    if(auto* dir = dynamic_cast<direct<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
+        visit(*dir);
+    
+    if(auto* pl = dynamic_cast<plus<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node))
+        visit(*pl);
+    if(auto* pl = dynamic_cast<plus<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
+        visit(*pl);
+    if(auto* pl = dynamic_cast<plus<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
+        visit(*pl);
+    if(auto* pl = dynamic_cast<plus<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
+        visit(*pl);
+    if(auto* pl = dynamic_cast<plus<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
+        visit(*pl);
+    if(auto* pl = dynamic_cast<plus<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
+        visit(*pl);
+    //TODO: regarder pour regler ce probleme
 }
 
 

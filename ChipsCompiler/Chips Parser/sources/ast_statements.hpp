@@ -25,12 +25,17 @@ namespace chips {
     {
         private:
         using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
-        df_variable_type m_variable;
+        std::shared_ptr<df_variable_type> m_variable;
 
         public:
             dataflow_declaration() = default;
+
+            dataflow_declaration(std::shared_ptr<df_variable_type> variable)
+                : m_variable(std::move(variable)){}
+
+            df_variable_type* get_variable() { return m_variable.get(); }
             
-            //void accept(visitor& v) { v.visit(*this); }
+            void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };
 

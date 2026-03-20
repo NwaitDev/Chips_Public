@@ -57,13 +57,13 @@ void run(std::istream& input, Interpreter& /*interp*/) {
     auto* tree = parser.program();   // parse
     ASTBuilder builder;
 
-    // std::string output = "output.xmi";
+    std::string output = "output.xmi";
 
     // std::cout << "Génération XMI: " << output << std::endl;
 
-    // std::ostringstream body_out;
-    // ChipsToXmiWriter body_writer(body_out);
-    // ChipsToXmiVisitor visitor(body_writer, body_out);
+    std::ostringstream body_out;
+    ChipsToXmiWriter body_writer(body_out);
+    ChipsToXmiVisitor visitor(body_writer, body_out);
 
     // std::cout << "Nb expr: " << tree->expr().size() << std::endl;
 
@@ -74,13 +74,27 @@ void run(std::istream& input, Interpreter& /*interp*/) {
     std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
 
     if(rootPtr){
-        // int status;
-        // const std::type_info& ti = typeid(*rootPtr);
-        // char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
-        // std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
-        // free(realname);
+        int status;
+        const std::type_info& ti = typeid(*rootPtr);
+        char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
+        std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
+        free(realname);
 
-        rootPtr->hello();
+        // rootPtr->hello();
+
+        ast_node& root = *rootPtr;
+        root.accept(visitor);
+
+        std::ofstream out(output);
+
+        ChipsToXmiWriter writer(out);
+        writer.copy_namespaces_from(body_writer);
+        writer.xmi_header("error");
+        out << body_out.str();
+        writer.xmi_footer();
+
+        out.close();
+        std::cout << "XMI généré: " << output << std::endl;
     } else {
         std::cout << "no" << std::endl;
     }

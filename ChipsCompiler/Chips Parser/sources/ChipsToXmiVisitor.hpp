@@ -15,6 +15,8 @@
 
 #include "ChipsToXmiWriter.hpp"
 
+#include "forward_declarations.hpp"
+
 #include <ostream>
 #include <iostream>
 #include <map>
@@ -29,9 +31,44 @@ class ChipsToXmiVisitor : public visitor{
         ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out) 
         : m_writer(writer), m_out(out), m_current_ast_path("/"){}
 
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(rvalue<dft,expenv>& node);
+
         template<dataflow_type dft, expression_env expenv>
         void visit(direct<dft, expenv>& node);
 
+        template<dataflow_type dft, expression_env expenv>
+        void visit(plus<dft,expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(minus<dft,expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(uminus_operator<dft, expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(mult<dft,expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(chips::div<dft,expenv>& node);
+        // template<expression_env expenv>
+        // void visit(mod<expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(cast_as<dft,expenv>& node);
+        // template<expression_env expenv, dataflow_type dft>
+        // void visit(gt<expenv,dft>& node);
+        // template<expression_env expenv, dataflow_type dft>
+        // void visit(lt<expenv,dft>& node);
+        // template<expression_env expenv, dataflow_type dft>
+        // void visit(leq<expenv,dft>& node);
+        // template<expression_env expenv, dataflow_type dft>
+        // void visit(geq<expenv,dft>& node);
+        // template<expression_env expenv>
+        // void visit(or_operator<expenv>& node);
+        // template<expression_env expenv>
+        // void visit(and_operator<expenv>& node);
+        // template<expression_env expenv>
+        // void visit(not_operator<expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(eq<dft,expenv>& node);
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(neq<dft,expenv>& node);
 
         void visit(ast_node& node) override;
 
