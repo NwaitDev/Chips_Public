@@ -76,7 +76,7 @@ public class emftvm {
             System.err.println("error, output metamodel must be a .ecore file...");
             return false;
         } else {
-            bipPath = args[2];
+            bipPath = args[1];
         }
 
         if(!getFileExtension(args[2]).equals("xmi")){
@@ -184,3 +184,4 @@ public class emftvm {
         }
     }
 }
+

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xmi:XMI xmi:version="2.0"
+<chips:program
+    xmi:version="2.0"
     xmlns:xmi="http://www.omg.org/XMI"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:chips="http://chips"
-    xmlns="http://chips"
     xmlns:chips.outputs.logical="http://chips/outputs/logical"
     xmlns:chips.outputs.physical="http://chips/outputs/physical"
     xmlns:chips.parameters.collective="http://chips/parameters/collective"
@@ -29,8 +29,8 @@
     xmlns:chips.xvalues.primitive="http://chips/xvalues/primitive"
     xmlns:chips.xvalues.system="http://chips/xvalues/system"
     xmlns:definitions="http://chips/definitions"
-    xsi:schemaLocation="http://chips metamodels/chips1.1.ecore http://chips/outputs/logical http://chips#//outputs/logical http://chips/outputs/physical http://chips#//outputs/physical http://chips/parameters/collective http://chips#//parameters/collective http://chips/parameters/logical http://chips#//parameters/logical http://chips/parameters/physical http://chips#//parameters/physical http://chips/rvalues/collective http://chips#//rvalues/collective http://chips/rvalues/collective/operators/bool http://chips#//rvalues/collective/operators/bool http://chips/rvalues/collective/operators/int http://chips#//rvalues/collective/operators/int http://chips/rvalues/dataflow/operators/bool http://chips#//rvalues/system/operators/bool http://chips/rvalues/dataflow/operators/int http://chips#//rvalues/system/operators/int http://chips/rvalues/primitive http://chips#//rvalues/primitive http://chips/rvalues/primitive/operators/bool http://chips#//rvalues/primitive/operators/bool http://chips/rvalues/primitive/operators/float http://chips#//rvalues/primitive/operators/float http://chips/rvalues/primitive/operators/int http://chips#//rvalues/primitive/operators/int http://chips/rvalues/system http://chips#//rvalues/system http://chips/statements/collective http://chips#//statements/collective http://chips/statements/node http://chips#//statements/node http://chips/statements/primitive http://chips#//statements/primitive http://chips/statements/system http://chips#//statements/system http://chips/systemspecific/expressions http://chips#//systemspecific/expressions http://chips/systemspecific/expressions/feeder http://chips#//systemspecific/expressions/feeder http://chips/xvalues/collective http://chips#//xvalues/collective http://chips/xvalues/primitive http://chips#//xvalues/primitive http://chips/xvalues/system http://chips#//xvalues/system http://chips/definitions http://chips#//definitions">
-<program fileName="TeaStoreVariation.chips">
+    xsi:schemaLocation="http://chips metamodels/chips1.1.ecore http://chips/outputs/logical metamodels/chips1.1.ecore#//outputs/logical http://chips/outputs/physical metamodels/chips1.1.ecore#//outputs/physical http://chips/parameters/collective metamodels/chips1.1.ecore#//parameters/collective http://chips/parameters/logical metamodels/chips1.1.ecore#//parameters/logical http://chips/parameters/physical metamodels/chips1.1.ecore#//parameters/physical http://chips/rvalues/collective metamodels/chips1.1.ecore#//rvalues/collective http://chips/rvalues/collective/operators/bool metamodels/chips1.1.ecore#//rvalues/collective/operators/bool http://chips/rvalues/collective/operators/int metamodels/chips1.1.ecore#//rvalues/collective/operators/int http://chips/rvalues/dataflow/operators/bool metamodels/chips1.1.ecore#//rvalues/system/operators/bool http://chips/rvalues/dataflow/operators/int metamodels/chips1.1.ecore#//rvalues/system/operators/int http://chips/rvalues/primitive metamodels/chips1.1.ecore#//rvalues/primitive http://chips/rvalues/primitive/operators/bool metamodels/chips1.1.ecore#//rvalues/primitive/operators/bool http://chips/rvalues/primitive/operators/float metamodels/chips1.1.ecore#//rvalues/primitive/operators/float http://chips/rvalues/primitive/operators/int metamodels/chips1.1.ecore#//rvalues/primitive/operators/int http://chips/rvalues/system metamodels/chips1.1.ecore#//rvalues/system http://chips/statements/collective metamodels/chips1.1.ecore#//statements/collective http://chips/statements/node metamodels/chips1.1.ecore#//statements/node http://chips/statements/primitive metamodels/chips1.1.ecore#//statements/primitive http://chips/statements/system metamodels/chips1.1.ecore#//statements/system http://chips/systemspecific/expressions metamodels/chips1.1.ecore#//systemspecific/expressions http://chips/systemspecific/expressions/feeder metamodels/chips1.1.ecore#//systemspecific/expressions/feeder http://chips/xvalues/collective metamodels/chips1.1.ecore#//xvalues/collective http://chips/xvalues/primitive metamodels/chips1.1.ecore#//xvalues/primitive http://chips/xvalues/system metamodels/chips1.1.ecore#//xvalues/system http://chips/definitions metamodels/chips1.1.ecore#//definitions"
+    fileName="TeaStoreVariation.chips">
   <preamble>
     <definitions
         xsi:type="definitions:physical_definition"
@@ -1090,7 +1090,7 @@
           name="nbDataRcvd">
         <declaration>
           <variable
-              name="int nbDataRcvd"/>
+              name="nbDataRcvd"/>
         </declaration>
       </parameters>
       <parameters
@@ -1109,6 +1109,7 @@
               name="userIDRcvd"/>
         </declaration>
       </parameters>
+      <init/>
     </definitions>
     <definitions
         xsi:type="definitions:logical_definition"
@@ -1128,6 +1129,7 @@
               name="authProvided"/>
         </declaration>
       </parameters>
+      <init/>
     </definitions>
     <definitions
         xsi:type="definitions:logical_definition"
@@ -1251,14 +1253,14 @@
         name="RequestLimiter">
       <outputs
           xsi:type="chips.outputs.logical:bool_output"
-          name="redirection rl">
+          name="redirection">
         <expression
             xsi:type="chips.xvalues.primitive:bool_variable_expression"
             variable="//@preamble/@definitions.5/@parameters.0/@declaration/@variable"/>
       </outputs>
       <outputs
           xsi:type="chips.outputs.logical:int_output"
-          name="userID rl">
+          name="userID">
         <expression
             xsi:type="chips.xvalues.primitive:int_variable_expression"
             variable="//@preamble/@definitions.5/@parameters.2/@declaration/@variable"/>
@@ -1288,7 +1290,7 @@
       </parameters>
       <parameters
           xsi:type="chips.parameters.logical:int_logical_parameter"
-          name="userID rl">
+          name="userID">
         <declaration>
           <variable
               name="userID"/>
@@ -4849,5 +4851,4 @@
       </statements>
     </system_statements>
   </system>
-</program>
-</xmi:XMI>
+</chips:program>
