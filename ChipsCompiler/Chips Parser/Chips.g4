@@ -1,20 +1,14 @@
 grammar Chips;
 
 program 
-//    : preambles system EOF
+//    : preamble* system? EOF
     : expr EOF
-    ;
-
-preambles
-    : preamble preambles
-    | NEWLINE
     ;
 
 system
     : SYSTEM_KW L_CURL
-        s_statements
+        s_statement*
       R_CURL
-    | NEWLINE
     ;
 
 preamble
@@ -30,13 +24,12 @@ object_def
 
 implementation_def
     : IMPLEMENTATION_KW IDENTIFIER COLUMN IDENTIFIER BY_KW IDENTIFIER L_CURL
-        node_mappings
+        node_mapping*
       R_CURL
     ;
 
-node_mappings
-    : HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL node_mappings
-    | NEWLINE
+node_mapping
+    : HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL
     ;
 
 function_def
@@ -46,40 +39,36 @@ function_def
 
 collective_op_def
     : c_signature L_CURL
-        c_statements
+        c_statement*
       R_CURL
-      ARROW TARGET_KW L_PARENTH c_list_expr R_PARENTH
+      ARROW TARGET_KW L_PARENTH (c_expr)+ R_PARENTH
       c_output
-      c_optionnal_outputs
+      c_output* #OptionalOutputs
     ;
 
-c_optionnal_outputs
-    : c_output c_optionnal_outputs
-    | NEWLINE
-    ;
 
 c_output
-    : ARROW DEFAULT_KW L_PARENTH c_list_expr R_PARENTH
-    | ARROW IDENTIFIER L_PARENTH c_list_expr R_PARENTH
+    : ARROW DEFAULT_KW L_PARENTH (c_expr)+ R_PARENTH
+    | ARROW IDENTIFIER L_PARENTH (c_expr)+ R_PARENTH
     ;
 
 l_function_def
-    : LOGICAL_KW IDENTIFIER L_PARENTH df_parameter_list R_PARENTH
+    : LOGICAL_KW IDENTIFIER L_PARENTH (df_parameter_decl (COMMA df_parameter_decl)*)? R_PARENTH
         init_section
         then_section
-        named_outputs
+        named_output*
     ;
 
 p_function_def
-    : PHYSICAL_KW IDENTIFIER L_PARENTH pdf_parameter_list R_PARENTH
+    : PHYSICAL_KW IDENTIFIER L_PARENTH (pdf_parameter_decl (COMMA pdf_parameter_decl)*)? R_PARENTH
         with_section
         init_section
         then_section
-        p_named_outputs
+        p_named_output*
     ;
 
 c_signature
-    : c_keywords L_PARENTH cdf_defaulted_decls R_PARENTH
+    : c_keywords L_PARENTH (cdf_defaulted_decl)* R_PARENTH
         IDENTIFIER AMONG_KW IDENTIFIER
     ;
 
@@ -90,51 +79,26 @@ c_keywords
 
 with_section
     : WITH_KW L_CURL
-        with_statements
+        with_statement*
       R_CURL
-    ;
-
-with_statements
-    : with_statement with_statements
-    | NEWLINE
     ;
 
 with_statement
     : IDENTIFIER IDENTIFIER SEMICOL
-    | CTX_KW df_type IDENTIFIER may_assign SEMICOL
+    | CTX_KW df_type IDENTIFIER (ASSIGN expr)? SEMICOL
     | statement
     ;
 
 init_section
     : INIT_KW L_CURL
-        statements
+        (statement)*
       R_CURL
     ;
 
 then_section
     : THEN_KW L_CURL
-        statements
+        (statement)*
       R_CURL
-    ;
-
-list_expr
-    : exprs
-    | NEWLINE
-    ;
-
-c_list_expr
-    : c_exprs
-    | NEWLINE
-    ;
-
-exprs
-    : expr
-    | expr COMMA exprs
-    ;
-
-c_exprs
-    : c_expr
-    | c_expr COMMA c_exprs
     ;
  
 expr
@@ -171,7 +135,7 @@ expr2
     | IDENTIFIER suffixes                       # Var
     | L_PARENTH expr R_PARENTH                  # Parens
     | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
-    | IDENTIFIER L_PARENTH list_expr R_PARENTH  # Function
+    | IDENTIFIER L_PARENTH (expr)* R_PARENTH    # Function
     | cast                                      # Casting
     ;
 
@@ -218,7 +182,7 @@ c_stopless_expr2
     | BOOL
     | INPUT_KW
     | CTX_KW PERIOD IDENTIFIER c_suffixes
-    | IDENTIFIER L_PARENTH list_expr R_PARENTH
+    | IDENTIFIER L_PARENTH expr* R_PARENTH
     | L_PARENTH c_stopless_expr R_PARENTH
     | c_cast
     ;
@@ -236,20 +200,9 @@ c_suffixes
     : (L_SQUA c_stopless_expr R_SQUA)*
     ;
 
-// suffixes
-//    : L_SQUA expr R_SQUA suffixes
-//    | NEWLINE
-//    ;
-
-//c_suffixes
-//    : L_SQUA c_stopless_expr R_SQUA c_suffixes
-//    | NEWLINE
-//    ;
-
 s_suffixable_expr
-    : IDENTIFIER
+    : IDENTIFIER (L_PARENTH expr* R_PARENTH)?
     | block PERIOD IDENTIFIER
-    | IDENTIFIER L_PARENTH list_expr R_PARENTH
     ;
 
 block   
@@ -257,87 +210,73 @@ block
     ;
 
 loop_in
-    : IDENTIFIER
-    | IDENTIFIER L_PARENTH list_expr R_PARENTH
+    :  IDENTIFIER (L_PARENTH expr* R_PARENTH)?
     ;
 
 loop_statement
     : FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
-        statements
+        (statement)*
       R_CURL
     ;
 
 c_loop_statement
     : FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
-        c_statements
+        c_statement*
       R_CURL
     ;
 
 s_loop_statement
     : FOREACH_KW IDENTIFIER IN_KW s_suffixable_expr L_CURL
-        s_statements
+        s_statement*
       R_CURL
     ;
 
 if_else_statement
     : if_statement
       ELSE_KW L_CURL
-        statements
+        (statement)*
       R_CURL
     ;
 
 s_if_else_statement
     : s_if_statement
       ELSE_KW L_CURL
-        s_statements
+        s_statement*
       R_CURL
     ;
 
 c_if_else_statement
     : c_if_statement
       ELSE_KW L_CURL
-        c_statements
+        c_statement*
       R_CURL
     ;
 
 if_statement
     : IF_KW L_PARENTH expr R_PARENTH L_CURL
-        statements
+        (statement)*
       R_CURL
     ;
 
 s_if_statement
     : IF_KW L_PARENTH expr R_PARENTH L_CURL
-        s_statements
+        s_statement*
       R_CURL
     ;
 
 c_if_statement
     : IF_KW L_PARENTH c_expr R_PARENTH L_CURL
-        c_statements
+        c_statement*
       R_CURL
     ;
 
-statements
-    : statement statements
-    | loop_statement statements
-    | if_else_statement statements
-    | if_statement statements
-    | NEWLINE
-    ;
-
-s_statements
-    : s_statement s_statements
-    | s_loop_statement s_statements
-    | s_if_else_statement s_statements
-    | s_if_statement s_statements
-    | NEWLINE
-    ;
-
 statement
-    : df_type IDENTIFIER may_assign SEMICOL
+    : df_type IDENTIFIER (ASSIGN expr)? SEMICOL
     | IDENTIFIER suffixes ASSIGN expr SEMICOL
     | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL
+    | loop_statement
+    | if_else_statement
+    | if_statement
     ;
 
 s_statement
@@ -345,6 +284,9 @@ s_statement
     | block PERIOD IDENTIFIER suffixes L_PARENTH s_expr R_PARENTH SEMICOL
     | LINK_KW IDENTIFIER suffixes TO_KW IDENTIFIER suffixes SEMICOL
     | IDENTIFIER suffixes IMPLEMENTATION_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL
+    | s_loop_statement
+    | s_if_else_statement
+    | s_if_statement
     | statement
     ;
 
@@ -358,52 +300,26 @@ collective_operation
     : L_PARENTH IDENTIFIER R_PARENTH
     ;
 
-c_statements
-    : c_statement c_statements
-    | c_loop_statement c_statements
-    | c_if_else_statement c_statements
-    | c_if_statement c_statements
-    | NEWLINE
-    ;
-
 c_statement
     : cdf_full_declaration SEMICOL
     | IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL
     | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL
-    ;
-
-named_outputs
-    : named_output named_outputs
-    | NEWLINE
+    | c_loop_statement
+    | c_if_else_statement
+    | c_if_statement
     ;
 
 named_output
-    : ARROW IDENTIFIER L_PARENTH list_expr R_PARENTH
-    ;
-
-p_named_outputs
-    : p_named_output p_named_outputs
-    | NEWLINE
+    : ARROW IDENTIFIER L_PARENTH expr+ R_PARENTH
     ;
 
 p_named_output
-    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH exprs R_PARENTH
+    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH expr+ R_PARENTH
     | named_output
     ;
 
-df_parameter_list
-    : df_parameter_decls
-    | NEWLINE
-    ;
-
-df_parameter_decls
-    : df_parameter_decl
-    | df_parameter_decl COMMA df_parameter_decls
-    | NEWLINE
-    ;
-
 df_parameter_decl
-    : df_type IDENTIFIER may_assign
+    : df_type IDENTIFIER (ASSIGN expr)?
     ;
 
 df_type
@@ -417,25 +333,8 @@ pdf_parameter_type
     | SENSOR_KW df_type
     ;
 
-pdf_parameter_list
-    : pdf_parameter_decls
-    | NEWLINE
-    ;
-
-pdf_parameter_decls
-    : pdf_parameter_decl
-    | pdf_parameter_decl COMMA pdf_parameter_decls
-    | NEWLINE
-    ;
-
 pdf_parameter_decl
-    : pdf_parameter_type IDENTIFIER may_assign
-    ;
-
-cdf_defaulted_decls
-    : cdf_defaulted_decl
-    | cdf_defaulted_decl COMMA cdf_defaulted_decls
-    | NEWLINE
+    : pdf_parameter_type IDENTIFIER (ASSIGN expr)?
     ;
 
 cdf_defaulted_decl
@@ -443,17 +342,7 @@ cdf_defaulted_decl
     ;
 
 cdf_full_declaration
-    : df_type IDENTIFIER c_may_assign
-    ;
-
-c_may_assign
-    : ASSIGN c_expr
-    | NEWLINE
-    ;
-
-may_assign
-    : ASSIGN expr
-    | NEWLINE
+    : df_type IDENTIFIER (ASSIGN c_expr)?
     ;
 
 
