@@ -87,7 +87,7 @@ namespace chips {
     class channeled_output : collective_output<collective_output_kind::CHANNELED>
     {
     private:
-        node_element_declaration<node_element::CHANNEL>& m_channel;
+        std::shared_ptr<node_element_declaration<node_element::CHANNEL>> m_channel;
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
 
         public:

@@ -144,13 +144,13 @@ namespace chips {
     class implementation_defintion : public definition // do not use, work in progress
     {
     private:
-        object_definition& m_implemented_object;
-        node_definition& m_implementing_node;
+        std::shared_ptr<object_definition> m_implemented_object;
+        std::shared_ptr<node_definition> m_implementing_node;
         std::vector<implementation_statement_variant> m_having_statements;
 
         public:
 
-            // void accept(visitor& v) { v.visit(*this); }
+            void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };
 
@@ -160,7 +160,7 @@ namespace chips {
         collective_function_type m_collective_function_type;
         // accumulator_definition m_accumulator;
         std::unique_ptr<accumulator_definition> m_accumulator;
-        node_definition& m_support_object;
+        std::shared_ptr<node_definition> m_support_object;
         // collectiveops_section m_operations;
         std::unique_ptr<collectiveops_section> m_operations;
         std::unique_ptr<collective_output<collective_output_kind::TARGET>> m_target_output;

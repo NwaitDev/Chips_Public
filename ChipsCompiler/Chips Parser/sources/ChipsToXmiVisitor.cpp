@@ -1,5 +1,13 @@
 #include "ChipsToXmiVisitor.hpp"
 
+// Source - https://stackoverflow.com/a/3599170
+// Posted by mtvec, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-03-20, License - CC BY-SA 3.0
+
+#define UNUSED(x) (void)(x)
+
+
+
 namespace {
     std::string dft_to_string(dataflow_type dft){
         switch(dft){
@@ -22,6 +30,7 @@ namespace {
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
+    UNUSED(node);
     out() <<       "        <rvalue\n";
     writeAttribute("            xsi:type","chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string(dft));
     out() << "\n";
@@ -30,6 +39,7 @@ void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
 }
 
 void ChipsToXmiVisitor::visit(ast_node& node){
+    UNUSED(node);
     std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
     out() << "    <!-- ast_node générique -->\n";
 }

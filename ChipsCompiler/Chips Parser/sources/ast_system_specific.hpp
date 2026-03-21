@@ -87,7 +87,7 @@ namespace chips {
         private:
         // node_variable_expression m_node;
         std::unique_ptr<node_variable_expression> m_node;
-        node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+        std::shared_ptr<node_element_declaration<node_element::CHANNEL>> m_eating_channel;
 
         public:
             
@@ -100,7 +100,7 @@ namespace chips {
         private:
             // node_variable_expression m_node;
             std::unique_ptr<node_variable_expression> m_node;
-            node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+            std::shared_ptr<node_element_declaration<node_element::CHANNEL>> m_eating_channel;
 
         public:
 
