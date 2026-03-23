@@ -1,8 +1,8 @@
 grammar Chips;
 
 program 
-//    : preamble* system? EOF
-    : expr EOF
+    : preamble* system? EOF
+//    : expr EOF
     ;
 
 system
@@ -346,15 +346,9 @@ cdf_full_declaration
     ;
 
 
-
-
-FLOAT               : '.' [0-9]+ | [0-9]+ '.' [0-9]* ;
-INT                 : [0-9]+ ;
-BOOL                : 'true' | 'false';
-IDENTIFIER          : [a-zA-Z][a-zA-Z0-9_]*;
-
+SYSTEM_KW           : 'system'|'SYSTEM';
 INT_KW              : 'int';
-FLOAT_KW            : 'flaot';
+FLOAT_KW            : 'float';
 BOOL_KW             : 'bool';
 LOGICAL_KW          : 'logical';
 PHYSICAL_KW         : 'physical';
@@ -366,7 +360,6 @@ IN_KW               : 'in';
 IF_KW               : 'if';
 ELSE_KW             : 'else';
 TO_KW               : 'to';
-SYSTEM_KW           : 'system' | 'SYSTEM';
 LINK_KW             : 'link';
 IMPLEMENTS_KW       : 'implements';
 HAVING_KW           : 'having';
@@ -413,7 +406,21 @@ R_SQUA              : ']';
 COLUMN              : ':';
 PERIOD              : '.';
 
+BOOL                : 'true'| 'false';
 
-NEWLINE : ('\r'? '\n')+ ;
+fragment DIGIT      : [0-9] ;
+
+fragment DOTTED_NUMBER
+    : '.'DIGIT+
+    | DIGIT+'.'DIGIT*
+    ;
+fragment ID_START   : [a-zA-Z];
+fragment ID_NEXT    : [a-zA-Z0-9_];
+
+FLOAT               : DOTTED_NUMBER;
+INT                 : DIGIT+;
+IDENTIFIER          : ID_START ID_NEXT*;
+
+NEWLINE : ('\r'? '\n')+ -> skip ;
 WS          : [ \t\r]+ -> skip ;
 COMMENT     : '//' ~[\r\n]* -> skip ;

@@ -2,27 +2,14 @@
 
 all: chipsc
 
-ChipsParser.cpp: ChipsParser.yy cpp_sources/ChipsAST.hpp
-	bison --language=c++ -v -d -o $@ $<
+SRCS := sources/ast_base.hpp sources/ast_definitions.hpp sources/ast_inoutputs.hpp sources/ast_lrxvalues.hpp sources/ast_program.hpp sources/ast_statements.hpp sources/ast_system_specific.hpp sources/ast_variables.hpp sources/ASTBuilder.hpp sources/chips_headers.hpp sources/chips_node_print.cpp sources/ChipsToXmiVisitor.cpp sources/ChipsToXmiVisitor.hpp sources/ChipsToXmiWriter.cpp sources/ChipsToXmiWriter.hpp sources/forward_declarations.hpp sources/meta_type_conversions.hpp sources/metamodel_enums.hpp sources/test.cpp
 
-ChipsLexer.cpp: ChipsLexer.l ChipsParser.cpp
-	flex -o $@ $<
+chipsc: generate.sh $(SRCS)
+	./generate.sh
+	cd build ; make
 
-chipsc: ChipsLexer.cpp ChipsParser.cpp ChipsDriver.cpp cpp_sources/chips_node_print.cpp cpp_sources/chips_exceptions.cpp
-	g++ -fPIC ChipsParser.cpp ChipsLexer.cpp ChipsDriver.cpp \
-	    cpp_sources/chips_node_print.cpp \
-	    cpp_sources/chips_exceptions.cpp \
-	    cpp_sources/chips_ast_impl.cpp \
-		cpp_sources/chips_semantic_analyzer.cpp \
-	    to_xmi/ChipsToXmiWriter.cpp \
-	    to_xmi/ChipsToXmiVisitor.cpp \
-	    -lfl -std=c++17 -o chipsc
-
-test: chipsc
-	./CompilerTests.sh
-
-quicktest: chipsc quick.chips
-	./chipsc quick.chips
+quicktest: quick.chips
+	./build/chipsc quick.chips
 
 clean:
 	rm -f ChipsParser.hpp ChipsParser.cpp ChipsLexer.cpp chipsc \

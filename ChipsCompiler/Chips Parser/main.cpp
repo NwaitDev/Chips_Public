@@ -67,7 +67,7 @@ void run(std::istream& input, Interpreter& /*interp*/) {
 
     // std::cout << "Nb expr: " << tree->expr().size() << std::endl;
 
-    std::any result = builder.visit(tree->expr());
+    std::any result = builder.visit(tree);
 
     // extract_as_node dispatche sur tous les types concrets connus
     // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template

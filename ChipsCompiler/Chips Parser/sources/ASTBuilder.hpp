@@ -442,7 +442,8 @@ class ASTBuilder : public ChipsBaseVisitor {
 
     // Fonction pour tester
     std::any visitProgram(ChipsParser::ProgramContext* ctx) override {
-        return visit(ctx->expr());
+        std::cout<< "nb preambles" <<ctx->preamble().size()<<std::endl;
+        return std::any(NULL);
     }
 
     // expr
@@ -574,10 +575,9 @@ class ASTBuilder : public ChipsBaseVisitor {
     }
 
     std::any visitNegate(ChipsParser::NegateContext* ctx) override {
-        //TODO:
-        // std::cout << "visitNegate" << std::endl;
-        // return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
-        //     visit(ctx->expr0()), "Negate");
+        std::cout << "visitNegate" << std::endl;
+        return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
+            visit(ctx->expr1()), "Negate");
     }
 
 
