@@ -1,3 +1,6 @@
 ChipsCompiler/ATL Chips2BIP/models/output.xmi
 ChipsCompiler/ATL Chips2BIP/emftvm.class
 ChipsCompiler/ATL Chips2BIP/transformations/chips2bip.emftvm
+ChipsCompiler/Chips Parser/build
+ChipsCompiler/Chips Parser/generated
+ChipsCompiler/Chips Parser/.antlr
