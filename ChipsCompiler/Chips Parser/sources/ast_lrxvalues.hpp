@@ -27,10 +27,14 @@ namespace chips{
             bool is_parenthesage() const{
                 return parenthesage;
             }
+            void accept(visitor& v) override { v.visit(*this); }
     };
 
     template<dataflow_type dft>
-    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL,dft> {};
+    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL,dft> {
+        public:
+            void accept(visitor& v) override { v.visit(*this); }
+    };
 
     template<dataflow_type dft, expression_env expenv>
     class direct: public rvalue<dft,expenv>
@@ -44,7 +48,7 @@ namespace chips{
 
             value_type get_value() { return m_value; }
 
-            void accept(visitor& v) { v.visit(*this); }
+            void accept(visitor& v) override { v.visit(*this); }
             virtual void hello() override;
     };
 
@@ -77,7 +81,7 @@ namespace chips{
             operand_type* get_rhs() const { return m_right_operand.get(); }
 
 
-            void accept(visitor& v) { v.visit(*this); }
+            void accept(visitor& v) override { v.visit(*this); }
             virtual void hello() override;
     };
 

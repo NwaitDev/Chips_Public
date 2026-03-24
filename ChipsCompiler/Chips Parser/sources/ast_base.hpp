@@ -116,21 +116,24 @@ namespace chips{
 
         // template<dataflow_type dft, expression_env expenv>
         // void visit(lvalue<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(rvalue<dft,expenv>& node){
-            visit(static_cast<ast_node&>(node));
-        }
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(rvalue<dft,expenv>& node){
+        //     std::cerr << "ast_base rvalue" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // virtual void visit(system_iterable& node) = 0;
-        template<dataflow_type dft, expression_env expenv>
-        void visit(direct<dft, expenv>& node){
-            visit(static_cast<ast_node&>(node));
-        }
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(direct<dft, expenv>& node){
+        //     std::cerr << "ast_base direct" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
         // void visit(function<dft, expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(plus<dft, expenv>& node){
-            visit(static_cast<ast_node&>(node));
-        }
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(plus<dft, expenv>& node){
+        //     std::cerr << "ast_base plus" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
         // void visit(minus<dft, expenv>& node){
         //     visit(static_cast<ast_node&>(node));
