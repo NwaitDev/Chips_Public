@@ -80,10 +80,33 @@ void run(std::istream& input, Interpreter& /*interp*/) {
         std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
         free(realname);
 
-        // rootPtr->hello();
+        rootPtr->hello();
 
-        ast_node& root = *rootPtr;
-        root.accept(visitor);
+        ast_node& node = *rootPtr;
+
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
+            std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
+            r->accept(visitor);
+        }
+            
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
+            r->accept(visitor);
+        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
+            r->accept(visitor);
+        
+        // node.accept(visitor);
 
         std::ofstream out(output);
 

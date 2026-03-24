@@ -6,15 +6,13 @@ program
     ;
 
 preambles
-    : preamble preambles
-    | NEWLINE
+    : (preamble)*
     ;
 
 system
-    : SYSTEM_KW L_CURL
+    : (SYSTEM_KW L_CURL
         s_statements
-      R_CURL
-    | NEWLINE
+      R_CURL)?
     ;
 
 preamble
@@ -35,8 +33,7 @@ implementation_def
     ;
 
 node_mappings
-    : HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL node_mappings
-    | NEWLINE
+    : HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL (node_mappings)?
     ;
 
 function_def
@@ -54,8 +51,7 @@ collective_op_def
     ;
 
 c_optionnal_outputs
-    : c_output c_optionnal_outputs
-    | NEWLINE
+    : c_output (c_optionnal_outputs)?
     ;
 
 c_output
@@ -95,8 +91,7 @@ with_section
     ;
 
 with_statements
-    : with_statement with_statements
-    | NEWLINE
+    : with_statement (with_statements)?
     ;
 
 with_statement
@@ -118,13 +113,11 @@ then_section
     ;
 
 list_expr
-    : exprs
-    | NEWLINE
+    : (exprs)?
     ;
 
 c_list_expr
-    : c_exprs
-    | NEWLINE
+    : (c_exprs)?
     ;
 
 exprs
@@ -160,7 +153,7 @@ expr1
     : expr2 TIMES expr1     # MULT
     | expr2 DIV expr1       # DIV
     | expr2 MOD expr1       # MOD
-    | NOT expr2             # NNegateOT
+    | NOT expr2             # NOT
     | expr2                 # PassExpr2
     ;
 
@@ -168,15 +161,15 @@ expr2
     : INT                                       # IntLiteral
     | FLOAT                                     # FloatLiteral
     | BOOL                                      # BoolLiteral
-    | IDENTIFIER suffixes                       # Var
+    | IDENTIFIER suffixes                       # Var               // crée un noeud variable_expression mais doit récuperer l'instance du noeud qui a crée à la base
     | L_PARENTH expr R_PARENTH                  # Parens
-    | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
-    | IDENTIFIER L_PARENTH list_expr R_PARENTH  # Function
-    | cast                                      # Casting
+    | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext        // crée un noeud variable_contextual_expression mais doit récuperer l'instance du noeud qui a crée à la base
+    | IDENTIFIER L_PARENTH list_expr R_PARENTH  # Function 
+    | cast                                      # CastAs       
     ;
 
 cast    
-    : L_PARENTH df_type R_PARENTH expr
+    : L_PARENTH df_type R_PARENTH expr          
     ;
 
 c_expr
@@ -235,16 +228,6 @@ suffixes
 c_suffixes
     : (L_SQUA c_stopless_expr R_SQUA)*
     ;
-
-// suffixes
-//    : L_SQUA expr R_SQUA suffixes
-//    | NEWLINE
-//    ;
-
-//c_suffixes
-//    : L_SQUA c_stopless_expr R_SQUA c_suffixes
-//    | NEWLINE
-//    ;
 
 s_suffixable_expr
     : IDENTIFIER
@@ -319,25 +302,23 @@ c_if_statement
     ;
 
 statements
-    : statement statements
-    | loop_statement statements
-    | if_else_statement statements
-    | if_statement statements
-    | NEWLINE
+    : statement (statements)?
+    | loop_statement (statements)?
+    | if_else_statement (statements)?
+    | if_statement (statements)?
     ;
 
 s_statements
-    : s_statement s_statements
-    | s_loop_statement s_statements
-    | s_if_else_statement s_statements
-    | s_if_statement s_statements
-    | NEWLINE
+    : s_statement (s_statements)?
+    | s_loop_statement (s_statements)?
+    | s_if_else_statement (s_statements)?
+    | s_if_statement (s_statements)?
     ;
 
 statement
-    : df_type IDENTIFIER may_assign SEMICOL
-    | IDENTIFIER suffixes ASSIGN expr SEMICOL
-    | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL
+    : df_type IDENTIFIER may_assign SEMICOL                 # StatementDeclaration
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL               # StatementAssignment
+    | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL # StatementContextualAssignment
     ;
 
 s_statement
@@ -359,11 +340,10 @@ collective_operation
     ;
 
 c_statements
-    : c_statement c_statements
-    | c_loop_statement c_statements
-    | c_if_else_statement c_statements
-    | c_if_statement c_statements
-    | NEWLINE
+    : c_statement (c_statements)?
+    | c_loop_statement (c_statements)?
+    | c_if_else_statement (c_statements)?
+    | c_if_statement (c_statements)?
     ;
 
 c_statement
@@ -373,8 +353,7 @@ c_statement
     ;
 
 named_outputs
-    : named_output named_outputs
-    | NEWLINE
+    : named_output (named_outputs)?
     ;
 
 named_output
@@ -382,8 +361,7 @@ named_output
     ;
 
 p_named_outputs
-    : p_named_output p_named_outputs
-    | NEWLINE
+    : p_named_output (p_named_outputs)?
     ;
 
 p_named_output
@@ -392,14 +370,11 @@ p_named_output
     ;
 
 df_parameter_list
-    : df_parameter_decls
-    | NEWLINE
+    : (df_parameter_decls)?
     ;
 
 df_parameter_decls
-    : df_parameter_decl
-    | df_parameter_decl COMMA df_parameter_decls
-    | NEWLINE
+    : df_parameter_decl (COMMA df_parameter_decl)*
     ;
 
 df_parameter_decl
@@ -407,9 +382,9 @@ df_parameter_decl
     ;
 
 df_type
-    : INT_KW suffixes
-    | FLOAT_KW suffixes
-    | BOOL_KW suffixes
+    : INT_KW suffixes           # IntType
+    | FLOAT_KW suffixes         # FloatType
+    | BOOL_KW suffixes          # BoolType
     ;
 
 pdf_parameter_type
@@ -418,14 +393,11 @@ pdf_parameter_type
     ;
 
 pdf_parameter_list
-    : pdf_parameter_decls
-    | NEWLINE
+    : (pdf_parameter_decls)?
     ;
 
 pdf_parameter_decls
-    : pdf_parameter_decl
-    | pdf_parameter_decl COMMA pdf_parameter_decls
-    | NEWLINE
+    : pdf_parameter_decl (COMMA pdf_parameter_decl)*
     ;
 
 pdf_parameter_decl
@@ -433,9 +405,7 @@ pdf_parameter_decl
     ;
 
 cdf_defaulted_decls
-    : cdf_defaulted_decl
-    | cdf_defaulted_decl COMMA cdf_defaulted_decls
-    | NEWLINE
+    : cdf_defaulted_decl (COMMA cdf_defaulted_decl)*
     ;
 
 cdf_defaulted_decl
@@ -447,13 +417,11 @@ cdf_full_declaration
     ;
 
 c_may_assign
-    : ASSIGN c_expr
-    | NEWLINE
+    : (ASSIGN c_expr)?
     ;
 
 may_assign
-    : ASSIGN expr
-    | NEWLINE
+    : (ASSIGN expr)?
     ;
 
 
@@ -462,10 +430,9 @@ may_assign
 FLOAT               : '.' [0-9]+ | [0-9]+ '.' [0-9]* ;
 INT                 : [0-9]+ ;
 BOOL                : 'true' | 'false';
-IDENTIFIER          : [a-zA-Z][a-zA-Z0-9_]*;
 
 INT_KW              : 'int';
-FLOAT_KW            : 'flaot';
+FLOAT_KW            : 'float';
 BOOL_KW             : 'bool';
 LOGICAL_KW          : 'logical';
 PHYSICAL_KW         : 'physical';
@@ -524,6 +491,7 @@ R_SQUA              : ']';
 COLUMN              : ':';
 PERIOD              : '.';
 
+IDENTIFIER          : [a-zA-Z][a-zA-Z0-9_]*;
 
 NEWLINE : ('\r'? '\n')+ ;
 WS          : [ \t\r]+ -> skip ;
