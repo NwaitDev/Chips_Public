@@ -150,7 +150,7 @@ namespace chips {
         using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
         using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
 
-        block_definition_t& m_defintion;
+        block_definition_t* m_defintion;
         block_variable_t m_variable;
         void hello();
     };
@@ -181,8 +181,8 @@ namespace chips {
         // need to perform check on connectivity
         // (only connect channels 1-to-1, never 1-to-many or many-to-one)
         
-        channel_eater& m_eater;
-        channel_feeder& m_feeder;
+        channel_eater* m_eater;
+        channel_feeder* m_feeder;
         void hello();
     };
 
@@ -212,8 +212,8 @@ namespace chips {
      */
     class linking_statement : public system_statement<recurring_statement::LINKING>  
     {
-        linkable& m_linked_component;
-        support& m_support_node;
+        linkable* m_linked_component;
+        support* m_support_node;
         void hello();
     };
 

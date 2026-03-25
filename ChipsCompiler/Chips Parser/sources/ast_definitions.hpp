@@ -173,8 +173,8 @@ namespace chips
     class implementation_defintion : public definition // do not use, work in progress
     {
         public:
-        object_definition& m_implemented_object;
-        node_definition& m_implementing_node;
+        object_definition* m_implemented_object;
+        node_definition* m_implementing_node;
         std::vector<implementation_statement_variant> m_having_statements;
         void hello();
     };
@@ -190,7 +190,7 @@ namespace chips
         public:
         collective_function_type m_collective_function_type;
         accumulator_definition m_accumulator;
-        node_definition& m_support_object;
+        node_definition* m_support_object;
         collectiveops_section m_operations;
         target_output m_target_output;
         default_output m_default_output;

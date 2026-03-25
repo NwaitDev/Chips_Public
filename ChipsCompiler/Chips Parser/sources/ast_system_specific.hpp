@@ -84,7 +84,7 @@ namespace chips {
     class system_variable_block_expression : public ast_node, public system_iterable
     {
         using block_variable_type = typename BlockTypeToBlockVariable<bt>::type;
-        block_variable_type& m_variable;
+        block_variable_type* m_variable;
         rvalue<dataflow_type::INT,expression_env::SYSTEM> m_index;
     };
 
@@ -120,7 +120,7 @@ namespace chips {
     class eater : public ast_node
     {
         functional_block_variant m_variable_expression;
-        function_parameter<dfk,dft>& m_parameter;
+        function_parameter<dfk,dft>* m_parameter;
     }; 
 
     
@@ -133,7 +133,7 @@ namespace chips {
     class feeder_block_expression : public feeder<dfk,dft>, public ast_node
     {
         functional_block_variant m_variable_expression;
-        function_output<dfk,dft>& m_output;
+        function_output<dfk,dft>* m_output;
     };
 
 
@@ -146,7 +146,7 @@ namespace chips {
     {
         public:
         node_variable_expression m_node;
-        node_element_declaration<node_element::CHANNEL>& m_eating_channel;
+        node_element_declaration<node_element::CHANNEL>* m_eating_channel;
         void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -159,7 +159,7 @@ namespace chips {
     {
         public:
         node_variable_expression m_node;
-        node_element_declaration<node_element::CHANNEL>& m_feeding_channel;
+        node_element_declaration<node_element::CHANNEL>* m_feeding_channel;
         void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -170,7 +170,7 @@ namespace chips {
      */
     template<dataflow_kind dfk, dataflow_type dft>
     class collective_cast : public feeder<dfk,dft> {
-        collective_function_definition& variable_expression;
+        collective_function_definition* variable_expression;
         feeder<dfk, dft> m_feeder;
     };
 }

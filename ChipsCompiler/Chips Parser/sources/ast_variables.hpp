@@ -52,7 +52,7 @@ namespace chips {
     class dataflow_primitive_variable : public primitive_variable  
     {
         public:
-        dataflow_declaration<dft,statement_env::DEFINITION>& m_declaration;
+        dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration;
         void hello();
     };
 
@@ -75,7 +75,7 @@ namespace chips {
     class contextual_variable : public node_variable 
     {
         using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
-        node_element_declaration_type& m_declaration;
+        node_element_declaration_type* m_declaration;
         void hello();
     };
 
@@ -98,7 +98,7 @@ namespace chips {
     template<dataflow_type dft> 
     class dataflow_collective_variable : public collective_variable
     {
-        dataflow_declaration<dft,statement_env::COLLECTIVE>& m_declaration;
+        dataflow_declaration<dft,statement_env::COLLECTIVE>* m_declaration;
         void hello();
     };
 
@@ -119,7 +119,7 @@ namespace chips {
     template<block_type bt> 
     class block_variable : public system_variable 
     {
-        block_declaration<bt>& m_declaration;
+        block_declaration<bt>* m_declaration;
         void hello();
     };
     
@@ -135,7 +135,7 @@ namespace chips {
     template<dataflow_type dft> 
     class dataflow_system_variable : public system_variable 
     {
-        dataflow_declaration<dft,statement_env::SYSTEM>& m_declaration;
+        dataflow_declaration<dft,statement_env::SYSTEM>* m_declaration;
         void hello();
 
     };
