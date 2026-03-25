@@ -13,11 +13,10 @@ namespace chips {
      */
     template<expression_env expenv> 
     class array : public ast_node{
-
         public:
-
-            void accept(visitor& v) { v.visit(*this); }
-        // something is missing, check the metamodel once it is corrected
+        std::vector<rvalue<dataflow_type::INT,expenv>> m_dimensions;
+        
+        void accept(visitor& v) { v.visit(*this); }
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
