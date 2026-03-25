@@ -271,7 +271,7 @@ c_if_statement
     ;
 
 statement
-    : df_type IDENTIFIER (ASSIGN expr)? SEMICOL
+    : df_type suffixes IDENTIFIER (ASSIGN expr)? SEMICOL
     | IDENTIFIER suffixes ASSIGN expr SEMICOL
     | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL
     | loop_statement
