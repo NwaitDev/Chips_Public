@@ -1,227 +1,260 @@
 #ifndef __chips_statements__
 #define __chips_statements__
 
-#include "forward_declarations.hpp"
-#include "ast_base.hpp"
-#include "meta_type_conversions.hpp"
-
 #include <vector>
-
-// #include "ast_system_specific.hpp"
-// #include "ast_base.hpp"
-// #include "ast_lrxvalues.hpp"
-// #include "ast_definitions.hpp"
-// #include "ast_program.hpp"
-// #include "ast_variables.hpp"
-// #include "ast_inoutputs.hpp"
 
 namespace chips {
 
+    /**
+     * Abstract class
+     * Node of the AST that represents a statement in any 
+     * Chips code environment.
+     */
     template<statement_env, recurring_statement>
-    class statement : public ast_node{};
+    class statement : public ast_node{
+        //void hello() override {std::cout<<"hello"<<std::endl;}
+    };
 
+    // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using system_statement = statement<statement_env::SYSTEM, recstt>;
+    // abstract (by definition of statement class) 
+    template<recurring_statement recstt>
+    using node_statement = statement<statement_env::NODE, recstt>;
+    // abstract (by definition of statement class) // do not use, work in progress
+    template<recurring_statement recstt>
+    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; 
+     // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using primitive_statement = statement<statement_env::DEFINITION, recstt>;
+     // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using collective_statement = statement<statement_env::COLLECTIVE, recstt>;
+
+    /**
+     * Concrete class
+     * Node of the AST representing a dataflow declarations in any context.
+     * Only treating generic dataflows, other kinds of variables 
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
     template<dataflow_type dft, statement_env stenv>
     class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>
     {
-        private:
         using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
         df_variable_type m_variable;
-
-        public:
-            dataflow_declaration() = default;
-            
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
-    
+    /**
+     * Concrete class
+     * Node of the AST representing a dataflow assignements in any context
+     * Only treating generic dataflows, other kinds of variables 
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
     template<dataflow_type dft, statement_env stenv>
     class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT> 
     {
-    private:
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         lvalue<dft, expr_env> m_lvalue;
         rvalue<dft, expr_env> m_rvalue;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the ordered list of the statements 
+     * that compose the code executed when the condition of an if_statement 
+     * is evaluated as true
+     */
     template<statement_env stenv>
     class if_section : public ast_node  
     {
-        private:
             using statement_type = typename SttEnvToSttVariant<stenv>::type;
             std::vector<statement_type> m_if_statements;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the ordered list of the statements 
+     * that compose the code executed when the condition of an if_else_statement 
+     * is evaluated as false
+     */
     template<statement_env stenv>
     class else_section: public ast_node  
     {
-        private:
             using statement_type = typename SttEnvToSttVariant<stenv>::type;
             std::vector<statement_type> m_else_statements;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents an if statement.
+     * if (bool rvalue) { if_section }
+     */
     template<statement_env stenv>
     class if_statement : public statement<stenv,recurring_statement::IF> 
     {
-    private:
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         rvalue<dataflow_type::BOOL, expr_env> m_condition;
         if_section<stenv> m_if_section;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents an if_else statement
+     * if (bool rvalue) { if_section } else { else_section }
+     */
     template<statement_env stenv>
     class if_else_statement : public if_statement<stenv> 
     {
-    private:
         else_section<stenv> m_else_section;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * Generic version only suitable for iterating over dataflow
+     * variables
+     */
     template<statement_env stenv, dataflow_type dft>
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>  
     {
-    private:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
         dataflow_declaration<dft,stenv> m_iterator;
         rvalue<dft,expenv>  m_iterable_expr;
         std::vector<statement_type> m_statements;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
     
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * System specific version only suitable for iterating
+     * over components variables (logical, physical or objects)
+     */
     template<block_type bt>
     class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH> 
     {
-    private:
         block_declaration<bt> m_iterator;
         system_variable_block_expression<bt> m_iterable_expression;
         std::vector<system_statement_variant> m_statements;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
     
 
-
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration
+     * of a component variable (object, physical or logical)
+     */
     template<block_type bt>
     class block_declaration : public statement<statement_env::SYSTEM , recurring_statement::DECLARATION>  
     {
-    private:
         using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
         using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
 
         block_definition_t& m_defintion;
         block_variable_t m_variable;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
-        
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents some concept that is not
+     * theoretically gounded yet.
+     * Work in progress, do not use.
+     */
     class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>{
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     }; 
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a channel output of a component to a channel input
+     * of another component.
+     * Such statement should assert that :
+     * - channel types are compatibles
+     * - connected channels inputs and outputs are not already
+     *   connected
+     */
     class channel_plugging : public system_statement<recurring_statement::PLUGGING>  
     {
-    private:
         // need to perform check on channel types
         // need to perform check on connectivity
         // (only connect channels 1-to-1, never 1-to-many or many-to-one)
         
-        // channel_eater m_eater;
-        // channel_feeder m_feeder;
-
-        std::unique_ptr<channel_eater> m_eater;
-        std::unique_ptr<channel_feeder> m_feeder;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        channel_eater& m_eater;
+        channel_feeder& m_feeder;
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a component dataflow output to a component dataflow
+     * parameter.
+     * Such statement should assert that
+     * connected inputs and outputs are not already connected
+     * (unless a collective_cast node is used)
+     */
     template<dataflow_kind dfk, dataflow_type dft>
     class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dfk,dft>  
     {
-    private:
         eater<dfk,dft> m_eater;
         feeder<dfk,dft> m_feeder;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the physical
+     * dependency of two objects or of a node to a physical block
+     * using the following syntax :
+     * link linkable to support;
+     */
     class linking_statement : public system_statement<recurring_statement::LINKING>  
     {
-    private:
         linkable m_linked_component;
         support m_support_node;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     };
 
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the implementation
+     * of a contextual variable by another contextual variable
+     * or of a channel by another channel.
+     * Work in progress, do not use 
+     */
     template <node_element ne>
     class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>{
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();
     }; 
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration 
+     * of a contextual or of a channel in a with section
+     */
     template<node_element ne>
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>  
     {
-    private:
         using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
         node_variable_t m_variable; // == type_identifier in case of channel declaration
         std::string m_declared_name; // == identifier in case of contextual variable
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 }
 

@@ -2,175 +2,195 @@
 #ifndef __chips_defintions__
 #define __chips_defintions__
 
-#include "forward_declarations.hpp"
-#include "ast_base.hpp"
-#include "meta_type_conversions.hpp"
-
-// #include "ast_variables.hpp"
-// #include "ast_statements.hpp"
-// #include "ast_inoutputs.hpp"
-// #include "ast_lrxvalues.hpp"
-
 #include <vector>
 #include <optional>
 
-namespace chips {
+namespace chips
+{
 
-    class definition : public virtual ast_node
+    /**
+     * Abstract class
+     * Node of the AST that represents an element of
+     * the preamble section of a Chips program
+     */
+    class definition : public ast_node
     {
-    private:
-        std::string m_name;
-
         public:
-            definition(std::string name) : m_name(name){}
-
-            std::string get_identifier() { return m_name; }
+        std::string m_name;
+        definition(std::string id) : m_name(id) {}
     };
 
-
+    /**
+     * Concrete class
+     * Node of the AST that represents the list of statements
+     * that can be used to define node specific informations
+     * (contextual variables and channels)
+     */
     class with_section : public ast_node
     {
-    private:
-        std::vector<node_statement_variant> m_statements;
-
         public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        std::vector<node_statement_variant> m_statements;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
-    
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the list of statements
+     * that can be used to define and initialize a functional 
+     * block stateful information (mainly inner variables)
+     */
     class init_section : public ast_node
     {
-    private:
-        std::vector<primitive_statement_variant> m_statements;
-
         public:
-            init_section() = default;
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        std::vector<primitive_statement_variant> m_statements;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the list of statements
+     * that can be used to make a functional block state evolve 
+     * according to its current state and its input parameters.
+     */
     class then_section : public ast_node
     {
-    private:
-        std::vector<primitive_statement_variant> m_statements;
-
         public:
-            then_section() = default;
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        std::vector<primitive_statement_variant> m_statements;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the list of
+     * statements that can be used define how an accumulated 
+     * data can be propagated/aggregated among a set of
+     * interconnected components
+     */
     class collectiveops_section : public ast_node
     {
-    private:
-        std::vector<collective_statement_variant> m_statements;
-
         public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        std::vector<collective_statement_variant> m_statements;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the set of collective parameters
+     * that compose the data accumulated by the associate collective
+     * primitive.
+     */
     class accumulator_definition : public ast_node
     {
-    private:
-        std::vector<collective_parameter_variant> m_accumulator;
-
         public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        std::vector<collective_parameter_variant> m_accumulator;
+        void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
+    /**
+     * Abstract class
+     * Node of the AST that represents a Chips Node
+     * (i.e. an Object or a Physical function)
+     */
     class node_definition : public definition
     {
-    private:
-        // with_section with;
-        std::unique_ptr<with_section> with;
-    };
-
-    class object_definition : public node_definition {
         public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        with_section with;
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents an Node with no
+     * additional features
+     * (a location in space that can be connected 
+     * to other spaces thank to channels)
+     */
+    class object_definition : public node_definition
+    {
+        public:
+        void hello();
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a functional
+     * block (i.e. something that has an "init" and a "then" section)
+     */
     class function_definition : public definition
     {
-    private:
-        // init_section m_init;
-        // then_section m_then;
-        std::unique_ptr<init_section> m_init;
-        std::unique_ptr<then_section> m_then;
+        public:
+        init_section m_init;
+        then_section m_then;
         std::vector<function_parameter_variant> m_parameters;
         std::vector<function_output_variant> m_outputs;
-
-        public:
-            function_definition(std::string identifier, std::vector<function_parameter_variant> parameters, std::unique_ptr<init_section> init,  
-                                std::unique_ptr<then_section> then, std::vector<function_output_variant> outputs)
-                                : definition(identifier), m_init(std::move(init)), m_then(std::move(then)), m_parameters(parameters), m_outputs(outputs){}
-
-            init_section* get_init() { return m_init.get(); }
-            then_section* get_then() { return m_then.get(); }
-            const std::vector<function_parameter_variant>& get_parameters() const { return m_parameters; }
-            const std::vector<function_output_variant>& get_outputs() const { return m_outputs; }
-    };
-    class logical_definition : public function_definition{
-        public:
-            logical_definition(std::string identifier, std::vector<function_parameter_variant> parameters, std::unique_ptr<init_section> init, 
-                               std::unique_ptr<then_section> then, std::vector<function_output_variant> outputs)
-                               : function_definition(identifier, parameters, std::move(init), std::move(then), outputs){}
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
-    };
-
-    class physical_definition : public function_definition, public node_definition
-    {
-    private:
-        std::vector<physical_parameter_variant> m_sensor;
-        std::vector<physical_output_variant> m_actuator;
-
-        public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        function_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
+                            then_section then, std::vector<function_output_variant> outputs)
+            : definition(identifier), m_init(init), m_then(then), m_parameters(parameters), m_outputs(outputs) {}
+        
     };
     
-    class implementation_defintion : public definition // do not use, work in progress
+    /**
+     * Concrete class
+     * Node of the AST that represents a functional 
+     * block with no additional features
+     */
+    class logical_definition : public function_definition
     {
-    private:
-        std::shared_ptr<object_definition> m_implemented_object;
-        std::shared_ptr<node_definition> m_implementing_node;
-        std::vector<implementation_statement_variant> m_having_statements;
-
         public:
-
-            void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+        logical_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
+                           then_section then, std::vector<function_output_variant> outputs)
+            : function_definition(identifier, parameters, init, then, outputs) {}
+        
+        void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents a Chips model element
+     * that acts both as a Node (a location in space that can be connected 
+     * to other spaces thank to channels) and as a Functional block 
+     * (i.e. something that has an "init" and a "then" section)
+     */
+    class physical_definition : public function_definition, public node_definition
+    {
+        public:
+        std::vector<physical_parameter_variant> m_sensor;
+        std::vector<physical_output_variant> m_actuator;
+        void hello();
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the fact a
+     * node can act as another node of the model
+     * Maybe to be futurely renamed as "Refinement"
+     * Work in progress, do not use
+     */
+    class implementation_defintion : public definition // do not use, work in progress
+    {
+        public:
+        object_definition& m_implemented_object;
+        node_definition& m_implementing_node;
+        std::vector<implementation_statement_variant> m_having_statements;
+        void hello();
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the definition of a collective
+     * primitive, it can be refered to in the system section using the
+     * collective_cast node
+     */
     class collective_function_definition : public definition
     {
-    private:
-        collective_function_type m_collective_function_type;
-        // accumulator_definition m_accumulator;
-        std::unique_ptr<accumulator_definition> m_accumulator;
-        std::shared_ptr<node_definition> m_support_object;
-        // collectiveops_section m_operations;
-        std::unique_ptr<collectiveops_section> m_operations;
-        std::unique_ptr<collective_output<collective_output_kind::TARGET>> m_target_output;
-        std::unique_ptr<collective_output<collective_output_kind::DEFAULTED>> m_default_output;
-        std::vector<collective_output<collective_output_kind::CHANNELED>> m_channeled_outputs;
-
         public:
-
-            //void accept(visitor& v) { v.visit(*this); };
-            virtual void hello() override;
+        collective_function_type m_collective_function_type;
+        accumulator_definition m_accumulator;
+        node_definition& m_support_object;
+        collectiveops_section m_operations;
+        target_output m_target_output;
+        default_output m_default_output;
+        std::vector<channeled_output> m_channeled_outputs;
+        void hello();
     };
 
 }

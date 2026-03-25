@@ -2,8 +2,7 @@
 #define AST_BUILD_HPP
 
 #include "ChipsBaseVisitor.h"
-#include "forward_declarations.hpp"
-#include "ast_lrxvalues.hpp"
+
 
 #include <any>
 #include <memory>
@@ -13,16 +12,6 @@
 
 using namespace chips;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratégie de stockage :
-//   Les visit* stockent le shared_ptr<ConcreteType> CONCRET dans le std::any.
-//   Ex: visitIntLiteral  → any{ shared_ptr<direct<INT,PRIM>> }
-//       visitPLUS        → any{ shared_ptr<plus<INT,PRIM>>   }
-//
-//   Cela préserve le type template exact à travers tout l'arbre.
-//   Pour en extraire un shared_ptr<ast_node>, on utilise extract_as_node()
-//   qui dispatche sur tous les types concrets connus.
-// ─────────────────────────────────────────────────────────────────────────────
 
 namespace ast_builder_detail {
 
@@ -47,51 +36,8 @@ namespace ast_builder_detail {
     //   On utilise any_cast<T*> (pas de copie) pour les essais.
     template<dataflow_type DFT, expression_env EXPENV>
     std::shared_ptr<rvalue<DFT, EXPENV>> try_extract(const std::any& a) {
-        // std::cout << "try_extract()" << std::endl;
-        // if constexpr (DFT != dataflow_type::BOOL){
-        //     std::cout << "after any_cast of try_extract DFT != BOOL" << std::endl;
-        //     if (auto* p = std::any_cast<std::shared_ptr<direct<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<plus<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<minus<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<mult<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<chips::div<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if constexpr (DFT == dataflow_type::INT)
-        //         if (auto* p = std::any_cast<std::shared_ptr<mod<EXPENV>>>(&a))
-        //             return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        // }
-        // if constexpr (DFT == dataflow_type::BOOL) {
-        //     std::cout << "after any_cast of try_extract DFT(BOOL)" << std::endl;
-        //     if (auto* p = std::any_cast<std::shared_ptr<direct<DFT,EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<lt<EXPENV, dataflow_type::INT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<lt<EXPENV, dataflow_type::FLOAT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<gt<EXPENV, dataflow_type::INT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<gt<EXPENV, dataflow_type::FLOAT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<leq<EXPENV, dataflow_type::INT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<leq<EXPENV, dataflow_type::FLOAT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<geq<EXPENV, dataflow_type::INT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<geq<EXPENV, dataflow_type::FLOAT>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<eq<DFT, EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-        //     if (auto* p = std::any_cast<std::shared_ptr<neq<DFT, EXPENV>>>(&a))
-        //         return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
-            
-        // }
 
-        // extracttion des opérateurs où les opérandes ne sont que des numériques
+        // extraction des opérateurs où les opérandes ne sont que des numériques
         if constexpr(DFT != dataflow_type::BOOL){
             std::cout << "DFT != BOOL -> true" << std::endl;
             if(auto* p = std::any_cast<std::shared_ptr<direct<DFT,EXPENV>>>(&a)){
@@ -179,48 +125,6 @@ namespace ast_builder_detail {
         #define TRY_UPCAST(DFT, EXPENV)                                     \
             if (auto p = try_extract<DFT, EXPENV>(a))                       \
                 return std::static_pointer_cast<ast_node>(p);               \
-            // if (auto* p = std::any_cast<std::shared_ptr<chips::mod<expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            
-            // if (auto* p = std::any_cast<std::shared_ptr<lt<expression_env::PRIMITIVE, dataflow_type::INT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<lt<expression_env::PRIMITIVE, dataflow_type::FLOAT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<leq<expression_env::PRIMITIVE, dataflow_type::INT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<leq<expression_env::PRIMITIVE, dataflow_type::FLOAT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<gt<expression_env::PRIMITIVE, dataflow_type::INT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<gt<expression_env::PRIMITIVE, dataflow_type::FLOAT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<geq<expression_env::PRIMITIVE, dataflow_type::INT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<geq<expression_env::PRIMITIVE, dataflow_type::FLOAT>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::INT, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::FLOAT, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::BOOL, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::INT, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::FLOAT, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-            // if (auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::BOOL, expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<and_operator<expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
-
-            // if (auto* p = std::any_cast<std::shared_ptr<or_operator<expression_env::PRIMITIVE>>>(&a))
-            //     return std::static_pointer_cast<ast_node>(*p);
 
         TRY_UPCAST(dataflow_type::INT,   expression_env::PRIMITIVE)
         TRY_UPCAST(dataflow_type::FLOAT, expression_env::PRIMITIVE)

@@ -106,21 +106,24 @@ void ChipsToXmiWriter::chips_to_xmi(program_node* root)
 
     std::cerr << "[DEBUG Writer] Root node valide" << std::endl;
 
+    // Rest of this function commented because outdated relatively to the new and more robust AST data structure
+
     // Preambles (physical/object definitions)
-    if (root->get_preamble()) {
-        std::cerr << "[DEBUG Writer] Preambles trouvé, appel preambles_to_xmi()" << std::endl;
-        preambles_to_xmi(root->get_preamble());
-    } else {
-        std::cerr << "[WARNING Writer] Aucun preambles dans le root!" << std::endl;
-    }
+    // if (root->m_preamble) {
+    //     std::cerr << "[DEBUG Writer] Preambles trouvé, appel preambles_to_xmi()" << std::endl;
+    //     preambles_to_xmi(root->get_preamble());
+    // } else {
+    //     std::cerr << "[WARNING Writer] Aucun preambles dans le root!" << std::endl;
+    // }
+    
 
     // System (declarations + links)
-    if (root->get_system()) {
-        std::cerr << "[DEBUG Writer] System trouvé, appel system_to_xmi()" << std::endl;
-        system_to_xmi(root->get_system());
-    } else {
-        std::cerr << "[WARNING Writer] Aucun system dans le root!" << std::endl;
-    }
+    // if (root->get_system()) {
+    //     std::cerr << "[DEBUG Writer] System trouvé, appel system_to_xmi()" << std::endl;
+    //     system_to_xmi(root->get_system());
+    // } else {
+    //     std::cerr << "[WARNING Writer] Aucun system dans le root!" << std::endl;
+    // }
 
     std::cerr << "[DEBUG Writer] chips_to_xmi() TERMINÉ" << std::endl;
 }
@@ -138,7 +141,7 @@ void ChipsToXmiWriter::preambles_to_xmi(preamble_section_node* pres)
         return;
     }
 
-    const auto& list = pres->get_definitions();
+    const auto& list = pres->m_definitions;
     std::cerr << "[DEBUG Writer] Nombre de définitions: " << list.size() << std::endl;
 
     m_out << "  <preamble>\n";
@@ -153,52 +156,54 @@ void ChipsToXmiWriter::preambles_to_xmi(preamble_section_node* pres)
 
 void ChipsToXmiWriter::preamble_to_xmi(definition_variant definition)
 {
-    std::visit([this](auto* def){
-        std::cerr << "[DEBUG Writer] preamble_to_xmi() appelé" << std::endl;
+    // Rest of this function commented because outdated relatively to the new and more robust AST data structure
 
-        if (!def) {
-            std::cerr << "[ERROR Writer] definition est NULL!" << std::endl;
-            return;
-        }
+    // std::visit([this](auto* def){
+    //     std::cerr << "[DEBUG Writer] preamble_to_xmi() appelé" << std::endl;
 
-        std::string id = nodeId((def));
+    //     if (!def) {
+    //         std::cerr << "[ERROR Writer] definition est NULL!" << std::endl;
+    //         return;
+    //     }
 
-        // Essayer de détecter le type réel
-        if (auto obj = dynamic_cast<object_definition*>(def)) {
-            std::cerr << "[DEBUG Writer] Type détecté: object_definition" << std::endl;
-            // auto obj = static_cast<object_definition*>(def);
-            m_out << "    <definitions xsi:type=\"definitions:object_definition\" "
-                << "name=\"" << obj->get_identifier() << "\" id=\"" << id << "\">\n";
-            m_out << "      <!-- TODO: with section -->\n";
-            m_out << "    </definitions>\n";
-        }else if (auto func = dynamic_cast<function_definition*>(def)) {
-            if(auto phys = dynamic_cast<physical_definition*>(func)){
-                std::cerr << "[DEBUG Writer] Type détecté: physical_definition" << std::endl;
-                m_out << "    <definitions xsi:type=\"definitions:physical_definition\" "
-                    << "name=\"" << phys->function_definition::get_identifier() << "\" id=\"" << id << "\">\n";
-                m_out << "      <!-- TODO: with, init, then, outputs -->\n";
-                m_out << "    </definitions>\n";
-            }else if(auto log = dynamic_cast<logical_definition*>(func)){
-                std::cerr << "[DEBUG Writer] Type détecté: logical_definition" << std::endl;
-                m_out << "    <definitions xsi:type=\"definitions:logical_definition\" "
-                    << "name=\"" << log->get_identifier() << "\" id=\"" << id << "\">\n";
-                m_out << "      <!-- TODO: init, then, outputs -->\n";
-                m_out << "    </definitions>\n";
-            }
-        }else if (auto impl = dynamic_cast<implementation_defintion*>(def)) {
-            std::cerr << "[DEBUG Writer] Type détecté: implementation_defintion" << std::endl;
-            // auto impl = static_cast<implementation_defintion*>(def);
-            m_out << "    <definitions xsi:type=\"definitions:implementation_definition\" "
-                << "name=\"" << impl->get_identifier() << "\" id=\"" << id << "\">\n";
-            m_out << "      <!-- TODO: implemented_object, implementing_node, having -->\n";
-            m_out << "    </definitions>\n";
-        }else {
-            std::cerr << "[WARNING Writer] Type de preamble inconnu!" << std::endl;
-            m_out << "    <definitions xsi:type=\"definitions:unknown\" id=\"" << id << "\">\n";
-            m_out << "      <!-- Type inconnu -->\n";
-            m_out << "    </definitions>\n";
-        }
-    }, definition);
+    //     std::string id = nodeId((def));
+
+    //     // Essayer de détecter le type réel
+    //     if (auto obj = dynamic_cast<object_definition*>(def)) {
+    //         std::cerr << "[DEBUG Writer] Type détecté: object_definition" << std::endl;
+    //         // auto obj = static_cast<object_definition*>(def);
+    //         m_out << "    <definitions xsi:type=\"definitions:object_definition\" "
+    //             << "name=\"" << obj->get_identifier() << "\" id=\"" << id << "\">\n";
+    //         m_out << "      <!-- TODO: with section -->\n";
+    //         m_out << "    </definitions>\n";
+    //     }else if (auto func = dynamic_cast<function_definition*>(def)) {
+    //         if(auto phys = dynamic_cast<physical_definition*>(func)){
+    //             std::cerr << "[DEBUG Writer] Type détecté: physical_definition" << std::endl;
+    //             m_out << "    <definitions xsi:type=\"definitions:physical_definition\" "
+    //                 << "name=\"" << phys->function_definition::get_identifier() << "\" id=\"" << id << "\">\n";
+    //             m_out << "      <!-- TODO: with, init, then, outputs -->\n";
+    //             m_out << "    </definitions>\n";
+    //         }else if(auto log = dynamic_cast<logical_definition*>(func)){
+    //             std::cerr << "[DEBUG Writer] Type détecté: logical_definition" << std::endl;
+    //             m_out << "    <definitions xsi:type=\"definitions:logical_definition\" "
+    //                 << "name=\"" << log->get_identifier() << "\" id=\"" << id << "\">\n";
+    //             m_out << "      <!-- TODO: init, then, outputs -->\n";
+    //             m_out << "    </definitions>\n";
+    //         }
+    //     }else if (auto impl = dynamic_cast<implementation_defintion*>(def)) {
+    //         std::cerr << "[DEBUG Writer] Type détecté: implementation_defintion" << std::endl;
+    //         // auto impl = static_cast<implementation_defintion*>(def);
+    //         m_out << "    <definitions xsi:type=\"definitions:implementation_definition\" "
+    //             << "name=\"" << impl->get_identifier() << "\" id=\"" << id << "\">\n";
+    //         m_out << "      <!-- TODO: implemented_object, implementing_node, having -->\n";
+    //         m_out << "    </definitions>\n";
+    //     }else {
+    //         std::cerr << "[WARNING Writer] Type de preamble inconnu!" << std::endl;
+    //         m_out << "    <definitions xsi:type=\"definitions:unknown\" id=\"" << id << "\">\n";
+    //         m_out << "      <!-- Type inconnu -->\n";
+    //         m_out << "    </definitions>\n";
+    //     }
+    // }, definition);
 }
 
 // ============================================================================
@@ -335,14 +340,10 @@ void ChipsToXmiWriter::collect_namespaces(program_node* root)
     if (!root) return;
     
     // Parcourir les preambles
-    if (root->get_preamble()) {
-        collect_namespaces_from_preambles(root->get_preamble());
-    }
+    collect_namespaces_from_preambles(&(root->m_preamble));
     
     // Parcourir le system
-    if (root->get_system()) {
-        collect_namespaces_from_system(root->get_system());
-    }
+    collect_namespaces_from_system(&(root->m_system));
 }
 
 void ChipsToXmiWriter::collect_namespaces_from_preambles(preamble_section_node* pres)
@@ -352,7 +353,7 @@ void ChipsToXmiWriter::collect_namespaces_from_preambles(preamble_section_node* 
     // Toujours ajouter le namespace definitions si on a des preambles
     add_namespace_if_needed("definitions", "http://chips/definitions");
 
-    for(const auto& definition : pres->get_definitions()){
+    for(const auto& definition : pres->m_definitions){
         collect_namespaces_from_preamble(definition);
     }
 }

@@ -3,20 +3,6 @@
 #include<variant>
 #include<string>
 
-#include "forward_declarations.hpp"
-// Ajout des includes pour les types utilisés
-// #include "ast_base.hpp"
-// #include "ast_lrxvalues.hpp"
-// #include "ast_program.hpp"
-// #include "ast_statements.hpp"
-// #include "ast_variables.hpp"
-// #include "ast_inoutputs.hpp"
-// #include "ast_system_specific.hpp"
-// #include "ast_definitions.hpp"
-// #include "ast_variables.hpp"
-// #include "ast_statements.hpp"
-// #include "ast_inoutputs.hpp"
-// #include "ast_lrxvalues.hpp"
 
 namespace chips {
 

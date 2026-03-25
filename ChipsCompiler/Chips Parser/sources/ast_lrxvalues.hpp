@@ -1,19 +1,27 @@
 #ifndef __chips_lrxvalues__
 #define __chips_lrxvalues__
 
-#include "forward_declarations.hpp"
-#include "meta_type_conversions.hpp"
-#include "ast_base.hpp"
-#include "ast_system_specific.hpp"
+
 #include <vector>
 
 namespace chips{
 
-
+    /**
+     * Abstract class
+     * Node of the AST that represents something to 
+     * be put on the left side of an assignment
+     */
     template<dataflow_type dft, expression_env sttenv>
-    class lvalue : public ast_node{};
+    class lvalue : public ast_node {
+        void hello() override {std::cout<<"hello"<<std::endl;}
+    };
 
 
+    /**
+     * Abstract class
+     * Node of the AST that represents something to 
+     * that can be evaluated as a chips primitive value
+     */
     template<dataflow_type dft, expression_env expenv>
     class rvalue : public ast_node{
         private:
@@ -27,11 +35,14 @@ namespace chips{
             bool is_parenthesage() const{
                 return parenthesage;
             }
+            void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
-    template<dataflow_type dft>
-    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL,dft> {};
-
+    /**
+     * Concrete class
+     * Node of the AST that represents a hard coded
+     * value (any type or code section)
+     */
     template<dataflow_type dft, expression_env expenv>
     class direct: public rvalue<dft,expenv>
     {
@@ -45,9 +56,29 @@ namespace chips{
             value_type get_value() { return m_value; }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Interface
+     * Node of the AST that represents something 
+     * that can be iterated on in the system section
+     */
+    class system_iterable{};
+
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a pure function call
+     * As the language doesn't allow to define them yet, its
+     * only purpose is to provide access to a limited set of
+     * predefined functions with the following signatures :
+     * - int[] range(int)
+     * - int[] zeros(int)
+     * - int[] ones(int)
+     * - float random()
+     * - bool is_fresh(dataflow_variable)
+     */
     template<dataflow_type dft, expression_env expenv>
     class function : public rvalue<dft,expenv>, system_iterable
     {
@@ -58,9 +89,13 @@ namespace chips{
         public:
 
             //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concret class
+     * Node of the AST that represents + (plus) operator
+     */
     template<dataflow_type dft, expression_env expenv>
     class plus : public rvalue<dft, expenv>
     {
@@ -78,9 +113,13 @@ namespace chips{
 
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents - (minus) operator
+     */
     template<dataflow_type dft, expression_env expenv>
     class minus : public rvalue<dft, expenv>
     {
@@ -97,9 +136,13 @@ namespace chips{
             operand_type* get_rhs() { return m_right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents * (multiplication) operator
+     */
     template<dataflow_type dft, expression_env expenv>
     class mult : public rvalue<dft, expenv>
     {
@@ -116,9 +159,13 @@ namespace chips{
             operand_type* get_rhs() { return m_right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents / (division) operator
+     */
     template<dataflow_type dft, expression_env expenv>
     class div : public rvalue<dft, expenv>
     {
@@ -135,9 +182,13 @@ namespace chips{
             operand_type* get_rhs() { return m_right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents % (modulo) operator
+     */
     template<expression_env expenv>
     class mod : public rvalue<dataflow_type::INT, expenv>
     {
@@ -154,9 +205,14 @@ namespace chips{
             operand_type* get_rhs() { return m_right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    
+    /**
+     * Concrete class
+     * Node of the AST that represents the type casting operation
+     */
     template<dataflow_type dft, expression_env expenv>
     class cast_as : public rvalue<dft, expenv>
     {
@@ -171,9 +227,13 @@ namespace chips{
             operand_type* get_cast() { return numeric.get(); }
             
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents > (greater than) operator
+     */
     template<expression_env expenv, dataflow_type dft>
     class gt : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -190,9 +250,13 @@ namespace chips{
             operand_type* get_rhs() { return m_right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents < (lower than) operator
+     */
     template<expression_env expenv, dataflow_type dft>
     class lt : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -209,9 +273,13 @@ namespace chips{
             operand_type* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the >= (greater or equal) operator
+     */
     template<expression_env expenv, dataflow_type dft>
     class geq : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -228,9 +296,13 @@ namespace chips{
             operand_type* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents <= (lower or equal) operator
+     */
     template<expression_env expenv, dataflow_type dft>
     class leq : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -247,9 +319,13 @@ namespace chips{
             operand_type* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents || (or) operator
+     */
     template<expression_env expenv>
     class or_operator : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -265,9 +341,13 @@ namespace chips{
             rvalue<dataflow_type::BOOL, expenv>* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+     /**
+     * Concrete class
+     * Node of the AST that represents && (and) operator
+     */
     template<expression_env expenv>
     class and_operator : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -283,9 +363,13 @@ namespace chips{
             rvalue<dataflow_type::BOOL, expenv>* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents ! (not) operator
+     */
     template<expression_env expenv>
     class not_operator : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -295,9 +379,13 @@ namespace chips{
         public:
 
             //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents the unary minus operator
+     */
     template<dataflow_type dft, expression_env expenv>
     class uminus_operator : public rvalue<dft ,expenv>
     {
@@ -308,9 +396,13 @@ namespace chips{
         public:
 
             //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents ==
+     */
     template<dataflow_type dft,expression_env expenv>
     class eq : public rvalue<dataflow_type::BOOL ,expenv>
     {
@@ -327,9 +419,13 @@ namespace chips{
             operand_type* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
+    /**
+     * Concrete class
+     * Node of the AST that represents != (not equal) operator
+     */
     template<dataflow_type dft,expression_env expenv>
     class neq : public rvalue<dataflow_type::BOOL , expenv>
     {
@@ -346,10 +442,15 @@ namespace chips{
             operand_type* get_rhs() { return right_operand.get(); }
 
             void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 
 
+    /**
+     * Concrete class
+     * Node of the AST that represents an expression 
+     * referencing a dataflow variable
+     */
     template<dataflow_type dft, expression_env expenv>
     class variable_expression : rvalue<dft,expenv>, lvalue<dft,expenv>
     {
@@ -360,7 +461,7 @@ namespace chips{
         public:
 
             //void accept(visitor& v) { v.visit(*this); }
-            virtual void hello() override;
+            void hello();
     };
 }
 

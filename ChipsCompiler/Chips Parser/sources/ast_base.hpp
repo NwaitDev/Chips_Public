@@ -1,37 +1,47 @@
 #ifndef __chips_base__
 #define __chips_base__
 
-#include "metamodel_enums.hpp"
-#include "forward_declarations.hpp"
 #include <iostream>
+#include "forward_declarations.hpp"
 
-namespace chips{
+namespace chips
+{
 
+    /**
+     * Base abstract class for a visitor that walks
+     * through a Chips AST
+     */
     class visitor;
-    class ast_node{
-        private:
-            int line;
-            int column;
+
+
+    /**
+     * Base abstract class for a node in the Chips 
+     * Abstract Syntax Tree
+     */
+    class ast_node
+    {
+    private:
+        int line;
+        int column;
 
     public:
-        virtual ~ast_node() = default;
-
-        virtual void hello() = 0;
-        virtual void accept(visitor& v) = 0;
-
         int get_line() { return line; }
         int get_column() { return column; }
         void set_line(int l) { line = l; }
         void set_column(int c) { column = c; }
+
+        virtual void hello() = 0;
     };
-    class visitor{
+
+    class visitor
+    {
     public:
         virtual ~visitor() = default;
 
-        virtual void visit(ast_node& node) = 0;        
-        // virtual void visit(program_node& node) = 0;
-        // virtual void visit(preamble_section_node& node) = 0;
-        // virtual void visit(system_section_node& node) = 0;
+        virtual void visit(ast_node &node) = 0;
+        virtual void visit(program_node& node) = 0;
+        virtual void visit(preamble_section_node& node) = 0;
+        virtual void visit(system_section_node& node) = 0;
 
         // template<expression_env expenv>
         // void visit(array<expenv>& node);
@@ -51,7 +61,6 @@ namespace chips{
         // void visit(block_variable<bt>& node);
         // template<dataflow_type dft>
         // void visit(dataflow_system_variable<dft>& node);
-
 
         // template<dataflow_type dft, statement_env sttenv>
         // void visit(dataflow_declaration<dft, sttenv>& node);
@@ -83,12 +92,10 @@ namespace chips{
         // template<node_element ne>
         // void visit(node_element_declaration<ne>& node);
 
-
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(function_parameter<dfk, dft>& node);
         // template<dataflow_type dft>
         // void visit(collective_parameter<dft>& node);
-
 
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(function_output<dfk, dft>& node);
@@ -97,7 +104,6 @@ namespace chips{
         // virtual void visit(default_output& node) = 0;
         // virtual void visit(target_output& node) = 0;
         // virtual void visit(channeled_output& node) = 0;
-
 
         // virtual void visit(definition& node) = 0;
         // virtual void visit(with_section& node) = 0;
@@ -113,16 +119,16 @@ namespace chips{
         // virtual void visit(implementation_defintion& node) = 0;
         // virtual void visit(collective_function_definition& node) = 0;
 
-
         // template<dataflow_type dft, expression_env expenv>
         // void visit(lvalue<dft,expenv>& node);
         // template<dataflow_type dft, expression_env expenv>
         // void visit(rvalue<dft,expenv>& node);
         // virtual void visit(system_iterable& node) = 0;
-        template<dataflow_type dft, expression_env expenv>
-        void visit(direct<dft, expenv>& node){
+        template <dataflow_type dft, expression_env expenv>
+        void visit(direct<dft, expenv> &node)
+        {
             // Implémentation par défault : délègue à visit(ast_node&)
-            visit(static_cast<ast_node&>(node));
+            visit(static_cast<ast_node &>(node));
         }
         // template<dataflow_type dft, expression_env expenv>
         // void visit(function<dft, expenv>& node);
@@ -178,7 +184,7 @@ namespace chips{
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(collective_cast<dfk, dft>& node);
     };
-    
+
 }
 
 #endif

@@ -1,17 +1,7 @@
 #ifndef CHIPS_TO_XMI_VISITOR_HPP
 #define CHIPS_TO_XMI_VISITOR_HPP
 
-#include "forward_declarations.hpp"
-#include "ast_base.hpp"
-// #include "ast_definitions.hpp"
-// #include "ast_inoutputs.hpp"
-// #include "ast_lrxvalues.hpp"
-// #include "ast_program.hpp"
-// #include "ast_statements.hpp"
-// #include "ast_system_specific.hpp"
-// #include "ast_variables.hpp"
-// #include "meta_type_conversions.hpp"
-// #include "metamodel_enums.hpp"
+
 
 #include "ChipsToXmiWriter.hpp"
 

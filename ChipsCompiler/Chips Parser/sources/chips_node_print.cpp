@@ -1,13 +1,4 @@
-#include "ast_base.hpp"
-#include "ast_definitions.hpp"
-#include "ast_inoutputs.hpp"
-#include "ast_lrxvalues.hpp"
-#include "ast_program.hpp"
-#include "ast_statements.hpp"
-#include "ast_system_specific.hpp"
-#include "ast_variables.hpp"
-
-
+#include "chips_headers.hpp"
 #include <iostream>
 
 namespace chips {
@@ -21,19 +12,30 @@ namespace chips {
         // }
     }
 
-    void preamble_section_node::hello(){        
-        // std::cout << "preambles " << (get_definitions().empty() ? "vide" : "rempli") << std::endl;
-        for(auto& def : get_definitions()){
-            std::visit([](auto* d){ 
-                if(d){
-                    d->hello();
-                }
-            }, def);
+    void preamble_section_node::hello(){
+        for(auto& def : this->m_definitions){
+
+            #define TRY_DEF_CAST_HELLO(DEF)                         \
+            try{                                                    \
+                std::any_cast<DEF*>(std::get<DEF*>(def))->hello();  \
+            } catch (const std::bad_variant_access& ex){            \
+                std::cout<<ex.what()<<std::endl;                    \
+            } catch (const std::bad_any_cast ex){                   \
+                std::cout<<ex.what()<<std::endl;                    \
+            }
+            
+            TRY_DEF_CAST_HELLO(object_definition)
+            TRY_DEF_CAST_HELLO(logical_definition)
+            TRY_DEF_CAST_HELLO(physical_definition)
+            TRY_DEF_CAST_HELLO(implementation_defintion)
+            TRY_DEF_CAST_HELLO(collective_function_definition)
+
+            #undef TRY_DEF_CAST_HELLO
         }
     }
 
     void system_section_node::hello(){
-        std::cout << "system " << (get_statements().empty() ? "vide" : "rempli") << std::endl;
+        std::cout << "system " << (this->m_system_statements.empty() ? "vide" : "rempli") << std::endl;
     //     for(auto& statement : get_statements()){
     //         // std::visit([](auto* s){ s->hello(); }, statement);
     //     }
@@ -143,29 +145,12 @@ namespace chips {
     void object_definition::hello(){}
 
     void logical_definition::hello(){
-        std::cout << "logical " << get_identifier() << "(";
-        std::cout << (get_parameters().empty() ? "vide" : "rempli") << std::endl;
-        for(auto& param : get_parameters()){
-            std::visit([](auto* p){ 
-                if(p){
-                    p->hello();
-                }else{
-                    std::cout << "[nullptr param]" << std::endl;
-                } 
-            }, param);
-        }
+        std::cout << "logical " << m_name << "(";
+        std::cout << (m_parameters.empty() ? "vide" : "rempli") << std::endl;
         std::cout << ")" << std::endl;
-        if(get_init()){
-            get_init()->hello();
-        }
-        if(get_then()){
-            get_then()->hello();
-        }
-        std::cout << "outputs " << (get_outputs().empty() ? "vide" : "rempli") << std::endl;
-        // for(auto& output : get_outputs()){
-        //     std::cout << "output" << std::endl;
-        //     std::visit([](auto* o){ o->hello(); }, output);
-        // }
+        m_init.hello();
+        m_then.hello();
+        std::cout << "outputs " << (m_outputs.empty() ? "vide" : "rempli") << std::endl;
     }
 
     void physical_definition::hello(){}
@@ -328,18 +313,23 @@ namespace chips {
         // if(this->is_parenthesage()) std::cout << ")";
     }
 
-    template<dataflow_kind dfk, dataflow_type dft>
-    void eater<dfk, dft>::hello(){}
+    // ------------------------------------------------------
+    // UNCOMMENT THE FOLLOWING WHEN THE REST OF 
+    // THE DATA STRUCTURE IS ROBUST AND FUNCTIONAL
 
-    template<dataflow_kind dfk, dataflow_type dft>
-    void feeder_block_expression<dfk, dft>::hello(){}
+    // template<dataflow_kind dfk, dataflow_type dft>
+    // void eater<dfk, dft>::hello(){}
 
-    void channel_eater::hello(){}
+    // template<dataflow_kind dfk, dataflow_type dft>
+    // void feeder_block_expression<dfk, dft>::hello(){}
 
-    void channel_feeder::hello(){}
+    // void channel_eater::hello(){}
 
-    template<dataflow_kind dfk, dataflow_type dft>
-    void collective_cast<dfk, dft>::hello(){}
+    // void channel_feeder::hello(){}
+
+    // template<dataflow_kind dfk, dataflow_type dft>
+    // void collective_cast<dfk, dft>::hello(){}
+    // ------------------------------------------------------
 
 }
 

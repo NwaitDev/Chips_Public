@@ -8,8 +8,6 @@
 #include "Interpreter.hpp"
 
 #include "sources/forward_declarations.hpp"
-#include "sources/ASTBuilder.hpp"
-#include "sources/ast_lrxvalues.hpp"
 
 
 #include "sources/ChipsToXmiVisitor.hpp"
@@ -57,70 +55,12 @@ void run(std::istream& input, Interpreter& /*interp*/) {
     auto* tree = parser.program();   // parse
     ASTBuilder builder;
 
-    // std::string output = "output.xmi";
 
-    // std::cout << "Génération XMI: " << output << std::endl;
-
-    // std::ostringstream body_out;
-    // ChipsToXmiWriter body_writer(body_out);
-    // ChipsToXmiVisitor visitor(body_writer, body_out);
-
-    // std::cout << "Nb expr: " << tree->expr().size() << std::endl;
 
     std::any result = builder.visit(tree);
-
-    // extract_as_node dispatche sur tous les types concrets connus
-    // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template
-    std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
-
-    if(rootPtr){
-        // int status;
-        // const std::type_info& ti = typeid(*rootPtr);
-        // char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
-        // std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
-        // free(realname);
-
-        rootPtr->hello();
-    } else {
-        std::cout << "no" << std::endl;
-    }
-
-    // for(auto* stmt : tree->expr()){
-    //     std::any result = builder.visit(stmt);
-    //     ast_node* rootPtr = std::any_cast<ast_node>(&result);
-
-    //     if(rootPtr){
-    //         int status;
-    //         const std::type_info& ti = typeid(*rootPtr);
-    //         char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
-    //         std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
-    //         free(realname);
-    //     }else{
-    //         std::cout << "no" << std::endl;
-    //     }
-
-    //     if(auto INT = dynamic_cast<chips::direct<chips::dataflow_type::INT, chips::expression_env::PRIMITIVE>*>(rootPtr)){
-    //         std::cout << "ENTIER" << std::endl;
-    //         INT->hello();
-    //     }
-    //     // ast_node& root = *rootPtr;
-
-    //     // root.accept(visitor);
-
-    //     // std::ofstream out(output);
-
-    //     // ChipsToXmiWriter writer(out);
-    //     // writer.copy_namespaces_from(body_writer);
-    //     // writer.xmi_header("error");
-    //     // out << body_out.str();
-    //     // writer.xmi_footer();
-
-    //     // out.close();
-    //     // std::cout << "XMI généré: " << output << std::endl;
-    // }
+    std::any_cast<program_node>(result).hello();
 
 
-    // interp.visit(tree);              // évalue
 }
 
 // ── REPL (Read-Eval-Print Loop) ───────────────────────────────

@@ -2,12 +2,11 @@
 
 all: chipsc
 
-SRCS := sources/ast_base.hpp sources/ast_definitions.hpp sources/ast_inoutputs.hpp sources/ast_lrxvalues.hpp sources/ast_program.hpp sources/ast_statements.hpp sources/ast_system_specific.hpp sources/ast_variables.hpp sources/ASTBuilder.hpp sources/chips_headers.hpp sources/chips_node_print.cpp sources/ChipsToXmiVisitor.cpp sources/ChipsToXmiVisitor.hpp sources/ChipsToXmiWriter.cpp sources/ChipsToXmiWriter.hpp sources/forward_declarations.hpp sources/meta_type_conversions.hpp sources/metamodel_enums.hpp
+SRCS := sources/ast_base.hpp sources/ast_definitions.hpp sources/ast_inoutputs.hpp sources/ast_lrxvalues.hpp sources/ast_program.hpp sources/ast_statements.hpp sources/ast_system_specific.hpp sources/ast_variables.hpp sources/ASTBuilder.hpp sources/chips_node_print.cpp sources/ChipsToXmiVisitor.cpp sources/ChipsToXmiVisitor.hpp sources/ChipsToXmiWriter.cpp sources/ChipsToXmiWriter.hpp sources/meta_type_conversions.hpp sources/metamodel_enums.hpp sources/chips_headers.hpp
 
 chipsc: generate.sh $(SRCS)
 	./generate.sh
-	cd build ; make
-
+	cd build ; make 2> debug.log
 quicktest: quick.chips
 	./build/chipsc quick.chips
 
