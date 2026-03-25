@@ -13,6 +13,10 @@ namespace chips {
      */
     template<expression_env expenv> 
     class array : public ast_node{
+
+        public:
+
+            void accept(visitor& v) { v.visit(*this); }
         // something is missing, check the metamodel once it is corrected
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };

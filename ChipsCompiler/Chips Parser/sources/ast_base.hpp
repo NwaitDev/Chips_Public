@@ -122,46 +122,83 @@ namespace chips
         // template<dataflow_type dft, expression_env expenv>
         // void visit(lvalue<dft,expenv>& node);
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(rvalue<dft,expenv>& node);
+        // void visit(rvalue<dft,expenv>& node){
+        //     std::cerr << "ast_base rvalue" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // virtual void visit(system_iterable& node) = 0;
-        template <dataflow_type dft, expression_env expenv>
-        void visit(direct<dft, expenv> &node)
-        {
-            // Implémentation par défault : délègue à visit(ast_node&)
-            visit(static_cast<ast_node &>(node));
-        }
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(direct<dft, expenv>& node){
+        //     std::cerr << "ast_base direct" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
         // void visit(function<dft, expenv>& node);
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(plus<dft, expenv>& node);
+        // void visit(plus<dft, expenv>& node){
+        //     std::cerr << "ast_base plus" << std::endl;
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(minus<dft, expenv>& node);
+        // void visit(minus<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(mult<dft, expenv>& node);
+        // void visit(uminus_operator<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(div<dft, expenv>& node);
+        // void visit(mult<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
+        // template<dataflow_type dft, expression_env expenv>
+        // void visit(div<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv>
-        // void visit(mod<expenv>& node);
+        // void visit(mod<expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(cast_as<dft, expenv>& node);
+        // void visit(cast_as<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv, dataflow_type dft>
-        // void visit(gt<expenv, dft>& node);
+        // void visit(gt<expenv, dft>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv, dataflow_type dft>
-        // void visit(lt<expenv, dft>& node);
+        // void visit(lt<expenv, dft>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv, dataflow_type dft>
-        // void visit(geq<expenv, dft>& node);
+        // void visit(geq<expenv, dft>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv, dataflow_type dft>
-        // void visit(leq<expenv, dft>& node);
+        // void visit(leq<expenv, dft>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv>
-        // void visit(or_operator<expenv>& node);
+        // void visit(or_operator<expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv>
-        // void visit(and_operator<expenv>& node);
+        // void visit(and_operator<expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<expression_env expenv>
-        // void visit(not_operator<expenv>& node);
+        // void visit(not_operator<expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(eq<dft, expenv>& node);
+        // void visit(eq<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
-        // void visit(neq<dft, expenv>& node);
+        // void visit(neq<dft, expenv>& node){
+        //     visit(static_cast<ast_node&>(node));
+        // }
         // template<dataflow_type dft, expression_env expenv>
         // void visit(variable_expression<dft, expenv>& node);
         // template<dataflow_kind dfk, dataflow_type dft>

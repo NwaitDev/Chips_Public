@@ -4,6 +4,8 @@
 #include "ChipsBaseVisitor.h"
 #include "ast_base.hpp"
 #include "ast_lrxvalues.hpp"
+#include "ast_statements.hpp"
+#include "ast_variables.hpp"
 
 #include <any>
 #include <memory>
@@ -40,31 +42,38 @@ namespace ast_builder_detail {
 
         // extraction des opérateurs où les opérandes ne sont que des numériques
         if constexpr(DFT != dataflow_type::BOOL){
-            std::cout << "DFT != BOOL -> true" << std::endl;
+            // std::cout << "DFT != BOOL -> true" << std::endl;
             if(auto* p = std::any_cast<std::shared_ptr<direct<DFT,EXPENV>>>(&a)){
-                std::cout << "direct" << std::endl;
+                // std::cout << "direct" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
             if(auto* p = std::any_cast<std::shared_ptr<plus<DFT,EXPENV>>>(&a)){
-                std::cout << "plus" << std::endl;
+                // std::cout << "plus" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
             if(auto* p = std::any_cast<std::shared_ptr<minus<DFT,EXPENV>>>(&a)){
-                std::cout << "minus" << std::endl;
+                // std::cout << "minus" << std::endl;
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            }
+            if(auto* p = std::any_cast<std::shared_ptr<uminus_operator<DFT,EXPENV>>>(&a)){
+                // std::cout << "uminus" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
             if(auto* p = std::any_cast<std::shared_ptr<mult<DFT,EXPENV>>>(&a)){
-                std::cout << "mult" << std::endl;
+                // std::cout << "mult" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
             if(auto* p = std::any_cast<std::shared_ptr<chips::div<DFT,EXPENV>>>(&a)){
-                std::cout << "div" << std::endl;
+                // std::cout << "div" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
 
+            if(auto* p = std::any_cast<std::shared_ptr<cast_as<DFT,EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
             if constexpr(DFT == dataflow_type::INT)
                 if(auto* p = std::any_cast<std::shared_ptr<mod<EXPENV>>>(&a)){
-                    std::cout << "mod" << std::endl;
+                    // std::cout << "mod" << std::endl;
                     return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
                 }
         }
@@ -93,12 +102,35 @@ namespace ast_builder_detail {
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             if(auto* p = std::any_cast<std::shared_ptr<geq<EXPENV, dataflow_type::FLOAT>>>(&a))
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
+            if(auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::INT, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if(auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::FLOAT, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if(auto* p = std::any_cast<std::shared_ptr<eq<dataflow_type::BOOL, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
+            if(auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::INT, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if(auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::FLOAT, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if(auto* p = std::any_cast<std::shared_ptr<neq<dataflow_type::BOOL, EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
+            if(auto* p = std::any_cast<std::shared_ptr<and_operator<EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
+            if(auto* p = std::any_cast<std::shared_ptr<or_operator<EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+
+            if(auto* p = std::any_cast<std::shared_ptr<not_operator<EXPENV>>>(&a))
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
         }
 
         
 
         // Fallback : le any contient déjà shared_ptr<rvalue<DFT,EXPENV>>
-        std::cout << "before any_cast of try_extract fallback" << std::endl;
+        // std::cout << "before any_cast of try_extract fallback" << std::endl;
         if (auto* p = std::any_cast<std::shared_ptr<rvalue<DFT,EXPENV>>>(&a))
             return *p;
         return nullptr;
@@ -119,7 +151,7 @@ namespace ast_builder_detail {
     // SYSTEM exclu : rvalue<dft,SYSTEM> hérite de feeder<LOGICAL,dft> qui est
     //   incomplet ici (défini dans ast_system_specific.hpp, non inclus par ASTBuilder).
     inline std::shared_ptr<ast_node> extract_as_node(const std::any& a) {
-        std::cout << "extract_as_node()" << std::endl;
+        // std::cout << "extract_as_node()" << std::endl;
         if(!a.has_value())
             return nullptr;
 
@@ -139,6 +171,23 @@ namespace ast_builder_detail {
 
         #undef TRY_UPCAST
 
+        // dataflow_declaration DEFINITION
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+
         throw std::runtime_error(
             "extract_as_node : type inconnu dans le std::any : "
             + type_name(a.type())
@@ -155,14 +204,13 @@ namespace ast_builder_detail {
     //      → échec  : erreur de type (les deux opérandes doivent être identiques)
     //   3. Si left ne correspond pas : combinaison suivante
     //
-    // BOOL et SYSTEM exclus pour les mêmes raisons que extract_as_node.
     template<template<dataflow_type, expression_env> class Builder>
     std::any dispatch_numeric_binary(
         const std::any& left_any,
         const std::any& right_any,
         const char* op_name)
     {
-        std::cout << "dispatch_numeric_binary()" << std::endl;
+        // std::cout << "dispatch_numeric_binary()" << std::endl;
         #define TRY_BINARY(DFT, EXPENV)                                         \
         {                                                                        \
             auto l = try_extract<DFT, EXPENV>(left_any);                        \
@@ -194,13 +242,16 @@ namespace ast_builder_detail {
     }
 
     template<template<dataflow_type, expression_env> class Builder>
-    std::any dispatch_numeric_unary(
+    std::any dispatch_boolean_binary(
+        const std::any& left_any,
         const std::any& right_any,
-        const char* op_name){
-            std::cout << "dispatch_numeric_unary()" << std::endl;
-            std::cout << type_name(right_any.type()) << std::endl;
-            #define TRY_UNARY(DFT, EXPENV)                                         \
-            {                                                                        \
+        const char* op_name)
+    {
+        // std::cout << "dispatch_numeric_binary()" << std::endl;
+        #define TRY_BINARY(DFT, EXPENV)                                         \
+        {                                                                        \
+            auto l = try_extract<DFT, EXPENV>(left_any);                        \
+            if (l) {                                                             \
                 auto r = try_extract<DFT, EXPENV>(right_any);                   \
                 if (!r) {                                                        \
                     throw std::runtime_error(                                    \
@@ -209,8 +260,72 @@ namespace ast_builder_detail {
                         "Les deux operandes doivent avoir le meme type. "       \
                         "Utilisez cast_as pour convertir explicitement.");       \
                 }                                                                \
-                return Builder<DFT, EXPENV>::build(std::move(r)); \
+                return Builder<DFT, EXPENV>::build(std::move(l), std::move(r)); \
+            }                                                                    \
+        }
+
+        TRY_BINARY(dataflow_type::BOOL,   expression_env::PRIMITIVE)
+        TRY_BINARY(dataflow_type::BOOL, expression_env::COLLECTIVE)
+        TRY_BINARY(dataflow_type::BOOL, expression_env::SYSTEM)
+
+        #undef TRY_BINARY
+
+        throw std::runtime_error(
+            std::string(op_name) + " : type non valide pour un operateur numerique "
+            "(BOOL non supporte, seuls INT et FLOAT sont valides).");
+    }
+
+    template<template<dataflow_type, expression_env> class Builder>
+    std::any dispatch_binary(
+        const std::any& left_any,
+        const std::any& right_any,
+        const char* op_name){
+            // std::cout << "dispatch_numeric_binary()" << std::endl;
+            #define TRY_BINARY(DFT, EXPENV)                                         \
+            {                                                                        \
+                auto l = try_extract<DFT, EXPENV>(left_any);                        \
+                if (l) {                                                             \
+                    auto r = try_extract<DFT, EXPENV>(right_any);                   \
+                    if (!r) {                                                        \
+                        throw std::runtime_error(                                    \
+                            std::string(op_name) + " : erreur de type — "           \
+                            "operande gauche et droit incompatibles. "              \
+                            "Les deux operandes doivent avoir le meme type. "       \
+                            "Utilisez cast_as pour convertir explicitement.");       \
+                    }                                                                \
+                    return Builder<DFT, EXPENV>::build(std::move(l), std::move(r)); \
+                }                                                                    \
             }
+
+            TRY_BINARY(dataflow_type::INT,   expression_env::PRIMITIVE)
+            TRY_BINARY(dataflow_type::FLOAT, expression_env::PRIMITIVE)
+            TRY_BINARY(dataflow_type::BOOL, expression_env::PRIMITIVE)
+            TRY_BINARY(dataflow_type::INT, expression_env::COLLECTIVE)
+            TRY_BINARY(dataflow_type::FLOAT, expression_env::COLLECTIVE)
+            TRY_BINARY(dataflow_type::BOOL, expression_env::COLLECTIVE)
+            TRY_BINARY(dataflow_type::INT, expression_env::SYSTEM)
+            TRY_BINARY(dataflow_type::FLOAT, expression_env::SYSTEM)
+            TRY_BINARY(dataflow_type::BOOL, expression_env::SYSTEM)
+
+            #undef TRY_BINARY
+
+            throw std::runtime_error(
+                std::string(op_name) + " : type non valide pour un operateur comparaison.");
+        }
+
+    template<template<dataflow_type, expression_env> class Builder>
+    std::any dispatch_numeric_unary(
+        const std::any& right_any,
+        const char* op_name){
+            // std::cout << "dispatch_numeric_unary()" << std::endl;
+            // std::cout << type_name(right_any.type()) << std::endl;
+            #define TRY_UNARY(DFT, EXPENV)                                         \
+            {                                                                        \
+                auto r = try_extract<DFT, EXPENV>(right_any);                   \
+                if (r) {                                                        \
+                    return Builder<DFT, EXPENV>::build(std::move(r)); \
+                }                                                                \
+            }                                                                   \
 
             TRY_UNARY(dataflow_type::INT,   expression_env::PRIMITIVE)
             TRY_UNARY(dataflow_type::FLOAT, expression_env::PRIMITIVE)
@@ -226,6 +341,30 @@ namespace ast_builder_detail {
                 "(BOOL non supporte, seuls INT et FLOAT sont valides).");
         }
 
+    template<template<dataflow_type, expression_env> class Builder>
+    std::any dispatch_boolean_unary(
+        const std::any& right_any,
+        const char* op_name){
+            // std::cout << "dispatch_numeric_unary()" << std::endl;
+            // std::cout << type_name(right_any.type()) << std::endl;
+            #define TRY_UNARY(DFT, EXPENV)                                         \
+            {                                                                        \
+                auto r = try_extract<DFT, EXPENV>(right_any);                   \
+                if (r) {                                                        \
+                    return Builder<DFT, EXPENV>::build(std::move(r)); \
+                }                                                                \
+            }                                                                   \
+
+            TRY_UNARY(dataflow_type::BOOL,   expression_env::PRIMITIVE)
+            TRY_UNARY(dataflow_type::BOOL, expression_env::COLLECTIVE)
+            TRY_UNARY(dataflow_type::BOOL, expression_env::SYSTEM)
+
+            #undef TRY_UNARY
+
+            throw std::runtime_error(
+                std::string(op_name) + " : type non valide pour un operateur comparaison unaire.");
+        }
+
     // ── Builders par opérateur ────────────────────────────────────────────────
     // Pour ajouter un opérateur : écrire un Builder + un visiteur d'une ligne.
 
@@ -235,7 +374,7 @@ namespace ast_builder_detail {
             std::shared_ptr<rvalue<DFT,EXPENV>> l,
             std::shared_ptr<rvalue<DFT,EXPENV>> r)
         {
-            std::cout << "PlusBuilder.build()" << std::endl;
+            // std::cout << "PlusBuilder.build()" << std::endl;
             return std::make_shared<plus<DFT,EXPENV>>(std::move(l), std::move(r));
         }
     };
@@ -253,17 +392,8 @@ namespace ast_builder_detail {
     template<dataflow_type DFT, expression_env EXPENV>
     struct NegateBuilder {
         static std::any build(std::shared_ptr<rvalue<DFT,EXPENV>> r){
-            std::cout << "negateBuilder()" << std::endl;
-            if constexpr(DFT == dataflow_type::FLOAT){
-                auto zero = std::make_shared<direct<DFT,EXPENV>>(0.0);
-                return std::make_shared<minus<DFT,EXPENV>>(std::move(zero), std::move(r));
-            }
-            if constexpr(DFT == dataflow_type::INT){
-                auto zero = std::make_shared<direct<DFT,EXPENV>>(0);
-                return std::make_shared<minus<DFT,EXPENV>>(std::move(zero), std::move(r));
-            }
-            auto zero = std::make_shared<direct<DFT,EXPENV>>(0);
-            return std::make_shared<minus<DFT,EXPENV>>(std::move(zero), std::move(r));
+            // std::cout << "negateBuilder()" << std::endl;
+            return std::make_shared<uminus_operator<DFT,EXPENV>>(std::move(r));
         }
     };
 
@@ -340,9 +470,70 @@ namespace ast_builder_detail {
         }
     };
 
+    template<dataflow_type DFT, expression_env EXPENV>
+    struct EQBuilder {
+        static std::any build(
+            std::shared_ptr<rvalue<DFT,EXPENV>> l,
+            std::shared_ptr<rvalue<DFT,EXPENV>> r)
+        {
+            return std::make_shared<eq<DFT,EXPENV>>(std::move(l), std::move(r));
+        }
+    };
+
+    template<dataflow_type DFT, expression_env EXPENV>
+    struct NEQBuilder {
+        static std::any build(
+            std::shared_ptr<rvalue<DFT,EXPENV>> l,
+            std::shared_ptr<rvalue<DFT,EXPENV>> r)
+        {
+            return std::make_shared<neq<DFT,EXPENV>>(std::move(l), std::move(r));
+        }
+    };
+
+    template<dataflow_type DFT, expression_env EXPENV>
+    struct ANDBuilder {
+        static std::any build(
+            std::shared_ptr<rvalue<DFT,EXPENV>> l,
+            std::shared_ptr<rvalue<DFT,EXPENV>> r)
+        {
+            return std::make_shared<and_operator<EXPENV>>(std::move(l), std::move(r));
+        }
+    };
+
+    template<dataflow_type DFT, expression_env EXPENV>
+    struct ORBuilder {
+        static std::any build(
+            std::shared_ptr<rvalue<DFT,EXPENV>> l,
+            std::shared_ptr<rvalue<DFT,EXPENV>> r)
+        {
+            return std::make_shared<or_operator<EXPENV>>(std::move(l), std::move(r));
+        }
+    };
+
+    template<dataflow_type DFT, expression_env EXPENV>
+    struct NOTBuilder {
+        static std::any build(
+            std::shared_ptr<rvalue<DFT,EXPENV>> o)
+        {
+            return std::make_shared<not_operator<EXPENV>>(std::move(o));
+        }
+    };
+
 } // namespace ast_builder_detail
 
 class ASTBuilder : public ChipsBaseVisitor {
+    private:
+        template<dataflow_type dft>
+        struct VarDeclPair {
+            std::unique_ptr<dataflow_primitive_variable<dft>> var;
+            dataflow_declaration<dft, statement_env::DEFINITION> decl;
+            VarDeclPair(std::string name){
+                    var = std::make_unique<dataflow_primitive_variable<dft>>(name, decl);
+                    decl.set_variable(var);
+                }
+        };
+
+
     public:
 
     // Fonction pour tester
@@ -358,113 +549,38 @@ class ASTBuilder : public ChipsBaseVisitor {
     }
 
     std::any visitLEQ(ChipsParser::LEQContext* ctx) override {
-        // INT
-        auto left_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_int && right_int)
-            return std::make_shared<leq<expression_env::PRIMITIVE, dataflow_type::INT>>(left_int, right_int);
-
-        // FLOAT
-        auto left_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_float && right_float)
-            return std::make_shared<leq<expression_env::PRIMITIVE, dataflow_type::FLOAT>>(left_float, right_float);
-
-        throw std::runtime_error("LEQ : opérandes doivent être INT ou FLOAT (même type)");
+       return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LEQBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "LEQ");
     }
 
     std::any visitGT(ChipsParser::GTContext* ctx) override {
-        // INT
-        auto left_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_int && right_int)
-            return std::make_shared<gt<expression_env::PRIMITIVE, dataflow_type::INT>>(left_int, right_int);
-
-        // FLOAT
-        auto left_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_float && right_float)
-            return std::make_shared<gt<expression_env::PRIMITIVE, dataflow_type::FLOAT>>(left_float, right_float);
-
-        throw std::runtime_error("GT : opérandes doivent être INT ou FLOAT (même type)");
+        return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GTBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "GT");
     }
 
     std::any visitGEQ(ChipsParser::GEQContext* ctx) override {
-        // INT
-        auto left_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_int && right_int)
-            return std::make_shared<geq<expression_env::PRIMITIVE, dataflow_type::INT>>(left_int, right_int);
-
-        // FLOAT
-        auto left_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if (left_float && right_float)
-            return std::make_shared<geq<expression_env::PRIMITIVE, dataflow_type::FLOAT>>(left_float, right_float);
-
-        throw std::runtime_error("GEQ : opérandes doivent être INT ou FLOAT (même type)");
+        return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GEQBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "GEQ");
     }
 
     std::any visitEQ(ChipsParser::EQContext* ctx) override {
-        // INT
-        auto left_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_int && right_int)
-            return std::make_shared<eq<dataflow_type::INT, expression_env::PRIMITIVE>>(left_int, right_int);
-
-        // FLOAT
-        auto left_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_float && right_float)
-            return std::make_shared<eq<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(left_float, right_float);
-
-        // BOOL
-        auto left_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_bool && right_bool)
-            return std::make_shared<eq<dataflow_type::BOOL, expression_env::PRIMITIVE>>(left_bool, right_bool);
-
-        throw std::runtime_error("EQ : opérandes doivent être INT, FLOAT ou  BOOL (même type)");
+        return ast_builder_detail::dispatch_binary<ast_builder_detail::EQBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "EQ");
     }
 
     std::any visitNEQ(ChipsParser::NEQContext* ctx) override {
-        // INT
-        auto left_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_int = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_int && right_int)
-            return std::make_shared<neq<dataflow_type::INT, expression_env::PRIMITIVE>>(left_int, right_int);
-
-        // FLOAT
-        auto left_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_float = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_float && right_float)
-            return std::make_shared<neq<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(left_float, right_float);
-
-        // BOOL
-        auto left_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_bool && right_bool)
-            return std::make_shared<neq<dataflow_type::BOOL, expression_env::PRIMITIVE>>(left_bool, right_bool);
-
-        throw std::runtime_error("NEQ : opérandes doivent être INT, FLOAT ou  BOOL (même type)");
+        return ast_builder_detail::dispatch_binary<ast_builder_detail::NEQBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "NEQ");
     }
 
     std::any visitAND(ChipsParser::ANDContext* ctx) override {
-        auto left_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_bool && right_bool)
-            return std::make_shared<and_operator<expression_env::PRIMITIVE>>(left_bool, right_bool);
-
-        throw std::runtime_error("AND : opérandes doivent être BOOL (même type)");
+        return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "AND");
     }
 
     std::any visitOR(ChipsParser::ORContext* ctx) override {
-        auto left_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr0()));
-        auto right_bool = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(visit(ctx->expr()));
-        if(left_bool && right_bool)
-            return std::make_shared<or_operator<expression_env::PRIMITIVE>>(left_bool, right_bool);
-
-        throw std::runtime_error("OR : opérandes doivent être BOOL (même type)");
+        return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
+            visit(ctx->expr0()), visit(ctx->expr()), "OR");
     }
 
 
@@ -480,7 +596,6 @@ class ASTBuilder : public ChipsBaseVisitor {
     }
 
     std::any visitNegate(ChipsParser::NegateContext* ctx) override {
-        std::cout << "visitNegate" << std::endl;
         return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
             visit(ctx->expr1()), "Negate");
     }
@@ -497,22 +612,41 @@ class ASTBuilder : public ChipsBaseVisitor {
     }
 
     std::any visitMOD(ChipsParser::MODContext* ctx) override {
-        auto left = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr2()));
-        auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr1()));
-        if (!left || !right) {
-            throw std::runtime_error("MOD : opérandes doivent être des entiers (INT/PRIMITIVE)");
+        
+        auto left_prim = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr2()));
+        auto right_prim = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr1()));
+        if (left_prim && right_prim) {
+            return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::PRIMITIVE>::build(left_prim, right_prim);   
         }
-        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::PRIMITIVE>::build(left, right);
+
+        auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr2()));
+        auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr1()));
+        if(left_collect && right_collect){
+            return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
+        }
+
+        auto left_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr2()));
+        auto right_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr1()));
+        if(left_system && right_system){
+            return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::SYSTEM>::build(left_system, right_system);
+        }
+
+        throw std::runtime_error("MOD : opérandes doivent être des entiers (INT)");
+    }
+
+    std::any visitNOT(ChipsParser::NOTContext* ctx) override {
+        return ast_builder_detail::dispatch_boolean_unary<ast_builder_detail::NOTBuilder>(
+            visit(ctx->expr2()), "NOT");
     }
 
     // atom
     std::any visitIntLiteral(ChipsParser::IntLiteralContext *ctx) override {
-        std::cout << "visitIntLit()" << std::endl;
+        // std::cout << "visitIntLit()" << std::endl;
         return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(std::stoll(ctx->INT()->getText()));
     }
 
     std::any visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx) override {
-        std::cout << "visitFloatLit()" << std::endl;
+        // std::cout << "visitFloatLit()" << std::endl;
         return std::make_shared<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(std::stod(ctx->FLOAT()->getText()));
     }
 
@@ -534,6 +668,176 @@ class ASTBuilder : public ChipsBaseVisitor {
             v->set_parenthesage(true);
 
         return result;
+    }
+
+    // std::any visitVar(ChipsParser::VarContext *ctx) override {
+    // }
+
+    // std::any visitVarContext(ChipsParser::VarContext *ctx) override {
+
+    // }
+
+    std::any visitCastAs(ChipsParser::CastAsContext* ctx) override {
+        // std::cout << "visitCastAs()" << std::endl;
+        return visit(ctx->cast());
+    }
+
+    std::any handle_cast(dataflow_type target, std::any operand_any) {
+        // PRIMITIVE
+        switch(target) {
+            case dataflow_type::INT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+                break;
+            case dataflow_type::FLOAT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+                break;
+            default:
+                break;
+        }
+        // COLLECTIVE
+        switch(target) {
+            case dataflow_type::INT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+                break;
+            case dataflow_type::FLOAT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+                break;
+            default:
+                break;
+        }
+        // SYSTEM
+        switch(target) {
+            case dataflow_type::INT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+                break;
+            case dataflow_type::FLOAT:
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+                if(auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
+                    return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
+                        std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+                break;
+            default:
+                break;
+        }
+        throw std::runtime_error("cast_as : seuls les casts numériques INT↔FLOAT sont supportés.");
+    }
+
+    std::any visitCast(ChipsParser::CastContext* ctx) override {
+        // std::cout << "visitCast()" << std::endl;
+
+        // Type
+        dataflow_type target = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+
+        // Operande
+        std::any operand_any = visit(ctx->expr());
+
+       return handle_cast(target, operand_any);
+    }
+
+    // Type primitif
+    std::any visitIntType(ChipsParser::IntTypeContext* /*ctx*/) override {
+        return dataflow_type::INT;
+    }
+
+    std::any visitFloatType(ChipsParser::FloatTypeContext* /*ctx*/) override {
+        return dataflow_type::FLOAT;
+    }
+
+    std::any visitBoolType(ChipsParser::BoolTypeContext* /*ctx*/) override {
+        return dataflow_type::BOOL;
+    }
+
+    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx) override {
+        //TODO: Implémenter
+        return std::any{};
+    }
+
+    /**
+     * STATEMENT
+     */
+    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier){
+        switch(type){
+            case dataflow_type::INT: {
+                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+            case dataflow_type::FLOAT: {
+                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+            case dataflow_type::BOOL: {
+                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+        }
+    }
+
+    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx) override {
+        std::cout << "visitStatementDeclaration()" << std::endl;
+
+        dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+        std::any suffixes = visit(ctx->suffixes());
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        std::any assign = visit(ctx->may_assign());
+
+        if(!assign.has_value()){
+            std::cout << "ASSIGN VIDE" << std::endl;
+            return handle_statement_declaration(type_any, suffixes, var_name);
+        }
+        return std::any{};        
+    }
+
+    // std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext* ctx) override {
+    //     return std::any{};
+    // }   
+
+    // std::any visitStatementContextualAssignment(ChipsParser::StatementContextualAssignment* ctx) override {
+
+    // }
+
+    std::any visitMay_assign(ChipsParser::May_assignContext *ctx) override {
+        // std::cout << "visitMay_assign()" << std::endl;
+
+        if(ctx->expr() != nullptr){
+            return visit(ctx->expr());
+        }
+        return std::any{};
     }
 
     // pass to children

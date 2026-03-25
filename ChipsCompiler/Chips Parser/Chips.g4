@@ -124,7 +124,7 @@ expr1
     : expr2 TIMES expr1     # MULT
     | expr2 DIV expr1       # DIV
     | expr2 MOD expr1       # MOD
-    | NOT expr2             # NNegateOT
+    | NOT expr2             # NOT
     | expr2                 # PassExpr2
     ;
 
@@ -271,12 +271,12 @@ c_if_statement
     ;
 
 statement
-    : df_type suffixes IDENTIFIER (ASSIGN expr)? SEMICOL
-    | IDENTIFIER suffixes ASSIGN expr SEMICOL
-    | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL
-    | loop_statement
-    | if_else_statement
-    | if_statement
+    : df_type suffixes IDENTIFIER (ASSIGN expr)? SEMICOL    # StatementDeclaration
+    | IDENTIFIER suffixes ASSIGN expr SEMICOL               # StatementAssignment
+    | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL # StatementContextualAssignment
+    | loop_statement                                        # StatementLoop
+    | if_else_statement                                     # StatementIfElse
+    | if_statement                                          # StatementIf
     ;
 
 s_statement

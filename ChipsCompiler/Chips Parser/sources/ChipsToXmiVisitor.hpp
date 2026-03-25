@@ -12,6 +12,9 @@
 #include <vector>
 #include <string>
 
+#include <typeinfo>
+#include <cxxabi.h>
+
 using namespace chips;
 
 /// @brief Complete XMI Visitor - implements ALL chips::visitor methods
@@ -21,8 +24,43 @@ class ChipsToXmiVisitor : public visitor{
         : m_writer(writer), m_out(out), m_current_ast_path("/"){}
 
         template<dataflow_type dft, expression_env expenv>
+        void visit(rvalue<dft,expenv>& node);
+
+        template<dataflow_type dft, expression_env expenv>
         void visit(direct<dft, expenv>& node);
 
+        template<dataflow_type dft, expression_env expenv>
+        void visit(plus<dft,expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(minus<dft,expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(uminus_operator<dft, expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(mult<dft,expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(chips::div<dft,expenv>& node);
+        template<expression_env expenv>
+        void visit(mod<expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(cast_as<dft,expenv>& node);
+        template<expression_env expenv, dataflow_type dft>
+        void visit(gt<expenv,dft>& node);
+        template<expression_env expenv, dataflow_type dft>
+        void visit(lt<expenv,dft>& node);
+        template<expression_env expenv, dataflow_type dft>
+        void visit(leq<expenv,dft>& node);
+        template<expression_env expenv, dataflow_type dft>
+        void visit(geq<expenv,dft>& node);
+        template<expression_env expenv>
+        void visit(or_operator<expenv>& node);
+        template<expression_env expenv>
+        void visit(and_operator<expenv>& node);
+        template<expression_env expenv>
+        void visit(not_operator<expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(eq<dft,expenv>& node);
+        template<dataflow_type dft, expression_env expenv>
+        void visit(neq<dft,expenv>& node);
 
         void visit(ast_node& node) override;
 
@@ -170,6 +208,152 @@ class ChipsToXmiVisitor : public visitor{
         
         // Get xsi:type for system declaration based on definition type (physical->physical_declaration, etc.)
         std::string get_declaration_type_from_definition(const std::string &definition_type);
+
+        template<dataflow_type dft, expression_env expenv>
+        void arithmetic_visit(rvalue<dft, expenv>& node){
+            if(auto* dir = dynamic_cast<direct<dft,expenv>*>(&node)){
+                visit(*dir);
+            }else if(auto* pl = dynamic_cast<plus<dft,expenv>*>(&node)){
+                visit(*pl); 
+            }else if(auto* min = dynamic_cast<minus<dft,expenv>*>(&node)){
+                visit(*min);
+            }else if(auto* min = dynamic_cast<uminus_operator<dft,expenv>*>(&node)){
+                visit(*min);
+            }else if(auto* mu = dynamic_cast<mult<dft,expenv>*>(&node)){
+                visit(*mu); 
+            }else if(auto* di = dynamic_cast<chips::div<dft,expenv>*>(&node)){
+                visit(*di); 
+            }else if(auto* mo = dynamic_cast<mod<expenv>*>(&node)){
+                visit(*mo); 
+            }else if(auto* cast = dynamic_cast<cast_as<dft, expenv>*>(&node)){
+                visit(*cast);
+            }
+        }
+
+        template<dataflow_type dft, expression_env expenv>
+        void binary_boolean_visit(rvalue<dft,expenv>& node){
+            if(auto* p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::INT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::FLOAT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::BOOL, expenv>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::INT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::FLOAT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::BOOL, expenv>*>(&node)){
+                visit(*p);
+
+            }else if(auto* p = dynamic_cast<direct<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<direct<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<direct<dataflow_type::BOOL,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<direct<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<plus<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<plus<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<minus<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<minus<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<uminus_operator<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<uminus_operator<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<mult<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<mult<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<mod<expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<chips::div<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<chips::div<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<cast_as<dataflow_type::INT,expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<cast_as<dataflow_type::FLOAT,expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::INT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::FLOAT>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::INT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::FLOAT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<eq<dataflow_type::BOOL, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::INT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::FLOAT, expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<neq<dataflow_type::BOOL, expenv>*>(&node)){
+                visit(*p);
+            }
+
+            else if(auto* p = dynamic_cast<and_operator<expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<or_operator<expenv>*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<not_operator<expenv>*>(&node)){
+                visit(*p);
+            }
+        }
 
         // Members
         ChipsToXmiWriter &m_writer;

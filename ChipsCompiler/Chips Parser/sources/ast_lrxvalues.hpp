@@ -380,8 +380,12 @@ namespace chips{
         std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>> operand;
 
         public:
+            not_operator(std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>> operand)
+                : operand(std::move(operand)){}
 
-            //void accept(visitor& v) { v.visit(*this); }
+            rvalue<dataflow_type::BOOL, expenv>* get_lhs() { return operand.get(); }
+
+            void accept(visitor& v) { v.visit(*this); }
             void hello();
     };
 
@@ -397,8 +401,12 @@ namespace chips{
         std::shared_ptr<operand_type> operand;
 
         public:
+            uminus_operator(std::shared_ptr<operand_type> operand)
+                : operand(std::move(operand)){}
 
-            //void accept(visitor& v) { v.visit(*this); }
+            operand_type* get_rhs() { return operand.get(); }
+
+            void accept(visitor& v) { v.visit(*this); }
             void hello();
     };
 
@@ -458,12 +466,29 @@ namespace chips{
     class variable_expression : rvalue<dft,expenv>, lvalue<dft,expenv>
     {
     private:
-        variable<expenv>& m_variable;
-        std::shared_ptr<rvalue<dataflow_type::INT, expenv>> index;
+        // variable<expenv>& m_variable;
+        std::shared_ptr<variable<expenv>> m_variable;
+        std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index;
         
         public:
+            variable_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
+                : m_variable(std::move(variable)), index(std::move(index)){}
 
-            //void accept(visitor& v) { v.visit(*this); }
+            variable<expenv>* get_variable() { return m_variable.get(); }
+            std::vector<rvalue<dataflow_type::INT, expenv>>* get_index() { return index.get(); }
+
+            void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
+    };
+
+    template<dataflow_type dft, expression_env expenv>
+    class variable_contextual_expression : public variable_expression<dft, expenv>{
+        public:
+            variable_contextual_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
+                : variable_expression<dft, expenv>(variable, index){}
+
+
+            void accept(visitor& v) { v.visit(*this); }
             void hello();
     };
 }
