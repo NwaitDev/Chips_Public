@@ -13,6 +13,14 @@
 #include <typeinfo>
 
 namespace chips {
+    std::string dft_to_string(dataflow_type type){
+        switch(type){
+            case dataflow_type::INT: return "int";
+            case dataflow_type::FLOAT: return "float";
+            case dataflow_type::BOOL: return "bool";
+        }
+    }
+
     void program_node::hello(){
         std::cout << m_filename << std::endl;
         // if(get_preamble()){
@@ -42,11 +50,15 @@ namespace chips {
     }
 
     template<expression_env expenv>
-    void array<expenv>::hello(){}
+    void array<expenv>::hello(){
+        std::cout << "ARRAY" << std::endl;
+    }
 
     template<dataflow_type dft>
     void dataflow_primitive_variable<dft>::hello(){
-        std::cout << "DATAFLOW PRIMITIVE VARIABLE " << std::endl;
+        std::cout << dft_to_string(dft) << " " << get_name();
+        // if(get_declaration()) get_declaration()->hello();
+        std::cout << ";" << std::endl;
     }
 
     template<dataflow_type dft>
@@ -63,7 +75,9 @@ namespace chips {
 
     template<dataflow_type dft, statement_env sttenv>
     void dataflow_declaration<dft, sttenv>::hello(){
-        std::cout << "DATAFLOW DECLARATION" << std::endl;
+        std::cout << dft_to_string(dft) << " ";
+        std::cout << get_variable().get_name() << ";" << std::endl;
+        // std::cout << "DATAFLOW DECLARATION" << std::endl;
     }
 
     template<dataflow_type dft, statement_env sttenv>
@@ -486,4 +500,16 @@ namespace chips {
     template void cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>::hello();
     template void cast_as<dataflow_type::INT, expression_env::SYSTEM>::hello();
     template void cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>::hello();
+
+    template void dataflow_primitive_variable<dataflow_type::INT>::hello();
+    template void dataflow_primitive_variable<dataflow_type::FLOAT>::hello();
+    template void dataflow_primitive_variable<dataflow_type::BOOL>::hello();
+
+    template void array<expression_env::PRIMITIVE>::hello();
+    template void array<expression_env::COLLECTIVE>::hello();
+    template void array<expression_env::SYSTEM>::hello();
+
+    template void dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>::hello();
+    template void dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>::hello();
+    template void dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>::hello();
 }

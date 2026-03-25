@@ -4,6 +4,8 @@
 #include "ChipsBaseVisitor.h"
 #include "forward_declarations.hpp"
 #include "ast_lrxvalues.hpp"
+#include "ast_statements.hpp"
+#include "ast_variables.hpp"
 
 #include <any>
 #include <memory>
@@ -178,6 +180,23 @@ namespace ast_builder_detail {
         TRY_UPCAST(dataflow_type::BOOL, expression_env::SYSTEM)
 
         #undef TRY_UPCAST
+
+        // dataflow_declaration DEFINITION
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
 
         throw std::runtime_error(
             "extract_as_node : type inconnu dans le std::any : "
@@ -513,13 +532,25 @@ namespace ast_builder_detail {
 } // namespace ast_builder_detail
 
 class ASTBuilder : public ChipsBaseVisitor {
+    private:
+        template<dataflow_type dft>
+        struct VarDeclPair {
+            std::unique_ptr<dataflow_primitive_variable<dft>> var;
+            dataflow_declaration<dft, statement_env::DEFINITION> decl;
+            VarDeclPair(std::string name){
+                    var = std::make_unique<dataflow_primitive_variable<dft>>(name, decl);
+                    decl.set_variable(var);
+                }
+        };
+
+
     public:
 
     // Fonction pour tester
     std::any visitProgram(ChipsParser::ProgramContext* ctx) override {
         // std::cout << "visitProgram()" << std::endl;
         // return visit(ctx->expr());
-        return visit(ctx->expr());
+        return visit(ctx->statement());
     }
 
     // expr
@@ -754,16 +785,53 @@ class ASTBuilder : public ChipsBaseVisitor {
         return dataflow_type::BOOL;
     }
 
+    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx) override {
+        //TODO: Implémenter
+        return std::any{};
+    }
+
     /**
      * STATEMENT
      */
+    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier){
+        switch(type){
+            case dataflow_type::INT: {
+                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+            case dataflow_type::FLOAT: {
+                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+            case dataflow_type::BOOL: {
+                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl);
+                decl.set_variable(var);
+                return decl;
+            }
+        }
+    }
+
     std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx) override {
-        // std::cout << "visitStatementDeclaration()" << std::endl;
+        std::cout << "visitStatementDeclaration()" << std::endl;
 
-        auto type_any = visit(ctx->df_type());
-        auto assign = visit(ctx->may_assign());
+        dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+        std::any suffixes = visit(ctx->suffixes());
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        std::any assign = visit(ctx->may_assign());
 
-        return {};
+        if(!assign.has_value()){
+            std::cout << "ASSIGN VIDE" << std::endl;
+            return handle_statement_declaration(type_any, suffixes, var_name);
+        }
+        return std::any{};        
     }
 
     // std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext* ctx) override {

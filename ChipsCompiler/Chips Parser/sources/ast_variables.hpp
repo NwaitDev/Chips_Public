@@ -11,25 +11,41 @@ namespace chips {
 
         public:
 
-            //void accept(visitor& v) { v.visit(*this); }
+            void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };
 
     template<expression_env expenv>
-    class variable : public array<expenv>{};
+    class variable : public array<expenv>{
+        private:
+            std::string m_name;
 
-    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{};
+        public:
+            variable(std::string name) : m_name(name){}
+
+            std::string get_name() const { return m_name; }
+    };
+
+    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{
+        public:
+            primitive_variable(std::string name)
+                : variable(name){}
+    };
 
     template<dataflow_type dft> 
     class dataflow_primitive_variable : public primitive_variable  
     {
     private:
-        dataflow_declaration<dft,statement_env::DEFINITION>& m_declaration;
+        dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration;
 
         public:
-            dataflow_primitive_variable() = default;
 
-            //void accept(visitor& v) { v.visit(*this); }
+            dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration)
+                : primitive_variable(name), m_declaration(declaration){}
+
+            dataflow_declaration<dft,statement_env::DEFINITION>* get_declaration() { return m_declaration.get(); }
+
+            void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };
 

@@ -2,7 +2,7 @@ grammar Chips;
 
 program 
 //    : preambles system EOF
-    : expr EOF
+    : statement EOF
     ;
 
 preambles
@@ -316,7 +316,7 @@ s_statements
     ;
 
 statement
-    : df_type IDENTIFIER may_assign SEMICOL                 # StatementDeclaration
+    : df_type suffixes IDENTIFIER may_assign SEMICOL                 # StatementDeclaration
     | IDENTIFIER suffixes ASSIGN expr SEMICOL               # StatementAssignment
     | CTX_KW PERIOD IDENTIFIER suffixes ASSIGN expr SEMICOL # StatementContextualAssignment
     ;

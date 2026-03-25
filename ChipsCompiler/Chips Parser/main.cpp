@@ -67,7 +67,7 @@ void run(std::istream& input, Interpreter& /*interp*/) {
 
     // std::cout << "Nb expr: " << tree->expr().size() << std::endl;
 
-    std::any result = builder.visit(tree->expr());
+    std::any result = builder.visit(tree->statement());
 
     // extract_as_node dispatche sur tous les types concrets connus
     // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template
@@ -82,42 +82,42 @@ void run(std::istream& input, Interpreter& /*interp*/) {
 
         rootPtr->hello();
 
-        ast_node& node = *rootPtr;
+        // ast_node& node = *rootPtr;
 
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
-            std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
-            r->accept(visitor);
-        }
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
+        //     std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
+        //     r->accept(visitor);
+        // }
             
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
-            r->accept(visitor);
-        if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
-            r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
+        //     r->accept(visitor);
+        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
+        //     r->accept(visitor);
         
-        // node.accept(visitor);
+        // // node.accept(visitor);
 
-        std::ofstream out(output);
+        // std::ofstream out(output);
 
-        ChipsToXmiWriter writer(out);
-        writer.copy_namespaces_from(body_writer);
-        writer.xmi_header("error");
-        out << body_out.str();
-        writer.xmi_footer();
+        // ChipsToXmiWriter writer(out);
+        // writer.copy_namespaces_from(body_writer);
+        // writer.xmi_header("error");
+        // out << body_out.str();
+        // writer.xmi_footer();
 
-        out.close();
-        std::cout << "XMI généré: " << output << std::endl;
+        // out.close();
+        // std::cout << "XMI généré: " << output << std::endl;
     } else {
         std::cout << "no" << std::endl;
     }
