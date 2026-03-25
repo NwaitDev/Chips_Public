@@ -1,8 +1,11 @@
 #ifndef __chips_lrxvalues__
 #define __chips_lrxvalues__
 
-
 #include <vector>
+#include <memory>
+
+#include "meta_type_conversions.hpp"
+
 
 namespace chips{
 

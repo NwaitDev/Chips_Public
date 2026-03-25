@@ -5,6 +5,11 @@
 #include <vector>
 #include <optional>
 
+#include "ast_base.hpp"
+#include "meta_type_conversions.hpp"
+#include "ast_inoutputs.hpp"
+#include "ast_lrxvalues.hpp"
+
 namespace chips
 {
 

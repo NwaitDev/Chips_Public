@@ -9,18 +9,12 @@
 #include <filesystem>
 #include <vector>
 
+#include "ast_program.hpp"
+#include "ast_definitions.hpp"
+#include "ast_statements.hpp"
 
 namespace fs = std::filesystem;
 using namespace chips;
-
-// Forward declarations
-// class ast_node;
-// class program_node;
-// class preamble_section_node;
-// class definition;
-// class system_section_node;
-// class s_statements;
-// class s_statement;
 
 class ChipsToXmiWriter {
 public:

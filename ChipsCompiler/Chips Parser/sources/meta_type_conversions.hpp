@@ -3,16 +3,11 @@
 #include<variant>
 #include<string>
 
+#include "forward_declarations.hpp"
 
 namespace chips {
 
-    using definition_variant = std::variant<
-        object_definition*,
-        logical_definition*,
-        physical_definition*,
-        implementation_defintion*,
-        collective_function_definition*>;
-
+    using definition_variant = std::variant<object_definition*,logical_definition*,physical_definition*,implementation_defintion*,collective_function_definition*>;
 
     template<dataflow_type>
     struct DfTypeToContextualDeclType;
@@ -108,52 +103,44 @@ namespace chips {
     template<statement_env>
     struct SttEnvToSttVariant{};
 
-    using node_statement_variant = std::variant<
-        node_statement<recurring_statement::IF>*,
-        node_statement<recurring_statement::FOREACH>*,
-        node_element_declaration<node_element::CHANNEL>*,
-        node_element_declaration<node_element::CONTEXTUAL_INT>*,
-        node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,
-        node_element_declaration<node_element::CONTEXTUAL_BOOL>*,
-        node_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
-        node_statement<recurring_statement::ASSIGNMENT>*>;
+    // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using system_statement = statement<statement_env::SYSTEM, recstt>;
+    // abstract (by definition of statement class) 
+    template<recurring_statement recstt>
+    using node_statement = statement<statement_env::NODE, recstt>;
+    // abstract (by definition of statement class) // do not use, work in progress
+    template<recurring_statement recstt>
+    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; 
+     // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using primitive_statement = statement<statement_env::DEFINITION, recstt>;
+     // abstract (by definition of statement class)
+    template<recurring_statement recstt>
+    using collective_statement = statement<statement_env::COLLECTIVE, recstt>;
+
+    using node_statement_variant = std::variant<node_statement<recurring_statement::IF>*,node_statement<recurring_statement::FOREACH>*,node_element_declaration<node_element::CHANNEL>*,node_element_declaration<node_element::CONTEXTUAL_INT>*,node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,node_element_declaration<node_element::CONTEXTUAL_BOOL>*,node_statement<recurring_statement::DECLARATION>*,node_statement<recurring_statement::ASSIGNMENT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::NODE>{
         using type = node_statement_variant;
     };
 
-    using primitive_statement_variant = std::variant<
-        primitive_statement<recurring_statement::IF>*,
-        primitive_statement<recurring_statement::FOREACH>*,
-        primitive_statement<recurring_statement::DECLARATION>*,
-        primitive_statement<recurring_statement::ASSIGNMENT>*>;
+    using primitive_statement_variant = std::variant<primitive_statement<recurring_statement::IF>*,primitive_statement<recurring_statement::FOREACH>*,primitive_statement<recurring_statement::DECLARATION>*,primitive_statement<recurring_statement::ASSIGNMENT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::DEFINITION>{
         using type = primitive_statement_variant;
     };
 
-    using collective_statement_variant = std::variant<
-        collective_statement<recurring_statement::IF>*,
-        collective_statement<recurring_statement::FOREACH>*,
-        collective_statement<recurring_statement::DECLARATION>*,
-        collective_statement<recurring_statement::ASSIGNMENT>*>;
+    using collective_statement_variant = std::variant<collective_statement<recurring_statement::IF>*,collective_statement<recurring_statement::FOREACH>*,collective_statement<recurring_statement::DECLARATION>*,collective_statement<recurring_statement::ASSIGNMENT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::COLLECTIVE>{
         using type = collective_statement_variant;
     };
 
-    using system_statement_variant = std::variant<
-        system_statement<recurring_statement::IF>*,
-        system_statement<recurring_statement::FOREACH>*,
-        system_statement<recurring_statement::DECLARATION>*, // this one is for regular variable declarations
-        system_statement<recurring_statement::IMPLEMENTS>*, // work in progress, do not use
-        system_statement<recurring_statement::FEEDING>*,
-        system_statement<recurring_statement::LINKING>*,
-        system_statement<recurring_statement::PLUGGING>*,
-        system_statement<recurring_statement::ASSIGNMENT>*>;
+    using system_statement_variant = std::variant<system_statement<recurring_statement::IF>*,system_statement<recurring_statement::FOREACH>*,system_statement<recurring_statement::DECLARATION>*,system_statement<recurring_statement::IMPLEMENTS>*,system_statement<recurring_statement::FEEDING>*,system_statement<recurring_statement::LINKING>*,system_statement<recurring_statement::PLUGGING>*,system_statement<recurring_statement::ASSIGNMENT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::SYSTEM>{
@@ -161,11 +148,7 @@ namespace chips {
     };
 
     // do not use, work in progress
-    using implementation_statement_variant = std::variant<
-        aliasing_statement<node_element::CHANNEL>*,
-        aliasing_statement<node_element::CONTEXTUAL_BOOL>*,
-        aliasing_statement<node_element::CONTEXTUAL_INT>*,
-        aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
+    using implementation_statement_variant = std::variant<aliasing_statement<node_element::CHANNEL>*,aliasing_statement<node_element::CONTEXTUAL_BOOL>*,aliasing_statement<node_element::CONTEXTUAL_INT>*,aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::IMPLEMENTATION>{
@@ -219,9 +202,7 @@ namespace chips {
         using type = block_variable<block_type::OBJECT>;
     };
 
-    using functional_block_variant = std::variant<
-        block_variable<block_type::LOGICAL>*,
-        block_variable<block_type::PHYSICAL>*>;
+    using functional_block_variant = std::variant<block_variable<block_type::LOGICAL>*,block_variable<block_type::PHYSICAL>*>;
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -256,30 +237,15 @@ namespace chips {
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
 
-    using collective_parameter_variant = std::variant<
-        collective_parameter<dataflow_type::INT>*,
-        collective_parameter<dataflow_type::FLOAT>*,
-        collective_parameter<dataflow_type::BOOL>*>;
+    using collective_parameter_variant = std::variant<collective_parameter<dataflow_type::INT>*,collective_parameter<dataflow_type::FLOAT>*,collective_parameter<dataflow_type::BOOL>*>;
 
-    using function_parameter_variant = std::variant<
-        function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>*,
-        function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,
-        function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>;
+    using function_parameter_variant = std::variant<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>*,function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>;
 
-    using function_output_variant = std::variant<
-        function_output<dataflow_kind::LOGICAL, dataflow_type::INT>*,
-        function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,
-        function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>;
+    using function_output_variant = std::variant<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>*,function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>;
 
-    using physical_parameter_variant = std::variant<
-        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>*,
-        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
-        function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
+    using physical_parameter_variant = std::variant<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>*,function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
     
-    using physical_output_variant = std::variant<
-        function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>*,
-        function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
-        function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
+    using physical_output_variant = std::variant<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>*,function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>;
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -314,10 +280,7 @@ namespace chips {
     ////////////////////////////////////////////////////////////////////////////////
 
     template<expression_env expenv>
-    using rvalue_variant = std::variant<
-        rvalue<dataflow_type::INT,expenv>*,
-        rvalue<dataflow_type::FLOAT,expenv>*,
-        rvalue<dataflow_type::BOOL,expenv>*>;
+    using rvalue_variant = std::variant<rvalue<dataflow_type::INT,expenv>*,rvalue<dataflow_type::FLOAT,expenv>*,rvalue<dataflow_type::BOOL,expenv>*>;
 
     using rvalue_primitive_variant = rvalue_variant<expression_env::PRIMITIVE>;
 

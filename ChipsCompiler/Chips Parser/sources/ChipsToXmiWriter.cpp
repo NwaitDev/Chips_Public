@@ -1,9 +1,6 @@
 #include "ChipsToXmiWriter.hpp"
 #include <iostream>
 
-#include "ast_program.hpp"
-#include "ast_definitions.hpp"
-
 ChipsToXmiWriter::ChipsToXmiWriter(std::ostream& out,
                          std::string xmi_version,
                          std::string xmi_url,

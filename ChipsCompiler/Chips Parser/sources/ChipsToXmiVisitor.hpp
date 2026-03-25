@@ -4,6 +4,7 @@
 
 
 #include "ChipsToXmiWriter.hpp"
+#include "ast_base.hpp"
 
 #include <ostream>
 #include <iostream>
@@ -13,7 +14,7 @@
 
 using namespace chips;
 
-/// @brief  @brief Complete XMI Visitor - implements ALL chips::visitor methods
+/// @brief Complete XMI Visitor - implements ALL chips::visitor methods
 class ChipsToXmiVisitor : public visitor{
     public:
         ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out) 

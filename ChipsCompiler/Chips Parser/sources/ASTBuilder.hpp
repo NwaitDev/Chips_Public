@@ -2,7 +2,8 @@
 #define AST_BUILD_HPP
 
 #include "ChipsBaseVisitor.h"
-
+#include "ast_base.hpp"
+#include "ast_lrxvalues.hpp"
 
 #include <any>
 #include <memory>

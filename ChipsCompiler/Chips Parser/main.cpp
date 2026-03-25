@@ -8,7 +8,7 @@
 #include "Interpreter.hpp"
 
 #include "sources/forward_declarations.hpp"
-
+#include "sources/ASTBuilder.hpp"
 
 #include "sources/ChipsToXmiVisitor.hpp"
 #include "sources/ChipsToXmiWriter.hpp"

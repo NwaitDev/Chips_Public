@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "ast_base.hpp"
+#include "meta_type_conversions.hpp"
 
 namespace chips
 {

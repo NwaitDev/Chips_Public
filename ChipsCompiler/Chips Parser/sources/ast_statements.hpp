@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "ast_variables.hpp"
+
 namespace chips {
 
     /**
@@ -15,21 +17,6 @@ namespace chips {
         //void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
-    // abstract (by definition of statement class)
-    template<recurring_statement recstt>
-    using system_statement = statement<statement_env::SYSTEM, recstt>;
-    // abstract (by definition of statement class) 
-    template<recurring_statement recstt>
-    using node_statement = statement<statement_env::NODE, recstt>;
-    // abstract (by definition of statement class) // do not use, work in progress
-    template<recurring_statement recstt>
-    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; 
-     // abstract (by definition of statement class)
-    template<recurring_statement recstt>
-    using primitive_statement = statement<statement_env::DEFINITION, recstt>;
-     // abstract (by definition of statement class)
-    template<recurring_statement recstt>
-    using collective_statement = statement<statement_env::COLLECTIVE, recstt>;
 
     /**
      * Concrete class
@@ -225,8 +212,8 @@ namespace chips {
      */
     class linking_statement : public system_statement<recurring_statement::LINKING>  
     {
-        linkable m_linked_component;
-        support m_support_node;
+        linkable& m_linked_component;
+        support& m_support_node;
         void hello();
     };
 

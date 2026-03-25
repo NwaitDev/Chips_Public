@@ -24,6 +24,8 @@ namespace chips
     template <dataflow_type dft>
     class dataflow_system_variable;
 
+    template<statement_env, recurring_statement>
+    class statement;
     template <dataflow_type dft, statement_env sttenv>
     class dataflow_declaration;
     template <dataflow_type dft, statement_env sttenv>
