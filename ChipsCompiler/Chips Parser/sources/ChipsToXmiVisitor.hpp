@@ -68,9 +68,9 @@ class ChipsToXmiVisitor : public visitor{
         // chips::visitor déclare 35 méthodes = 0. ChipsToXmiVisitor n'en
         // implémentait que 2 → classe abstraite, impossible à instancier.
         // Stubs à compléter progressivement avec la vraie logique XMI.
-        // void visit(program_node& node) override              { out() << "<!-- program_node -->\n"; }
-        // void visit(preamble_section_node& node) override     { out() << "<!-- preamble_section_node -->\n"; }
-        // void visit(system_section_node& node) override       { out() << "<!-- system_section_node -->\n"; }
+        void visit(program_node& node) override              { out() << "<!-- program_node -->\n"; }
+        void visit(preamble_section_node& node) override     { out() << "<!-- preamble_section_node -->\n"; }
+        void visit(system_section_node& node) override       { out() << "<!-- system_section_node -->\n"; }
         // void visit(primitive_variable& node) override        { out() << "<!-- primitive_variable -->\n"; }
         // void visit(node_variable& node) override             { out() << "<!-- node_variable -->\n"; }
         // void visit(collective_variable& node) override       { out() << "<!-- collective_variable -->\n"; }

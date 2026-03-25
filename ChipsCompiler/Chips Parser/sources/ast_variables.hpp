@@ -30,7 +30,12 @@ namespace chips {
      */
     template<expression_env expenv>
     class variable : public array<expenv>{
-        std::string name;
+        public:
+            std::string name;
+
+            variable(std::string name) : name(name){}
+
+            std::string get_name() { return name; }
     };
 
     /**
@@ -41,7 +46,11 @@ namespace chips {
      * (with/init/then sections)
      * A variable of this kind is NOT contextual
      */
-    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{};
+    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{
+        public:
+            primitive_variable(std::string name)
+                : variable(name){}
+    };
 
     /**
      * Concrete class
@@ -56,7 +65,11 @@ namespace chips {
     {
         public:
         dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration;
-        void hello();
+        
+        dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration)
+            : primitive_variable(name), m_declaration(declaration){}
+        
+        virtual void hello() override;
     };
 
     /**

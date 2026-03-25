@@ -538,8 +538,9 @@ class ASTBuilder : public ChipsBaseVisitor {
 
     // Fonction pour tester
     std::any visitProgram(ChipsParser::ProgramContext* ctx) override {
-        std::cout<< "nb preambles" <<ctx->preamble().size()<<std::endl;
-        return std::any(NULL);
+        // std::cout<< "nb preambles" <<ctx->preamble().size()<<std::endl;
+        // return std::any(NULL);
+        return visit(ctx->expr());
     }
 
     // expr
@@ -788,21 +789,21 @@ class ASTBuilder : public ChipsBaseVisitor {
                 dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
                 dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
                 dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl);
-                decl.set_variable(var);
+                decl.m_variable = var;
                 return decl;
             }
             case dataflow_type::FLOAT: {
                 dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
                 dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
                 dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl);
-                decl.set_variable(var);
+                decl.m_variable = var;
                 return decl;
             }
             case dataflow_type::BOOL: {
                 dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
                 dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
                 dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl);
-                decl.set_variable(var);
+                decl.m_variable = var;
                 return decl;
             }
         }
@@ -814,7 +815,14 @@ class ASTBuilder : public ChipsBaseVisitor {
         dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
         std::any suffixes = visit(ctx->suffixes());
         std::string var_name = ctx->IDENTIFIER()->getText();
-        std::any assign = visit(ctx->may_assign());
+        // std::any assign = visit(ctx->may_assign());
+        std::any assign;
+
+        if(ctx->expr()){
+            assign = visit(ctx->expr());
+        }else{
+            assign = std::any{};
+        }
 
         if(!assign.has_value()){
             std::cout << "ASSIGN VIDE" << std::endl;
@@ -831,14 +839,14 @@ class ASTBuilder : public ChipsBaseVisitor {
 
     // }
 
-    std::any visitMay_assign(ChipsParser::May_assignContext *ctx) override {
-        // std::cout << "visitMay_assign()" << std::endl;
+    // std::any visitMay_assign(ChipsParser::May_assignContext *ctx) override {
+    //     // std::cout << "visitMay_assign()" << std::endl;
 
-        if(ctx->expr() != nullptr){
-            return visit(ctx->expr());
-        }
-        return std::any{};
-    }
+    //     if(ctx->expr() != nullptr){
+    //         return visit(ctx->expr());
+    //     }
+    //     return std::any{};
+    // }
 
     // pass to children
     std::any visitPassExpr0(ChipsParser::PassExpr0Context* ctx) override {

@@ -28,9 +28,19 @@ namespace chips {
     template<dataflow_type dft, statement_env stenv>
     class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>
     {
-        using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
-        df_variable_type m_variable;
-        void hello();
+        public:
+            using df_variable_type = typename SttEnvToVariableKind<dft,stenv>::type;
+            df_variable_type m_variable;
+
+            dataflow_declaration() = default;
+
+            dataflow_declaration(df_variable_type variable)
+                : m_variable(variable){}
+
+            df_variable_type get_variable() { return m_variable; }
+
+            void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     /**

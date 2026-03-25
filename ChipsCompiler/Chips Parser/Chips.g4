@@ -1,8 +1,8 @@
 grammar Chips;
 
 program 
-    : preamble* system? EOF
-//    : expr EOF
+//    : preamble* system? EOF
+    : expr EOF
     ;
 
 system
@@ -136,7 +136,7 @@ expr2
     | L_PARENTH expr R_PARENTH                  # Parens
     | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
     | IDENTIFIER L_PARENTH (expr)* R_PARENTH    # Function
-    | cast                                      # Casting
+    | cast                                      # CastAs
     ;
 
 cast    
@@ -323,9 +323,9 @@ df_parameter_decl
     ;
 
 df_type
-    : INT_KW suffixes
-    | FLOAT_KW suffixes
-    | BOOL_KW suffixes
+    : INT_KW suffixes       # IntType
+    | FLOAT_KW suffixes     # FloatType
+    | BOOL_KW suffixes      # BoolType
     ;
 
 pdf_parameter_type
