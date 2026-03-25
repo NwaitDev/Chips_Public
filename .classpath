@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="ChipsCompiler/ATL Chips2BIP"/>
+	<classpathentry kind="output" path="ChipsCompiler/ATL Chips2BIP"/>
+</classpath>
