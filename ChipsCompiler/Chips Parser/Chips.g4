@@ -1,8 +1,8 @@
 grammar Chips;
 
 program 
-//    : preamble* system? EOF
-    : expr EOF
+    : preamble* system? EOF
+//    : expr EOF
     ;
 
 system
@@ -48,8 +48,8 @@ collective_op_def
 
 
 c_output
-    : ARROW DEFAULT_KW L_PARENTH (c_expr)+ R_PARENTH
-    | ARROW IDENTIFIER L_PARENTH (c_expr)+ R_PARENTH
+    : ARROW DEFAULT_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
+    | ARROW IDENTIFIER L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
     ;
 
 l_function_def
@@ -68,7 +68,7 @@ p_function_def
     ;
 
 c_signature
-    : c_keywords L_PARENTH (cdf_defaulted_decl)* R_PARENTH
+    : c_keywords L_PARENTH (cdf_defaulted_decl (COMMA cdf_defaulted_decl)*)? R_PARENTH
         IDENTIFIER AMONG_KW IDENTIFIER
     ;
 
@@ -135,7 +135,7 @@ expr2
     | IDENTIFIER suffixes                       # Var
     | L_PARENTH expr R_PARENTH                  # Parens
     | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
-    | IDENTIFIER L_PARENTH (expr)* R_PARENTH    # Function
+    | IDENTIFIER L_PARENTH (expr (COMMA expr)*)? R_PARENTH    # Function
     | cast                                      # CastAs
     ;
 
@@ -182,7 +182,8 @@ c_stopless_expr2
     | BOOL
     | INPUT_KW
     | CTX_KW PERIOD IDENTIFIER c_suffixes
-    | IDENTIFIER L_PARENTH expr* R_PARENTH
+    | IDENTIFIER PERIOD IDENTIFIER c_suffixes // for collect channeled expressions
+    | IDENTIFIER L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH
     | L_PARENTH c_stopless_expr R_PARENTH
     | c_cast
     ;

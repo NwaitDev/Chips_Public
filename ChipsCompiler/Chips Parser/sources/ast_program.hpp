@@ -19,7 +19,8 @@ namespace chips
     {
     public:
         std::vector<definition_variant> m_definitions;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        inline void add_definition(definition_variant obj){m_definitions.push_back(obj);};
+        void hello();
     };
 
     /**
@@ -45,7 +46,9 @@ namespace chips
         preamble_section_node m_preamble;
         system_section_node m_system;
 
-        void hello();// override { std::cout << "hello from program_node" << std::endl; }
+        void hello();
+        preamble_section_node get_preamble(){return m_preamble;} 
+        system_section_node get_system(){return m_system;}
     };
 }
 

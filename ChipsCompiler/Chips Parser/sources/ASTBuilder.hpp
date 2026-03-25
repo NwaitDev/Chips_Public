@@ -3,6 +3,7 @@
 
 #include "ChipsBaseVisitor.h"
 #include "ast_base.hpp"
+#include "ast_program.hpp"
 #include "ast_lrxvalues.hpp"
 #include "ast_statements.hpp"
 #include "ast_variables.hpp"
@@ -536,11 +537,36 @@ class ASTBuilder : public ChipsBaseVisitor {
 
     public:
 
-    // Fonction pour tester
+
     std::any visitProgram(ChipsParser::ProgramContext* ctx) override {
-        // std::cout<< "nb preambles" <<ctx->preamble().size()<<std::endl;
-        // return std::any(NULL);
-        return visit(ctx->expr());
+        program_node prgm;
+        std::cout<< "nb preambles" <<ctx->preamble().size()<<std::endl;
+        for(ChipsParser::PreambleContext* pc : ctx->preamble()){
+            if(ChipsParser::Object_defContext* od = pc->object_def()){
+                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(od)));
+                continue;
+            }
+            if(ChipsParser::Function_defContext* fd = pc->function_def()){
+                if(ChipsParser::L_function_defContext* lfd = fd->l_function_def()){
+                    prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(lfd)));
+                    continue;
+                }
+                if(ChipsParser::P_function_defContext* pfd = fd->p_function_def()){
+                    prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(pfd)));
+                    continue;
+                }
+            }
+            if(ChipsParser::Collective_op_defContext* cod = pc->collective_op_def()){
+                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(cod)));
+                continue;
+            }
+            if(ChipsParser::Implementation_defContext* id = pc->implementation_def()){
+                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(id)));
+                continue;
+            }
+            std::cerr<<"Unknown definition type in the preamble section!\n";
+        }
+        return prgm;
     }
 
     // expr
