@@ -83,6 +83,91 @@ helper context chips!primitive_declaration  def : extractTypeAsString : String =
 		endif
 	endif;
 
+helper context String def : sanitizeIdentifier : String =
+	self.trim()
+		.replace(' ', '_')
+		.replace('-', '_')
+		.replace('/', '_')
+		.replace('.', '_')
+		.replace(':', '_')
+		.replace(';', '_')
+		.replace(',', '_')
+		.replace('(', '_')
+		.replace(')', '_');
+
+helper context chips!function_definition def : safeName : String =
+	self.name.sanitizeIdentifier;
+
+helper context chips!logical_parameter def : ownerFunction : chips!function_definition =
+	self.refImmediateComposite().oclAsType(chips!function_definition);
+
+helper context chips!logical_parameter def : safeName : String =
+	self.name.sanitizeIdentifier;
+
+helper context chips!logical_parameter def : atomDataName : String =
+	self.ownerFunction.safeName + '__param__' + self.safeName + '__in';
+
+helper context chips!logical_parameter def : internalPortName : String =
+	self.ownerFunction.safeName + '__port__in__' + self.safeName + '__internal';
+
+helper context chips!logical_parameter def : exportPortName : String =
+	self.ownerFunction.safeName + '__port__in__' + self.safeName;
+
+helper context chips!logical_output def : ownerFunction : chips!function_definition =
+	self.refImmediateComposite().oclAsType(chips!function_definition);
+
+helper context chips!logical_output def : safeName : String =
+	self.name.sanitizeIdentifier;
+
+helper context chips!logical_output def : atomDataName : String =
+	self.ownerFunction.safeName + '__output__' + self.safeName + '__out';
+
+helper context chips!logical_output def : internalPortName : String =
+	self.ownerFunction.safeName + '__port__out__' + self.safeName + '__internal';
+
+helper context chips!logical_output def : exportPortName : String =
+	self.ownerFunction.safeName + '__port__out__' + self.safeName;
+
+helper context chips!primitive_declaration def : ownerFunction : chips!function_definition =
+	self.refImmediateComposite().refImmediateComposite().oclAsType(chips!function_definition);
+
+helper context chips!primitive_declaration def : safeVariableName : String =
+	self.variable.name.sanitizeIdentifier;
+
+helper context chips!primitive_declaration def : atomDataName : String =
+	self.ownerFunction.safeName + '__local__' + self.safeVariableName + '__inner';
+
+helper context chips!logical_parameter def : singletonTypeSignature : Sequence(String) =
+	Sequence{self.extractTypeAsString};
+
+helper context chips!logical_output def : singletonTypeSignature : Sequence(String) =
+	Sequence{self.extractTypeAsString};
+
+helper context Sequence(String) def : portTypeName : String =
+	self->iterate(tname ; accu : String = '' |
+		if accu = ''
+		then tname.sanitizeIdentifier
+		else accu + '_' + tname.sanitizeIdentifier
+		endif
+	) + '_port_t';
+
+helper def : makePortDataParameterKey(portTypeName : String, declIndex : Integer, typeName : String) : String =
+	portTypeName + '#' + declIndex.toString + '#' + typeName;
+
+helper context chips!logical_parameter def : referencedPortParameterDeclarationKey : String =
+	thisModule.makePortDataParameterKey(self.singletonTypeSignature.portTypeName, 1, self.extractTypeAsString);
+
+helper context chips!logical_parameter def : referencedPortParameterDeclaration : bip!PortDataParameterDeclaration =
+	thisModule.PortDataParameterKey2PortDataParameterDeclaration(self.referencedPortParameterDeclarationKey);
+
+helper context chips!logical_output def : referencedPortParameterDeclarationKey : String =
+	thisModule.makePortDataParameterKey(self.singletonTypeSignature.portTypeName, 1, self.extractTypeAsString);
+
+helper context chips!logical_output def : referencedPortParameterDeclaration : bip!PortDataParameterDeclaration =
+	thisModule.PortDataParameterKey2PortDataParameterDeclaration(self.referencedPortParameterDeclarationKey);
+
+helper context String def : referencedSingletonPortParameterDeclaration : bip!PortDataParameterDeclaration =
+	thisModule.PortDataParameterKey2PortDataParameterDeclaration(thisModule.makePortDataParameterKey(Sequence{self}.portTypeName, 1, self));
 
 helper def: allFunctionSignatureTypeNames : Set(String) =
     chips!function_definition.allInstances()
@@ -96,7 +181,7 @@ helper def: allFunctionSignatureTypeNames : Set(String) =
 
 helper def: allInitPrimitiveDeclarationTypeNames : Set(String) =
     chips!function_definition.allInstances()
-        ->select(f | f.init.oclIsUndefined().not())
+        ->select(f | not f.init.oclIsUndefined())
         ->collect(f |
             f.init.statements
             ->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
@@ -109,42 +194,40 @@ helper def: allDataTypeNames : Set(String) =
     thisModule.allFunctionSignatureTypeNames->union(thisModule.allInitPrimitiveDeclarationTypeNames);
 
 helper def: allPortTypes : Set(bip!PortType) =
-	chips!function_definition.allInstances()
-        ->collect(fd | fd.parameters)
-		->collect(paramlist | paramlist->collect(param | param.typeToInt)->asBag())
+	chips!logical_parameter.allInstances()
+        ->collect(param | thisModule.TypeSequenceAsPortType(param.singletonTypeSignature))
 		->union(
-			chips!function_definition.allInstances()
-			->collect(fd | fd.outputs)
-			->collect(outputlist | outputlist->collect(o | o.typeToInt)->asBag())
+			chips!logical_output.allInstances()
+			->collect(output | thisModule.TypeSequenceAsPortType(output.singletonTypeSignature))
 		)
-		->asSet()
-		->collect(intTypeBag | intTypeBag->collect(intType | intType.toStringType))
-		->collect(typesBag | thisModule.TypesBagAsPortType(typesBag));
+		->asSet();
 
 
-unique lazy rule TypesBagAsPortType {
-	from tb : Bag(String)
+unique lazy rule TypeSequenceAsPortType {
+	from ts : Sequence(String)
 	
 	to pt : bip!PortType(
-		name <- tb->iterate(tname ; accu : String = '' | accu+tname)+'_port_t',
-		dataParameterDeclarations <- tb
-			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed 
-				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
+		name <- ts.portTypeName,
+		dataParameterDeclarations <- ts
+			->iterate(typename ; keys : Sequence(String) = Sequence{} |
+				keys.append(thisModule.makePortDataParameterKey(ts.portTypeName, keys->size() + 1, typename))
 			)
-			->select(e | e > 0) -- removes the first element
-			->collect( typeAsInt | thisModule.TypeNameAsPortDataParameterDeclaration(typeAsInt))
+			->collect(k | thisModule.PortDataParameterKey2PortDataParameterDeclaration(k))
 	)
 }
 
-lazy rule TypeNameAsPortDataParameterDeclaration {
-	from encodedDecl: Integer
+unique lazy rule PortDataParameterKey2PortDataParameterDeclaration {
+	from key : String
 	using {
-		typeAsInt : Integer = 1 + (encodedDecl mod thisModule.nbPrimitiveTypes);
-		declIndex : Integer = encodedDecl div thisModule.nbPrimitiveTypes;
+		parts : Sequence(String) = key.split('#');
+		portTypeName : String = parts->at(1);
+		declIndex : String = parts->at(2);
+		typeName : String = parts->at(3);
 	}
 	to pdpd: bip!PortDataParameterDeclaration(
-		name <- 'v'+declIndex.toString,
-		dataType <- thisModule.MakeChipsDataType(typeAsInt.toStringType)
+		name <- portTypeName + '__p' + declIndex,
+		dataType <- thisModule.MakeChipsDataType(typeName),
+		const <- false
 	)
 }
 
@@ -185,63 +268,64 @@ unique lazy rule MakeChipsBuffer{
 	
 	to 
 		buffer: bip!AtomType(
-			name <- typename + '_buffer', -- only for type
-	        native <- false, -- only for type
-	        superTypes <- Sequence{}, -- only for type
-	        castableTypes <- Sequence{}, -- only for type
-	        exportedPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for component type
-	        exportedDataDeclarations <- Sequence{aidd}, -- only for component type
-	        dataParameterDeclarations <- Sequence{}, -- only for component type
-	        internalPortDeclarations <- Sequence{aipd_input,aipd_output}, -- only for atom type
-	        behavior <- thisModule.MakeIdlePetriNet(typename + '_buffer'), -- only for atom type
-	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
-	        exportPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for atom type
-	        priorities <- Sequence{}, -- only for atom type
-	        invariants <- Sequence{} -- only for atom type
+			name <- typename.sanitizeIdentifier + '_buffer',
+	        native <- false,
+	        superTypes <- Sequence{},
+	        castableTypes <- Sequence{},
+	        exportedPortDeclarations <- Sequence{aepd_in, aepd_out},
+	        exportedDataDeclarations <- Sequence{aidd},
+	        dataParameterDeclarations <- Sequence{},
+	        internalPortDeclarations <- Sequence{aipd_input,aipd_output},
+	        externalPortDeclarations <- Sequence{},
+	        behavior <- thisModule.MakeIdlePetriNet(typename.sanitizeIdentifier + '_buffer'),
+	        internalDataDeclarations <- Sequence{aidd},
+	        exportPortDeclarations <- Sequence{aepd_in, aepd_out},
+	        priorities <- Sequence{},
+	        invariants <- Sequence{}
 		),
 		
 		aidd : bip!AtomInternalDataDeclaration(
 			dataType <- thisModule.MakeChipsDataType(typename),
-			name <- typename + '_data',
+			name <- typename.sanitizeIdentifier + '__buffer__data',
 			const <- false,
 			exported <- true
 		),
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
 			dataDeclarationReference <- aidd,
-			parameterDeclaration <- aidd,
+			parameterDeclaration <- typename.referencedSingletonPortParameterDeclaration,
 			type <- thisModule.MakeChipsDataType(typename)
 		),
 		aipd_input : bip!AtomInternalPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
-			name <-typename+'_input',
+			portType <- thisModule.TypeSequenceAsPortType(Sequence{typename}),
+			name <- typename.sanitizeIdentifier + '__buffer__input__internal',
 			dataParameters <- Sequence{ddrdp}
 		),
 		aipd_output : bip!AtomInternalPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
-			name <-typename+'_output',
+			portType <- thisModule.TypeSequenceAsPortType(Sequence{typename}),
+			name <- typename.sanitizeIdentifier + '__buffer__output__internal',
 			dataParameters <- Sequence{ddrdp}
 		),
 		aepd_in: bip!AtomExportPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
-			name <-'input',
+			portType <- thisModule.TypeSequenceAsPortType(Sequence{typename}),
+			name <- typename.sanitizeIdentifier + '__buffer__input',
 			dataParameters <- Sequence{ddrdp},
 			portDeclarationReferences <- Sequence{aipd_input}
 		),
 		aepd_out: bip!AtomExportPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
-			name <-'output',
+			portType <- thisModule.TypeSequenceAsPortType(Sequence{typename}),
+			name <- typename.sanitizeIdentifier + '__buffer__output',
 			dataParameters <- Sequence{ddrdp},
 			portDeclarationReferences <- Sequence{aipd_output}
 		)
 		
-}
+	}
 
 rule Parameter2AtomIntenalDataDeclaration{
 	from param : chips!logical_parameter
 	
 	to aidd : bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(param.extractTypeAsString),
-		name <- param.name + '_in',
+		name <- param.atomDataName,
 		const <- false,
 		exported <- true
 	)
@@ -252,7 +336,7 @@ rule Output2AtomIntenalDataDeclaration{
 	
 	to aidd : bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(output.extractTypeAsString),
-		name <- output.name + '_out',
+		name <- output.atomDataName,
 		const <- false,
 		exported <- true
 	)
@@ -264,9 +348,71 @@ lazy rule PrimitiveDecl2AtomInternalDataDeclaration {
 	
 	to aidd: bip!AtomInternalDataDeclaration(
 			dataType <- thisModule.MakeChipsDataType(primdecl.extractTypeAsString),
-			name <- primdecl.variable.name + '_inner',
+			name <- primdecl.atomDataName,
 			const <- false,
 			exported <- false
+		)
+}
+
+unique lazy rule MakeInputInternalPortDeclaration {
+	from param : chips!logical_parameter
+	to
+		aipd : bip!AtomInternalPortDeclaration(
+			portType <- thisModule.TypeSequenceAsPortType(param.singletonTypeSignature),
+			name <- param.internalPortName,
+			dataParameters <- Sequence{ddrdp}
+		),
+		ddrdp : bip!DataDeclarationReferenceDataParameter(
+			dataDeclarationReference <- thisModule.resolveTemp(param, 'aidd'),
+			parameterDeclaration <- param.referencedPortParameterDeclaration,
+			type <- thisModule.MakeChipsDataType(param.extractTypeAsString)
+		)
+}
+
+unique lazy rule MakeInputExportPortDeclaration {
+	from param : chips!logical_parameter
+	to
+		aepd : bip!AtomExportPortDeclaration(
+			portType <- thisModule.TypeSequenceAsPortType(param.singletonTypeSignature),
+			name <- param.exportPortName,
+			dataParameters <- Sequence{ddrdp},
+			portDeclarationReferences <- Sequence{thisModule.MakeInputInternalPortDeclaration(param)}
+		),
+		ddrdp : bip!DataDeclarationReferenceDataParameter(
+			dataDeclarationReference <- thisModule.resolveTemp(param, 'aidd'),
+			parameterDeclaration <- param.referencedPortParameterDeclaration,
+			type <- thisModule.MakeChipsDataType(param.extractTypeAsString)
+		)
+}
+
+unique lazy rule MakeOutputInternalPortDeclaration {
+	from output : chips!logical_output
+	to
+		aipd : bip!AtomInternalPortDeclaration(
+			portType <- thisModule.TypeSequenceAsPortType(output.singletonTypeSignature),
+			name <- output.internalPortName,
+			dataParameters <- Sequence{ddrdp}
+		),
+		ddrdp : bip!DataDeclarationReferenceDataParameter(
+			dataDeclarationReference <- thisModule.resolveTemp(output, 'aidd'),
+			parameterDeclaration <- output.referencedPortParameterDeclaration,
+			type <- thisModule.MakeChipsDataType(output.extractTypeAsString)
+		)
+}
+
+unique lazy rule MakeOutputExportPortDeclaration {
+	from output : chips!logical_output
+	to
+		aepd : bip!AtomExportPortDeclaration(
+			portType <- thisModule.TypeSequenceAsPortType(output.singletonTypeSignature),
+			name <- output.exportPortName,
+			dataParameters <- Sequence{ddrdp},
+			portDeclarationReferences <- Sequence{thisModule.MakeOutputInternalPortDeclaration(output)}
+		),
+		ddrdp : bip!DataDeclarationReferenceDataParameter(
+			dataDeclarationReference <- thisModule.resolveTemp(output, 'aidd'),
+			parameterDeclaration <- output.referencedPortParameterDeclaration,
+			type <- thisModule.MakeChipsDataType(output.extractTypeAsString)
 		)
 }
 
@@ -275,83 +421,63 @@ rule FunctionDefinition2AtomType {
     from chipsfunction: chips!function_definition
 	
 	using {
-    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = chipsfunction.parameters;
-		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = chipsfunction.outputs;
-		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
-			if chipsfunction.init.oclIsUndefined()
-			then Sequence{}
-			else chipsfunction.init.statements
-				->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-				->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl))
-			endif;
+    		aidd_input : Sequence(bip!AtomInternalDataDeclaration) =
+				chipsfunction.parameters->collect(param | thisModule.resolveTemp(param, 'aidd'))->asSequence();
+			aidd_output : Sequence(bip!AtomInternalDataDeclaration) =
+				chipsfunction.outputs->collect(output | thisModule.resolveTemp(output, 'aidd'))->asSequence();
+			aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
+				if chipsfunction.init.oclIsUndefined()
+				then Sequence{}
+				else chipsfunction.init.statements
+					->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
+					->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl))
+					->asSequence()
+				endif;
+			input_internal_ports : Sequence(bip!AtomInternalPortDeclaration) =
+				chipsfunction.parameters->collect(param | thisModule.MakeInputInternalPortDeclaration(param))->asSequence();
+			output_internal_ports : Sequence(bip!AtomInternalPortDeclaration) =
+				chipsfunction.outputs->collect(output | thisModule.MakeOutputInternalPortDeclaration(output))->asSequence();
+			input_export_ports : Sequence(bip!AtomExportPortDeclaration) =
+				chipsfunction.parameters->collect(param | thisModule.MakeInputExportPortDeclaration(param))->asSequence();
+			output_export_ports : Sequence(bip!AtomExportPortDeclaration) =
+				chipsfunction.outputs->collect(output | thisModule.MakeOutputExportPortDeclaration(output))->asSequence();
+			exported_data : Sequence(bip!AtomInternalDataDeclaration) =
+				Sequence{aidd_input, aidd_output}->flatten();
 		
-	}
+		}
     to componenttype: bip!AtomType(
-    	name <- chipsfunction.name + '_core', -- only for type  	OK
-        native <- false, -- only for type							OK
-        superTypes <- Sequence{}, -- only for type					OK
-        castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{}, -- only for component type
-        exportedDataDeclarations <- Sequence{}, -- only for component type
-		dataParameterDeclarations <- Sequence{}, -- only for component type
-        internalPortDeclarations <- Sequence{}, -- only for atom type
-		externalPortDeclarations <- Sequence{}, -- only for atom type
-        behavior <- thisModule.MakeIdlePetriNet(chipsfunction.name + '_core'), -- only for atom type
-        internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner}->flatten(), -- only for atom type
-        exportPortDeclarations <- Sequence{}, -- only for atom type
-		priorities <- Sequence{}, -- only for atom type
-        invariants <- Sequence{} -- only for atom type
-    )
---	
---	aidd : bip!AtomInternalDataDeclaration(
---			dataType <- thisModule.MakeChipsDataType(typename),
---			name <- typename + '_data',
---			const <- false,
---			exported <- true
---		),
---		ddrdp: bip!DataDeclarationReferenceDataParameter(
---			dataDeclarationReference <- aidd,
---			parameterDeclaration <- aidd,
---			type <- thisModule.MakeChipsDataType(typename)
---		),
---		aipd_input : bip!AtomInternalPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-typename+'_input',
---			dataParameters <- Sequence{ddrdp}
---		),
---		aipd_output : bip!AtomInternalPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-typename+'_output',
---			dataParameters <- Sequence{ddrdp}
---		),
---		aepd_in: bip!AtomExportPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-'input',
---			dataParameters <- Sequence{ddrdp},
---			portDeclarationReferences <- Sequence{aipd_input}
---		),
---		aepd_out: bip!AtomExportPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-'output',
---			dataParameters <- Sequence{ddrdp},
---			portDeclarationReferences <- Sequence{aipd_output}
---		)
+    		name <- chipsfunction.safeName + '_core',
+	        native <- false,
+	        superTypes <- Sequence{},
+	        castableTypes <- Sequence{},
+	        exportedPortDeclarations <- Sequence{input_export_ports, output_export_ports}->flatten(),
+	        exportedDataDeclarations <- exported_data,
+			dataParameterDeclarations <- Sequence{},
+	        internalPortDeclarations <- Sequence{input_internal_ports, output_internal_ports}->flatten(),
+			externalPortDeclarations <- Sequence{},
+	        behavior <- thisModule.MakeIdlePetriNet(chipsfunction.safeName + '_core'),
+	        internalDataDeclarations <- Sequence{aidd_input, aidd_output, aidd_inner}->flatten(),
+	        exportPortDeclarations <- Sequence{input_export_ports, output_export_ports}->flatten(),
+			priorities <- Sequence{},
+	        invariants <- Sequence{}
+	    )
 }
 
 rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
 	using {
-		dts: Sequence(bip!DataType) = thisModule.allDataTypeNames->collect(t | thisModule.MakeChipsDataType(t));
-		base_pts : Sequence(bip!PortType) = Sequence{Bag{'int'},Bag{'float'},Bag{'bool'}}->collect(t | thisModule.TypesBagAsPortType(t));
+		dts: Sequence(bip!DataType) = thisModule.allDataTypeNames->collect(t | thisModule.MakeChipsDataType(t))->asSequence();
+		base_pts : Sequence(bip!PortType) = Sequence{Sequence{'int'}, Sequence{'float'}, Sequence{'bool'}}
+			->collect(t | thisModule.TypeSequenceAsPortType(t))->asSequence();
 		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->asSequence();
 		base_ats: Sequence(bip!AtomType) = Sequence{thisModule.MakeChipsBuffer('int'),thisModule.MakeChipsBuffer('float'),thisModule.MakeChipsBuffer('bool')};
-		core_ats: Sequence(bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
+		core_ats: Sequence(bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition))->asSequence();
 		
 	}
 	to 
 		bippackage: bip!BipPackage(
-			name <- chipsprogram.fileName,
+			name <- chipsprogram.fileName.sanitizeIdentifier,
 			atomTypes <- core_ats->union(base_ats),
 			compoundTypes <- Sequence{},
 			connectorTypes <- Sequence{},
@@ -362,4 +488,3 @@ rule Program2BipPackage {
 			prototypes <- Sequence{}
 		)
 }
-
