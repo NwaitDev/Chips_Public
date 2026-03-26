@@ -1,7 +1,6 @@
 -- @atlcompiler emftvm
 -- @path chips=/Chips2bip/Chips1.1.ecore
 -- @path bip=/Chips2Bip/bip.ecore
-
 module chips2bip;
 
 create OUT: bip from IN: chips;
@@ -84,29 +83,15 @@ helper context chips!primitive_declaration  def : extractTypeAsString : String =
 	endif;
 
 
-helper def: allFunctionSignatureTypeNames : Set(String) =
+helper def: allDataTypeNames : Set(String) =
     chips!function_definition.allInstances()
         ->collect(f | f.parameters->collect(p | p.extractTypeAsString))
-        ->union(
-            chips!function_definition.allInstances()
-            ->collect(f | f.outputs->collect(o | o.extractTypeAsString))
-        )
-        ->flatten()
+		->union(
+			chips!function_definition.allInstances()
+			->collect(f | f.outputs->collect(o | o.extractTypeAsString))
+		)
+		->flatten()
         ->asSet();
-
-helper def: allInitPrimitiveDeclarationTypeNames : Set(String) =
-    chips!function_definition.allInstances()
-        ->select(f | f.init.oclIsUndefined().not())
-        ->collect(f |
-            f.init.statements
-            ->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-            ->collect(primdecl | primdecl.extractTypeAsString)
-        )
-        ->flatten()
-        ->asSet();
-
-helper def: allDataTypeNames : Set(String) =
-    thisModule.allFunctionSignatureTypeNames->union(thisModule.allInitPrimitiveDeclarationTypeNames);
 
 helper def: allPortTypes : Set(bip!PortType) =
 	chips!function_definition.allInstances()
@@ -161,25 +146,6 @@ unique lazy rule MakeChipsDataType {
 	)
 }
 
-unique lazy rule MakeIdlePetriNet {
-	from ownerName : String
-	to
-		pn : bip!PetriNet(
-			states <- Sequence{s_idle},
-			initStates <- Sequence{s_idle},
-			transitions <- Sequence{t_idle},
-			initialActions <- Sequence{}
-		),
-		s_idle : bip!State(
-			name <- ownerName + '_idle'
-		),
-		t_idle : bip!Transition(
-			sources <- Sequence{s_idle},
-			destinations <- Sequence{s_idle},
-			actions <- Sequence{}
-		)
-}
-
 unique lazy rule MakeChipsBuffer{
 	from typename: String
 	
@@ -193,7 +159,7 @@ unique lazy rule MakeChipsBuffer{
 	        exportedDataDeclarations <- Sequence{aidd}, -- only for component type
 	        dataParameterDeclarations <- Sequence{}, -- only for component type
 	        internalPortDeclarations <- Sequence{aipd_input,aipd_output}, -- only for atom type
-	        behavior <- thisModule.MakeIdlePetriNet(typename + '_buffer'), -- only for atom type
+	        behavior <- OclUndefined, -- only for atom type
 	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
 	        exportPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for atom type
 	        priorities <- Sequence{}, -- only for atom type
@@ -275,15 +241,12 @@ rule FunctionDefinition2AtomType {
     from chipsfunction: chips!function_definition
 	
 	using {
-    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = chipsfunction.parameters;
+    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = chipsfunction.parameters;
 		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = chipsfunction.outputs;
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
-			if chipsfunction.init.oclIsUndefined()
-			then Sequence{}
-			else chipsfunction.init.statements
-				->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-				->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl))
-			endif;
+			chipsfunction.init.statements
+			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
+			->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl));
 		
 	}
     to componenttype: bip!AtomType(
@@ -295,11 +258,11 @@ rule FunctionDefinition2AtomType {
         exportedDataDeclarations <- Sequence{}, -- only for component type
 		dataParameterDeclarations <- Sequence{}, -- only for component type
         internalPortDeclarations <- Sequence{}, -- only for atom type
-		externalPortDeclarations <- Sequence{}, -- only for atom type
-        behavior <- thisModule.MakeIdlePetriNet(chipsfunction.name + '_core'), -- only for atom type
+        externalPortDeclarations <- Sequence{}, -- only for atom type
+        behavior <- OclUndefined, -- only for atom type
         internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner}->flatten(), -- only for atom type
         exportPortDeclarations <- Sequence{}, -- only for atom type
-		priorities <- Sequence{}, -- only for atom type
+        priorities <- Sequence{}, -- only for atom type
         invariants <- Sequence{} -- only for atom type
     )
 --	
