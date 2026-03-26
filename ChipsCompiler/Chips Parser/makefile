@@ -8,7 +8,7 @@ chipsc: generate.sh $(SRCS)
 	./generate.sh
 	cd build ; make 2> debug.log
 quicktest: quick.chips
-	./build/chipsc quick.chips
+	./build/chipsc TeaStoreVariation.chips
 
 clean:
 	rm -f ChipsParser.hpp ChipsParser.cpp ChipsLexer.cpp chipsc \

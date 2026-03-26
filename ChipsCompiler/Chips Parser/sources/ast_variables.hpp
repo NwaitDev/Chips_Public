@@ -12,9 +12,10 @@ namespace chips {
      * expression environment
      */
     template<expression_env expenv> 
-    class array : public ast_node{
+    class array : public ast_node {
         public:
         std::vector<rvalue<dataflow_type::INT,expenv>> m_dimensions;
+        
         
         void accept(visitor& v) { v.visit(*this); }
         void hello();// override {std::cout<<"hello"<<std::endl;}

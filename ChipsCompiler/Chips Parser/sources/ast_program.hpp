@@ -32,6 +32,7 @@ namespace chips
     {
     public:
         std::vector<system_statement_variant> m_system_statements;
+        inline void add_system_statement(system_statement_variant obj){m_system_statements.push_back(obj);};
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 

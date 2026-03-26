@@ -281,14 +281,14 @@ statement
     ;
 
 s_statement
-    : IDENTIFIER suffixes IDENTIFIER SEMICOL
-    | block PERIOD IDENTIFIER suffixes L_PARENTH s_expr R_PARENTH SEMICOL
-    | LINK_KW IDENTIFIER suffixes TO_KW IDENTIFIER suffixes SEMICOL
-    | IDENTIFIER suffixes IMPLEMENTATION_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL
-    | s_loop_statement
-    | s_if_else_statement
-    | s_if_statement
-    | statement
+    : IDENTIFIER suffixes IDENTIFIER SEMICOL                                                #ObjectDeclaration
+    | block PERIOD IDENTIFIER L_PARENTH s_expr R_PARENTH SEMICOL                            #FeedingStatement
+    | LINK_KW IDENTIFIER suffixes TO_KW IDENTIFIER suffixes SEMICOL                         #LinkingStatement
+    | IDENTIFIER suffixes IMPLEMENTATION_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL #ImplementationStatement
+    | s_loop_statement                                                                      #SLoopStatement
+    | s_if_else_statement                                                                   #SIfElseStatement
+    | s_if_statement                                                                        #SIfStatement
+    | statement                                                                             #RegularStatement
     ;
 
 s_expr
