@@ -48,7 +48,7 @@ namespace chips
     {
         public:
         std::vector<primitive_statement_variant> m_statements;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
     };
 
     /**
@@ -99,7 +99,8 @@ namespace chips
     class node_definition : public definition
     {
         public:
-        with_section with;
+        with_section m_with;
+        node_definition(std::string id, with_section with) : definition(id), m_with(with) {}
     };
 
     /**
@@ -160,6 +161,11 @@ namespace chips
         public:
         std::vector<physical_parameter_variant> m_sensor;
         std::vector<physical_output_variant> m_actuator;
+
+        physical_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
+                           then_section then, std::vector<function_output_variant> outputs, with_section with, 
+                           std::vector<physical_parameter_variant> sensors, std::vector<physical_output_variant> actuators) 
+            : function_definition(identifier, parameters, init, then, outputs), node_definition(identifier,with), m_sensor(sensors), m_actuator(actuators) {};
         void hello();
     };
 
