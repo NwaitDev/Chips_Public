@@ -137,6 +137,136 @@ helper context chips!primitive_declaration def : safeVariableName : String =
 helper context chips!primitive_declaration def : atomDataName : String =
 	self.ownerFunction.safeName + '__local__' + self.safeVariableName + '__inner';
 
+
+helper context chips!"chips::xvalues::primitive::int_variable_expression" def : referencedAtomDataDeclaration : bip!AtomInternalDataDeclaration =
+	thisModule.PrimitiveDecl2AtomInternalDataDeclaration(self.variable.declaration);
+
+helper context chips!"chips::xvalues::primitive::float_variable_expression" def : referencedAtomDataDeclaration : bip!AtomInternalDataDeclaration =
+	thisModule.PrimitiveDecl2AtomInternalDataDeclaration(self.variable.declaration);
+
+helper context chips!"chips::xvalues::primitive::bool_variable_expression" def : referencedAtomDataDeclaration : bip!AtomInternalDataDeclaration =
+	thisModule.PrimitiveDecl2AtomInternalDataDeclaration(self.variable.declaration);
+
+helper def : isSupportedInitIntRValue(rv : chips!primitive_int_rvalue) : Boolean =
+	rv.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_int")
+	or rv.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression");
+
+helper def : isSupportedInitFloatRValue(rv : chips!primitive_float_rvalue) : Boolean =
+	rv.oclIsTypeOf(chips!"chips::xvalues::primitive::float_variable_expression");
+
+helper def : isSupportedInitBoolRValue(rv : chips!primitive_bool_rvalue) : Boolean =
+	rv.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_bool")
+	or rv.oclIsTypeOf(chips!"chips::xvalues::primitive::bool_variable_expression");
+
+helper def : PrimitiveIntLValue2ValuedExpression(lv : chips!primitive_int_lvalue) : bip!ValuedExpression =
+	if lv.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression")
+	then thisModule.IntVariableExpression2DirectDataDeclarationReferenceExpression(
+		lv.oclAsType(chips!"chips::xvalues::primitive::int_variable_expression")
+	)
+	else OclUndefined
+	endif;
+
+helper def : PrimitiveFloatLValue2ValuedExpression(lv : chips!primitive_float_lvalue) : bip!ValuedExpression =
+	if lv.oclIsTypeOf(chips!"chips::xvalues::primitive::float_variable_expression")
+	then thisModule.FloatVariableExpression2DirectDataDeclarationReferenceExpression(
+		lv.oclAsType(chips!"chips::xvalues::primitive::float_variable_expression")
+	)
+	else OclUndefined
+	endif;
+
+helper def : PrimitiveBoolLValue2ValuedExpression(lv : chips!primitive_bool_lvalue) : bip!ValuedExpression =
+	if lv.oclIsTypeOf(chips!"chips::xvalues::primitive::bool_variable_expression")
+	then thisModule.BoolVariableExpression2DirectDataDeclarationReferenceExpression(
+		lv.oclAsType(chips!"chips::xvalues::primitive::bool_variable_expression")
+	)
+	else OclUndefined
+	endif;
+
+helper def : PrimitiveIntRValue2ValuedExpression(rv : chips!primitive_int_rvalue) : bip!ValuedExpression =
+	if rv.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_int")
+	then thisModule.DirectInt2DirectIntegerExpression(
+		rv.oclAsType(chips!"chips::rvalues::primitive::direct_int")
+	)
+	else if rv.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression")
+		then thisModule.IntVariableExpression2DirectDataDeclarationReferenceExpression(
+			rv.oclAsType(chips!"chips::xvalues::primitive::int_variable_expression")
+		)
+		else OclUndefined
+		endif
+	endif;
+
+helper def : PrimitiveFloatRValue2ValuedExpression(rv : chips!primitive_float_rvalue) : bip!ValuedExpression =
+	if rv.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_float")
+	then thisModule.DirectFloat2DirectFloatExpression(
+		rv.oclAsType(chips!"chips::rvalues::primitive::direct_float")
+	)
+	else if rv.oclIsTypeOf(chips!"chips::xvalues::primitive::float_variable_expression")
+		then thisModule.FloatVariableExpression2DirectDataDeclarationReferenceExpression(
+			rv.oclAsType(chips!"chips::xvalues::primitive::float_variable_expression")
+		)
+		else OclUndefined
+		endif
+	endif;
+
+helper def : PrimitiveBoolRValue2ValuedExpression(rv : chips!primitive_bool_rvalue) : bip!ValuedExpression =
+	if rv.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_bool")
+	then thisModule.DirectBool2DirectBooleanExpression(
+		rv.oclAsType(chips!"chips::rvalues::primitive::direct_bool")
+	)
+	else if rv.oclIsTypeOf(chips!"chips::xvalues::primitive::bool_variable_expression")
+		then thisModule.BoolVariableExpression2DirectDataDeclarationReferenceExpression(
+			rv.oclAsType(chips!"chips::xvalues::primitive::bool_variable_expression")
+		)
+		else OclUndefined
+		endif
+	endif;
+
+helper def : Statement2SupportedInitAction(st : chips!primitive_statement) : Boolean =
+	if st.oclIsTypeOf(chips!"chips::statements::primitive::int_assignment")
+	then thisModule.isSupportedInitIntRValue(
+		st.oclAsType(chips!"chips::statements::primitive::int_assignment").rvalue
+	)
+	else if st.oclIsTypeOf(chips!"chips::statements::primitive::float_assignment")
+		then thisModule.isSupportedInitFloatRValue(
+			st.oclAsType(chips!"chips::statements::primitive::float_assignment").rvalue
+		)
+		else if st.oclIsTypeOf(chips!"chips::statements::primitive::bool_assignment")
+			then thisModule.isSupportedInitBoolRValue(
+				st.oclAsType(chips!"chips::statements::primitive::bool_assignment").rvalue
+			)
+			else false
+			endif
+		endif
+	endif;
+
+helper def : Statement2InitAction(st : chips!primitive_statement) : bip!Expression =
+	if st.oclIsTypeOf(chips!"chips::statements::primitive::int_assignment")
+	then thisModule.IntAssignment2AssignmentExpression(
+		st.oclAsType(chips!"chips::statements::primitive::int_assignment")
+	)
+	else if st.oclIsTypeOf(chips!"chips::statements::primitive::float_assignment")
+		then thisModule.FloatAssignment2AssignmentExpression(
+			st.oclAsType(chips!"chips::statements::primitive::float_assignment")
+		)
+		else if st.oclIsTypeOf(chips!"chips::statements::primitive::bool_assignment")
+			then thisModule.BoolAssignment2AssignmentExpression(
+				st.oclAsType(chips!"chips::statements::primitive::bool_assignment")
+			)
+			else OclUndefined
+			endif
+		endif
+	endif;
+
+helper context chips!function_definition def : supportedInitActions : Sequence(bip!Expression) =
+	if self.init.oclIsUndefined()
+	then Sequence{}
+	else self.init.statements
+		->select(st | st.oclIsKindOf(chips!primitive_statement))
+		->select(st | thisModule.Statement2SupportedInitAction(st.oclAsType(chips!primitive_statement)))
+		->collect(st | thisModule.Statement2InitAction(st.oclAsType(chips!primitive_statement)))
+		->asSequence()
+	endif;
+
 helper context chips!logical_parameter def : singletonTypeSignature : Sequence(String) =
 	Sequence{self.extractTypeAsString};
 
@@ -181,7 +311,7 @@ helper def: allFunctionSignatureTypeNames : Set(String) =
 
 helper def: allInitPrimitiveDeclarationTypeNames : Set(String) =
     chips!function_definition.allInstances()
-        ->select(f | not f.init.oclIsUndefined())
+        ->select(f | f.init.oclIsUndefined().not())
         ->collect(f |
             f.init.statements
             ->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
@@ -261,6 +391,95 @@ unique lazy rule MakeIdlePetriNet {
 			destinations <- Sequence{s_idle},
 			actions <- Sequence{}
 		)
+}
+
+
+unique lazy rule MakeFunctionPetriNet {
+	from chipsfunction : chips!function_definition
+	using {
+		init_actions : Sequence(bip!Expression) = chipsfunction.supportedInitActions;
+	}
+	to
+		pn : bip!PetriNet(
+			states <- Sequence{s_idle},
+			initStates <- Sequence{s_idle},
+			transitions <- Sequence{t_idle},
+			initialActions <- init_actions
+		),
+		s_idle : bip!State(
+			name <- chipsfunction.safeName + '_core_idle'
+		),
+		t_idle : bip!Transition(
+			sources <- Sequence{s_idle},
+			destinations <- Sequence{s_idle},
+			actions <- Sequence{}
+		)
+}
+
+unique lazy rule DirectInt2DirectIntegerExpression {
+	from rv : chips!"chips::rvalues::primitive::direct_int"
+	to expr : bip!DirectIntegerExpression(
+		value <- rv.value
+	)
+}
+
+unique lazy rule DirectFloat2DirectFloatExpression {
+	from rv : chips!"chips::rvalues::primitive::direct_float"
+	to expr : bip!DirectFloatExpression(
+		value <- rv.value
+	)
+}
+
+unique lazy rule DirectBool2DirectBooleanExpression {
+	from rv : chips!"chips::rvalues::primitive::direct_bool"
+	to expr : bip!DirectBooleanExpression(
+		value <- rv.value
+	)
+}
+
+unique lazy rule IntVariableExpression2DirectDataDeclarationReferenceExpression {
+	from xv : chips!"chips::xvalues::primitive::int_variable_expression"
+	to expr : bip!DirectDataDeclarationReferenceExpression(
+		dataDeclaration <- xv.referencedAtomDataDeclaration
+	)
+}
+
+unique lazy rule FloatVariableExpression2DirectDataDeclarationReferenceExpression {
+	from xv : chips!"chips::xvalues::primitive::float_variable_expression"
+	to expr : bip!DirectDataDeclarationReferenceExpression(
+		dataDeclaration <- xv.referencedAtomDataDeclaration
+	)
+}
+
+unique lazy rule BoolVariableExpression2DirectDataDeclarationReferenceExpression {
+	from xv : chips!"chips::xvalues::primitive::bool_variable_expression"
+	to expr : bip!DirectDataDeclarationReferenceExpression(
+		dataDeclaration <- xv.referencedAtomDataDeclaration
+	)
+}
+
+unique lazy rule IntAssignment2AssignmentExpression {
+	from ass : chips!"chips::statements::primitive::int_assignment"
+	to expr : bip!AssignmentExpression(
+		lhs <- thisModule.PrimitiveIntLValue2ValuedExpression(ass.lvalue),
+		rhs <- thisModule.PrimitiveIntRValue2ValuedExpression(ass.rvalue)
+	)
+}
+
+unique lazy rule FloatAssignment2AssignmentExpression {
+	from ass : chips!"chips::statements::primitive::float_assignment"
+	to expr : bip!AssignmentExpression(
+		lhs <- thisModule.PrimitiveFloatLValue2ValuedExpression(ass.lvalue),
+		rhs <- thisModule.PrimitiveFloatRValue2ValuedExpression(ass.rvalue)
+	)
+}
+
+unique lazy rule BoolAssignment2AssignmentExpression {
+	from ass : chips!"chips::statements::primitive::bool_assignment"
+	to expr : bip!AssignmentExpression(
+		lhs <- thisModule.PrimitiveBoolLValue2ValuedExpression(ass.lvalue),
+		rhs <- thisModule.PrimitiveBoolRValue2ValuedExpression(ass.rvalue)
+	)
 }
 
 unique lazy rule MakeChipsBuffer{
@@ -455,7 +674,7 @@ rule FunctionDefinition2AtomType {
 			dataParameterDeclarations <- Sequence{},
 	        internalPortDeclarations <- Sequence{input_internal_ports, output_internal_ports}->flatten(),
 			externalPortDeclarations <- Sequence{},
-	        behavior <- thisModule.MakeIdlePetriNet(chipsfunction.safeName + '_core'),
+	        behavior <- thisModule.MakeFunctionPetriNet(chipsfunction),
 	        internalDataDeclarations <- Sequence{aidd_input, aidd_output, aidd_inner}->flatten(),
 	        exportPortDeclarations <- Sequence{input_export_ports, output_export_ports}->flatten(),
 			priorities <- Sequence{},
