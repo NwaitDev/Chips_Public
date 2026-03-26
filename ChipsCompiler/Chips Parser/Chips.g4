@@ -7,15 +7,15 @@ program
 
 system
     : SYSTEM_KW L_CURL
-        s_statement*
+        s_statement*    
       R_CURL
     ;
 
 preamble
-    : object_def
-    | function_def
-    | collective_op_def
-    | implementation_def
+    : object_def            #ObjectDefinition
+    | function_def          #FunctionDefinition
+    | collective_op_def     #CollectiveOperationDefinition
+    | implementation_def    #ImplementationDefinition
     ;
 
 object_def
@@ -33,8 +33,8 @@ node_mapping
     ;
 
 function_def
-    : l_function_def
-    | p_function_def
+    : l_function_def    #LogicalDefintion
+    | p_function_def    #PhysicalDefinition
     ;
 
 collective_op_def
@@ -42,14 +42,13 @@ collective_op_def
         c_statement*
       R_CURL
       ARROW TARGET_KW L_PARENTH (c_expr)+ R_PARENTH
-      c_output
-      c_output* #OptionalOutputs
+      c_output+
     ;
 
 
 c_output
-    : ARROW DEFAULT_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
-    | ARROW IDENTIFIER L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
+    : ARROW DEFAULT_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH   #DefaultOutput
+    | ARROW IDENTIFIER L_PARENTH c_expr (COMMA c_expr)* R_PARENTH   #ChanneledOutput
     ;
 
 l_function_def
@@ -84,9 +83,9 @@ with_section
     ;
 
 with_statement
-    : IDENTIFIER IDENTIFIER SEMICOL
-    | CTX_KW df_type IDENTIFIER (ASSIGN expr)? SEMICOL
-    | statement
+    : IDENTIFIER IDENTIFIER SEMICOL                     #ChannelDeclaration
+    | CTX_KW df_type IDENTIFIER (ASSIGN expr)? SEMICOL  #ContextualDeclaration
+    | statement                                         #WithRegularStatement
     ;
 
 init_section
@@ -144,48 +143,48 @@ cast
     ;
 
 c_expr
-    : c_stopless_expr
-    | STOP_KW
+    : c_stopless_expr   #CStoplessExpression
+    | STOP_KW           #Stop
     ;
 
 c_stopless_expr 
-    : c_stopless_expr0 LT c_stopless_expr
-    | c_stopless_expr0 GT c_stopless_expr
-    | c_stopless_expr0 LEQ c_stopless_expr
-    | c_stopless_expr0 GEQ c_stopless_expr
-    | c_stopless_expr0 NEQ c_stopless_expr
-    | c_stopless_expr0 EQ c_stopless_expr
-    | c_stopless_expr0 AND c_stopless_expr
-    | c_stopless_expr0 OR c_stopless_expr
-    | c_stopless_expr0
+    : c_stopless_expr0 LT c_stopless_expr   #CLT
+    | c_stopless_expr0 GT c_stopless_expr   #CGT
+    | c_stopless_expr0 LEQ c_stopless_expr  #CLEQ
+    | c_stopless_expr0 GEQ c_stopless_expr  #CGEQ
+    | c_stopless_expr0 NEQ c_stopless_expr  #CNEQ
+    | c_stopless_expr0 EQ c_stopless_expr   #CEQ
+    | c_stopless_expr0 AND c_stopless_expr  #CAND
+    | c_stopless_expr0 OR c_stopless_expr   #COR
+    | c_stopless_expr0                      #PassCExpr0
     ;
 
 c_stopless_expr0
-    : c_stopless_expr1 PLUS c_stopless_expr0
-    | c_stopless_expr1 MINUS c_stopless_expr0
-    | MINUS c_stopless_expr0
-    | c_stopless_expr1
+    : c_stopless_expr1 PLUS c_stopless_expr0    #CPLUS
+    | c_stopless_expr1 MINUS c_stopless_expr0   #CSUB
+    | MINUS c_stopless_expr0                    #CNegate
+    | c_stopless_expr1                          #PassCExpr1
     ;
 
 c_stopless_expr1
-    : c_stopless_expr2 TIMES c_stopless_expr1
-    | c_stopless_expr2 DIV c_stopless_expr1
-    | c_stopless_expr2 MOD c_stopless_expr1
-    | NOT c_stopless_expr1
-    | c_stopless_expr2
+    : c_stopless_expr2 TIMES c_stopless_expr1   #CMULT
+    | c_stopless_expr2 DIV c_stopless_expr1     #CDIV
+    | c_stopless_expr2 MOD c_stopless_expr1     #CMOD
+    | NOT c_stopless_expr1                      #CNOT
+    | c_stopless_expr2                          #PassCExpr2
     ;
 
 c_stopless_expr2
-    : IDENTIFIER c_suffixes
-    | INT
-    | FLOAT
-    | BOOL
-    | INPUT_KW
-    | CTX_KW PERIOD IDENTIFIER c_suffixes
-    | IDENTIFIER PERIOD IDENTIFIER c_suffixes // for collect channeled expressions
-    | IDENTIFIER L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH
-    | L_PARENTH c_stopless_expr R_PARENTH
-    | c_cast
+    : IDENTIFIER c_suffixes                                     #CVariableExpression
+    | INT                                                       #CINT
+    | FLOAT                                                     #CFLOAT
+    | BOOL                                                      #CBOOL
+    | INPUT_KW                                                  #INPUT
+    | CTX_KW PERIOD IDENTIFIER c_suffixes                       #CtxVariableExpression
+    | IDENTIFIER PERIOD IDENTIFIER c_suffixes                   #ChanneledAccuExpression
+    | IDENTIFIER L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH  #FunctionCall
+    | L_PARENTH c_stopless_expr R_PARENTH                       #CParenthesis
+    | c_cast                                                    #CCastAs
     ;
 
 c_cast
@@ -202,21 +201,22 @@ c_suffixes
     ;
 
 s_suffixable_expr
-    : IDENTIFIER (L_PARENTH expr* R_PARENTH)?
-    | block PERIOD IDENTIFIER
+    : IDENTIFIER                                                #SSuffixableVariableExpression
+    | IDENTIFIER (L_PARENTH (expr (COMMA expr)*)? R_PARENTH)?   #SSuffixableFunctionCallExpression
+    | block PERIOD IDENTIFIER                                   #SSuffixableBlockOutputExpression
     ;
 
-block   
+block
     : IDENTIFIER suffixes
     ;
 
 loop_in
-    :  IDENTIFIER (L_PARENTH expr* R_PARENTH)?
+    :  IDENTIFIER (L_PARENTH (expr (COMMA expr)*)? R_PARENTH)?
     ;
 
 loop_statement
     : FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
-        (statement)*
+        statement*
       R_CURL
     ;
 
@@ -292,9 +292,9 @@ s_statement
     ;
 
 s_expr
-    : block PERIOD IDENTIFIER
-    | collective_operation block PERIOD IDENTIFIER
-    | expr
+    : block PERIOD IDENTIFIER                       #SBlockOutputExpression
+    | collective_operation block PERIOD IDENTIFIER  #SCollectiveCastExpression
+    | expr                                          #SRegularExpression
     ;
 
 collective_operation
@@ -302,12 +302,12 @@ collective_operation
     ;
 
 c_statement
-    : cdf_full_declaration SEMICOL
-    | IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL
-    | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL
-    | c_loop_statement
-    | c_if_else_statement
-    | c_if_statement
+    : cdf_full_declaration SEMICOL                              #CollectiveVariableDeclaration
+    | IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL               #CollectiveAssignment
+    | CTX_KW PERIOD IDENTIFIER c_suffixes ASSIGN c_expr SEMICOL #ContextualAssignment
+    | c_loop_statement                                          #CollectiveLoopStatement
+    | c_if_else_statement                                       #CollectiveIfElseStatement
+    | c_if_statement                                            #CollectiveIfStatement
     ;
 
 named_output
@@ -315,8 +315,8 @@ named_output
     ;
 
 p_named_output
-    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH expr+ R_PARENTH
-    | named_output
+    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH expr+ R_PARENTH    #ActuatorOutput
+    | named_output                                              #FunctionOutput
     ;
 
 df_parameter_decl
@@ -330,8 +330,8 @@ df_type
     ;
 
 pdf_parameter_type
-    : df_type
-    | SENSOR_KW df_type
+    : df_type           #FunctionParameter
+    | SENSOR_KW df_type #SensorParameter
     ;
 
 pdf_parameter_decl

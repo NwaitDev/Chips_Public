@@ -46,29 +46,20 @@ class ASTBuilder : public ChipsBaseVisitor {
         program_node prgm;
         std::cout<< "nb preambles " <<ctx->preamble().size()<<std::endl;
         for(ChipsParser::PreambleContext* pc : ctx->preamble()){
-            std::cout<<"hello?\n";
-            if(ChipsParser::Object_defContext* od = pc->object_def()){
-                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(od)));
-                continue;
+
+            #define APPEND_CASTED_DEF(POTENTIAL) \
+            if(POTENTIAL* stuff = dynamic_cast<POTENTIAL*>(pc); stuff != nullptr){ \
+                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
+                continue; \
             }
-            if(ChipsParser::Function_defContext* fd = pc->function_def()){
-                if(ChipsParser::L_function_defContext* lfd = fd->l_function_def()){
-                    prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(lfd)));
-                    continue;
-                }
-                if(ChipsParser::P_function_defContext* pfd = fd->p_function_def()){
-                    prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(pfd)));
-                    continue;
-                }
-            }
-            if(ChipsParser::Collective_op_defContext* cod = pc->collective_op_def()){
-                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(cod)));
-                continue;
-            }
-            if(ChipsParser::Implementation_defContext* id = pc->implementation_def()){
-                prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(id)));
-                continue;
-            }
+
+            APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
+
+            #undef APPEND_CASTED_DEF
+
             std::cerr<<"Unknown definition type in the preamble section!\n";
         }
 
@@ -108,28 +99,8 @@ class ASTBuilder : public ChipsBaseVisitor {
     //////////////////////////////////////////////////////////////////////////////////
 
 
-    #define VISIT_PLACEHOLDER(NODETYPE, TXT)                \
-    std::any visitObject_def(NODETYPE* ctx) {      \
-        std::cout<<TXT<<std::endl;                          \
-        return std::any{};                                  \
-    }
 
-    VISIT_PLACEHOLDER(ChipsParser::Object_defContext,"obj_def")
-    VISIT_PLACEHOLDER(ChipsParser::L_function_defContext,"lfdef")
-    VISIT_PLACEHOLDER(ChipsParser::P_function_defContext,"pfdef")
-    VISIT_PLACEHOLDER(ChipsParser::Collective_op_defContext,"impl")
-    VISIT_PLACEHOLDER(ChipsParser::Implementation_defContext,"sloop")
-
-    VISIT_PLACEHOLDER(ChipsParser::ObjectDeclarationContext,"obj")
-    VISIT_PLACEHOLDER(ChipsParser::FeedingStatementContext,"feeding")
-    VISIT_PLACEHOLDER(ChipsParser::LinkingStatementContext,"link")
-    VISIT_PLACEHOLDER(ChipsParser::ImplementationStatementContext,"impl")
-    VISIT_PLACEHOLDER(ChipsParser::SLoopStatementContext,"sloop")
-    VISIT_PLACEHOLDER(ChipsParser::SIfElseStatementContext,"sifelse")
-    VISIT_PLACEHOLDER(ChipsParser::SIfStatementContext,"sif")
-    VISIT_PLACEHOLDER(ChipsParser::RegularStatementContext,"regular")
-
-    #undef VISIT_PLACEHOLDER
+    
 
 
 
@@ -283,13 +254,6 @@ class ASTBuilder : public ChipsBaseVisitor {
 
         return result;
     }
-
-    // std::any visitVar(ChipsParser::VarContext *ctx) override {
-    // }
-
-    // std::any visitVarContext(ChipsParser::VarContext *ctx) override {
-
-    // }
 
     std::any visitCastAs(ChipsParser::CastAsContext* ctx) override {
         // std::cout << "visitCastAs()" << std::endl;

@@ -271,6 +271,18 @@ namespace ast_builder_detail {
 
         #undef TRY_BINARY
 
+        #define ITSAWHAT(DFT,EXPENV,TXT) \
+        if(try_extract<DFT, EXPENV>(left_any)) throw std::runtime_error(TXT);
+
+        ITSAWHAT(dataflow_type::FLOAT,expression_env::PRIMITIVE,"Its a float");
+        ITSAWHAT(dataflow_type::FLOAT,expression_env::COLLECTIVE,"Its a float");
+        ITSAWHAT(dataflow_type::FLOAT,expression_env::SYSTEM,"Its a float");
+        ITSAWHAT(dataflow_type::INT,expression_env::PRIMITIVE,"Its a int");
+        ITSAWHAT(dataflow_type::INT,expression_env::COLLECTIVE,"Its a int");
+        ITSAWHAT(dataflow_type::INT,expression_env::SYSTEM,"Its a int");
+        
+        #undef ITSAWHAT
+
         throw std::runtime_error(
             std::string(op_name) + " : type non valide pour un booleen "
             "(INT et FLOAT non supportes, seul BOOL est valide).");
