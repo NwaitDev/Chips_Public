@@ -88,7 +88,7 @@ namespace chips {
                 for (const auto& scope : scopes) {
                     std::cout << "Scope " << level-- << ":\n";
                     for (const auto& [k, v] : scope) {
-                        std::cout << "  " << k << v.kind << "\n";
+                        std::cout << "  " << k << " (" << SymbolKindToString(v.kind) << ")\n";
                     }
                 }
                 std::cout << "========================\n";
@@ -103,6 +103,17 @@ namespace chips {
                 FUNCTION_SPREAD,
                 FUNCTION_COLLECT,
             };
+
+            std::string SymbolKindToString(SymbolKind kind) const{
+                switch(kind){
+                    case VARIABLE_PRIMITIVE: return "variable primitive";
+                    case VARIABLE_CONTEXTUAL: return "variable contextual";
+                    case FUNCTION_LOGICAL: return "function logical";
+                    case FUNCTION_PHYSICAL: return "function physical";
+                    case FUNCTION_SPREAD: return "function spread";
+                    case FUNCTION_COLLECT: return "function collect";
+                }
+            }
 
             struct Symbol{
                 std::any value;
@@ -121,6 +132,8 @@ namespace chips {
             SymbolTable() = default;
 
             bool declare(const std::string& name, const std::any& value, const SymbolKind kind){
+                if(scopes.empty()) enterScope();
+                
                 auto& current = scopes.back();
 
                 Symbol sym;

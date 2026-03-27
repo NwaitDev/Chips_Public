@@ -13,6 +13,8 @@
 #include "sources/ChipsToXmiVisitor.hpp"
 #include "sources/ChipsToXmiWriter.hpp"
 
+#include "sources/ChipsSymbolTable.hpp"
+
 
 #include <iostream>
 #include <fstream>
@@ -61,82 +63,48 @@ void run(std::istream& input, Interpreter& /*interp*/) {
     ChipsToXmiWriter body_writer(body_out);
     ChipsToXmiVisitor visitor(body_writer, body_out);
 
-    std::any result = builder.visit(tree);
+    // std::any result = builder.visit(tree);
 
-    // extract_as_node dispatche sur tous les types concrets connus
-    // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template
-    std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
+    // // extract_as_node dispatche sur tous les types concrets connus
+    // // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template
+    // std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
 
-    if(rootPtr){
-        int status;
-        const std::type_info& ti = typeid(*rootPtr);
-        char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
-        std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
-        free(realname);
+    // if(rootPtr){
+    //     int status;
+    //     const std::type_info& ti = typeid(*rootPtr);
+    //     char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
+    //     std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
+    //     free(realname);
 
-        rootPtr->hello();
+    //     rootPtr->hello();
 
-        // ast_node& node = *rootPtr;
+    //     SymbolTable::getInstance().dump();
 
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
-        //     std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
-        //     r->accept(visitor);
-        // }
+    //     // ast_node& node = *rootPtr;
+
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
+    //     //     std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
+    //     //     r->accept(visitor);
+    //     // }
             
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
-        //     r->accept(visitor);
-        // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
-        //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
+    //     //     r->accept(visitor);
+    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
+    //     //     r->accept(visitor);
         
-        // // node.accept(visitor);
-
-        // std::ofstream out(output);
-
-        // ChipsToXmiWriter writer(out);
-        // writer.copy_namespaces_from(body_writer);
-        // writer.xmi_header("error");
-        // out << body_out.str();
-        // writer.xmi_footer();
-
-        // out.close();
-        // std::cout << "XMI généré: " << output << std::endl;
-    } else {
-        std::cout << "no" << std::endl;
-    }
-
-    // for(auto* stmt : tree->expr()){
-    //     std::any result = builder.visit(stmt);
-    //     ast_node* rootPtr = std::any_cast<ast_node>(&result);
-
-    //     if(rootPtr){
-    //         int status;
-    //         const std::type_info& ti = typeid(*rootPtr);
-    //         char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
-    //         std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
-    //         free(realname);
-    //     }else{
-    //         std::cout << "no" << std::endl;
-    //     }
-
-    //     if(auto INT = dynamic_cast<chips::direct<chips::dataflow_type::INT, chips::expression_env::PRIMITIVE>*>(rootPtr)){
-    //         std::cout << "ENTIER" << std::endl;
-    //         INT->hello();
-    //     }
-    //     // ast_node& root = *rootPtr;
-
-    //     // root.accept(visitor);
+    //     // // node.accept(visitor);
 
     //     // std::ofstream out(output);
 
@@ -148,7 +116,43 @@ void run(std::istream& input, Interpreter& /*interp*/) {
 
     //     // out.close();
     //     // std::cout << "XMI généré: " << output << std::endl;
+    // } else {
+    //     std::cout << "no" << std::endl;
     // }
+
+    for(auto* stmt : tree->statement()){
+        std::any result = builder.visit(stmt);
+        std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
+
+        if(rootPtr){
+            int status;
+            const std::type_info& ti = typeid(*rootPtr);
+            char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+            std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
+            free(realname);
+
+            rootPtr->hello();
+
+            SymbolTable::getInstance().dump();
+        }else{
+            std::cout << "no" << std::endl;
+        }
+
+        // ast_node& root = *rootPtr;
+
+        // root.accept(visitor);
+
+        // std::ofstream out(output);
+
+        // ChipsToXmiWriter writer(out);
+        // writer.copy_namespaces_from(body_writer);
+        // writer.xmi_header("error");
+        // out << body_out.str();
+        // writer.xmi_footer();
+
+        // out.close();
+        // std::cout << "XMI généré: " << output << std::endl;
+    }
 
 
     // interp.visit(tree);              // évalue

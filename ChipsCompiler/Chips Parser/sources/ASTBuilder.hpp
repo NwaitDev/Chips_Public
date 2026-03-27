@@ -9,6 +9,7 @@
 #include "ast_variables.hpp"
 #include "ast_definitions.hpp"
 #include "ast_builder_details.hpp"
+#include "ChipsSymbolTable.hpp"
 
 #include <any>
 #include <memory>
@@ -33,6 +34,8 @@ private:
         }
     };
 
+    expression_env current_env = expression_env::PRIMITIVE;
+
 public:
     //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////
@@ -42,56 +45,58 @@ public:
     //////////////////////////////////////////////////////////////////////////////////
     // PROGRAM LEVEL VISIT METHODS
 
+
     std::any visitProgram(ChipsParser::ProgramContext *ctx) override
     {
-        program_node prgm;
-        std::cout << "nb preambles " << ctx->preamble().size() << std::endl;
-        for (ChipsParser::PreambleContext *pc : ctx->preamble())
-        {
+//         program_node prgm;
+//         std::cout << "nb preambles " << ctx->preamble().size() << std::endl;
+//         for (ChipsParser::PreambleContext *pc : ctx->preamble())
+//         {
 
-#define APPEND_CASTED_DEF(POTENTIAL)                                                         \
-    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
-    {                                                                                        \
-        prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
-        continue;                                                                            \
-    }
+// #define APPEND_CASTED_DEF(POTENTIAL)                                                         \
+//     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
+//     {                                                                                        \
+//         prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
+//         continue;                                                                            \
+//     }
 
-            APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
-            APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
-            APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
-            APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
+//             APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
+//             APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
+//             APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
+//             APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
 
-#undef APPEND_CASTED_DEF
+// #undef APPEND_CASTED_DEF
 
-            std::cerr << "Unknown definition type in the preamble section!\n";
-        }
+//             std::cerr << "Unknown definition type in the preamble section!\n";
+//         }
 
-        std::cout << "nb statements in system section root level: "
-                  << ctx->system()->s_statement().size() << std::endl;
-        for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
-        {
+//         std::cout << "nb statements in system section root level: "
+//                   << ctx->system()->s_statement().size() << std::endl;
+//         for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
+//         {
 
-#define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
-    if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
-    {                                                                                                                                \
-        prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
-        continue;                                                                                                                    \
-    }
+// #define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
+//     if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
+//     {                                                                                                                                \
+//         prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
+//         continue;                                                                                                                    \
+//     }
 
-            SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
-            SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
-            SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
-            SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
-            SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
-            SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
-            SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
-            SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
-#undef SSTATEMENT_CAST
+//             SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
+//             SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
+//             SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
+// #undef SSTATEMENT_CAST
 
-            std::cerr << "Unknown statement type in the system section root level!\n";
-        }
+//             std::cerr << "Unknown statement type in the system section root level!\n";
+//         }
 
-        return prgm;
+//         return prgm;
+        return std::any{};
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -512,11 +517,6 @@ public:
         throw std::runtime_error("Unimplemented visit method C_if_statementContext");
     }
 
-    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx) override
-    {
-        throw std::runtime_error("Unimplemented visit method StatementDeclarationContext");
-    }
-
     std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx) override
     {
         throw std::runtime_error("Unimplemented visit method StatementAssignmentContext");
@@ -833,19 +833,8 @@ public:
         return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(value);
     }
 
-    std::any visitParens(ChipsParser::ParensContext *ctx) override
-    {
-        auto result = visit(ctx->expr());
-
-        // Essayez pour INT, FLOAT, BOOL
-        if (auto v = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(result))
-            v->set_parenthesage(true);
-        else if (auto v = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(result))
-            v->set_parenthesage(true);
-        else if (auto v = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(result))
-            v->set_parenthesage(true);
-
-        return result;
+    std::any visitParens(ChipsParser::ParensContext* ctx) override {
+        return visit(ctx->expr());
     }
 
     std::any visitCastAs(ChipsParser::CastAsContext *ctx) override
@@ -954,67 +943,171 @@ public:
         return dataflow_type::BOOL;
     }
 
-    std::any visitSuffixes(ChipsParser::SuffixesContext *ctx) override
-    {
-        // TODO: Implémenter
-        return std::any{};
+    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx) override {
+        switch(current_env){
+            case expression_env::PRIMITIVE: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
+                    if(!node){
+                        throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env PRIMITIVE).");
+                    }
+                    dims.push_back(*node);
+                }
+                return dims;
+            }
+
+            case expression_env::COLLECTIVE: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(val);
+                    if(!node){
+                         throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env COLLECTIVE).");
+                    }
+                    dims.push_back(*node);
+                }
+                return dims;
+            }
+
+            case expression_env::SYSTEM: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::SYSTEM>> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(val);
+                    if(!node){
+                         throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env SYSTEM).");
+                    }
+                    dims.push_back(*node);
+                }
+                return dims;
+            }
+        }
     }
 
     /**
      * STATEMENT
      */
-    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier)
-    {
-        switch (type)
-        {
-        case dataflow_type::INT:
-        {
-            dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
-            dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
-            dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl);
-            decl.m_variable = var;
-            return decl;
-        }
-        case dataflow_type::FLOAT:
-        {
-            dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
-            dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
-            dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl);
-            decl.m_variable = var;
-            return decl;
-        }
-        case dataflow_type::BOOL:
-        {
-            dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
-            dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
-            dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl);
-            decl.m_variable = var;
-            return decl;
-        }
+    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier){
+        auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>>(suffixes);
+        switch(type){
+            case dataflow_type::INT: {
+                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl, dims);
+                decl.m_variable = var;
+                return decl;
+            }
+            case dataflow_type::FLOAT: {
+                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl, dims);
+                decl.m_variable = var;
+                return decl;
+            }
+            case dataflow_type::BOOL: {
+                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl, dims);
+                decl.m_variable = var;
+                return decl;
+            }
         }
     }
 
-    // std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx) override {
-    //     std::cout << "visitStatementDeclaration()" << std::endl;
+    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign){
+        /**
+         * vartmp = dataflow_primitive_variable(identifier, nullptr);
+         * decl = dataflow_declaration(vartmp);
+         * var = dataflow_primitive_variable(identifier, &decl);
+         * decl.m_variable = var;
+         * left = variable_expression(decl.get_variable());
+         * right = visit(assign);
+         * assignment = dataflow_assignment(left, right);
+         * return assignment;
+         */
+        auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>>(suffixes);
+        switch(type){
+            case dataflow_type::INT: {
+                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl, dims);
+                decl.set_variable(var);
+                if(!have_assign) return decl;
+                variable_expression<dataflow_type::INT, expression_env::PRIMITIVE> left(&var);
+                auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
+                dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(&left, *right);
+                return assignment;
+            }
+            case dataflow_type::FLOAT: {
+                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl, dims);
+                decl.set_variable(var);
+                if(!have_assign) return decl;
+                variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE> left(&var);
+                auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign);
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(&left, *right);
+                return assignment;
+            }
+            case dataflow_type::BOOL: {
+                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
+                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
+                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl, dims);
+                decl.set_variable(var);
+                if(!have_assign) return decl;
+                variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE> left(&var);
+                auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign);
+                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(&left, *right);
+                return assignment;
+            }
+        }
+    }
 
-    //     dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
-    //     std::any suffixes = visit(ctx->suffixes());
-    //     std::string var_name = ctx->IDENTIFIER()->getText();
-    //     // std::any assign = visit(ctx->may_assign());
-    //     std::any assign;
+    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx) override {
+        std::cout << "visitStatementDeclaration()" << std::endl;
 
-    //     if(ctx->expr()){
-    //         assign = visit(ctx->expr());
-    //     }else{
-    //         assign = std::any{};
-    //     }
+        dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+        current_env = expression_env::PRIMITIVE;
+        std::any suffixes = visit(ctx->suffixes());
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        // std::any assign = visit(ctx->may_assign());
+        std::any assign;
 
-    //     if(!assign.has_value()){
-    //         std::cout << "ASSIGN VIDE" << std::endl;
-    //         return handle_statement_declaration(type_any, suffixes, var_name);
-    //     }
-    //     return std::any{};
-    // }
+        if(ctx->expr()){
+            assign = visit(ctx->expr());
+        }else{
+            assign = std::any{};
+        }
+
+        if(!assign.has_value()){
+            std::cout << "ASSIGN VIDE" << std::endl;
+            auto decl = handle_statement_declaration(type_any, suffixes, var_name);
+            if(!SymbolTable::getInstance().declareVariable(var_name, decl)){
+                throw std::runtime_error("Redeclare a variable already declared");
+            }
+            return decl;
+            // return handle_statement_declaration(type_any, suffixes, var_name);
+        }else{
+            std::cout << "ASSIGN REMPLI" << std::endl;
+            // auto assignment = handle_statement_declaration(type_any, suffixes, var_name, assign, true);
+            // if(!SymbolTable::getInstance().declareVariable(var_name, assignment)){
+            //     throw std::runtime_error("Redeclare a variable already declared");
+            // }
+            // return assignment;
+        }
+        return std::any{};        
+    }
 
     // std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext* ctx) override {
     //     return std::any{};

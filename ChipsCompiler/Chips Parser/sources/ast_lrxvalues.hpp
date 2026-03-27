@@ -14,9 +14,10 @@ namespace chips{
      * Node of the AST that represents something to 
      * be put on the left side of an assignment
      */
-    template<dataflow_type dft, expression_env sttenv>
+    template<dataflow_type dft, expression_env expenv>
     class lvalue : public ast_node {
-        void hello() override {std::cout<<"hello"<<std::endl;}
+        public:
+        virtual void hello() = 0;
     };
 
 
@@ -27,18 +28,8 @@ namespace chips{
      */
     template<dataflow_type dft, expression_env expenv>
     class rvalue : public ast_node{
-        private:
-            bool parenthesage = false;
-
         public:
-            void set_parenthesage(bool b){
-                parenthesage = b;
-            }
-
-            bool is_parenthesage() const{
-                return parenthesage;
-            }
-            void hello() override {std::cout<<"hello"<<std::endl;}
+            virtual void hello() override {std::cout<<"hello rvalue"<<std::endl;}
     };
 
     /**
@@ -463,20 +454,17 @@ namespace chips{
      * referencing a dataflow variable
      */
     template<dataflow_type dft, expression_env expenv>
-    class variable_expression : rvalue<dft,expenv>, lvalue<dft,expenv>
+    class variable_expression : public rvalue<dft,expenv>, public lvalue<dft,expenv>
     {
     private:
-        // variable<expenv>& m_variable;
-        std::shared_ptr<variable<expenv>> m_variable;
-        std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index;
+        variable<expenv>* m_variable;
         
         public:
-            variable_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
-                : m_variable(std::move(variable)), index(std::move(index)){}
-
-            variable<expenv>* get_variable() { return m_variable.get(); }
-            std::vector<rvalue<dataflow_type::INT, expenv>>* get_index() { return index.get(); }
-
+            variable_expression(variable<expenv>* variable)
+                : m_variable(variable){}
+                
+            variable<expenv>* get_variable() { return m_variable; }
+            
             void accept(visitor& v) { v.visit(*this); }
             virtual void hello() override;
     };
@@ -484,9 +472,11 @@ namespace chips{
     template<dataflow_type dft, expression_env expenv>
     class variable_contextual_expression : public variable_expression<dft, expenv>{
         public:
-            variable_contextual_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
-                : variable_expression<dft, expenv>(variable, index){}
+            // variable_contextual_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
+            //     : variable_expression<dft, expenv>(variable, index){}
 
+            variable_contextual_expression(variable<expenv>* variable)
+                : variable_expression<dft,expenv>(variable){}
 
             void accept(visitor& v) { v.visit(*this); }
             void hello();

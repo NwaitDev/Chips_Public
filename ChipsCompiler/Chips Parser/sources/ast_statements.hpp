@@ -37,6 +37,7 @@ namespace chips {
             dataflow_declaration(df_variable_type variable)
                 : m_variable(variable){}
 
+            void set_variable(df_variable_type var) { m_variable = var; }
             df_variable_type get_variable() { return m_variable; }
 
             void accept(visitor& v) { v.visit(*this); }
@@ -53,10 +54,20 @@ namespace chips {
     template<dataflow_type dft, statement_env stenv>
     class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT> 
     {
+        public:
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
-        lvalue<dft, expr_env> m_lvalue;
+        lvalue<dft, expr_env>* m_lvalue;
         rvalue<dft, expr_env> m_rvalue;
-        void hello();
+
+        dataflow_assignment() = default;
+        dataflow_assignment(lvalue<dft, expr_env>* lhs, rvalue<dft, expr_env> rhs)
+            : m_lvalue(lhs), m_rvalue(rhs){}
+
+        lvalue<dft, expr_env>* get_lhs() { return m_lvalue; }
+        rvalue<dft, expr_env> get_rhs() { return m_rvalue; }
+
+        void accept(visitor& v) { v.visit(*this); }
+        void hello() override;
     };
 
     /**

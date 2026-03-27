@@ -187,6 +187,21 @@ namespace ast_builder_detail {
                 const_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>*>(p),
                 [](ast_node*){}
             );
+        if(auto* p = std::any_cast<dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
+        if(auto* p = std::any_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>(&a))
+            return std::shared_ptr<ast_node>(
+                const_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>*>(p),
+                [](ast_node*){}
+            );
 
         throw std::runtime_error(
             "extract_as_node : type inconnu dans le std::any : "

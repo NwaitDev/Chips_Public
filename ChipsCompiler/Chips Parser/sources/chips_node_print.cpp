@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <typeinfo>
+#include "cxxabi.h"
 
 namespace chips {
     std::string dft_to_string(dataflow_type type){
@@ -53,14 +54,19 @@ namespace chips {
 
     template<expression_env expenv>
     void array<expenv>::hello(){
-        std::cout << "ARRAY" << std::endl;
+        for(auto dim : get_dimensions()){
+            std::cout << "[";
+            std::cout << "TODO";
+            // dim.hello();
+            std::cout << "]";
+        }
     }
 
     template<dataflow_type dft>
     void dataflow_primitive_variable<dft>::hello(){
-        std::cout << dft_to_string(dft) << " " << get_name();
-        // if(get_declaration()) get_declaration()->hello();
-        std::cout << ";" << std::endl;
+        std::cout << dft_to_string(dft);
+        array<expression_env::PRIMITIVE>::hello();
+        std::cout << " " << get_name() << ";" << std::endl;
     }
 
     template<dataflow_type dft>
@@ -77,13 +83,27 @@ namespace chips {
 
     template<dataflow_type dft, statement_env sttenv>
     void dataflow_declaration<dft, sttenv>::hello(){
-        std::cout << dft_to_string(dft) << " ";
-        std::cout << get_variable().get_name() << ";" << std::endl;
-        // std::cout << "DATAFLOW DECLARATION" << std::endl;
+        get_variable().hello();
     }
 
     template<dataflow_type dft, statement_env sttenv>
-    void dataflow_assignment<dft, sttenv>::hello(){}
+    void dataflow_assignment<dft, sttenv>::hello(){
+        std::cout << "DATAFLOW ASSIGNMENT" << std::endl;
+
+        int status;
+        const std::type_info& ti = typeid(get_lhs());
+        char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+        std::cout << "Type dynamique de get_lhs() : " << (realname ? realname : ti.name()) << std::endl;
+        free(realname);
+
+        //TODO régler ce PUTAIN DE CORE DUMPED
+
+        // std::cout << (get_lhs() ? "yes" : "no") << std::endl;
+        get_lhs()->hello();
+        std::cout << " = ";
+        get_rhs().hello();
+        std::cout << ";" << std::endl;
+    }
 
     template<statement_env sttenv>
     void if_section<sttenv>::hello(){}
@@ -341,9 +361,8 @@ namespace chips {
 
     template<dataflow_type dft,expression_env expenv>
     void variable_expression<dft, expenv>::hello(){
-        // if(this->is_parenthesage()) std::cout << "(";
-
-        // if(this->is_parenthesage()) std::cout << ")";
+        std::cout << "VARIABLE EXPRESSION" << std::endl;
+        get_variable()->hello();
     }
 
     template<dataflow_type dft, expression_env expenv>
@@ -489,6 +508,10 @@ namespace chips {
     template void cast_as<dataflow_type::INT, expression_env::SYSTEM>::hello();
     template void cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>::hello();
 
+    template void variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>::hello();
+    template void variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>::hello();
+    template void variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>::hello();
+
     template void dataflow_primitive_variable<dataflow_type::INT>::hello();
     template void dataflow_primitive_variable<dataflow_type::FLOAT>::hello();
     template void dataflow_primitive_variable<dataflow_type::BOOL>::hello();
@@ -500,4 +523,8 @@ namespace chips {
     template void dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>::hello();
     template void dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>::hello();
     template void dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>::hello();
+
+    template void dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>::hello();
+    template void dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>::hello();
+    template void dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>::hello();
 }

@@ -1,8 +1,8 @@
 grammar Chips;
 
 program 
-    : preamble* system? EOF
-//    : expr EOF
+//    : preamble* system? EOF
+    : (statement)* EOF
     ;
 
 system
@@ -324,9 +324,9 @@ df_parameter_decl
     ;
 
 df_type
-    : INT_KW suffixes       # IntType
-    | FLOAT_KW suffixes     # FloatType
-    | BOOL_KW suffixes      # BoolType
+    : INT_KW       # IntType
+    | FLOAT_KW     # FloatType
+    | BOOL_KW      # BoolType
     ;
 
 pdf_parameter_type

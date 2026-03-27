@@ -15,10 +15,17 @@ namespace chips {
     class array : public ast_node {
         public:
         std::vector<rvalue<dataflow_type::INT,expenv>> m_dimensions;
+
+        array() = default;
+
+        array(std::vector<rvalue<dataflow_type::INT,expenv>> dim)
+            : m_dimensions(dim){}
+
+        std::vector<rvalue<dataflow_type::INT,expenv>> get_dimensions() { return m_dimensions; }
         
         
         void accept(visitor& v) { v.visit(*this); }
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        virtual void hello() override;// override {std::cout<<"hello"<<std::endl;}
     };
 
     /**
@@ -34,7 +41,10 @@ namespace chips {
         public:
             std::string name;
 
-            variable(std::string name) : name(name){}
+            variable(std::string name, std::vector<rvalue<dataflow_type::INT,expenv>> dim) 
+                : array<expenv>(dim), name(name){}
+
+            variable(std::string name) : array<expenv>(), name(name){}
 
             std::string get_name() { return name; }
     };
@@ -49,6 +59,9 @@ namespace chips {
      */
     class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{
         public:
+            primitive_variable(std::string name,std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>> dim)
+                : variable(name, dim){}
+
             primitive_variable(std::string name)
                 : variable(name){}
     };
@@ -69,6 +82,10 @@ namespace chips {
         
         dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration)
             : primitive_variable(name), m_declaration(declaration){}
+
+        dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration,
+                                    std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>> dim)
+            : primitive_variable(name, dim), m_declaration(declaration){}
         
         virtual void hello() override;
     };
