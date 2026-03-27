@@ -22,7 +22,9 @@ namespace chips {
             : m_dimensions(dim){}
 
         std::vector<rvalue<dataflow_type::INT,expenv>> get_dimensions() { return m_dimensions; }
-        
+        inline void set_dimensions(std::vector<rvalue<dataflow_type::INT,expenv>> dims){
+            m_dimensions.assign(dims.begin(),dims.end());
+        }
         
         void accept(visitor& v) { v.visit(*this); }
         virtual void hello() override;// override {std::cout<<"hello"<<std::endl;}
@@ -78,8 +80,13 @@ namespace chips {
     class dataflow_primitive_variable : public primitive_variable  
     {
         public:
-        dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration;
+        dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration = nullptr;
+
+        dataflow_primitive_variable() = default;
         
+        dataflow_primitive_variable(std::string name)
+            : primitive_variable(name), m_declaration(nullptr){}
+
         dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration)
             : primitive_variable(name), m_declaration(declaration){}
 
@@ -87,6 +94,10 @@ namespace chips {
                                     std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>> dim)
             : primitive_variable(name, dim), m_declaration(declaration){}
         
+        inline void set_declaration(dataflow_declaration<dft,statement_env::DEFINITION>* decl_ptr){
+            m_declaration = decl_ptr;
+        };
+
         virtual void hello() override;
     };
 

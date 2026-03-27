@@ -3,12 +3,15 @@
 
 #include "ChipsBaseVisitor.h"
 #include "ast_base.hpp"
-#include "ast_program.hpp"
+#include "ast_builder_details.hpp"
+#include "ast_inoutputs.hpp"
 #include "ast_lrxvalues.hpp"
+#include "ast_program.hpp"
 #include "ast_statements.hpp"
+#include "ast_system_specific.hpp"
 #include "ast_variables.hpp"
 #include "ast_definitions.hpp"
-#include "ast_builder_details.hpp"
+#include "meta_type_conversions.hpp"
 #include "ChipsSymbolTable.hpp"
 
 #include <any>
@@ -48,55 +51,55 @@ public:
 
     std::any visitProgram(ChipsParser::ProgramContext *ctx) override
     {
-//         program_node prgm;
-//         std::cout << "nb preambles " << ctx->preamble().size() << std::endl;
-//         for (ChipsParser::PreambleContext *pc : ctx->preamble())
-//         {
+        program_node prgm;
+        std::cout<<"visit program"<<std::endl;
+        // std::cout << "nb preambles " << ctx->preamble().size() << std::endl;
+        for (ChipsParser::PreambleContext *pc : ctx->preamble())
+        {
 
-// #define APPEND_CASTED_DEF(POTENTIAL)                                                         \
-//     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
-//     {                                                                                        \
-//         prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
-//         continue;                                                                            \
-//     }
+#define APPEND_CASTED_DEF(POTENTIAL)                                                         \
+    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
+    {                                                                                        \
+        prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
+        continue;                                                                            \
+    }
 
-//             APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
-//             APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
-//             APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
-//             APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
+            APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
 
-// #undef APPEND_CASTED_DEF
+#undef APPEND_CASTED_DEF
 
-//             std::cerr << "Unknown definition type in the preamble section!\n";
-//         }
+            std::cerr << "Unknown definition type in the preamble section!\n";
+        }
 
-//         std::cout << "nb statements in system section root level: "
-//                   << ctx->system()->s_statement().size() << std::endl;
-//         for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
-//         {
+        std::cout << "nb statements in system section root level: "
+                  << ctx->system()->s_statement().size() << std::endl;
+        for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
+        {
 
-// #define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
-//     if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
-//     {                                                                                                                                \
-//         prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
-//         continue;                                                                                                                    \
-//     }
+#define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
+    if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
+    {                                                                                                                                \
+        prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
+        continue;                                                                                                                    \
+    }
 
-//             SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
-//             SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
-//             SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
-// #undef SSTATEMENT_CAST
+            SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
+            SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
+            SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
+            SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
+            SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
+            SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
+            SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
+            SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
+#undef SSTATEMENT_CAST
 
-//             std::cerr << "Unknown statement type in the system section root level!\n";
-//         }
+            std::cerr << "Unknown statement type in the system section root level!\n";
+        }
 
-//         return prgm;
-        return std::any{};
+        return prgm;
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -139,7 +142,7 @@ public:
 
     std::any visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx) override
     {
-
+        std::cout<<"visit logical definition"<<std::endl;
         ChipsParser::L_function_defContext* lfd = ctx->l_function_def();
         std::string identifier = lfd->IDENTIFIER()->getText();
         std::vector<ChipsParser::Df_parameter_declContext*> old_ast_params = lfd->df_parameter_decl();
@@ -161,27 +164,56 @@ public:
         }
 
         return chips::logical_definition(identifier,params,init,then,outputs);
-        throw std::runtime_error("Unimplemented visit method LogicalDefintionContext");
+        //throw std::runtime_error("Unimplemented visit method LogicalDefintionContext");
     }
 
     std::any visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx) override
     {
-
+        std::cout<<"visit physical definition"<<std::endl;
         ChipsParser::P_function_defContext* pfd = ctx->p_function_def();
         std::string identifier = pfd->IDENTIFIER()->getText();
         std::vector<ChipsParser::Pdf_parameter_declContext*> all_params = pfd->pdf_parameter_decl();
         std::vector<function_parameter_variant> params;
         std::vector<physical_parameter_variant> sensors;
         for(ChipsParser::Pdf_parameter_declContext* parameter : all_params){
-            if (ChipsParser::SensorParameterContext* stuff = dynamic_cast<ChipsParser::SensorParameterContext*>(parameter->pdf_parameter_type()); stuff != nullptr)
+            std::string pname = parameter->IDENTIFIER()->getText();
+            if (ChipsParser::SensorParameterTypeContext* stuff = dynamic_cast<ChipsParser::SensorParameterTypeContext*>(parameter->pdf_parameter_type()); stuff != nullptr)
             {
-                sensors.push_back(std::any_cast<physical_parameter_variant>(visit(stuff)));
-                continue;
+                dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+                
+                #define TRY_ADD_SENSOR(DFK,DFT)  \
+                if(dft == DFT){\
+                    dataflow_declaration<DFT,statement_env::DEFINITION> declaration(pname);\
+                    declaration.get_variable().set_declaration(&declaration);                    \
+                    function_parameter<DFK,DFT> new_ast_param(pname,declaration);\
+                    sensors.push_back(&new_ast_param);\
+                    continue;\
+                }
+                
+                TRY_ADD_SENSOR(dataflow_kind::PHYSICAL,dataflow_type::INT)
+                TRY_ADD_SENSOR(dataflow_kind::PHYSICAL,dataflow_type::FLOAT)
+                TRY_ADD_SENSOR(dataflow_kind::PHYSICAL,dataflow_type::BOOL)
+                #undef TRY_ADD_SENSOR
+                std::cerr<<"Unknown parameter type in the PhysicalDefinitionContext"<<std::endl;
             }
-            if (ChipsParser::FunctionParameterContext *stuff = dynamic_cast<ChipsParser::FunctionParameterContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
+            if (ChipsParser::FunctionParameterTypeContext *stuff = dynamic_cast<ChipsParser::FunctionParameterTypeContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
             {
-                params.push_back(std::any_cast<function_parameter_variant>(visit(stuff)));
-                continue;
+                dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+                
+                #define TRY_ADD_PARAM(DFK,DFT)  \
+                if(dft == DFT){\
+                    dataflow_declaration<DFT,statement_env::DEFINITION> declaration(pname);\
+                    declaration.get_variable().set_declaration(&declaration);                    \
+                    function_parameter<DFK,DFT> new_ast_param(pname,declaration);\
+                    params.push_back(&new_ast_param);\
+                    continue;\
+                }
+                
+                TRY_ADD_PARAM(dataflow_kind::LOGICAL,dataflow_type::INT)
+                TRY_ADD_PARAM(dataflow_kind::LOGICAL,dataflow_type::FLOAT)
+                TRY_ADD_PARAM(dataflow_kind::LOGICAL,dataflow_type::BOOL)
+                #undef TRY_ADD_PARAM
+                std::cerr<<"Unknown parameter type in the PhysicalDefinitionContext"<<std::endl;
             }
             std::cerr<<"Unknown parameter super type in the PhysicalDefinitionContext"<<std::endl;
         }
@@ -193,23 +225,74 @@ public:
 
         std::vector<function_output_variant> outputs;
         std::vector<physical_output_variant> actuators;
-        for(ChipsParser::Pdf_parameter_declContext* parameter : all_params){
-            if (ChipsParser::ActuatorOutputContext* stuff = dynamic_cast<ChipsParser::ActuatorOutputContext*>(parameter->pdf_parameter_type()); stuff != nullptr)
-            {
-                actuators.push_back(std::any_cast<physical_output_variant>(visit(stuff)));
-                continue;
+        for(ChipsParser::P_named_outputContext* output : pfd->p_named_output()){
+            
+            if (ChipsParser::FunctionOutputContext* stuff = dynamic_cast<ChipsParser::FunctionOutputContext*>(output); stuff != nullptr){
+                std::string oname = stuff->named_output()->IDENTIFIER()->getText();
+                rvalue_variant<expression_env::PRIMITIVE> rval 
+                    = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->named_output()->expr(0)));
+                try{
+                    function_output<dataflow_kind::LOGICAL, dataflow_type::INT> 
+                        final_output(oname,std::get<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>*>(rval));
+                    outputs.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not an int rvalue";
+                }
+                try{
+                    function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT> 
+                        final_output(oname,std::get<rvalue<dataflow_type::FLOAT,expression_env::PRIMITIVE>*>(rval));
+                    outputs.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not a float rvalue";
+                }
+                try{
+                    function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL> 
+                        final_output(oname,std::get<rvalue<dataflow_type::BOOL,expression_env::PRIMITIVE>*>(rval));
+                    outputs.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not a bool rvalue";
+                }
+                std::cerr<<"Unknown output type in the PhysicalDefinitionContext"<<std::endl;
             }
-            if (ChipsParser::FunctionOutputContext *stuff = dynamic_cast<ChipsParser::FunctionOutputContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
+            if (ChipsParser::ActuatorOutputContext* stuff = dynamic_cast<ChipsParser::ActuatorOutputContext*>(output); stuff != nullptr)
             {
-                outputs.push_back(std::any_cast<function_output_variant>(visit(stuff)));
-                continue;
+                std::string oname = stuff->IDENTIFIER()->getText();
+                rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->expr(0)));
+                try{
+                    function_output<dataflow_kind::PHYSICAL, dataflow_type::INT> 
+                        final_output(oname,std::get<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>*>(rval));
+                    actuators.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not an int rvalue";
+                }
+                try{
+                    function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> 
+                        final_output(oname,std::get<rvalue<dataflow_type::FLOAT,expression_env::PRIMITIVE>*>(rval));
+                    actuators.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not a float rvalue";
+                }
+                try{
+                    function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL> 
+                        final_output(oname,std::get<rvalue<dataflow_type::BOOL,expression_env::PRIMITIVE>*>(rval));
+                    actuators.push_back(&final_output);
+                    continue;
+                }catch(const std::bad_variant_access& e){
+                    std::cout<<"not a bool rvalue";
+                }
+                std::cerr<<"Unknown output type in the PhysicalDefinitionContext"<<std::endl;
             }
-            std::cerr<<"Unknown parameter super type in the PhysicalDefinitionContext"<<std::endl;
+            std::cerr<<"Unknown output super type in the PhysicalDefinitionContext"<<std::endl;
         }
 
 
         return chips::physical_definition(identifier,params,init,then,outputs,with,sensors,actuators);
-        throw std::runtime_error("Unimplemented visit method PhysicalDefinitionContext");
+        //throw std::runtime_error("Unimplemented visit method PhysicalDefinitionContext");
     }
 
     std::any visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx) override
@@ -652,14 +735,45 @@ public:
         throw std::runtime_error("Unimplemented visit method Df_parameter_declContext");
     }
 
-    std::any visitFunctionParameter(ChipsParser::FunctionParameterContext *ctx) override
+    std::any visitFunctionParameterType(ChipsParser::FunctionParameterTypeContext *ctx) override
     {
-        throw std::runtime_error("Unimplemented visit method FunctionParameterContext");
+        std::cout<<"visit function parameter type"<<std::endl;
+        ChipsParser::Df_typeContext* dft = ctx->df_type();
+        
+        if (ChipsParser::IntTypeContext* stuff = dynamic_cast<ChipsParser::IntTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitIntType(stuff);
+        }
+        if (ChipsParser::FloatTypeContext* stuff = dynamic_cast<ChipsParser::FloatTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitFloatType(stuff);
+        }
+        if (ChipsParser::BoolTypeContext* stuff = dynamic_cast<ChipsParser::BoolTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitBoolType(stuff);
+        }
+        throw std::runtime_error("unrecognized parameter type in visit method FunctionParameterContext");
     }
 
-    std::any visitSensorParameter(ChipsParser::SensorParameterContext *ctx) override
+    std::any visitSensorParameterType(ChipsParser::SensorParameterTypeContext *ctx) override
     {
-        throw std::runtime_error("Unimplemented visit method SensorParameterContext");
+        std::cout<<"visit sensor parameter type"<<std::endl;
+        ChipsParser::Df_typeContext* dft = ctx->df_type();
+        
+        if (ChipsParser::IntTypeContext* stuff = dynamic_cast<ChipsParser::IntTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitIntType(stuff);
+        }
+        if (ChipsParser::FloatTypeContext* stuff = dynamic_cast<ChipsParser::FloatTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitFloatType(stuff);
+        }
+        if (ChipsParser::BoolTypeContext* stuff = dynamic_cast<ChipsParser::BoolTypeContext*>(dft); stuff != nullptr)
+        {
+            return visitBoolType(stuff);
+        }
+        
+        throw std::runtime_error("unrecognized parameter type in visit method SensorParameterContext");
     }
 
     std::any visitPdf_parameter_decl(ChipsParser::Pdf_parameter_declContext *ctx) override

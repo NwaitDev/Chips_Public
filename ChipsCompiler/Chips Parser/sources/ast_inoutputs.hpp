@@ -18,10 +18,16 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class function_parameter : public ast_node
     {
-    private:
+    public:
         std::optional<rvalue<dft,expression_env::PRIMITIVE>> m_default_value;
         dataflow_declaration<dft,statement_env::DEFINITION> m_declaration;
         std::string m_name;
+
+        function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration, std::optional<rvalue<dft,expression_env::PRIMITIVE>> default_value)
+        : m_name(name), m_declaration(declaration), m_default_value(default_value){};
+        function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration)
+        : m_name(name), m_declaration(declaration), m_default_value(std::nullopt){};
+        
         void hello();
     };
     
@@ -48,11 +54,14 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class function_output : public ast_node
     {
+        public:
         std::string m_name;
         // Note to the model to model transformations developer:
         // Chips 1.1 metamodel didn't cope with multiple 
         // expressions outputs though the grammar allows it... Here, we allow it too
         std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions;
+        function_output(std::string name,rvalue<dft,expression_env::PRIMITIVE>* expr) : m_name(name){ m_expressions.push_back(expr);};
+        inline void add_expression(rvalue_variant<expression_env::PRIMITIVE> exp) { m_expressions.push_back(exp);} 
         void hello();
     };
     

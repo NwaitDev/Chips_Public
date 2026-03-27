@@ -7,8 +7,16 @@
 #include "ChipsParser.h"
 #include "Interpreter.hpp"
 
-#include "sources/forward_declarations.hpp"
 #include "sources/ASTBuilder.hpp"
+#include "sources/ast_base.hpp"
+#include "sources/ast_builder_details.hpp"
+#include "sources/ast_definitions.hpp"
+#include "sources/ast_inoutputs.hpp"
+#include "sources/ast_lrxvalues.hpp"
+#include "sources/ast_program.hpp"
+#include "sources/ast_statements.hpp"
+#include "sources/ast_system_specific.hpp"
+#include "sources/ast_variables.hpp"
 
 #include "sources/ChipsToXmiVisitor.hpp"
 #include "sources/ChipsToXmiWriter.hpp"
@@ -63,7 +71,7 @@ void run(std::istream& input, Interpreter& /*interp*/) {
     ChipsToXmiWriter body_writer(body_out);
     ChipsToXmiVisitor visitor(body_writer, body_out);
 
-    // std::any result = builder.visit(tree);
+    std::any result = builder.visit(tree);
 
     // // extract_as_node dispatche sur tous les types concrets connus
     // // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template

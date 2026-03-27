@@ -1,8 +1,8 @@
 grammar Chips;
 
 program 
-//    : preamble* system? EOF
-    : (statement)* EOF
+    : preamble* system? EOF
+    | (statement)* EOF
     ;
 
 system
@@ -84,7 +84,7 @@ with_section
 
 with_statement
     : IDENTIFIER IDENTIFIER SEMICOL                     #ChannelDeclaration
-    | CTX_KW df_type IDENTIFIER (ASSIGN expr)? SEMICOL  #ContextualDeclaration
+    | CTX_KW df_type suffixes IDENTIFIER (ASSIGN expr)? SEMICOL  #ContextualDeclaration
     | statement                                         #WithRegularStatement
     ;
 
@@ -311,16 +311,16 @@ c_statement
     ;
 
 named_output
-    : ARROW IDENTIFIER L_PARENTH expr+ R_PARENTH
+    : ARROW IDENTIFIER L_PARENTH expr (COMMA expr)* R_PARENTH
     ;
 
 p_named_output
-    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH expr+ R_PARENTH    #ActuatorOutput
-    | named_output                                              #FunctionOutput
+    : ARROW ACTUATOR_KW IDENTIFIER L_PARENTH expr (COMMA expr)* R_PARENTH    #ActuatorOutput
+    | named_output                                                          #FunctionOutput
     ;
 
 df_parameter_decl
-    : df_type IDENTIFIER (ASSIGN expr)?
+    : df_type suffixes IDENTIFIER (ASSIGN expr)?
     ;
 
 df_type
@@ -330,8 +330,8 @@ df_type
     ;
 
 pdf_parameter_type
-    : df_type           #FunctionParameter
-    | SENSOR_KW df_type #SensorParameter
+    : df_type suffixes           #FunctionParameterType
+    | SENSOR_KW df_type suffixes #SensorParameterType
     ;
 
 pdf_parameter_decl
@@ -339,11 +339,11 @@ pdf_parameter_decl
     ;
 
 cdf_defaulted_decl
-    : df_type IDENTIFIER ASSIGN c_expr
+    : df_type suffixes IDENTIFIER ASSIGN c_expr
     ;
 
 cdf_full_declaration
-    : df_type IDENTIFIER (ASSIGN c_expr)?
+    : df_type suffixes IDENTIFIER (ASSIGN c_expr)?
     ;
 
 

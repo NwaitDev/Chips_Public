@@ -527,4 +527,18 @@ namespace chips {
     template void dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>::hello();
     template void dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>::hello();
     template void dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>::hello();
+
+    template void function_parameter<dataflow_kind::LOGICAL,dataflow_type::BOOL>::hello();
+    template void function_parameter<dataflow_kind::LOGICAL,dataflow_type::FLOAT>::hello();
+    template void function_parameter<dataflow_kind::LOGICAL,dataflow_type::INT>::hello();
+    template void function_parameter<dataflow_kind::PHYSICAL,dataflow_type::BOOL>::hello();
+    template void function_parameter<dataflow_kind::PHYSICAL,dataflow_type::FLOAT>::hello();
+    template void function_parameter<dataflow_kind::PHYSICAL,dataflow_type::INT>::hello();
+
+    template void function_output<dataflow_kind::LOGICAL,dataflow_type::BOOL>::hello();
+    template void function_output<dataflow_kind::LOGICAL,dataflow_type::FLOAT>::hello();
+    template void function_output<dataflow_kind::LOGICAL,dataflow_type::INT>::hello();
+    template void function_output<dataflow_kind::PHYSICAL,dataflow_type::BOOL>::hello();
+    template void function_output<dataflow_kind::PHYSICAL,dataflow_type::FLOAT>::hello();
+    template void function_output<dataflow_kind::PHYSICAL,dataflow_type::INT>::hello();
 }
