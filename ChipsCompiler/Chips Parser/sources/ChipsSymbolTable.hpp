@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "metamodel_enums.hpp"
+
 namespace chips {
     class SymbolTable {
         public:
@@ -153,7 +155,7 @@ namespace chips {
                 for(auto it = scopes.rbegin(); it != scopes.rend(); ++it){
                     auto found = it->find(name);
                     if(found != it->end() && found->second.kind == kind){
-                        return found->second;
+                        return found->second.value;
                     }
                 }
                 return std::nullopt;

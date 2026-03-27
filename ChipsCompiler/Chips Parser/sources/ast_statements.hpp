@@ -57,14 +57,14 @@ namespace chips {
         public:
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         lvalue<dft, expr_env>* m_lvalue;
-        rvalue<dft, expr_env> m_rvalue;
+        rvalue<dft, expr_env>* m_rvalue;
 
         dataflow_assignment() = default;
-        dataflow_assignment(lvalue<dft, expr_env>* lhs, rvalue<dft, expr_env> rhs)
+        dataflow_assignment(lvalue<dft, expr_env>* lhs, rvalue<dft, expr_env>* rhs)
             : m_lvalue(lhs), m_rvalue(rhs){}
 
         lvalue<dft, expr_env>* get_lhs() { return m_lvalue; }
-        rvalue<dft, expr_env> get_rhs() { return m_rvalue; }
+        rvalue<dft, expr_env>* get_rhs() { return m_rvalue; }
 
         void accept(visitor& v) { v.visit(*this); }
         void hello() override;

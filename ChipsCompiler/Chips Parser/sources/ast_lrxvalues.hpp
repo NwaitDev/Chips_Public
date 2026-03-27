@@ -15,7 +15,7 @@ namespace chips{
      * be put on the left side of an assignment
      */
     template<dataflow_type dft, expression_env expenv>
-    class lvalue : public ast_node {
+    class lvalue : public virtual ast_node {
         public:
         virtual void hello() = 0;
     };
@@ -27,7 +27,7 @@ namespace chips{
      * that can be evaluated as a chips primitive value
      */
     template<dataflow_type dft, expression_env expenv>
-    class rvalue : public ast_node{
+    class rvalue : public virtual ast_node{
         public:
             virtual void hello() override {std::cout<<"hello rvalue"<<std::endl;}
     };
