@@ -332,12 +332,151 @@ public:
 
     std::any visitWith_section(ChipsParser::With_sectionContext *ctx) override
     {
-        throw std::runtime_error("Unimplemented visit method With_sectionContext");
+        std::cout<<"visiting With"<<std::endl;
+        with_section with;
+        for(ChipsParser::With_statementContext* stt : ctx->with_statement()){
+            std::any followup = visit(stt);
+            try{
+                node_element_declaration<node_element::CHANNEL> new_ast_stt = std::any_cast<node_element_declaration<node_element::CHANNEL>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            }catch(const std::bad_any_cast& e){
+                std::cout<<"not a channel declaration"<<std::endl;
+            }
+            try{
+                node_element_declaration<node_element::CONTEXTUAL_INT> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_INT>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            }catch(const std::bad_any_cast& e){
+                std::cout<<"not a contextual int declaration"<<std::endl;
+            }
+            try{
+                node_element_declaration<node_element::CONTEXTUAL_FLOAT> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_FLOAT>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            }catch(const std::bad_any_cast& e){
+                std::cout<<"not a contextual float declaration"<<std::endl;
+            }
+            try{
+                node_element_declaration<node_element::CONTEXTUAL_BOOL> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_BOOL>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            }catch(const std::bad_any_cast& e){
+                std::cout<<"not a contextual bool declaration"<<std::endl;
+            }
+
+            // using node_statement_variant = std::variant<node_statement<recurring_statement::IF>*,node_statement<recurring_statement::FOREACH>*,node_element_declaration<node_element::CHANNEL>*,node_element_declaration<node_element::CONTEXTUAL_INT>*,node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,node_element_declaration<node_element::CONTEXTUAL_BOOL>*,node_statement<recurring_statement::DECLARATION>*,node_statement<recurring_statement::ASSIGNMENT>*>;
+            
+            try {
+                // must try this one before the if statement because 
+                // "if else" derives from "if" statement
+                if_else_statement<statement_env::NODE> new_ast_stt = 
+                std::any_cast<if_else_statement<statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not an if else statement"<<std::endl;
+            }
+
+            try {
+                if_statement<statement_env::NODE> new_ast_stt = 
+                std::any_cast<if_statement<statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not an if statement"<<std::endl;
+            }
+
+            try {
+                foreach_statement<statement_env::NODE,dataflow_type::INT> new_ast_stt = 
+                std::any_cast<foreach_statement<statement_env::NODE,dataflow_type::INT>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a foreach int statement"<<std::endl;
+            }
+
+            try {
+                foreach_statement<statement_env::NODE,dataflow_type::FLOAT> new_ast_stt = 
+                std::any_cast<foreach_statement<statement_env::NODE,dataflow_type::FLOAT>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a foreach float statement"<<std::endl;
+            }
+
+            try {
+                foreach_statement<statement_env::NODE,dataflow_type::BOOL> new_ast_stt = 
+                std::any_cast<foreach_statement<statement_env::NODE,dataflow_type::BOOL>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a foreach bool statement"<<std::endl;
+            }
+
+            try {
+                dataflow_declaration<dataflow_type::INT,statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_declaration<dataflow_type::INT,statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a int declaration statement"<<std::endl;
+            }
+
+            try {
+                dataflow_declaration<dataflow_type::FLOAT,statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_declaration<dataflow_type::FLOAT,statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a float declaration statement"<<std::endl;
+            }
+
+            try {
+                dataflow_declaration<dataflow_type::BOOL,statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_declaration<dataflow_type::BOOL,statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a bool declaration statement"<<std::endl;
+            }
+
+            try {
+                dataflow_assignment<dataflow_type::INT, statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_assignment<dataflow_type::INT, statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not an int assignement statement"<<std::endl;
+            }
+            try {
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a float assignment statement"<<std::endl;
+            }
+            try {
+                dataflow_assignment<dataflow_type::BOOL, statement_env::NODE> new_ast_stt = 
+                std::any_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::NODE>>(followup);
+                with.add_statement(&new_ast_stt);
+                continue;
+            } catch (const std::bad_any_cast& e){
+                std::cout<<"not a bool assignment statement"<<std::endl;
+            }
+
+            throw std::runtime_error("Unknown kind of statement in with section");
+        }
+        return with;
+        //throw std::runtime_error("Unimplemented visit method With_sectionContext");
     }
 
     std::any visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx) override
     {
-        throw std::runtime_error("Unimplemented visit method ChannelDeclarationContext");
+        std::cout<<"Visiting Channel declaration"<<std::endl;
+        return node_element_declaration<node_element::CHANNEL>(ctx->IDENTIFIER(0)->getText(),ctx->IDENTIFIER(1)->getText());
+        //throw std::runtime_error("Unimplemented visit method ChannelDeclarationContext");
     }
 
     std::any visitContextualDeclaration(ChipsParser::ContextualDeclarationContext *ctx) override

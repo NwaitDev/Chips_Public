@@ -541,4 +541,29 @@ namespace chips {
     template void function_output<dataflow_kind::PHYSICAL,dataflow_type::BOOL>::hello();
     template void function_output<dataflow_kind::PHYSICAL,dataflow_type::FLOAT>::hello();
     template void function_output<dataflow_kind::PHYSICAL,dataflow_type::INT>::hello();
+
+    template void node_element_declaration<node_element::CHANNEL>::hello();
+    template void node_element_declaration<node_element::CONTEXTUAL_INT>::hello();
+    template void node_element_declaration<node_element::CONTEXTUAL_FLOAT>::hello();
+    template void node_element_declaration<node_element::CONTEXTUAL_BOOL>::hello();
+
+    template void contextual_variable<chips::dataflow_type::INT>::hello();
+    template void contextual_variable<chips::dataflow_type::FLOAT>::hello();
+    template void contextual_variable<chips::dataflow_type::BOOL>::hello();
+
+    template void if_else_statement<statement_env::NODE>::hello();
+    template void if_statement<statement_env::NODE>::hello();
+    template void else_section<statement_env::NODE>::hello();
+    template void if_section<statement_env::NODE>::hello();
+
+    template void foreach_statement<statement_env::NODE,dataflow_type::INT>::hello();
+    template void foreach_statement<statement_env::NODE,dataflow_type::FLOAT>::hello();
+    template void foreach_statement<statement_env::NODE,dataflow_type::BOOL>::hello();
+    template void dataflow_declaration<dataflow_type::INT,statement_env::NODE>::hello();
+    template void dataflow_declaration<dataflow_type::FLOAT,statement_env::NODE>::hello();
+    template void dataflow_declaration<dataflow_type::BOOL,statement_env::NODE>::hello();
+    template void dataflow_assignment<dataflow_type::INT,statement_env::NODE>::hello();
+    template void dataflow_assignment<dataflow_type::FLOAT,statement_env::NODE>::hello();
+    template void dataflow_assignment<dataflow_type::BOOL,statement_env::NODE>::hello();
+    
 }

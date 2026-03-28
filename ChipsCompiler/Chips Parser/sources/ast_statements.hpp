@@ -14,7 +14,6 @@ namespace chips {
      */
     template<statement_env, recurring_statement>
     class statement : public ast_node{
-        //void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
 
@@ -261,10 +260,12 @@ namespace chips {
     template<node_element ne>
     class node_element_declaration : public node_statement<recurring_statement::DECLARATION>  
     {
+        public:
         using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
-        node_variable_t m_variable; // == type_identifier in case of channel declaration
+        node_variable_t m_variable_type; // == type_identifier in case of channel declaration
         std::string m_declared_name; // == identifier in case of contextual variable
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
+        node_element_declaration(node_variable_t type, std::string vname) : m_variable_type(type), m_declared_name(vname) {}
     };
 }
 

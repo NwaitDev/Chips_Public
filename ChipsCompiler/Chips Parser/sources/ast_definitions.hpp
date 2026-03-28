@@ -35,6 +35,8 @@ namespace chips
     {
         public:
         std::vector<node_statement_variant> m_statements;
+        with_section(){};
+        inline void add_statement(node_statement_variant stt){m_statements.push_back(stt);}
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
