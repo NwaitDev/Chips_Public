@@ -66,7 +66,7 @@ namespace chips {
     void dataflow_primitive_variable<dft>::hello(){
         std::cout << dft_to_string(dft);
         array<expression_env::PRIMITIVE>::hello();
-        std::cout << " " << get_name() << ";" << std::endl;
+        std::cout << " " << get_name();
     }
 
     template<dataflow_type dft>
@@ -84,24 +84,16 @@ namespace chips {
     template<dataflow_type dft, statement_env sttenv>
     void dataflow_declaration<dft, sttenv>::hello(){
         get_variable().hello();
+        std::cout << ";" << std::endl;
     }
 
     template<dataflow_type dft, statement_env sttenv>
     void dataflow_assignment<dft, sttenv>::hello(){
-        std::cout << "DATAFLOW ASSIGNMENT" << std::endl;
+        // std::cout << "DATAFLOW ASSIGNMENT" << std::endl;
 
-        int status;
-        const std::type_info& ti = typeid(get_lhs());
-        char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
-        std::cout << "Type dynamique de get_lhs() : " << (realname ? realname : ti.name()) << std::endl;
-        free(realname);
-
-        //TODO régler ce PUTAIN DE CORE DUMPED
-
-        // std::cout << (get_lhs() ? "yes" : "no") << std::endl;
         get_lhs()->hello();
         std::cout << " = ";
-        get_rhs().hello();
+        get_rhs()->hello();
         std::cout << ";" << std::endl;
     }
 
@@ -508,10 +500,6 @@ namespace chips {
     template void cast_as<dataflow_type::INT, expression_env::SYSTEM>::hello();
     template void cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>::hello();
 
-    template void variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>::hello();
-    template void variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>::hello();
-    template void variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>::hello();
-
     template void dataflow_primitive_variable<dataflow_type::INT>::hello();
     template void dataflow_primitive_variable<dataflow_type::FLOAT>::hello();
     template void dataflow_primitive_variable<dataflow_type::BOOL>::hello();
@@ -527,6 +515,16 @@ namespace chips {
     template void dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>::hello();
     template void dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>::hello();
     template void dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>::hello();
+
+    template void variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>::hello();
+    template void variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>::hello();
+    template void variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>::hello();
+    template void variable_expression<dataflow_type::INT, expression_env::COLLECTIVE>::hello();
+    template void variable_expression<dataflow_type::FLOAT, expression_env::COLLECTIVE>::hello();
+    template void variable_expression<dataflow_type::BOOL, expression_env::COLLECTIVE>::hello();
+    template void variable_expression<dataflow_type::INT, expression_env::SYSTEM>::hello();
+    template void variable_expression<dataflow_type::FLOAT, expression_env::SYSTEM>::hello();
+    template void variable_expression<dataflow_type::BOOL, expression_env::SYSTEM>::hello();
 
     template void function_parameter<dataflow_kind::LOGICAL,dataflow_type::BOOL>::hello();
     template void function_parameter<dataflow_kind::LOGICAL,dataflow_type::FLOAT>::hello();

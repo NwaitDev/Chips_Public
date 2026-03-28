@@ -39,6 +39,12 @@ private:
 
     expression_env current_env = expression_env::PRIMITIVE;
 
+    // Arène de noeuds alloués sur le tas dans le builder.
+    // Les shared_ptr ici prolongent la durée de vie de tous les nœuds
+    // intermédiaires (decl, var, left) dont d'autres nœuds gardent
+    // des raw pointers. À vider explicitement si besoin de reset.
+    std::vector<std::shared_ptr<ast_node>> node_arena;
+
 public:
     //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////
@@ -499,8 +505,40 @@ public:
         throw std::runtime_error("Unimplemented visit method Then_sectionContext");
     }
 
+    template<dataflow_type dft, statement_env sttenv>
+    std::any make_variable_expression(dataflow_assignment<dft,sttenv>& node){
+        std::cout << "make variable expression assign" << std::endl;
+        return std::any{};
+    }
+
+    template<dataflow_type dft, statement_env sttenv>
+    std::any make_variable_expression(dataflow_declaration<dft,sttenv>& node){
+        std::cout << "make variable expression decl" << std::endl;
+        return std::any{};
+    }
+
     std::any visitVar(ChipsParser::VarContext *ctx) override
     {
+        std::cout << "visitVar()" << std::endl;
+        // std::string var_name = ctx->IDENTIFIER()->getText();
+        // std::any suffixes = visit(ctx->suffixes());
+        // std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
+
+        // if(!variable.has_value()){
+        //     throw std::runtime_error("'"+var_name+"' was never declarated before");
+        // }
+
+        // std::shared_ptr<ast_node> var = ast_builder_detail::extract_as_node(variable.value());
+        
+
+        // int status;
+        // const std::type_info& ti = typeid(*var);
+        // char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+        // std::cout << "Type dynamique de var : " << (realname ? realname : ti.name()) << std::endl;
+        // free(realname);
+
+        // return make_variable_expression(*var);
+
         throw std::runtime_error("Unimplemented visit method VarContext");
     }
 
@@ -1251,33 +1289,6 @@ public:
     /**
      * STATEMENT
      */
-    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier){
-        auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>>(suffixes);
-        switch(type){
-            case dataflow_type::INT: {
-                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl, dims);
-                decl.m_variable = var;
-                return decl;
-            }
-            case dataflow_type::FLOAT: {
-                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl, dims);
-                decl.m_variable = var;
-                return decl;
-            }
-            case dataflow_type::BOOL: {
-                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl, dims);
-                decl.m_variable = var;
-                return decl;
-            }
-        }
-    }
-
     std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign){
         /**
          * vartmp = dataflow_primitive_variable(identifier, nullptr);
@@ -1292,36 +1303,51 @@ public:
         auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>>(suffixes);
         switch(type){
             case dataflow_type::INT: {
-                dataflow_primitive_variable<dataflow_type::INT> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::INT> var(identifier, &decl, dims);
-                decl.set_variable(var);
-                if(!have_assign) return decl;
-                variable_expression<dataflow_type::INT, expression_env::PRIMITIVE> left(&var);
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::INT>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::INT>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign) return *decl;
+                auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
                 auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
-                dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(&left, *right);
+                if(!right) throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
+                dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
                 return assignment;
             }
             case dataflow_type::FLOAT: {
-                dataflow_primitive_variable<dataflow_type::FLOAT> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::FLOAT> var(identifier, &decl, dims);
-                decl.set_variable(var);
-                if(!have_assign) return decl;
-                variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE> left(&var);
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::FLOAT>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::FLOAT>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign) return *decl;
+                auto left = std::make_shared<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
                 auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign);
-                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(&left, *right);
+                if(!right) throw std::runtime_error("handle_statement_declaration FLOAT: expression droite invalide");
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
                 return assignment;
             }
             case dataflow_type::BOOL: {
-                dataflow_primitive_variable<dataflow_type::BOOL> var_temp(identifier, nullptr);
-                dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> decl(var_temp);
-                dataflow_primitive_variable<dataflow_type::BOOL> var(identifier, &decl, dims);
-                decl.set_variable(var);
-                if(!have_assign) return decl;
-                variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE> left(&var);
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::BOOL>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::BOOL>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign) return *decl;
+                auto left = std::make_shared<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
                 auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign);
-                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(&left, *right);
+                if(!right) throw std::runtime_error("handle_statement_declaration BOOL: expression droite invalide");
+                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
                 return assignment;
             }
         }
@@ -1345,7 +1371,7 @@ public:
 
         if(!assign.has_value()){
             std::cout << "ASSIGN VIDE" << std::endl;
-            auto decl = handle_statement_declaration(type_any, suffixes, var_name);
+            auto decl = handle_statement_declaration(type_any, suffixes, var_name, assign, false);
             if(!SymbolTable::getInstance().declareVariable(var_name, decl)){
                 throw std::runtime_error("Redeclare a variable already declared");
             }
@@ -1353,11 +1379,11 @@ public:
             // return handle_statement_declaration(type_any, suffixes, var_name);
         }else{
             std::cout << "ASSIGN REMPLI" << std::endl;
-            // auto assignment = handle_statement_declaration(type_any, suffixes, var_name, assign, true);
-            // if(!SymbolTable::getInstance().declareVariable(var_name, assignment)){
-            //     throw std::runtime_error("Redeclare a variable already declared");
-            // }
-            // return assignment;
+            auto assignment = handle_statement_declaration(type_any, suffixes, var_name, assign, true);
+            if(!SymbolTable::getInstance().declareVariable(var_name, assignment)){
+                throw std::runtime_error("Redeclare a variable already declared");
+            }
+            return assignment;
         }
         return std::any{};        
     }
