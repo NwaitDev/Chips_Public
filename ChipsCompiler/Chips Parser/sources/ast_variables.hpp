@@ -54,8 +54,8 @@ namespace chips {
             std::string m_name;
 
             variable(std::string name) : array<expenv>(), m_name(name){}
-            variable(std::string name, std::vector<rvalue<dataflow_type::INT,expenv>*> dim) 
-                : array<expenv>(dim), name(name){}
+            variable(std::string name, std::vector<int_rvalue_expression_variant<expenv>> dim) 
+                : array<expenv>(dim), m_name(name){}
 
             inline std::string get_name() { return m_name; }
     };
@@ -71,10 +71,6 @@ namespace chips {
     class primitive_variable : public variable<chips::expression_env::PRIMITIVE>
     {
         public:
-        primitive_variable(std::string name):variable(name){};
-            primitive_variable(std::string name,std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>*> dim)
-                : variable(name, dim){}
-
             primitive_variable(std::string name)
                 : variable(name){}
     };
