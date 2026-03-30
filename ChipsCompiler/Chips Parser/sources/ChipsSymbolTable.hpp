@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "metamodel_enums.hpp"
+#include "ast_builder_details.hpp"
 
 namespace chips {
     class SymbolTable {
@@ -90,7 +91,7 @@ namespace chips {
                 for (const auto& scope : scopes) {
                     std::cout << "Scope " << level-- << ":\n";
                     for (const auto& [k, v] : scope) {
-                        std::cout << "  " << k << " (" << SymbolKindToString(v.kind) << ")\n";
+                        std::cout << "  " << k << " (" << SymbolKindToString(v.kind) << " " << ast_builder_detail::type_name(v.value.type()) <<")\n";
                     }
                 }
                 std::cout << "========================\n";

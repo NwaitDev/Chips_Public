@@ -100,9 +100,8 @@ namespace ast_builder_detail
                     return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
                 }
 
-            if (auto *p = std::any_cast<variable_expression<DFT, EXPENV>>(&a))
-            {
-                return std::make_shared<rvalue<DFT, EXPENV>>(*p);
+            if(auto* p = std::any_cast<variable_expression<DFT,EXPENV>>(&a)){
+                return std::make_shared<rvalue<DFT,EXPENV>>(*p);
             }
         }
 
@@ -155,9 +154,8 @@ namespace ast_builder_detail
             if (auto *p = std::any_cast<std::shared_ptr<not_operator<EXPENV>>>(&a))
                 return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
 
-            if (auto *p = std::any_cast<variable_expression<DFT, EXPENV>>(&a))
-            {
-                return std::make_shared<rvalue<DFT, EXPENV>>(*p);
+            if(auto* p = std::any_cast<variable_expression<DFT,EXPENV>>(&a)){
+                return std::make_shared<rvalue<DFT,EXPENV>>(*p);
             }
         }
 

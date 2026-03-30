@@ -15,18 +15,6 @@ using namespace chips;
 class ASTBuilder : public ChipsBaseVisitor
 {
 private:
-    template <dataflow_type dft>
-    struct VarDeclPair
-    {
-        std::unique_ptr<dataflow_primitive_variable<dft>> var;
-        dataflow_declaration<dft, statement_env::DEFINITION> decl;
-        VarDeclPair(std::string name)
-        {
-            var = std::make_unique<dataflow_primitive_variable<dft>>(name, decl);
-            decl.set_variable(var);
-        }
-    };
-
     expression_env current_env = expression_env::PRIMITIVE;
 
     // Arène de noeuds alloués sur le tas dans le builder.
@@ -93,9 +81,37 @@ public:
         return std::any{};
     }
 
-    std::any visitVar(ChipsParser::VarContext *ctx);
+    std::any visitVar(ChipsParser::VarContext *ctx) override
+    {
+        std::cout << "visitVar()" << std::endl;
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
+        std::any suffixes = visit(ctx->suffixes());
 
-    std::any visitVarContext(ChipsParser::VarContextContext *ctx);
+        if(!variable.has_value()){
+            throw std::runtime_error("'" + var_name + "' was never declarated before");
+        }
+
+        switch(current_env){
+            case expression_env::PRIMITIVE: {
+                try{
+                    auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>>(suffixes);
+                    auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::INT>>>(variable.value());
+                    auto expr = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+                    return expr;
+                }catch(const std::bad_any_cast& e){
+                    throw std::runtime_error("bad any cast");
+                }
+            }
+            // ... autres cas à compléter si besoin
+        }
+        throw std::runtime_error("visitVar: unsupported environment");
+    }
+
+    std::any visitVarContext(ChipsParser::VarContextContext *ctx) override
+    {
+        throw std::runtime_error("Unimplemented visit method VarContextContext");
+    }
 
     std::any visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx);
 
@@ -189,7 +205,70 @@ public:
 
     std::any visitC_if_statement(ChipsParser::C_if_statementContext *ctx);
 
-    std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx);
+    std::any visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx) override
+    {
+        std::cout << "visitStatementAssignment()" << std::endl;
+
+        current_env = expression_env::PRIMITIVE;
+
+        std::any suffixes = visit(ctx->suffixes());
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        std::any assign = visit(ctx->expr());
+
+        // if(suffixes.has_value()){
+        //     std::cout << "SUFFIXES VALUE" << std::endl;;
+        // }else{
+        //     std::cout << "SUFFIXES NOT VALUE" << std::endl;
+        // }
+
+        std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
+
+        if(!variable.has_value()){
+            throw std::runtime_error("'"+var_name+"' was never declarated before");
+        }
+
+        //TODO regarder affectation de suffixes
+        auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>>(suffixes);
+
+        if(auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign)){
+            try{
+                auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::INT>>>(variable.value());
+                auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable INT depuis la SymbolTable");
+            }           
+        } else if(auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign)){
+            try{
+                auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>>(suffixes);
+                auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::FLOAT>>>(variable.value());
+                auto left = std::make_shared<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable FLOAT depuis la SymbolTable");
+            }
+        } else if(auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign)){
+            try{
+                auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>>(suffixes);
+                auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::BOOL>>>(variable.value());
+                auto left = std::make_shared<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable BOOL depuis la SymbolTable");
+            }
+        }
+
+        throw std::runtime_error("Unimplemented visitStatementAssignment for other expression_env");
+    }
 
     std::any visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx);
 
@@ -308,14 +387,190 @@ public:
 
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
 
-    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx);
+    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx) override {
+        switch(current_env){
+            case expression_env::PRIMITIVE: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
+                    if(!node){
+                        throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env PRIMITIVE).");
+                    }
+                    node_arena.push_back(node);
+                    dims.push_back(node.get());
+                }
+                return dims;
+            }
+
+            case expression_env::COLLECTIVE: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(val);
+                    if(!node){
+                         throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env COLLECTIVE).");
+                    }
+                    dims.push_back(node.get());
+                }
+                return dims;
+            }
+
+            case expression_env::SYSTEM: {
+                std::vector<rvalue<dataflow_type::INT, expression_env::SYSTEM>*> dims;
+
+                for(auto* expr : ctx->expr()){
+                    std::any val = visit(expr);
+                    auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(val);
+                    if(!node){
+                         throw std::runtime_error(
+                            "suffixes : l'expression d'indice doit être de type INT "
+                            "(env SYSTEM).");
+                    }
+                    dims.push_back(node.get());
+                }
+                return dims;
+            }
+        }
+    }
 
     /**
      * STATEMENT
      */
-    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign);
+    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign){
+        /**
+         * vartmp = dataflow_primitive_variable(identifier, nullptr);
+         * decl = dataflow_declaration(vartmp);
+         * var = dataflow_primitive_variable(identifier, &decl);
+         * decl.m_variable = var;
+         * left = variable_expression(decl.get_variable());
+         * right = visit(assign);
+         * assignment = dataflow_assignment(left, right);
+         * return assignment;
+         */
+        auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>>(suffixes);
+        switch(type){
+            case dataflow_type::INT: {
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::INT>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::INT>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign){
+                    // Stocke un shared_ptr dans la SymbolTable
+                    if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                        throw std::runtime_error("Redeclare a variable already declared");
+                    }
+                    return *decl;
+                }
+                auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+                auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
+                if(!right) throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
+                dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
+                if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                    throw std::runtime_error("Redeclare a variable already declared");
+                }
+                return assignment;
+            }
+            case dataflow_type::FLOAT: {
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::FLOAT>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::FLOAT>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign){
+                    if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                        throw std::runtime_error("Redeclare a variable already declared");
+                    }
+                    return *decl;
+                }
+                auto left = std::make_shared<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+                auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign);
+                if(!right) throw std::runtime_error("handle_statement_declaration FLOAT: expression droite invalide");
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
+                if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                    throw std::runtime_error("Redeclare a variable already declared");
+                }
+                return assignment;
+            }
+            case dataflow_type::BOOL: {
+                auto decl = std::make_shared<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(
+                    dataflow_primitive_variable<dataflow_type::BOOL>(identifier, nullptr));
+                auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::BOOL>>(
+                    identifier, decl.get(), dims);
+                decl->set_variable(*var);
+                node_arena.push_back(decl);
+                node_arena.push_back(var);
+                if(!have_assign){
+                    if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                        throw std::runtime_error("Redeclare a variable already declared");
+                    }
+                    return *decl;
+                }
+                auto left = std::make_shared<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>(var.get());
+                node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+                auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign);
+                if(!right) throw std::runtime_error("handle_statement_declaration BOOL: expression droite invalide");
+                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
+                if(!SymbolTable::getInstance().declareVariable(identifier, var)){
+                    throw std::runtime_error("Redeclare a variable already declared");
+                }
+                return assignment;
+            }
+        }
+    }
 
-    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx);
+    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx) override {
+        std::cout << "visitStatementDeclaration()" << std::endl;
+
+        dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+        current_env = expression_env::PRIMITIVE;
+        std::any suffixes = visit(ctx->suffixes());
+        std::string var_name = ctx->IDENTIFIER()->getText();
+        // std::any assign = visit(ctx->may_assign());
+        std::any assign;
+
+        if(ctx->expr()){
+            assign = visit(ctx->expr());
+        }else{
+            assign = std::any{};
+        }
+
+        if(!assign.has_value()){
+            std::cout << "ASSIGN VIDE" << std::endl;
+            auto decl = handle_statement_declaration(type_any, suffixes, var_name, assign, false);
+            return decl;
+        }else{
+            std::cout << "ASSIGN REMPLI" << std::endl;
+            auto assignment = handle_statement_declaration(type_any, suffixes, var_name, assign, true);
+            return assignment;
+        }
+        return std::any{};        
+    }
+    // std::any visitStatementContextualAssignment(ChipsParser::StatementContextualAssignment* ctx) override {
+
+    // }
+
+    // std::any visitMay_assign(ChipsParser::May_assignContext *ctx) override {
+    //     // std::cout << "visitMay_assign()" << std::endl;
+
+    //     if(ctx->expr() != nullptr){
+    //         return visit(ctx->expr());
+    //     }
+    //     return std::any{};
+    // }
 
     // pass to children
     std::any visitPassExpr0(ChipsParser::PassExpr0Context *ctx);

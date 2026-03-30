@@ -604,20 +604,20 @@ namespace chips
     class variable_expression : public rvalue<dft, expenv>, public lvalue<dft, expenv>
     {
     private:
-        variable<expenv> *m_variable;
+        variable<expenv>* m_variable;
+        std::vector<rvalue<dataflow_type::INT,expenv>*> m_index = {};
+        
+        public:
+            variable_expression(variable<expenv>* variable, std::vector<rvalue<dataflow_type::INT,expenv>*> index)
+                : m_variable(variable), m_index(index){}
 
-    public:
-        variable_expression(variable<expenv> *variable)
-            : m_variable(variable) {}
-
-        variable<expenv> *get_variable() { return m_variable; }
-
-        inline void accept(visitor &v) { v.visit(*this); }
-        inline void hello()
-        {
-            std::cout << "VARIABLE EXPRESSION" << std::endl;
-            get_variable()->hello();
-        }
+            variable_expression(variable<expenv>* variable)
+                : m_variable(variable){}
+                
+            variable<expenv>* get_variable() { return m_variable; }
+            
+            void accept(visitor& v) { v.visit(*this); }
+            virtual void hello() override;
     };
 
     template <dataflow_type dft, expression_env expenv>
@@ -625,8 +625,11 @@ namespace chips
     {
     public:
 
-        variable_contextual_expression(variable<expenv> *variable)
-            : variable_expression<dft, expenv>(variable) {}
+            variable_contextual_expression(variable<expenv>* variable, std::vector<rvalue<dataflow_type::INT,expenv>*> index)
+                : variable_expression<dft,expenv>(variable, index){}
+
+            variable_contextual_expression(variable<expenv>* variable)
+                : variable_expression<dft,expenv>(variable){}
 
         inline void accept(visitor &v) { v.visit(*this); }
     };
