@@ -25,12 +25,13 @@ namespace chips
         int column;
 
     public:
-        int get_line() { return line; }
-        int get_column() { return column; }
-        void set_line(int l) { line = l; }
-        void set_column(int c) { column = c; }
+        inline int get_line() { return line; }
+        inline int get_column() { return column; }
+        inline void set_line(int l) { line = l; }
+        inline void set_column(int c) { column = c; }
 
         virtual void hello() = 0;
+        virtual ~ast_node() = default;
     };
 
     class visitor

@@ -1,5 +1,4 @@
 #include "ChipsToXmiWriter.hpp"
-#include <iostream>
 
 ChipsToXmiWriter::ChipsToXmiWriter(std::ostream& out,
                          std::string xmi_version,

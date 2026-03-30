@@ -1,5 +1,0 @@
-pure function() -> (1,var)
-
-SYSTEM dimensions(0){}
-
-// ne compile pas car pas de variable "var" definie

@@ -1,0 +1,42 @@
+#include "ast_program.hpp"
+#include "ast_definitions.hpp"
+
+namespace chips
+{
+
+    void preamble_section_node::add_definition(definition_variant dv)
+    {
+        m_definitions.push_back(dv);
+    }
+
+    void preamble_section_node::hello()
+    {
+        for (auto &def : this->m_definitions)
+        {
+
+#define TRY_DEF_CAST_HELLO(DEF)               \
+    try                                       \
+    {                                         \
+        std::get<DEF *>(def)->hello();        \
+    }                                         \
+    catch (const std::bad_variant_access &ex) \
+    {                                         \
+        std::cout << ex.what() << std::endl;  \
+    }
+
+            TRY_DEF_CAST_HELLO(object_definition)
+            TRY_DEF_CAST_HELLO(logical_definition)
+            TRY_DEF_CAST_HELLO(physical_definition)
+            TRY_DEF_CAST_HELLO(implementation_defintion)
+            TRY_DEF_CAST_HELLO(collective_function_definition)
+
+#undef TRY_DEF_CAST_HELLO
+        }
+    }
+
+    void system_section_node::add_system_statement(system_statement_variant obj) { m_system_statements.push_back(obj); };
+    void system_section_node::hello() { std::cout << "system " << (this->m_system_statements.empty() ? "vide" : "rempli") << std::endl; }
+
+    preamble_section_node program_node::get_preamble() { return m_preamble; }
+    system_section_node program_node::get_system() { return m_system; }
+}

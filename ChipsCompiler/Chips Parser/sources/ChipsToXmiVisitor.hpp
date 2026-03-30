@@ -1,10 +1,9 @@
 #ifndef CHIPS_TO_XMI_VISITOR_HPP
 #define CHIPS_TO_XMI_VISITOR_HPP
 
-
-
 #include "ChipsToXmiWriter.hpp"
 #include "ast_base.hpp"
+#include "utils.hpp"
 
 #include <ostream>
 #include <iostream>

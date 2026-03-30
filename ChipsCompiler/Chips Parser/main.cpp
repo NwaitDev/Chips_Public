@@ -1,28 +1,12 @@
 // ============================================================
-//  main.cpp
-//  Mini-interpréteur arithmétique – ANTLR4 + C++17
+//  main.cpp : Chips Compiler
+//  ANTLR4 + C++17
 // ============================================================
 #include <antlr4-runtime.h>
 #include "ChipsLexer.h"
 #include "ChipsParser.h"
-#include "Interpreter.hpp"
 
-#include "sources/ASTBuilder.hpp"
-#include "sources/ast_base.hpp"
-#include "sources/ast_builder_details.hpp"
-#include "sources/ast_definitions.hpp"
-#include "sources/ast_inoutputs.hpp"
-#include "sources/ast_lrxvalues.hpp"
-#include "sources/ast_program.hpp"
-#include "sources/ast_statements.hpp"
-#include "sources/ast_system_specific.hpp"
-#include "sources/ast_variables.hpp"
-
-#include "sources/ChipsToXmiVisitor.hpp"
-#include "sources/ChipsToXmiWriter.hpp"
-
-#include "sources/ChipsSymbolTable.hpp"
-
+#include "chips_headers.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -48,12 +32,13 @@ public:
     }
 };
 
-// ── Interprète un flux ────────────────────────────────────────
-void run(std::istream& input, Interpreter& /*interp*/) {
-    antlr4::ANTLRInputStream  stream(input);
-    ChipsLexer           lexer(&stream);
-    antlr4::CommonTokenStream tokens(&lexer);
-    ChipsParser          parser(&tokens);
+
+void parse(std::istream& input) {
+
+    antlr4::ANTLRInputStream    stream(input);
+    ChipsLexer                  lexer(&stream);
+    antlr4::CommonTokenStream   tokens(&lexer);
+    ChipsParser                 parser(&tokens);
 
     // Remplace le listener par défaut (qui imprime sur stderr)
     ThrowingErrorListener errorListener;
@@ -73,61 +58,6 @@ void run(std::istream& input, Interpreter& /*interp*/) {
 
     std::any result = builder.visit(tree);
 
-    // // extract_as_node dispatche sur tous les types concrets connus
-    // // et retourne shared_ptr<ast_node> sans que main.cpp connaisse le type template
-    // std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
-
-    // if(rootPtr){
-    //     int status;
-    //     const std::type_info& ti = typeid(*rootPtr);
-    //     char* realname = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
-    //     std::cout << "Type dynamique : " << (realname ? realname : ti.name()) << std::endl;
-    //     free(realname);
-
-    //     rootPtr->hello();
-
-    //     SymbolTable::getInstance().dump();
-
-    //     // ast_node& node = *rootPtr;
-
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
-    //     //     std::cerr << "r->accept INTxPRIMITIVE" << std::endl;
-    //     //     r->accept(visitor);
-    //     // }
-            
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>*>(&node))
-    //     //     r->accept(visitor);
-    //     // if(auto* r = dynamic_cast<rvalue<dataflow_type::BOOL, expression_env::SYSTEM>*>(&node))
-    //     //     r->accept(visitor);
-        
-    //     // // node.accept(visitor);
-
-    //     // std::ofstream out(output);
-
-    //     // ChipsToXmiWriter writer(out);
-    //     // writer.copy_namespaces_from(body_writer);
-    //     // writer.xmi_header("error");
-    //     // out << body_out.str();
-    //     // writer.xmi_footer();
-
-    //     // out.close();
-    //     // std::cout << "XMI généré: " << output << std::endl;
-    // } else {
-    //     std::cout << "no" << std::endl;
-    // }
-
     for(auto* stmt : tree->statement()){
         std::any result = builder.visit(stmt);
         std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
@@ -145,73 +75,30 @@ void run(std::istream& input, Interpreter& /*interp*/) {
         }else{
             std::cout << "no" << std::endl;
         }
-
-        // ast_node& root = *rootPtr;
-
-        // root.accept(visitor);
-
-        // std::ofstream out(output);
-
-        // ChipsToXmiWriter writer(out);
-        // writer.copy_namespaces_from(body_writer);
-        // writer.xmi_header("error");
-        // out << body_out.str();
-        // writer.xmi_footer();
-
-        // out.close();
-        // std::cout << "XMI généré: " << output << std::endl;
-    }
-
-
-    // interp.visit(tree);              // évalue
-}
-
-// ── REPL (Read-Eval-Print Loop) ───────────────────────────────
-void repl() {
-    Interpreter interp;
-    std::cout << "=== Mini-interpréteur arithmétique (C++17 + ANTLR4) ===\n";
-    std::cout << "Tapez une expression ou 'quit' pour quitter.\n\n";
-
-    std::string line;
-    while (true) {
-        std::cout << ">>> ";
-        if (!std::getline(std::cin, line)) break;
-        if (line == "quit" || line == "exit") break;
-        if (line.empty()) continue;
-
-        // ANTLR attend une fin de ligne pour terminer la règle `statement`
-        std::istringstream ss(line + "\n");
-        try {
-            run(ss, interp);
-        } catch (const std::exception& e) {
-            std::cerr << "Erreur : " << e.what() << "\n";
-        }
-    }
-    std::cout << "Au revoir!\n";
-}
-
-// ── Exécution d'un fichier ────────────────────────────────────
-void runFile(const std::string& path) {
-    std::ifstream file(path);
-    if (!file) {
-        std::cerr << "Impossible d'ouvrir le fichier : " << path << "\n";
-        std::exit(1);
-    }
-    Interpreter interp;
-    try {
-        run(file, interp);
-    } catch (const std::exception& e) {
-        std::cerr << "Erreur : " << e.what() << "\n";
-        std::exit(1);
     }
 }
 
 // ── Point d'entrée ────────────────────────────────────────────
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
-        repl();          // mode interactif
+    if (argc != 2) {
+        std::cout<<"[ERROR] chips compiler requires exactly one parameter\n"
+                 <<"usage: ./chipsc path/to/file.chips"<<std::endl;
+        std::cout;
+        std::exit(1);
     } else {
-        runFile(argv[1]); // mode fichier
+        std::string filename(argv[1]);
+        std::ifstream file(filename);
+        if (!file) {
+            std::cerr << "Impossible d'ouvrir le fichier : " << filename << "\n";
+            std::exit(1);
+        }
+        try {
+            parse(file);
+        } catch (const std::exception& e) {
+            std::cerr << "Erreur : " << e.what() << "\n";
+            std::exit(1);
+        }
+        std::exit(0);
     }
     return 0;
 }

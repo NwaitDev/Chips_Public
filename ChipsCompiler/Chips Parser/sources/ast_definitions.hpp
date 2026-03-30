@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "ast_base.hpp"
+#include "ast_statements.hpp"
 #include "meta_type_conversions.hpp"
 #include "ast_inoutputs.hpp"
 #include "ast_lrxvalues.hpp"
@@ -37,7 +38,7 @@ namespace chips
         std::vector<node_statement_variant> m_statements;
         with_section(){};
         inline void add_statement(node_statement_variant stt){m_statements.push_back(stt);}
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
     };
 
     /**
@@ -90,7 +91,7 @@ namespace chips
     {
         public:
         std::vector<collective_parameter_variant> m_accumulator;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
     };
 
     /**

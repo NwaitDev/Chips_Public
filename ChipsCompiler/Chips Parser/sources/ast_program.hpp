@@ -19,7 +19,7 @@ namespace chips
     {
     public:
         std::vector<definition_variant> m_definitions;
-        inline void add_definition(definition_variant obj){m_definitions.push_back(obj);};
+        void add_definition(definition_variant obj);
         void hello();
     };
 
@@ -32,8 +32,8 @@ namespace chips
     {
     public:
         std::vector<system_statement_variant> m_system_statements;
-        inline void add_system_statement(system_statement_variant obj){m_system_statements.push_back(obj);};
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void add_system_statement(system_statement_variant obj);
+        void hello();
     };
 
     /**
@@ -47,9 +47,12 @@ namespace chips
         preamble_section_node m_preamble;
         system_section_node m_system;
 
-        void hello();
-        preamble_section_node get_preamble(){return m_preamble;} 
-        system_section_node get_system(){return m_system;}
+        inline void hello()
+        {
+            std::cout << m_filename << std::endl;
+        }
+        preamble_section_node get_preamble();
+        system_section_node get_system();
     };
 }
 

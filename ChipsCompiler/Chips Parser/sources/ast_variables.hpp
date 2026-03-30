@@ -2,6 +2,11 @@
 #define __chips_variables__
 
 
+#include "utils.hpp"
+#include "meta_type_conversions.hpp"
+#include "ast_base.hpp"
+#include <vector>
+
 namespace chips {
     
 
@@ -14,20 +19,25 @@ namespace chips {
     template<expression_env expenv> 
     class array : public ast_node {
         public:
-        std::vector<rvalue<dataflow_type::INT,expenv>> m_dimensions;
+        std::vector<int_rvalue_expression_variant<expenv>> m_dimensions;
 
         array() = default;
 
-        array(std::vector<rvalue<dataflow_type::INT,expenv>> dim)
-            : m_dimensions(dim){}
+        inline std::vector<int_rvalue_expression_variant<expenv>> get_dimensions() { return m_dimensions; }
 
-        std::vector<rvalue<dataflow_type::INT,expenv>> get_dimensions() { return m_dimensions; }
-        inline void set_dimensions(std::vector<rvalue<dataflow_type::INT,expenv>> dims){
+        inline void set_dimensions(std::vector<int_rvalue_expression_variant<expenv>> dims){
             m_dimensions.assign(dims.begin(),dims.end());
         }
         
-        void accept(visitor& v) { v.visit(*this); }
-        virtual void hello() override;// override {std::cout<<"hello"<<std::endl;}
+        inline void accept(visitor& v) { v.visit(*this); }
+        inline void hello(){
+        for(auto dim : get_dimensions()){
+            std::cout << "[";
+            std::cout << "TODO";
+            // dim.hello();
+            std::cout << "]";
+        }
+    }
     };
 
     /**
@@ -41,14 +51,11 @@ namespace chips {
     template<expression_env expenv>
     class variable : public array<expenv>{
         public:
-            std::string name;
+            std::string m_name;
 
-            variable(std::string name, std::vector<rvalue<dataflow_type::INT,expenv>> dim) 
-                : array<expenv>(dim), name(name){}
+            variable(std::string name) : array<expenv>(), m_name(name){}
 
-            variable(std::string name) : array<expenv>(), name(name){}
-
-            std::string get_name() { return name; }
+            inline std::string get_name() { return m_name; }
     };
 
     /**
@@ -59,13 +66,10 @@ namespace chips {
      * (with/init/then sections)
      * A variable of this kind is NOT contextual
      */
-    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>{
+    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>
+    {
         public:
-            primitive_variable(std::string name,std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>> dim)
-                : variable(name, dim){}
-
-            primitive_variable(std::string name)
-                : variable(name){}
+        primitive_variable(std::string name):variable(name){};
     };
 
     /**
@@ -81,24 +85,28 @@ namespace chips {
     {
         public:
         dataflow_declaration<dft,statement_env::DEFINITION>* m_declaration = nullptr;
-
-        dataflow_primitive_variable() = default;
         
-        dataflow_primitive_variable(std::string name)
-            : primitive_variable(name), m_declaration(nullptr){}
+        dataflow_primitive_variable(std::string name): primitive_variable(name){}
 
-        dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration)
-            : primitive_variable(name), m_declaration(declaration){}
+        dataflow_primitive_variable(
+            std::string name,
+            dataflow_declaration<dft,statement_env::DEFINITION>* decl,
+            std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims)
+        : primitive_variable(name), m_declaration(decl)
+        {
+            for(int_rvalue_expression_variant<expression_env::PRIMITIVE> d : dims){
+                m_dimensions.push_back(d);
+            }
+        }
 
-        dataflow_primitive_variable(std::string name, dataflow_declaration<dft,statement_env::DEFINITION>* declaration,
-                                    std::vector<rvalue<dataflow_type::INT,expression_env::PRIMITIVE>> dim)
-            : primitive_variable(name, dim), m_declaration(declaration){}
-        
         inline void set_declaration(dataflow_declaration<dft,statement_env::DEFINITION>* decl_ptr){
             m_declaration = decl_ptr;
         };
 
-        virtual void hello() override;
+        inline void hello(){
+            array<expression_env::PRIMITIVE>::hello();
+            std::cout << " " << get_name();
+        }
     };
 
     /**
@@ -121,7 +129,7 @@ namespace chips {
     {
         using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
         node_element_declaration_type* m_declaration;
-        void hello();
+        void hello(){}
     };
 
     /**
@@ -144,7 +152,7 @@ namespace chips {
     class dataflow_collective_variable : public collective_variable
     {
         dataflow_declaration<dft,statement_env::COLLECTIVE>* m_declaration;
-        void hello();
+        void hello(){}
     };
 
 
@@ -165,7 +173,7 @@ namespace chips {
     class block_variable : public system_variable 
     {
         block_declaration<bt>* m_declaration;
-        void hello();
+        void hello(){}
     };
     
     /**
@@ -181,7 +189,7 @@ namespace chips {
     class dataflow_system_variable : public system_variable 
     {
         dataflow_declaration<dft,statement_env::SYSTEM>* m_declaration;
-        void hello();
+        void hello(){}
 
     };
     

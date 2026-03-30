@@ -2,7 +2,7 @@
 #ifndef __chips_inoutputs__
 #define __chips_inoutputs__
 
-
+#include "ast_variables.hpp"
 #include <vector>
 #include <optional>
 
@@ -28,7 +28,9 @@ namespace chips {
         function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration)
         : m_name(name), m_declaration(declaration), m_default_value(std::nullopt){};
         
-        void hello();
+        void hello(){
+            std::cout << "FUNCTION PARAMETER" << std::endl;
+        };
     };
     
     /**
@@ -43,7 +45,7 @@ namespace chips {
         rvalue<dft,expression_env::COLLECTIVE> m_default_value;
         dataflow_declaration<dft,statement_env::COLLECTIVE> m_declaration;
         std::string m_name;
-        void hello();
+        void hello(){};
     };
 
     /**
@@ -62,7 +64,7 @@ namespace chips {
         std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions;
         function_output(std::string name,rvalue<dft,expression_env::PRIMITIVE>* expr) : m_name(name){ m_expressions.push_back(expr);};
         inline void add_expression(rvalue_variant<expression_env::PRIMITIVE> exp) { m_expressions.push_back(exp);} 
-        void hello();
+        void hello(){};
     };
     
     /**
@@ -93,7 +95,7 @@ namespace chips {
     class default_output : collective_output<collective_output_kind::DEFAULTED>
     {
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
     };
     
 
@@ -108,7 +110,7 @@ namespace chips {
     {
         // you should only allow stopless expressions for this member attribute
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_expressions;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
     };
 
 }

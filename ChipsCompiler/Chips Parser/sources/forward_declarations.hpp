@@ -1,3 +1,6 @@
+#ifndef __FORWARD_DECLS__
+#define __FORWARD_DECLS__
+
 #include "metamodel_enums.hpp"
 
 namespace chips
@@ -103,6 +106,8 @@ namespace chips
     class mod;
     template <dataflow_type dft, expression_env expenv>
     class cast_as;
+    template <dataflow_type dft, expression_env expenv>
+    class uminus_operator;
     template <expression_env expenv, dataflow_type dft>
     class gt;
     template <expression_env expenv, dataflow_type dft>
@@ -143,3 +148,5 @@ namespace chips
     template <dataflow_kind dfk, dataflow_type dft>
     class collective_cast;
 }
+
+#endif //__FORWARD_DECLS__

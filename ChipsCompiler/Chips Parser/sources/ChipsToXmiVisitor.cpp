@@ -1,22 +1,11 @@
 #include "ChipsToXmiVisitor.hpp"
-
-// Source - https://stackoverflow.com/a/3599170
-// Posted by mtvec, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-03-20, License - CC BY-SA 3.0
+#include "ast_definitions.hpp"
 
 #define UNUSED(x) (void)(x)
 
 
 
-namespace {
-    std::string dft_to_string(dataflow_type dft){
-        switch(dft){
-            case dataflow_type::INT: return "int";
-            case dataflow_type::FLOAT: return "float";
-            case dataflow_type::BOOL: return "bool";
-        }
-        return "unknown";
-    }
+namespace chips {
 
     std::string expenv_to_string(expression_env env){
         switch(env){
@@ -83,8 +72,8 @@ void ChipsToXmiVisitor::visit(mod<expenv>& node){
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
     UNUSED(node);
-    std::cerr << "[DEBUG Visitor] visit(direct<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << ")" << std::endl;
-    writeAttribute("            xsi:type","chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(direct<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << ")" << std::endl;
+    writeAttribute("            xsi:type","chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string<dft>());
     out() << "\n";
     if constexpr(dft == dataflow_type::BOOL){
         writeAttribute("            value", node.get_value() ? "true" : "false");
@@ -96,8 +85,8 @@ void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(chips::div<dft,expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(div<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":div");
+    std::cerr << "[DEBUG Visitor] visit(div<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":div");
     out() << ">\n";
     
     auto left = node.get_lhs();
@@ -133,8 +122,8 @@ void ChipsToXmiVisitor::visit(chips::div<dft,expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(mult<dft,expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(mult<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":mult");
+    std::cerr << "[DEBUG Visitor] visit(mult<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":mult");
     out() << ">\n";
     
     auto left = node.get_lhs();
@@ -170,8 +159,8 @@ void ChipsToXmiVisitor::visit(mult<dft,expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(minus<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(minus<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":minus");
+    std::cerr << "[DEBUG Visitor] visit(minus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":minus");
     out() << ">\n";
     
     auto left = node.get_lhs();
@@ -207,14 +196,14 @@ void ChipsToXmiVisitor::visit(minus<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(uminus_operator<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(uminus_operator<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":minus");
+    std::cerr << "[DEBUG Visitor] visit(uminus_operator<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":minus");
     out() << ">\n";
     
     auto right = node.get_rhs();
 
     out() << "              <left_operand\n";
-    writeAttribute("                xsi:type", "chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string(dft));
+    writeAttribute("                xsi:type", "chips.rvalues."+expenv_to_string(expenv)+":direct_"+dft_to_string<dft>());
     out() << "/>\n";
 
 
@@ -234,8 +223,8 @@ void ChipsToXmiVisitor::visit(uminus_operator<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(plus<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(plus<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":plus");
+    std::cerr << "[DEBUG Visitor] visit(plus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":plus");
     out() << ">\n";
     
     auto left = node.get_lhs();
@@ -271,8 +260,8 @@ void ChipsToXmiVisitor::visit(plus<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(cast_as<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":cast_as_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(cast_as<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":cast_as_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto numeric = node.get_cast();
@@ -313,8 +302,8 @@ void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(gt<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(gt<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":gt_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(gt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":gt_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto left = node.get_lhs();
@@ -350,8 +339,8 @@ void ChipsToXmiVisitor::visit(gt<expenv, dft>& node){
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(geq<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(geq<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":geq_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(geq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":geq_"+dft_to_string<dft>());
     out() << ">\n";
     
     auto left = node.get_lhs();
@@ -387,8 +376,8 @@ void ChipsToXmiVisitor::visit(geq<expenv, dft>& node){
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(lt<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(lt<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":lt_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(lt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":lt_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto left = node.get_lhs();
@@ -424,8 +413,8 @@ void ChipsToXmiVisitor::visit(lt<expenv, dft>& node){
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(leq<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(leq<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":leq_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(leq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":leq_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto left = node.get_lhs();
@@ -461,8 +450,8 @@ void ChipsToXmiVisitor::visit(leq<expenv, dft>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(eq<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":eq_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":eq_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto left = node.get_lhs();
@@ -498,8 +487,8 @@ void ChipsToXmiVisitor::visit(eq<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(neq<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":neq_"+dft_to_string(dft));
+    std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    writeAttribute("            xsi:type", get_op_prefix(expenv)+dft_to_string<dft>()+":neq_"+dft_to_string<dft>());
     out() << ">\n";
 
     auto left = node.get_lhs();
@@ -630,7 +619,7 @@ void ChipsToXmiVisitor::visit(not_operator<expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(rvalue<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(rvalue<" << dft_to_string(dft) << ", " << expenv_to_string(expenv) << std::endl;
+    std::cerr << "[DEBUG Visitor] visit(rvalue<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     out() << "          <rvalue\n";
 
     if constexpr(dft != dataflow_type::BOOL){

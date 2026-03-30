@@ -71,7 +71,6 @@ namespace chips {
      * to a Chips Node (Physical or Object)
      */
     class node_variable_expression : public ast_node{
-        void hello() override {std::cout<<"hello"<<std::endl;};
     };
 
 
@@ -121,6 +120,7 @@ namespace chips {
     {
         functional_block_variant m_variable_expression;
         function_parameter<dfk,dft>* m_parameter;
+        inline void hello(){}
     }; 
 
     
@@ -134,6 +134,7 @@ namespace chips {
     {
         functional_block_variant m_variable_expression;
         function_output<dfk,dft>* m_output;
+        inline void hello(){}
     };
 
 
@@ -145,9 +146,9 @@ namespace chips {
     class channel_eater : public ast_node
     {
         public:
-        node_variable_expression m_node;
+        node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_eating_channel;
-        void hello() override {std::cout<<"hello"<<std::endl;}
+        void hello() {std::cout<<"hello"<<std::endl;}
     };
 
     /**
@@ -158,7 +159,7 @@ namespace chips {
     class channel_feeder : public ast_node
     {
         public:
-        node_variable_expression m_node;
+        node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_feeding_channel;
         void hello() override {std::cout<<"hello"<<std::endl;}
     };

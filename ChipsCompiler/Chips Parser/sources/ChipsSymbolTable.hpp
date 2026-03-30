@@ -115,6 +115,7 @@ namespace chips {
                     case FUNCTION_SPREAD: return "function spread";
                     case FUNCTION_COLLECT: return "function collect";
                 }
+                return "NOTHING FOUND HERE";
             }
 
             struct Symbol{

@@ -1,5 +1,0 @@
-virtual function() init {
-    int i = 4;  
-} -> (1)
-
-SYSTEM dimensions(1){}

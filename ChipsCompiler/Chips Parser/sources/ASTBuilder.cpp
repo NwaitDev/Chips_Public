@@ -1,0 +1,1279 @@
+#include "ASTBuilder.hpp"
+
+void print_any_type(const std::any &a)
+{
+    std::cout << "Type: " << a.type().name();
+    int status;
+    char *demangled = abi::__cxa_demangle(a.type().name(), 0, 0, &status);
+    if (status == 0 && demangled)
+    {
+        std::cout << " (" << demangled << ")";
+        free(demangled);
+    }
+    std::cout << std::endl;
+}
+
+std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
+{
+    program_node prgm;
+    std::cout << "visit program" << std::endl;
+    for (ChipsParser::PreambleContext *pc : ctx->preamble())
+    {
+
+#define APPEND_CASTED_DEF(POTENTIAL)                                                         \
+    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
+    {                                                                                        \
+        prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
+        continue;                                                                            \
+    }
+
+        APPEND_CASTED_DEF(ChipsParser::ObjectDefinitionContext)
+        APPEND_CASTED_DEF(ChipsParser::CollectiveOperationDefinitionContext)
+        APPEND_CASTED_DEF(ChipsParser::ImplementationDefinitionContext)
+        APPEND_CASTED_DEF(ChipsParser::FunctionDefinitionContext)
+
+#undef APPEND_CASTED_DEF
+
+        std::cerr << "Unknown definition type in the preamble section!\n";
+    }
+
+    std::cout << "nb statements in system section root level: "
+              << ctx->system()->s_statement().size() << std::endl;
+    for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
+    {
+
+#define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
+    if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
+    {                                                                                                                                \
+        prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
+        continue;                                                                                                                    \
+    }
+
+        SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
+        SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
+        SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
+        SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
+        SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
+        SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
+        SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
+        SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
+#undef SSTATEMENT_CAST
+
+        std::cerr << "Unknown statement type in the system section root level!\n";
+    }
+
+    return prgm;
+}
+
+std::any ASTBuilder::visitObjectDefinition(ChipsParser::ObjectDefinitionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ObjectDefinitionContext");
+}
+
+std::any ASTBuilder::visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveOperationDefinitionContext");
+}
+
+std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ImplementationDefinitionContext");
+}
+
+std::any ASTBuilder::visitObject_def(ChipsParser::Object_defContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Object_defContext");
+}
+
+std::any ASTBuilder::visitImplementation_def(ChipsParser::Implementation_defContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Implementation_defContext");
+}
+
+std::any ASTBuilder::visitNode_mapping(ChipsParser::Node_mappingContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Node_mappingContext");
+}
+
+std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx)
+{
+    std::cout << "visit logical definition" << std::endl;
+    ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
+    std::string identifier = lfd->IDENTIFIER()->getText();
+    std::vector<ChipsParser::Df_parameter_declContext *> old_ast_params = lfd->df_parameter_decl();
+    std::vector<function_parameter_variant> params;
+    for (ChipsParser::Df_parameter_declContext *stuff : old_ast_params)
+    {
+        params.push_back(std::any_cast<function_parameter_variant>(visit(stuff)));
+    }
+
+    init_section init = std::any_cast<init_section>(visitInit_section(lfd->init_section()));
+    then_section then = std::any_cast<then_section>(visitThen_section(lfd->then_section()));
+
+    std::vector<ChipsParser::Named_outputContext *> old_ast_outputs = lfd->named_output();
+    std::vector<function_output_variant> outputs;
+    for (ChipsParser::Named_outputContext *stuff : old_ast_outputs)
+    {
+        outputs.push_back(std::any_cast<function_output_variant>(visit(stuff)));
+    }
+
+    return chips::logical_definition(identifier, params, init, then, outputs);
+}
+
+std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
+{
+    std::cout << "visit physical definition" << std::endl;
+    ChipsParser::P_function_defContext *pfd = ctx->p_function_def();
+    std::string identifier = pfd->IDENTIFIER()->getText();
+    std::vector<ChipsParser::Pdf_parameter_declContext *> all_params = pfd->pdf_parameter_decl();
+    std::vector<function_parameter_variant> params;
+    std::vector<physical_parameter_variant> sensors;
+    for (ChipsParser::Pdf_parameter_declContext *parameter : all_params)
+    {
+        std::string pname = parameter->IDENTIFIER()->getText();
+        if (ChipsParser::SensorParameterTypeContext *stuff = dynamic_cast<ChipsParser::SensorParameterTypeContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
+        {
+            dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+
+#define TRY_ADD_SENSOR(DFK, DFT)                                                 \
+    if (dft == DFT)                                                              \
+    {                                                                            \
+        dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname); \
+        declaration.get_variable().set_declaration(&declaration);                \
+        function_parameter<DFK, DFT> new_ast_param(pname, declaration);          \
+        sensors.push_back(&new_ast_param);                                       \
+        continue;                                                                \
+    }
+
+            TRY_ADD_SENSOR(dataflow_kind::PHYSICAL, dataflow_type::INT)
+            TRY_ADD_SENSOR(dataflow_kind::PHYSICAL, dataflow_type::FLOAT)
+            TRY_ADD_SENSOR(dataflow_kind::PHYSICAL, dataflow_type::BOOL)
+#undef TRY_ADD_SENSOR
+            std::cerr << "Unknown parameter type in the PhysicalDefinitionContext" << std::endl;
+        }
+        if (ChipsParser::FunctionParameterTypeContext *stuff = dynamic_cast<ChipsParser::FunctionParameterTypeContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
+        {
+            dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+
+#define TRY_ADD_PARAM(DFK, DFT)                                                  \
+    if (dft == DFT)                                                              \
+    {                                                                            \
+        dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname); \
+        declaration.get_variable().set_declaration(&declaration);                \
+        function_parameter<DFK, DFT> new_ast_param(pname, declaration);          \
+        params.push_back(&new_ast_param);                                        \
+        continue;                                                                \
+    }
+
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::INT)
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::FLOAT)
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::BOOL)
+#undef TRY_ADD_PARAM
+            std::cerr << "Unknown parameter type in the PhysicalDefinitionContext" << std::endl;
+        }
+        std::cerr << "Unknown parameter super type in the PhysicalDefinitionContext" << std::endl;
+    }
+
+    with_section with = std::any_cast<with_section>(visitWith_section(pfd->with_section()));
+    init_section init = std::any_cast<init_section>(visitInit_section(pfd->init_section()));
+    then_section then = std::any_cast<then_section>(visitThen_section(pfd->then_section()));
+
+    std::vector<function_output_variant> outputs;
+    std::vector<physical_output_variant> actuators;
+    for (ChipsParser::P_named_outputContext *output : pfd->p_named_output())
+    {
+
+        if (ChipsParser::FunctionOutputContext *stuff = dynamic_cast<ChipsParser::FunctionOutputContext *>(output); stuff != nullptr)
+        {
+            std::string oname = stuff->named_output()->IDENTIFIER()->getText();
+            rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->named_output()->expr(0)));
+            try
+            {
+                function_output<dataflow_kind::LOGICAL, dataflow_type::INT>
+                    final_output(oname, std::get<rvalue<dataflow_type::INT, expression_env::PRIMITIVE> *>(rval));
+                outputs.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not an int rvalue";
+            }
+            try
+            {
+                function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>
+                    final_output(oname, std::get<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE> *>(rval));
+                outputs.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not a float rvalue";
+            }
+            try
+            {
+                function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>
+                    final_output(oname, std::get<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE> *>(rval));
+                outputs.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not a bool rvalue";
+            }
+            std::cerr << "Unknown output type in the PhysicalDefinitionContext" << std::endl;
+        }
+        if (ChipsParser::ActuatorOutputContext *stuff = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output); stuff != nullptr)
+        {
+            std::string oname = stuff->IDENTIFIER()->getText();
+            rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->expr(0)));
+            try
+            {
+                function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>
+                    final_output(oname, std::get<rvalue<dataflow_type::INT, expression_env::PRIMITIVE> *>(rval));
+                actuators.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not an int rvalue";
+            }
+            try
+            {
+                function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>
+                    final_output(oname, std::get<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE> *>(rval));
+                actuators.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not a float rvalue";
+            }
+            try
+            {
+                function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>
+                    final_output(oname, std::get<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE> *>(rval));
+                actuators.push_back(&final_output);
+                continue;
+            }
+            catch (const std::bad_variant_access &e)
+            {
+                std::cout << "not a bool rvalue";
+            }
+            std::cerr << "Unknown output type in the PhysicalDefinitionContext" << std::endl;
+        }
+        std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
+    }
+
+    return chips::physical_definition(identifier, params, init, then, outputs, with, sensors, actuators);
+}
+
+std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Collective_op_defContext");
+}
+
+std::any ASTBuilder::visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method DefaultOutputContext");
+}
+
+std::any ASTBuilder::visitChanneledOutput(ChipsParser::ChanneledOutputContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ChanneledOutputContext");
+}
+
+std::any ASTBuilder::visitL_function_def(ChipsParser::L_function_defContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method L_function_defContext");
+}
+
+std::any ASTBuilder::visitP_function_def(ChipsParser::P_function_defContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method P_function_defContext");
+}
+
+std::any ASTBuilder::visitC_signature(ChipsParser::C_signatureContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_signatureContext");
+}
+
+std::any ASTBuilder::visitC_keywords(ChipsParser::C_keywordsContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_keywordsContext");
+}
+
+std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
+{
+    std::cout << "visiting With" << std::endl;
+    with_section with;
+    for (ChipsParser::With_statementContext *stt : ctx->with_statement())
+    {
+        std::any followup = visit(stt);
+        try
+        {
+            with.add_statement(ast_builder_detail::try_extract_node_specific_statement(followup));
+            continue;
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cout << e.what() << std::endl;
+        }
+
+        try
+        {
+            with.add_statement(std::get<node_statement_variant>(ast_builder_detail::try_extract_node_recurring_statement(followup)));
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in with section");
+    }
+    return with;
+}
+
+std::any ASTBuilder::visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx)
+{
+    std::cout << "Visiting Channel declaration" << std::endl;
+    return node_element_declaration<node_element::CHANNEL>(ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
+}
+
+std::any ASTBuilder::visitContextualDeclaration(ChipsParser::ContextualDeclarationContext *ctx)
+{
+
+    throw std::runtime_error("Unimplemented visit method ContextualDeclarationContext");
+}
+
+std::any ASTBuilder::visitWithRegularStatement(ChipsParser::WithRegularStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method WithRegularStatementContext");
+}
+
+std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Init_sectionContext");
+}
+
+std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Then_sectionContext");
+}
+
+std::any ASTBuilder::visitVar(ChipsParser::VarContext *ctx)
+{
+    std::cout << "visitVar()" << std::endl;
+    // std::string var_name = ctx->IDENTIFIER()->getText();
+    // std::any suffixes = visit(ctx->suffixes());
+    // std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
+
+    // if(!variable.has_value()){
+    //     throw std::runtime_error("'"+var_name+"' was never declarated before");
+    // }
+
+    // std::shared_ptr<ast_node> var = ast_builder_detail::extract_as_node(variable.value());
+
+    // int status;
+    // const std::type_info& ti = typeid(*var);
+    // char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+    // std::cout << "Type dynamique de var : " << (realname ? realname : ti.name()) << std::endl;
+    // free(realname);
+
+    // return make_variable_expression(*var);
+
+    throw std::runtime_error("Unimplemented visit method VarContext");
+}
+
+std::any ASTBuilder::visitVarContext(ChipsParser::VarContextContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method VarContextContext");
+}
+
+std::any ASTBuilder::visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CStoplessExpressionContext");
+}
+
+std::any ASTBuilder::visitStop(ChipsParser::StopContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StopContext");
+}
+
+std::any ASTBuilder::visitCLT(ChipsParser::CLTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CLTContext");
+}
+
+std::any ASTBuilder::visitCGT(ChipsParser::CGTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CGTContext");
+}
+
+std::any ASTBuilder::visitCLEQ(ChipsParser::CLEQContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CLEQContext");
+}
+
+std::any ASTBuilder::visitCGEQ(ChipsParser::CGEQContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CGEQContext");
+}
+
+std::any ASTBuilder::visitCNEQ(ChipsParser::CNEQContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CNEQContext");
+}
+
+std::any ASTBuilder::visitCEQ(ChipsParser::CEQContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CEQContext");
+}
+
+std::any ASTBuilder::visitCAND(ChipsParser::CANDContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CANDContext");
+}
+
+std::any ASTBuilder::visitCOR(ChipsParser::CORContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CORContext");
+}
+
+std::any ASTBuilder::visitPassCExpr0(ChipsParser::PassCExpr0Context *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method PassCExpr0Context");
+}
+
+std::any ASTBuilder::visitCPLUS(ChipsParser::CPLUSContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CPLUSContext");
+}
+
+std::any ASTBuilder::visitCSUB(ChipsParser::CSUBContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CSUBContext");
+}
+
+std::any ASTBuilder::visitCNegate(ChipsParser::CNegateContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CNegateContext");
+}
+
+std::any ASTBuilder::visitPassCExpr1(ChipsParser::PassCExpr1Context *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method PassCExpr1Context");
+}
+
+std::any ASTBuilder::visitCMULT(ChipsParser::CMULTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CMULTContext");
+}
+
+std::any ASTBuilder::visitCDIV(ChipsParser::CDIVContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CDIVContext");
+}
+
+std::any ASTBuilder::visitCMOD(ChipsParser::CMODContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CMODContext");
+}
+
+std::any ASTBuilder::visitCNOT(ChipsParser::CNOTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CNOTContext");
+}
+
+std::any ASTBuilder::visitPassCExpr2(ChipsParser::PassCExpr2Context *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method PassCExpr2Context");
+}
+
+std::any ASTBuilder::visitCVariableExpression(ChipsParser::CVariableExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CVariableExpressionContext");
+}
+
+std::any ASTBuilder::visitCINT(ChipsParser::CINTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CINTContext");
+}
+
+std::any ASTBuilder::visitCFLOAT(ChipsParser::CFLOATContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CFLOATContext");
+}
+
+std::any ASTBuilder::visitCBOOL(ChipsParser::CBOOLContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CBOOLContext");
+}
+
+std::any ASTBuilder::visitINPUT(ChipsParser::INPUTContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method INPUTContext");
+}
+
+std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CtxVariableExpressionContext");
+}
+
+std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ChanneledAccuExpressionContext");
+}
+
+std::any ASTBuilder::visitFunctionCall(ChipsParser::FunctionCallContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method FunctionCallContext");
+}
+
+std::any ASTBuilder::visitCParenthesis(ChipsParser::CParenthesisContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CParenthesisContext");
+}
+
+std::any ASTBuilder::visitCCastAs(ChipsParser::CCastAsContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CCastAsContext");
+}
+
+std::any ASTBuilder::visitC_cast(ChipsParser::C_castContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_castContext");
+}
+
+std::any ASTBuilder::visitC_suffixes(ChipsParser::C_suffixesContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_suffixesContext");
+}
+
+std::any ASTBuilder::visitSSuffixableVariableExpression(ChipsParser::SSuffixableVariableExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SSuffixableVariableExpressionContext");
+}
+
+std::any ASTBuilder::visitSSuffixableFunctionCallExpression(ChipsParser::SSuffixableFunctionCallExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SSuffixableFunctionCallExpressionContext");
+}
+
+std::any ASTBuilder::visitSSuffixableBlockOutputExpression(ChipsParser::SSuffixableBlockOutputExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SSuffixableBlockOutputExpressionContext");
+}
+
+std::any ASTBuilder::visitBlock(ChipsParser::BlockContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method BlockContext");
+}
+
+std::any ASTBuilder::visitLoop_in(ChipsParser::Loop_inContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Loop_inContext");
+}
+
+std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Loop_statementContext");
+}
+
+std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_loop_statementContext");
+}
+
+std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method S_loop_statementContext");
+}
+
+std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method If_else_statementContext");
+}
+
+std::any ASTBuilder::visitS_if_else_statement(ChipsParser::S_if_else_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method S_if_else_statementContext");
+}
+
+std::any ASTBuilder::visitC_if_else_statement(ChipsParser::C_if_else_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_if_else_statementContext");
+}
+
+std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method If_statementContext");
+}
+
+std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method S_if_statementContext");
+}
+
+std::any ASTBuilder::visitC_if_statement(ChipsParser::C_if_statementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method C_if_statementContext");
+}
+
+std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StatementAssignmentContext");
+}
+
+std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StatementContextualAssignmentContext");
+}
+
+std::any ASTBuilder::visitStatementLoop(ChipsParser::StatementLoopContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StatementLoopContext");
+}
+
+std::any ASTBuilder::visitStatementIfElse(ChipsParser::StatementIfElseContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StatementIfElseContext");
+}
+
+std::any ASTBuilder::visitStatementIf(ChipsParser::StatementIfContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method StatementIfContext");
+}
+
+std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ObjectDeclarationContext");
+}
+
+std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method FeedingStatementContext");
+}
+
+std::any ASTBuilder::visitLinkingStatement(ChipsParser::LinkingStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method LinkingStatementContext");
+}
+
+std::any ASTBuilder::visitImplementationStatement(ChipsParser::ImplementationStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ImplementationStatementContext");
+}
+
+std::any ASTBuilder::visitSLoopStatement(ChipsParser::SLoopStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SLoopStatementContext");
+}
+
+std::any ASTBuilder::visitSIfElseStatement(ChipsParser::SIfElseStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SIfElseStatementContext");
+}
+
+std::any ASTBuilder::visitSIfStatement(ChipsParser::SIfStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SIfStatementContext");
+}
+
+std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method RegularStatementContext");
+}
+
+std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SBlockOutputExpressionContext");
+}
+
+std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCastExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SCollectiveCastExpressionContext");
+}
+
+std::any ASTBuilder::visitSRegularExpression(ChipsParser::SRegularExpressionContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method SRegularExpressionContext");
+}
+
+std::any ASTBuilder::visitCollective_operation(ChipsParser::Collective_operationContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Collective_operationContext");
+}
+
+std::any ASTBuilder::visitCollectiveVariableDeclaration(ChipsParser::CollectiveVariableDeclarationContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveVariableDeclarationContext");
+}
+
+std::any ASTBuilder::visitCollectiveAssignment(ChipsParser::CollectiveAssignmentContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveAssignmentContext");
+}
+
+std::any ASTBuilder::visitContextualAssignment(ChipsParser::ContextualAssignmentContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ContextualAssignmentContext");
+}
+
+std::any ASTBuilder::visitCollectiveLoopStatement(ChipsParser::CollectiveLoopStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveLoopStatementContext");
+}
+
+std::any ASTBuilder::visitCollectiveIfElseStatement(ChipsParser::CollectiveIfElseStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveIfElseStatementContext");
+}
+
+std::any ASTBuilder::visitCollectiveIfStatement(ChipsParser::CollectiveIfStatementContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method CollectiveIfStatementContext");
+}
+
+std::any ASTBuilder::visitNamed_output(ChipsParser::Named_outputContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Named_outputContext");
+}
+
+std::any ASTBuilder::visitActuatorOutput(ChipsParser::ActuatorOutputContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method ActuatorOutputContext");
+}
+
+std::any ASTBuilder::visitFunctionOutput(ChipsParser::FunctionOutputContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method FunctionOutputContext");
+}
+
+std::any ASTBuilder::visitDf_parameter_decl(ChipsParser::Df_parameter_declContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Df_parameter_declContext");
+}
+
+std::any ASTBuilder::visit_dft(ChipsParser::Df_typeContext *dft)
+{
+    if (ChipsParser::IntTypeContext *stuff = dynamic_cast<ChipsParser::IntTypeContext *>(dft); stuff != nullptr)
+    {
+        return visitIntType(stuff);
+    }
+    if (ChipsParser::FloatTypeContext *stuff = dynamic_cast<ChipsParser::FloatTypeContext *>(dft); stuff != nullptr)
+    {
+        return visitFloatType(stuff);
+    }
+    if (ChipsParser::BoolTypeContext *stuff = dynamic_cast<ChipsParser::BoolTypeContext *>(dft); stuff != nullptr)
+    {
+        return visitBoolType(stuff);
+    }
+    throw std::runtime_error("unrecognized parameter type");
+}
+
+std::any ASTBuilder::visitFunctionParameterType(ChipsParser::FunctionParameterTypeContext *ctx)
+{
+    std::cout << "visit function parameter type" << std::endl;
+    ChipsParser::Df_typeContext *dft = ctx->df_type();
+    try
+    {
+        return visit_dft(dft);
+    }
+    catch (const std::runtime_error &e)
+    {
+        throw std::runtime_error("unrecognized parameter type in visit method FunctionParameterContext");
+    }
+}
+
+std::any ASTBuilder::visitSensorParameterType(ChipsParser::SensorParameterTypeContext *ctx)
+{
+    std::cout << "visit sensor parameter type" << std::endl;
+    ChipsParser::Df_typeContext *dft = ctx->df_type();
+    try
+    {
+        return visit_dft(dft);
+    }
+    catch (const std::runtime_error &e)
+    {
+        throw std::runtime_error("unrecognized parameter type in visit method SensorParameterContext");
+    }
+}
+
+std::any ASTBuilder::visitPdf_parameter_decl(ChipsParser::Pdf_parameter_declContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Pdf_parameter_declContext");
+}
+
+std::any ASTBuilder::visitCdf_defaulted_decl(ChipsParser::Cdf_defaulted_declContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Cdf_defaulted_declContext");
+}
+
+std::any ASTBuilder::visitCdf_full_declaration(ChipsParser::Cdf_full_declarationContext *ctx)
+{
+    throw std::runtime_error("Unimplemented visit method Cdf_full_declarationContext");
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+
+// expr
+
+std::any ASTBuilder::visitFunction(ChipsParser::FunctionContext *ctx)
+{
+    std::string fname = ctx->IDENTIFIER()->getText();
+    std::cout << "function_visited, symbol: " << fname << " ";
+    if (fname.compare("is_fresh") == 0)
+    {
+        return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
+    }
+    if (fname.compare("range") == 0)
+        return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(0);
+    if (fname.compare("zeros") == 0)
+        return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(0);
+    throw std::runtime_error("could not recognize the function" + fname);
+}
+
+std::any ASTBuilder::visitLT(ChipsParser::LTContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LTBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "LT");
+}
+
+std::any ASTBuilder::visitLEQ(ChipsParser::LEQContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LEQBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "LEQ");
+}
+
+std::any ASTBuilder::visitGT(ChipsParser::GTContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GTBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "GT");
+}
+
+std::any ASTBuilder::visitGEQ(ChipsParser::GEQContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GEQBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "GEQ");
+}
+
+std::any ASTBuilder::visitEQ(ChipsParser::EQContext *ctx)
+{
+    return ast_builder_detail::dispatch_binary<ast_builder_detail::EQBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "EQ");
+}
+
+std::any ASTBuilder::visitNEQ(ChipsParser::NEQContext *ctx)
+{
+    return ast_builder_detail::dispatch_binary<ast_builder_detail::NEQBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "NEQ");
+}
+
+std::any ASTBuilder::visitAND(ChipsParser::ANDContext *ctx)
+{
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "AND");
+}
+
+std::any ASTBuilder::visitOR(ChipsParser::ORContext *ctx)
+{
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
+        visit(ctx->expr0()), visit(ctx->expr()), "OR");
+}
+
+std::any ASTBuilder::visitPLUS(ChipsParser::PLUSContext *ctx)
+{
+    // std::cout << "visitPLUS()" << std::endl;
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
+        visit(ctx->expr1()), visit(ctx->expr0()), "PLUS");
+}
+
+std::any ASTBuilder::visitSUB(ChipsParser::SUBContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::SubBuilder>(
+        visit(ctx->expr1()), visit(ctx->expr0()), "SUB");
+}
+
+std::any ASTBuilder::visitNegate(ChipsParser::NegateContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
+        visit(ctx->expr1()), "Negate");
+}
+
+std::any ASTBuilder::visitMULT(ChipsParser::MULTContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::MultBuilder>(
+        visit(ctx->expr2()), visit(ctx->expr1()), "MULT");
+}
+
+std::any ASTBuilder::visitDIV(ChipsParser::DIVContext *ctx)
+{
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::DivBuilder>(
+        visit(ctx->expr2()), visit(ctx->expr1()), "DIV");
+}
+
+std::any ASTBuilder::visitMOD(ChipsParser::MODContext *ctx)
+{
+
+    auto left_prim = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr2()));
+    auto right_prim = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(visit(ctx->expr1()));
+    if (left_prim && right_prim)
+    {
+        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::PRIMITIVE>::build(left_prim, right_prim);
+    }
+
+    auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr2()));
+    auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr1()));
+    if (left_collect && right_collect)
+    {
+        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
+    }
+
+    auto left_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr2()));
+    auto right_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr1()));
+    if (left_system && right_system)
+    {
+        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::SYSTEM>::build(left_system, right_system);
+    }
+
+    throw std::runtime_error("MOD : opérandes doivent être des entiers (INT)");
+}
+
+std::any ASTBuilder::visitNOT(ChipsParser::NOTContext *ctx)
+{
+    return ast_builder_detail::dispatch_boolean_unary<ast_builder_detail::NOTBuilder>(
+        visit(ctx->expr2()), "NOT");
+}
+
+// atom
+std::any ASTBuilder::visitIntLiteral(ChipsParser::IntLiteralContext *ctx)
+{
+    // std::cout << "visitIntLit()" << std::endl;
+    return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(std::stoll(ctx->INT()->getText()));
+}
+
+std::any ASTBuilder::visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx)
+{
+    // std::cout << "visitFloatLit()" << std::endl;
+    return std::make_shared<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(std::stod(ctx->FLOAT()->getText()));
+}
+
+std::any ASTBuilder::visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx)
+{
+    std::string text = ctx->BOOL()->getText();
+    bool value = (text == "true");
+    return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(value);
+}
+
+std::any ASTBuilder::visitParens(ChipsParser::ParensContext *ctx)
+{
+    return visit(ctx->expr());
+}
+
+std::any ASTBuilder::visitCastAs(ChipsParser::CastAsContext *ctx)
+{
+    // std::cout << "visitCastAs()" << std::endl;
+    return visit(ctx->cast());
+}
+
+std::any ASTBuilder::handle_cast(dataflow_type target, std::any operand_any)
+{
+    // PRIMITIVE
+    switch (target)
+    {
+    case dataflow_type::INT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+        break;
+    case dataflow_type::FLOAT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+        break;
+    default:
+        break;
+    }
+    // COLLECTIVE
+    switch (target)
+    {
+    case dataflow_type::INT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+        break;
+    case dataflow_type::FLOAT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+        break;
+    default:
+        break;
+    }
+    // SYSTEM
+    switch (target)
+    {
+    case dataflow_type::INT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+        break;
+    case dataflow_type::FLOAT:
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+        if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
+                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+        break;
+    default:
+        break;
+    }
+    throw std::runtime_error("cast_as : seuls les casts numériques INT↔FLOAT sont supportés.");
+}
+
+std::any ASTBuilder::visitCast(ChipsParser::CastContext *ctx)
+{
+    // std::cout << "visitCast()" << std::endl;
+
+    // Type
+    dataflow_type target = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+
+    // Operande
+    std::any operand_any = visit(ctx->expr());
+
+    return handle_cast(target, operand_any);
+}
+
+// Type primitif
+std::any ASTBuilder::visitIntType(ChipsParser::IntTypeContext * /*ctx*/)
+{
+    return dataflow_type::INT;
+}
+
+std::any ASTBuilder::visitFloatType(ChipsParser::FloatTypeContext * /*ctx*/)
+{
+    return dataflow_type::FLOAT;
+}
+
+std::any ASTBuilder::visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/)
+{
+    return dataflow_type::BOOL;
+}
+
+std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
+{
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+    {
+        std::vector<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>> dims;
+
+        for (auto *expr : ctx->expr())
+        {
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT "
+                    "(env PRIMITIVE).");
+            }
+            dims.push_back(*node);
+        }
+        return dims;
+    }
+
+    case expression_env::COLLECTIVE:
+    {
+        std::vector<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>> dims;
+
+        for (auto *expr : ctx->expr())
+        {
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT "
+                    "(env COLLECTIVE).");
+            }
+            dims.push_back(*node);
+        }
+        return dims;
+    }
+
+    case expression_env::SYSTEM:
+    {
+        std::vector<rvalue<dataflow_type::INT, expression_env::SYSTEM>> dims;
+
+        for (auto *expr : ctx->expr())
+        {
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT "
+                    "(env SYSTEM).");
+            }
+            dims.push_back(*node);
+        }
+        return dims;
+    }
+    }
+    throw std::runtime_error("GNEEEE!!!");
+}
+
+std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign)
+{
+    /**
+     * vartmp = dataflow_primitive_variable(identifier, nullptr);
+     * decl = dataflow_declaration(vartmp);
+     * var = dataflow_primitive_variable(identifier, &decl);
+     * decl.m_variable = var;
+     * left = variable_expression(decl.get_variable());
+     * right = visit(assign);
+     * assignment = dataflow_assignment(left, right);
+     * return assignment;
+     */
+    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+    switch (type)
+    {
+    case dataflow_type::INT:
+    {
+        auto decl = std::make_shared<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(
+            dataflow_primitive_variable<dataflow_type::INT>(identifier));
+        auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::INT>>(
+            identifier, decl.get(), dims);
+        decl->set_variable(*var);
+        node_arena.push_back(decl);
+        node_arena.push_back(var);
+        if (!have_assign)
+            return *decl;
+        auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var.get());
+        node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+        auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
+        if (!right)
+            throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
+        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
+        return assignment;
+    }
+    case dataflow_type::FLOAT:
+    {
+        auto decl = std::make_shared<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(
+            dataflow_primitive_variable<dataflow_type::FLOAT>(identifier));
+        auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::FLOAT>>(
+            identifier, decl.get(), dims);
+        decl->set_variable(*var);
+        node_arena.push_back(decl);
+        node_arena.push_back(var);
+        if (!have_assign)
+            return *decl;
+        auto left = std::make_shared<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(var.get());
+        node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+        auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign);
+        if (!right)
+            throw std::runtime_error("handle_statement_declaration FLOAT: expression droite invalide");
+        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
+        return assignment;
+    }
+    case dataflow_type::BOOL:
+    {
+        auto decl = std::make_shared<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(
+            dataflow_primitive_variable<dataflow_type::BOOL>(identifier));
+        auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::BOOL>>(
+            identifier, decl.get(), dims);
+        decl->set_variable(*var);
+        node_arena.push_back(decl);
+        node_arena.push_back(var);
+        if (!have_assign)
+            return *decl;
+        auto left = std::make_shared<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>(var.get());
+        node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+        auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign);
+        if (!right)
+            throw std::runtime_error("handle_statement_declaration BOOL: expression droite invalide");
+        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
+        return assignment;
+    }
+    }
+    throw std::runtime_error("GNEEEE DEEEUUUUUUX!!!");
+}
+
+std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx)
+{
+    std::cout << "visitStatementDeclaration()" << std::endl;
+
+    dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
+    current_env = expression_env::PRIMITIVE;
+    std::any suffixes = visit(ctx->suffixes());
+    std::string var_name = ctx->IDENTIFIER()->getText();
+    std::any assign;
+
+    if (ctx->expr())
+    {
+        assign = visit(ctx->expr());
+    }
+    else
+    {
+        assign = std::any{};
+    }
+
+    if (!assign.has_value())
+    {
+        std::cout << "ASSIGN VIDE" << std::endl;
+        auto decl = handle_statement_declaration(type_any, suffixes, var_name, assign, false);
+        if (!SymbolTable::getInstance().declareVariable(var_name, decl))
+        {
+            throw std::runtime_error("Redeclare a variable already declared");
+        }
+        return decl;
+    }
+    else
+    {
+        std::cout << "ASSIGN REMPLI" << std::endl;
+        auto assignment = handle_statement_declaration(type_any, suffixes, var_name, assign, true);
+        if (!SymbolTable::getInstance().declareVariable(var_name, assignment))
+        {
+            throw std::runtime_error("Redeclare a variable already declared");
+        }
+        return assignment;
+    }
+    return std::any{};
+}
+
+// pass to children
+std::any ASTBuilder::visitPassExpr0(ChipsParser::PassExpr0Context *ctx)
+{
+    return visit(ctx->expr0());
+}
+
+std::any ASTBuilder::visitPassExpr1(ChipsParser::PassExpr1Context *ctx)
+{
+    return visit(ctx->expr1());
+}
+
+std::any ASTBuilder::visitPassExpr2(ChipsParser::PassExpr2Context *ctx)
+{
+    return visit(ctx->expr2());
+}

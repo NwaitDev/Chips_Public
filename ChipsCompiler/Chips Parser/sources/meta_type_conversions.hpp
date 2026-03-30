@@ -155,6 +155,8 @@ namespace chips {
         using type = implementation_statement_variant;
     };
 
+
+    using statement_variant = std::variant<node_statement_variant, primitive_statement_variant,collective_statement_variant,system_statement_variant,implementation_statement_variant>;
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -283,6 +285,64 @@ namespace chips {
     using rvalue_variant = std::variant<rvalue<dataflow_type::INT,expenv>*,rvalue<dataflow_type::FLOAT,expenv>*,rvalue<dataflow_type::BOOL,expenv>*>;
 
     using rvalue_primitive_variant = rvalue_variant<expression_env::PRIMITIVE>;
+
+    template<expression_env expenv>
+    using primitive_iterable_variant = std::variant<
+        function<dataflow_type::INT,expenv>*,
+        function<dataflow_type::FLOAT,expenv>*,
+        function<dataflow_type::BOOL,expenv>*,
+        rvalue_variant<expenv>*
+    >;
+
+    template<expression_env expenv>
+    using int_rvalue_expression_variant = std::variant<
+        function<dataflow_type::INT,expenv>*,
+        direct<dataflow_type::INT,expenv>*,
+        plus<dataflow_type::INT,expenv>*,
+        minus<dataflow_type::INT,expenv>*,
+        mult<dataflow_type::INT,expenv>*,
+        div<dataflow_type::INT,expenv>*,
+        mod<expenv>*,
+        cast_as<dataflow_type::INT,expenv>*,
+        uminus_operator<dataflow_type::INT,expenv>*,
+        variable_expression<dataflow_type::INT,expenv>*
+    >;
+
+    template<expression_env expenv>
+    using float_rvalue_expression_variant = std::variant<
+        function<dataflow_type::FLOAT,expenv>*,
+        direct<dataflow_type::FLOAT,expenv>*,
+        plus<dataflow_type::FLOAT,expenv>*,
+        minus<dataflow_type::FLOAT,expenv>*,
+        mult<dataflow_type::FLOAT,expenv>*,
+        div<dataflow_type::FLOAT,expenv>*,
+        cast_as<dataflow_type::FLOAT,expenv>*,
+        uminus_operator<dataflow_type::FLOAT,expenv>*,
+        variable_expression<dataflow_type::FLOAT,expenv>*
+    >;
+
+    template<expression_env expenv>
+    using bool_rvalue_expression_variant = std::variant<
+        gt<expenv,dataflow_type::INT>*,
+        gt<expenv,dataflow_type::FLOAT>*,
+        lt<expenv,dataflow_type::INT>*,
+        lt<expenv,dataflow_type::FLOAT>*,
+        geq<expenv,dataflow_type::INT>*,
+        geq<expenv,dataflow_type::FLOAT>*,
+        leq<expenv,dataflow_type::INT>*,
+        leq<expenv,dataflow_type::FLOAT>*,
+        eq<dataflow_type::INT,expenv>*,
+        eq<dataflow_type::FLOAT,expenv>*,
+        eq<dataflow_type::BOOL,expenv>*,
+        neq<dataflow_type::INT,expenv>*,
+        neq<dataflow_type::FLOAT,expenv>*,
+        neq<dataflow_type::BOOL,expenv>*,
+        or_operator<expenv>*,
+        and_operator<expenv>*,
+        not_operator<expenv>*,
+        direct<dataflow_type::BOOL,expenv>*,
+        variable_expression<dataflow_type::BOOL,expenv>*>;
+
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
