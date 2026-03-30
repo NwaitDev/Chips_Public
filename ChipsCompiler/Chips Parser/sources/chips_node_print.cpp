@@ -56,16 +56,20 @@ namespace chips {
     void array<expenv>::hello(){
         for(auto dim : get_dimensions()){
             std::cout << "[";
-            std::cout << "TODO";
-            // dim.hello();
+            dim->hello();
             std::cout << "]";
         }
     }
 
     template<dataflow_type dft>
     void dataflow_primitive_variable<dft>::hello(){
+        // std::cout << "DATAFLOW PRIMITIVE VARIABLE" << std::endl;
         std::cout << dft_to_string(dft);
-        array<expression_env::PRIMITIVE>::hello();
+        for(auto dim : get_dimensions()){
+            std::cout << "[";
+            dim->hello();
+            std::cout << "]";
+        }
         std::cout << " " << get_name();
     }
 
@@ -83,6 +87,7 @@ namespace chips {
 
     template<dataflow_type dft, statement_env sttenv>
     void dataflow_declaration<dft, sttenv>::hello(){
+        // std::cout << "DATAFLOW DECLARATION" << std::endl;
         get_variable().hello();
         std::cout << ";" << std::endl;
     }
@@ -353,8 +358,13 @@ namespace chips {
 
     template<dataflow_type dft,expression_env expenv>
     void variable_expression<dft, expenv>::hello(){
-        std::cout << "VARIABLE EXPRESSION" << std::endl;
+        // std::cout << "VARIABLE EXPRESSION" << std::endl;
         get_variable()->hello();
+        for(auto index : m_index){
+            std::cout << "[";
+            index->hello();
+            std::cout << "]";
+        }
     }
 
     template<dataflow_type dft, expression_env expenv>

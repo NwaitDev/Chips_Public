@@ -458,8 +458,12 @@ namespace chips{
     {
     private:
         variable<expenv>* m_variable;
+        std::vector<rvalue<dataflow_type::INT,expenv>*> m_index = {};
         
         public:
+            variable_expression(variable<expenv>* variable, std::vector<rvalue<dataflow_type::INT,expenv>*> index)
+                : m_variable(variable), m_index(index){}
+
             variable_expression(variable<expenv>* variable)
                 : m_variable(variable){}
                 
@@ -474,6 +478,9 @@ namespace chips{
         public:
             // variable_contextual_expression(std::shared_ptr<variable<expenv>> variable, std::shared_ptr<std::vector<rvalue<dataflow_type::INT, expenv>>> index)
             //     : variable_expression<dft, expenv>(variable, index){}
+
+            variable_contextual_expression(variable<expenv>* variable, std::vector<rvalue<dataflow_type::INT,expenv>*> index)
+                : variable_expression<dft,expenv>(variable, index){}
 
             variable_contextual_expression(variable<expenv>* variable)
                 : variable_expression<dft,expenv>(variable){}
