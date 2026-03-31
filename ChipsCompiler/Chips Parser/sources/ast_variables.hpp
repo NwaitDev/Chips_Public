@@ -34,7 +34,7 @@ namespace chips {
         for(auto dim : get_dimensions()){
             std::cout << "[";
             std::cout << "TODO";
-            // dim.hello();
+            // dim->hello();
             std::cout << "]";
         }
     }
@@ -97,7 +97,7 @@ namespace chips {
             std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims)
         : primitive_variable(name), m_declaration(decl)
         {
-            for(int_rvalue_expression_variant<expression_env::PRIMITIVE> d : dims){
+            for(auto d : dims){
                 m_dimensions.push_back(d);
             }
         }

@@ -56,7 +56,7 @@ void parse(std::istream& input) {
     ChipsToXmiWriter body_writer(body_out);
     ChipsToXmiVisitor visitor(body_writer, body_out);
 
-    std::any result = builder.visit(tree);
+    // std::any result = builder.visit(tree);
 
     for(auto* stmt : tree->statement()){
         std::any result = builder.visit(stmt);

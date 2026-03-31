@@ -605,10 +605,10 @@ namespace chips
     {
     private:
         variable<expenv> *m_variable;
-        std::vector<rvalue<dataflow_type::INT, expenv> *> m_index = {};
+        std::vector<int_rvalue_expression_variant<expenv>> m_index = {};
 
     public:
-        variable_expression(variable<expenv> *variable, std::vector<rvalue<dataflow_type::INT, expenv> *> index)
+        variable_expression(variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
             : m_variable(variable), m_index(index) {}
 
         variable_expression(variable<expenv> *variable)

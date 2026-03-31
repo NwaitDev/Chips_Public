@@ -296,6 +296,10 @@ public:
 
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
 
+    template<expression_env expenv>
+    int_rvalue_expression_variant<expenv> make_variant_from_node(
+        const std::shared_ptr<rvalue<dataflow_type::INT, expenv>>& node);
+
     std::any visitSuffixes(ChipsParser::SuffixesContext* ctx);
 
     /**
