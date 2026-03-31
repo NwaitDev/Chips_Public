@@ -61,6 +61,16 @@ public:
 
     std::any visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx);
 
+    template<dataflow_type DT, expression_env ENV, typename Dims>
+    std::any tryCastVar(const std::any& var, const Dims& dims);
+
+    template<expression_env ENV, typename Dims>
+    std::any tryAllTypes(const std::string& var_name, const std::any& var, const Dims& dims);
+
+    std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual);
+
+    std::any handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign);
+
     std::any visitContextualDeclaration(ChipsParser::ContextualDeclarationContext *ctx);
 
     std::any visitWithRegularStatement(ChipsParser::WithRegularStatementContext *ctx);

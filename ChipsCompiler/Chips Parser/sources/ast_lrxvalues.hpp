@@ -628,7 +628,7 @@ namespace chips
     class variable_contextual_expression : public variable_expression<dft, expenv>
     {
     public:
-        variable_contextual_expression(variable<expenv> *variable, std::vector<rvalue<dataflow_type::INT, expenv> *> index)
+        variable_contextual_expression(variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
             : variable_expression<dft, expenv>(variable, index) {}
 
         variable_contextual_expression(variable<expenv> *variable)

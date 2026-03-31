@@ -278,6 +278,12 @@ namespace chips
         std::string m_declared_name;     // == identifier in case of contextual variable
         void hello() {}
         node_element_declaration(node_variable_t type, std::string vname) : m_variable_type(type), m_declared_name(vname) {}
+
+        void set_variable(node_variable_t variable) { m_variable_type = variable; }
+        node_variable_t get_variable() { return m_variable_type; }
+
+        void set_name(std::string name) { m_declared_name = name; }
+        std::string get_name() { return m_declared_name; }
     };
 }
 

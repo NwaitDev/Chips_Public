@@ -38,11 +38,15 @@ namespace chips {
             }
 
             bool declareVariable(const std::string& name, const std::any& value){
-                return declare(name, value, SymbolKind::VARIABLE_PRIMITIVE);
+                return declare(name, value, SymbolKind::VARIABLE);
             }
 
             bool declareContextualVariable(const std::string& name, const std::any& value){
                 return declare(name, value, SymbolKind::VARIABLE_CONTEXTUAL);
+            }
+
+            bool declareSensorVariable(const std::string& name, const std::any& value){
+                return declare(name, value, SymbolKind::VARIABLE_SENSOR);
             }
 
             bool declareFunctionLogical(const std::string& name, const std::any& value){
@@ -62,11 +66,15 @@ namespace chips {
             }
 
             std::optional<std::any> lookupVariable(const std::string& name) const{
-                return lookup(name, SymbolKind::VARIABLE_PRIMITIVE);
+                return lookup(name, SymbolKind::VARIABLE);
             }
 
             std::optional<std::any> lookupContextualVariable(const std::string& name) const {
                 return lookup(name, SymbolKind::VARIABLE_CONTEXTUAL);
+            }
+
+            std::optional<std::any> lookupSensorVariable(const std::string& name){
+                return lookup(name, SymbolKind::VARIABLE_SENSOR);
             }
 
             std::optional<std::any> lookupFunctionLogical(const std::string& name) const{
@@ -99,7 +107,8 @@ namespace chips {
 
         private:
             enum SymbolKind{
-                VARIABLE_PRIMITIVE,
+                VARIABLE,
+                VARIABLE_SENSOR,
                 VARIABLE_CONTEXTUAL,
                 FUNCTION_LOGICAL,
                 FUNCTION_PHYSICAL,
@@ -109,7 +118,8 @@ namespace chips {
 
             std::string SymbolKindToString(SymbolKind kind) const{
                 switch(kind){
-                    case VARIABLE_PRIMITIVE: return "variable primitive";
+                    case VARIABLE: return "variable";
+                    case VARIABLE_SENSOR: return "variable sensor";
                     case VARIABLE_CONTEXTUAL: return "variable contextual";
                     case FUNCTION_LOGICAL: return "function logical";
                     case FUNCTION_PHYSICAL: return "function physical";

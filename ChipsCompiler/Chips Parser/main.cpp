@@ -56,10 +56,10 @@ void parse(std::istream& input) {
     ChipsToXmiWriter body_writer(body_out);
     ChipsToXmiVisitor visitor(body_writer, body_out);
 
-    // std::any result = builder.visit(tree);
+    std::any result = builder.visit(tree);
 
-    for(auto* stmt : tree->statement()){
-        std::any result = builder.visit(stmt);
+    // for(auto* stmt : tree->statement()){
+        // std::any result = builder.visit(stmt);
         std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
 
         if(rootPtr){
@@ -75,7 +75,7 @@ void parse(std::istream& input) {
         }else{
             std::cout << "no" << std::endl;
         }
-    }
+    // }
 }
 
 // ── Point d'entrée ────────────────────────────────────────────

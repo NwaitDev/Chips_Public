@@ -119,7 +119,9 @@ namespace chips {
      * the with section of a Node (i.e. Physical or Object)
      */
     class node_variable : public variable<chips::expression_env::PRIMITIVE>{
-        
+        public:
+            node_variable(std::string identifier)
+                : variable(identifier){}
     };
 
     /**
@@ -130,9 +132,23 @@ namespace chips {
     template<dataflow_type dft> 
     class contextual_variable : public node_variable 
     {
+        public:
         using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
         node_element_declaration_type* m_declaration;
         void hello(){}
+
+        contextual_variable(std::string identifier)
+            : node_variable(identifier){}
+
+        contextual_variable(
+            std::string identifier, 
+            node_element_declaration_type* decl,
+            std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims)
+            : node_variable(identifier), m_declaration(decl){
+                for(auto d : dims){
+                    m_dimensions.push_back(d);
+                }
+            }
     };
 
     /**
