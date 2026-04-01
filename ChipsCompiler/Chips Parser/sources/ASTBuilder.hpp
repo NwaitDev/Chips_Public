@@ -64,8 +64,14 @@ public:
     template<dataflow_type DT, expression_env ENV, typename Dims>
     std::any tryCastVar(const std::any& var, const Dims& dims);
 
+    template<dataflow_type DT, expression_env ENV, typename Dims>
+    std::any tryCastVarContextual(const std::any& var, const Dims& dims);
+
     template<expression_env ENV, typename Dims>
     std::any tryAllTypes(const std::string& var_name, const std::any& var, const Dims& dims);
+
+    template<expression_env ENV, typename Dims>
+    std::any tryAllTypesContextual(const std::string& var_name, const std::any& var, const Dims& dims);
 
     std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual);
 
@@ -307,8 +313,16 @@ public:
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
 
     template<expression_env expenv>
-    int_rvalue_expression_variant<expenv> make_variant_from_node(
+    int_rvalue_expression_variant<expenv> make_int_rvalue_variant_from_node(
         const std::shared_ptr<rvalue<dataflow_type::INT, expenv>>& node);
+
+    template<expression_env expenv>
+    bool_rvalue_expression_variant<expenv> make_bool_rvalue_variant_from_node(
+        const std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>>& node);
+
+    template<dataflow_type dft, expression_env expenv>
+    rvalue_variant<expenv> make_variant_from_node(
+        const std::shared_ptr<rvalue<dft, expenv>>& node);
 
     std::any visitSuffixes(ChipsParser::SuffixesContext* ctx);
 

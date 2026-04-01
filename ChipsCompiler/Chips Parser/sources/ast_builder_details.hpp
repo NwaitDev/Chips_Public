@@ -41,6 +41,15 @@ namespace ast_builder_detail
      */
     statement_variant try_extract_node_recurring_statement(std::any statement);
 
+    /**
+     * Function that tries all the possible statements that are common to any chips definition environment.
+     * This function tries to cast it as a definition statement.
+     * @param std::any statement, the node returned by antlr4 that is supposedly a node statement
+     * @returns a pointer to the correctly cast statement if it matches one of the possibility,
+     * @throws std::runtime error if no common statement matches the parameter
+     */
+    statement_variant try_extract_recurring_statement(std::any statement);
+
     // ── try_extract ───────────────────────────────────────────────────────────
     // Tente de récupérer shared_ptr<rvalue<DFT,EXPENV>> depuis un std::any.
     // Retourne nullptr si le type ne correspond pas.
@@ -102,6 +111,14 @@ namespace ast_builder_detail
             if(auto* p = std::any_cast<std::shared_ptr<variable_expression<DFT,EXPENV>>>(&a)){
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
+
+            if(auto* p = std::any_cast<std::shared_ptr<function<DFT,EXPENV>>>(&a)){
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            }
+
+            if(auto* p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT,EXPENV>>>(&a)){
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            }
         }
 
         // extractation des opérateurs qui sont de type booléens
@@ -156,6 +173,14 @@ namespace ast_builder_detail
             if(auto* p = std::any_cast<std::shared_ptr<variable_expression<DFT,EXPENV>>>(&a)){
                 return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
             }
+
+            if(auto* p = std::any_cast<std::shared_ptr<function<DFT,EXPENV>>>(&a)){
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            }
+
+            if(auto* p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT,EXPENV>>>(&a)){
+                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            }
         }
 
         // Fallback : le any contient déjà shared_ptr<rvalue<DFT,EXPENV>>
@@ -206,7 +231,8 @@ namespace ast_builder_detail
                         std::string(op_name) + " : erreur de type — "           \
                         "operande gauche et droit incompatibles. "              \
                         "Les deux operandes doivent avoir le meme type. "       \
-                        "Utilisez cast_as pour convertir explicitement.");       \
+                        "Utilisez cast_as pour convertir explicitement. "+      \
+                        type_name(left_any.type())+" "+type_name(right_any.type()));\
                 }                                                                \
                 return Builder<DFT, EXPENV>::build(std::move(l), std::move(r)); \
             }                                                                    \
@@ -223,7 +249,7 @@ namespace ast_builder_detail
 
         throw std::runtime_error(
             std::string(op_name) + " : type non valide pour un operateur numerique "
-            "(BOOL non supporte, seuls INT et FLOAT sont valides).");
+            "(BOOL non supporte, seuls INT et FLOAT sont valides)."+type_name(left_any.type())+" "+type_name(right_any.type()));
     }
 
     template <template <dataflow_type, expression_env> class Builder>
@@ -245,7 +271,8 @@ namespace ast_builder_detail
                     std::string(op_name) + " : erreur de type — "                             \
                                            "operande gauche et droit incompatibles. "         \
                                            "Les deux operandes doivent avoir le meme type. "  \
-                                           "Utilisez cast_as pour convertir explicitement."); \
+                                           "Utilisez cast_as pour convertir explicitement."+  \
+                                           type_name(left_any.type())+" "+type_name(right_any.type()));\
             }                                                                                 \
             std::cout << "builder !!!\n";                                                     \
             return Builder<dataflow_type::BOOL, EXPENV>::build(std::move(l), std::move(r));   \
@@ -294,7 +321,8 @@ template <template <dataflow_type, expression_env> class Builder>
                     std::string(op_name) + " : erreur de type — "                             \
                                            "operande gauche et droit incompatibles. "         \
                                            "Les deux operandes doivent avoir le meme type. "  \
-                                           "Utilisez cast_as pour convertir explicitement."); \
+                                           "Utilisez cast_as pour convertir explicitement."+   \
+                                           type_name(left_any.type())+" "+type_name(right_any.type()));\
             }                                                                                 \
             return Builder<DFT, EXPENV>::build(std::move(l), std::move(r));                   \
         }                                                                                     \

@@ -93,8 +93,11 @@ namespace chips
     template <statement_env stenv>
     class if_section : public ast_node
     {
+        public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_if_statements;
+        if_section(){};
+        inline void add_statement(statement_type stt){m_if_statements.push_back(stt);}
         void hello() {}
     };
 
@@ -107,8 +110,11 @@ namespace chips
     template <statement_env stenv>
     class else_section : public ast_node
     {
+        public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_else_statements;
+        else_section(){}
+        inline void add_statement(statement_type stt){m_else_statements.push_back(stt);}
         void hello() {}
     };
 
@@ -120,6 +126,7 @@ namespace chips
     template <statement_env stenv>
     class if_statement : public statement<stenv, recurring_statement::IF>
     {
+        public:
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         bool_rvalue_expression_variant<expr_env> m_condition;
         if_section<stenv> m_if_section;
@@ -134,7 +141,9 @@ namespace chips
     template <statement_env stenv>
     class if_else_statement : public if_statement<stenv>
     {
+        public:
         else_section<stenv> m_else_section;
+        if_else_statement(){};
         void hello() {}
     };
 

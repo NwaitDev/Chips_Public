@@ -181,7 +181,134 @@ namespace ast_builder_detail
             std::cout << "not a bool assignment statement" << std::endl;
         }
 
-        throw std::runtime_error("failed to extract node recurring statement");
+        throw std::runtime_error("failed to extract node recurring statement "+type_name(statement.type()));
+    }
+
+    statement_variant try_extract_recurring_statement(std::any statement)
+    {
+        std::cout << "BEGINNING TRY EXTRACT RECCURING STATEMENT " << type_name(statement.type()) << std::endl;
+        try
+        {
+            // must try this one before the if statement because
+            // "if else" derives from "if" statement
+            if_else_statement<statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<if_else_statement<statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an if else statement" << std::endl;
+        }
+
+        try
+        {
+            if_statement<statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<if_statement<statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an if statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<statement_env::DEFINITION, dataflow_type::INT> new_ast_stt =
+                std::any_cast<foreach_statement<statement_env::DEFINITION, dataflow_type::INT>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach int statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<statement_env::DEFINITION, dataflow_type::FLOAT> new_ast_stt =
+                std::any_cast<foreach_statement<statement_env::DEFINITION, dataflow_type::FLOAT>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach float statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<statement_env::DEFINITION, dataflow_type::BOOL> new_ast_stt =
+                std::any_cast<foreach_statement<statement_env::DEFINITION, dataflow_type::BOOL>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach bool statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a int declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a float declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a bool declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an int assignement statement" << std::endl;
+        }
+        try
+        {
+            dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a float assignment statement" << std::endl;
+        }
+        try
+        {
+            dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>(statement);
+            return &new_ast_stt;
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a bool assignment statement" << std::endl;
+        }
+
+        throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type()));
     }
 
 

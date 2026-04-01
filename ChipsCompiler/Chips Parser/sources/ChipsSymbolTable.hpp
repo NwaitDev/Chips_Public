@@ -106,6 +106,8 @@ namespace chips {
             }
 
         private:
+            
+
             enum SymbolKind{
                 VARIABLE,
                 VARIABLE_SENSOR,
@@ -145,18 +147,30 @@ namespace chips {
 
             SymbolTable() = default;
 
+            void printScope(std::unordered_map<std::string, Symbol> scope){
+                std::cout << "SCOPE:\n";
+                for(const auto& [k, v] : scope){
+                    std::cout << "  " << k << "(" << SymbolKindToString(v.kind) << " " << ast_builder_detail::type_name(v.value.type()) <<")\n";
+                }
+            }
+
             bool declare(const std::string& name, const std::any& value, const SymbolKind kind){
                 if(scopes.empty()) enterScope();
+
+                
                 
                 auto& current = scopes.back();
+
+                // dump();
+                // printScope(current);
 
                 Symbol sym;
                 sym.value = value;
                 sym.name = name;
                 sym.kind = kind;
 
-                if(lookup(name, kind).has_value()){
-                    return false;
+                for(const auto& [k, v] : current){
+                    if(k == name && v.kind == kind) return false;
                 }
 
                 current[name] = sym;

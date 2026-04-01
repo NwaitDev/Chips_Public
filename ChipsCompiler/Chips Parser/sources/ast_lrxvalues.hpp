@@ -97,6 +97,12 @@ namespace chips
         std::vector<rvalue_variant<expenv>> m_parameters;
 
     public:
+        function(std::string name)
+            : m_name(name){}
+
+        function(std::string name, std::vector<rvalue_variant<expenv>> param)
+            : m_name(name), m_parameters(param){}
+
         inline void accept(visitor &v) { v.visit(*this); }
         inline void hello() {};
     };

@@ -51,6 +51,8 @@ namespace chips
     {
         public:
         std::vector<primitive_statement_variant> m_statements;
+        init_section(){};
+        inline void add_statement(primitive_statement_variant stt){m_statements.push_back(stt);}
         void hello();
     };
 
@@ -64,6 +66,8 @@ namespace chips
     {
         public:
         std::vector<primitive_statement_variant> m_statements;
+        then_section(){};
+        inline void add_statement(primitive_statement_variant stt){m_statements.push_back(stt);}
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 

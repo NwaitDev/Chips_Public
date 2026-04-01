@@ -24,7 +24,12 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 #define APPEND_CASTED_DEF(POTENTIAL)                                                         \
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                  \
     {                                                                                        \
-        prgm.get_preamble().add_definition(std::any_cast<definition_variant>(visit(stuff))); \
+        std::any def = visit(stuff);                                                         \
+        if(auto* physical = std::any_cast<physical_definition>(&def)){                       \
+            prgm.get_preamble().add_definition(physical);                                    \
+        }else{                                                                               \
+            throw std::runtime_error(ast_builder_detail::type_name(def.type())+" not implemented");\
+        }                                                                                    \
         continue;                                                                            \
     }
 
@@ -192,7 +197,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::FunctionOutputContext *stuff = dynamic_cast<ChipsParser::FunctionOutputContext *>(output); stuff != nullptr)
         {
             std::string oname = stuff->named_output()->IDENTIFIER()->getText();
+            std::cout << "before any_cast of p_output" << std::endl;
             rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->named_output()->expr(0)));
+            std::cout << "after any_cast of p_output" << std::endl;
             try
             {
                 function_output<dataflow_kind::LOGICAL, dataflow_type::INT>
@@ -231,7 +238,27 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::ActuatorOutputContext *stuff = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output); stuff != nullptr)
         {
             std::string oname = stuff->IDENTIFIER()->getText();
-            rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->expr(0)));
+            std::cout << "before any_cast p_output_actuator" << std::endl;
+
+            rvalue_variant<expression_env::PRIMITIVE> rval;
+
+            std::any exp = visit(stuff->expr(0));
+
+            if(auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp)){
+                rval = make_variant_from_node(expr);
+            }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp)){
+                rval = make_variant_from_node(expr);
+            }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp)){
+                rval = make_variant_from_node(expr);
+            }
+
+            /**
+             * PROBLEME
+             * IL FAUT EXTRAIRE LA RVALUE -> 3 if 
+             * ET FAIRE UN MAKE VARIANT FROM NODE
+             */
+            // rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->expr(0)))
+            std::cout << "after any_cast p_output_actuator" << std::endl;
             try
             {
                 function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>
@@ -269,8 +296,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         }
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
-
-    return chips::physical_definition(identifier, params, init, then, outputs, with, sensors, actuators);
+    std::cout << "return physical" << std::endl;
+    chips::physical_definition res(identifier, params, init, then, outputs, with, sensors, actuators);
+    return res;
 }
 
 std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
@@ -328,6 +356,7 @@ std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
         try
         {
             with.add_statement(std::get<node_statement_variant>(ast_builder_detail::try_extract_node_recurring_statement(followup)));
+            continue;
         }
         catch (const std::runtime_error &e)
         {
@@ -356,7 +385,6 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
     if(!variable.has_value()){
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
-    std::cout << "before cast vector" << std::endl;
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
 
     if(auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign)){
@@ -386,7 +414,7 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
 
 
 std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign){
-    std::cout << "handle_statement_declaration_contextual" << std::endl;
+    std::cout << "handle_statement_declaration_contextual " << dft_to_string(type) << std::endl;
 
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
     switch(type){
@@ -476,14 +504,37 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
     init_section init;
     for(ChipsParser::StatementContext* stt : ctx->statement()){
         std::any followup = visit(stt);
-    }
 
-    throw std::runtime_error("Unimplemented visit method Init_sectionContext");
+        try{
+            init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+            continue;
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknwon kind of statement in init section");
+    }
+    return init;
 }
 
 std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Then_sectionContext");
+    std::cout << "visiting Then" << std::endl;
+    then_section then;
+
+    for(ChipsParser::StatementContext* stt : ctx->statement()){
+        std::cout << "statement of then section" << std::endl;
+        std::any followup = visit(stt);
+
+        try{
+            then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+            continue;
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in then section");
+    }
+    std::cout << "end of statement of then section" << std::endl;
+    return then;
 }
 
 template<dataflow_type DT, expression_env ENV, typename Dims>
@@ -502,6 +553,22 @@ std::any ASTBuilder::tryCastVar(const std::any& var, const Dims& dims) {
     return {};
 }
 
+template<dataflow_type DT, expression_env ENV, typename Dims>
+std::any ASTBuilder::tryCastVarContextual(const std::any& var, const Dims& dims) {
+
+    if (auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var)) {
+        if (*sptr)
+            return std::make_shared<variable_contextual_expression<DT, ENV>>(sptr->get(), dims);
+    }
+
+    if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var)) {
+        auto non_const_ptr = const_cast<contextual_variable<DT>*>(raw_ptr);
+        return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
+    }
+
+    return {};
+}
+
 template<expression_env ENV, typename Dims>
 std::any ASTBuilder::tryAllTypes(const std::string& var_name, const std::any& var, const Dims& dims){
     if (auto r = tryCastVar<dataflow_type::INT,   ENV>(var, dims); r.has_value()) return r;
@@ -509,42 +576,68 @@ std::any ASTBuilder::tryAllTypes(const std::string& var_name, const std::any& va
     if (auto r = tryCastVar<dataflow_type::BOOL,  ENV>(var, dims); r.has_value()) return r;
 
     throw std::runtime_error(
-        "visitVar: unknown dataflow type for variable '" + var_name + "'"
+        "visitVar: unknown dataflow type for variable '" + var_name + "' "+ast_builder_detail::type_name(var.type())
+    );
+}
+
+template<expression_env ENV, typename Dims>
+std::any ASTBuilder::tryAllTypesContextual(const std::string& var_name, const std::any& var, const Dims& dims){
+    if (auto r = tryCastVarContextual<dataflow_type::INT,   ENV>(var, dims); r.has_value()) return r;
+    if (auto r = tryCastVarContextual<dataflow_type::FLOAT, ENV>(var, dims); r.has_value()) return r;
+    if (auto r = tryCastVarContextual<dataflow_type::BOOL,  ENV>(var, dims); r.has_value()) return r;
+
+    throw std::runtime_error(
+        "visitVar: unknown dataflow type for contextual variable '" + var_name + "' "+ast_builder_detail::type_name(var.type())
     );
 }
 
 
 std::any ASTBuilder::visitVar(ChipsParser::VarContext *ctx)
 {
-    std::cout << "visitVar()" << std::endl;
+    
     std::string var_name = ctx->IDENTIFIER()->getText();
+    std::cout << "visitVar() " << var_name  << std::endl;
     std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
+    if(!variable.has_value()){
+        variable = SymbolTable::getInstance().lookupSensorVariable(var_name);
+    }
     std::any suffixes = visit(ctx->suffixes());
 
     if(!variable.has_value()){
         throw std::runtime_error("'" + var_name + "' was never declarated before");
     }    
 
+    std::cout << "Type var: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
+
     switch(current_env){
         case expression_env::PRIMITIVE: {
             auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
             return tryAllTypes<expression_env::PRIMITIVE>(var_name, variable.value(), dims);
         }
-        // case expression_env::COLLECTIVE: {
-        //     auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>*>>(suffixes);
-        //     return tryAllTypes<expression_env::COLLECTIVE>(var_name, variable.value(), dims);
-        // }
-        // case expression_env::SYSTEM: {
-        //     auto dims = std::any_cast<std::vector<rvalue<dataflow_type::INT, expression_env::SYSTEM>*>>(suffixes);
-        //     return tryAllTypes<expression_env::SYSTEM>(var_name, variable.value(), dims);
-        // }
     }
     throw std::runtime_error("visitVar: unsupported environment");
 }
 
 std::any ASTBuilder::visitVarContext(ChipsParser::VarContextContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method VarContextContext");
+    std::cout << "visit var contextual" << std::endl;
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    std::optional<std::any> variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
+    std::any suffixes = visit(ctx->suffixes());
+
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    switch(current_env){
+        case expression_env::PRIMITIVE:{
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+            return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        }
+    }
+
+    throw std::runtime_error("visitVarContextual: unsopprted environment "+expenv_to_string(current_env));
 }
 
 std::any ASTBuilder::visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx)
@@ -749,7 +842,26 @@ std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext 
 
 std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method If_else_statementContext");
+    std::cout << "visit if else statement" << std::endl;
+
+    if_else_statement<statement_env::DEFINITION> if_else;
+    visit(ctx->if_statement());
+
+    for(ChipsParser::StatementContext* stt : ctx->statement()){
+        std::any followup = visit(stt);
+
+        try{
+            if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+            continue;
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in else section");
+        
+
+    }
+    return if_else;
+    // throw std::runtime_error("Unimplemented visit method If_else_statementContext");
 }
 
 std::any ASTBuilder::visitS_if_else_statement(ChipsParser::S_if_else_statementContext *ctx)
@@ -764,7 +876,34 @@ std::any ASTBuilder::visitC_if_else_statement(ChipsParser::C_if_else_statementCo
 
 std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method If_statementContext");
+    std::cout << "visit if statement" << std::endl;
+    if_statement<statement_env::DEFINITION> if_stt;
+
+    std::any val = visit(ctx->expr());
+    auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(val);
+    if (!node)
+    {
+        throw std::runtime_error(
+            "condition : l'expression doit être de type BOOL "
+            "(env PRIMITIVE).");
+    }
+    node_arena.push_back(node);
+    if_stt.m_condition = make_bool_rvalue_variant_from_node(node);
+
+    std::cout << "statements if section" << std::endl;
+
+    for(ChipsParser::StatementContext* stt : ctx->statement()){
+        std::any followup = visit(stt);
+        
+        try{
+            if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+            continue;
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in if section");
+    }
+    return if_stt;
 }
 
 std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx)
@@ -877,12 +1016,16 @@ std::any ASTBuilder::visitStatementLoop(ChipsParser::StatementLoopContext *ctx)
 
 std::any ASTBuilder::visitStatementIfElse(ChipsParser::StatementIfElseContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method StatementIfElseContext");
+    std::cout << "visit statement if else" << std::endl;
+    return visit(ctx->if_else_statement());
+    // throw std::runtime_error("Unimplemented visit method StatementIfElseContext");
 }
 
 std::any ASTBuilder::visitStatementIf(ChipsParser::StatementIfContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method StatementIfContext");
+    std::cout << "visit statement if" << std::endl;
+    return visit(ctx->if_statement());
+    // throw std::runtime_error("Unimplemented visit method StatementIfContext");
 }
 
 std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContext *ctx)
@@ -1068,14 +1211,34 @@ std::any ASTBuilder::visitFunction(ChipsParser::FunctionContext *ctx)
 {
     std::string fname = ctx->IDENTIFIER()->getText();
     std::cout << "function_visited, symbol: " << fname << " ";
+
+    if(fname.compare("random") == 0){
+        return std::make_shared<function<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(fname);
+    }
+
+    if(fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0){
+        std::vector<rvalue_variant<expression_env::PRIMITIVE>> parameters;
+        for(auto expr : ctx->expr()){
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT "
+                    "(env PRIMITIVE).");
+            }
+            node_arena.push_back(node);
+            parameters.push_back(make_variant_from_node(node));
+            return std::make_shared<function<dataflow_type::INT, expression_env::PRIMITIVE>>(fname, parameters);
+        }
+    }
+
     if (fname.compare("is_fresh") == 0)
     {
-        return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
+        // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
+        throw std::runtime_error("Regnize the function "+fname+" but not implemented yet");
+        // return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
     }
-    if (fname.compare("range") == 0)
-        return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(0);
-    if (fname.compare("zeros") == 0)
-        return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(0);
     throw std::runtime_error("could not recognize the function" + fname);
 }
 
@@ -1187,6 +1350,7 @@ std::any ASTBuilder::visitMOD(ChipsParser::MODContext *ctx)
 
 std::any ASTBuilder::visitNOT(ChipsParser::NOTContext *ctx)
 {
+    std::cout << "visit not" << std::endl;
     return ast_builder_detail::dispatch_boolean_unary<ast_builder_detail::NOTBuilder>(
         visit(ctx->expr2()), "NOT");
 }
@@ -1323,7 +1487,7 @@ std::any ASTBuilder::visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/)
 }
 
 template<expression_env expenv>
-int_rvalue_expression_variant<expenv> ASTBuilder::make_variant_from_node(
+int_rvalue_expression_variant<expenv> ASTBuilder::make_int_rvalue_variant_from_node(
         const std::shared_ptr<rvalue<dataflow_type::INT, expenv>>& node)
 {
     auto ptr = node.get();
@@ -1339,7 +1503,67 @@ int_rvalue_expression_variant<expenv> ASTBuilder::make_variant_from_node(
     if (auto p = dynamic_cast<uminus_operator<dataflow_type::INT, expenv>*>(ptr)) return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::INT, expenv>*>(ptr))    return p;
 
-    throw std::runtime_error("Unsupported type in make_variant_from_node");
+    throw std::runtime_error("Unsupported type in make_int_rvalue_variant_from_node");
+}
+
+template<expression_env expenv>
+bool_rvalue_expression_variant<expenv> ASTBuilder::make_bool_rvalue_variant_from_node(
+    const std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>>& node){
+    auto ptr = node.get();
+
+    if(auto p = dynamic_cast<gt<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<gt<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<geq<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<geq<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<leq<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<leq<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if(auto p = dynamic_cast<eq<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<eq<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<eq<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<neq<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<neq<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<neq<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<and_operator<expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<or_operator<expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<not_operator<expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<direct<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<variable_expression<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+
+    throw std::runtime_error("Unsupported type in make_bool_rvalue_variant_from_node");
+}
+
+template<dataflow_type dft, expression_env expenv>
+rvalue_variant<expenv> ASTBuilder::make_variant_from_node(
+        const std::shared_ptr<rvalue<dft, expenv>>& node)
+{
+    auto ptr = node.get();
+
+    if (auto p = dynamic_cast<function<dataflow_type::INT, expenv>*>(ptr))   return p;
+    if (auto p = dynamic_cast<function<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<function<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<direct<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<direct<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<direct<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<plus<dataflow_type::INT, expenv>*>(ptr))   return p;
+    if (auto p = dynamic_cast<plus<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<minus<dataflow_type::INT, expenv>*>(ptr))  return p;
+    if (auto p = dynamic_cast<minus<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<mult<dataflow_type::INT, expenv>*>(ptr))   return p;
+    if (auto p = dynamic_cast<mult<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<chips::div<dataflow_type::INT, expenv>*>(ptr))    return p;
+    if (auto p = dynamic_cast<chips::div<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<mod<expenv>*>(ptr))    return p;
+    if (auto p = dynamic_cast<cast_as<dataflow_type::INT, expenv>*>(ptr))   return p;
+    if (auto p = dynamic_cast<cast_as<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<uminus_operator<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<uminus_operator<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<variable_expression<dataflow_type::INT, expenv>*>(ptr))    return p;
+    if (auto p = dynamic_cast<variable_expression<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<variable_expression<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+
+    throw std::runtime_error("Unsupported type in make_int_rvalue_variant_from_node");
 }
 
 std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
@@ -1361,7 +1585,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
                     "(env PRIMITIVE).");
             }
             node_arena.push_back(node);
-            dims.push_back(make_variant_from_node(node));
+            dims.push_back(make_int_rvalue_variant_from_node(node));
         }
         return dims;
     }
@@ -1380,7 +1604,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
                     "suffixes : l'expression d'indice doit être de type INT "
                     "(env COLLECTIVE).");
             }
-            dims.push_back(make_variant_from_node(node));
+            dims.push_back(make_int_rvalue_variant_from_node(node));
         }
         return dims;
     }
@@ -1399,7 +1623,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
                     "suffixes : l'expression d'indice doit être de type INT "
                     "(env SYSTEM).");
             }
-            dims.push_back(make_variant_from_node(node));
+            dims.push_back(make_int_rvalue_variant_from_node(node));
         }
         return dims;
     }
@@ -1449,7 +1673,7 @@ std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any s
         dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
         if (!SymbolTable::getInstance().declareVariable(identifier, var))
         {
-            throw std::runtime_error("Redeclare a variable already declared 2");
+            throw std::runtime_error("Redeclare a variable already declared 2 "+identifier);
         }
         return assignment;
     }

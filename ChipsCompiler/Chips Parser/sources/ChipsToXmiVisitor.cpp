@@ -7,15 +7,6 @@
 
 namespace chips {
 
-    std::string expenv_to_string(expression_env env){
-        switch(env){
-            case expression_env::PRIMITIVE: return "primitive";
-            case expression_env::COLLECTIVE: return "collective";
-            case expression_env::SYSTEM: return "system";
-        }
-        return "unknown";
-    }
-
     bool is_system_context(expression_env env){
         return env == expression_env::SYSTEM;
     } 
