@@ -106,13 +106,39 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
     std::cout << "visit logical definition" << std::endl;
     ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
     std::string identifier = lfd->IDENTIFIER()->getText();
+
+    // we enter in a new scope
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
     std::vector<ChipsParser::Df_parameter_declContext *> old_ast_params = lfd->df_parameter_decl();
     std::vector<function_parameter_variant> params;
     for (ChipsParser::Df_parameter_declContext *stuff : old_ast_params)
     {
-        params.push_back(std::any_cast<function_parameter_variant>(visit(stuff)));
-    }
+        std::cout << "visit function parameter logical" << std::endl;
 
+        dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff->df_type())); 
+        std::string identifier = stuff->IDENTIFIER()->getText();
+        
+    #define TRY_ADD_PARAM(DFK,DFT) \
+        if(dft == DFT){ \
+            dataflow_declaration<DFT, statement_env::DEFINITION> declaration(identifier); \
+            declaration.get_variable().set_declaration(&declaration); \
+            function_parameter<DFK, DFT> new_ast_param(identifier, declaration); \
+            if(!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())){ \
+                throw std::runtime_error("'"+identifier+"' was already declarated before"); \
+            } \
+            params.push_back(&new_ast_param); \
+            continue; \
+        }
+
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::INT)
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::FLOAT)
+            TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::BOOL)
+    #undef TRY_ADD_PARAM
+        // params.push_back(std::any_cast<function_parameter_variant>(visit(stuff)));
+    }
+    std::cout << "end push param" << std::endl;
     init_section init = std::any_cast<init_section>(visitInit_section(lfd->init_section()));
     then_section then = std::any_cast<then_section>(visitThen_section(lfd->then_section()));
 
@@ -151,8 +177,8 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname); \
         declaration.get_variable().set_declaration(&declaration);                \
         function_parameter<DFK, DFT> new_ast_param(pname, declaration);          \
-        sensors.push_back(&new_ast_param);                                       \
         SymbolTable::getInstance().declareSensorVariable(pname, declaration.get_variable()); \
+        sensors.push_back(&new_ast_param);                                       \
         continue;                                                                \
     }
 
@@ -197,103 +223,55 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
 
         if (ChipsParser::FunctionOutputContext *stuff = dynamic_cast<ChipsParser::FunctionOutputContext *>(output); stuff != nullptr)
         {
-            std::string oname = stuff->named_output()->IDENTIFIER()->getText();
-            std::cout << "before any_cast of p_output" << std::endl;
-            rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->named_output()->expr(0)));
-            std::cout << "after any_cast of p_output" << std::endl;
-            try
-            {
-                function_output<dataflow_kind::LOGICAL, dataflow_type::INT>
-                    final_output(oname, std::get<rvalue<dataflow_type::INT, expression_env::PRIMITIVE> *>(rval));
-                outputs.push_back(&final_output);
-                continue;
+            std::string identifier = stuff->named_output()->IDENTIFIER()->getText();
+            std::cout << "output " << identifier << std::endl;
+            std::any exp = visit(stuff->named_output()->expr(0));
+
+            if(auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp)){
+                auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(
+                    make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
+                node_arena.push_back(out);
+                outputs.push_back(out.get());
+            }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp)){
+                auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(
+                    make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
+                node_arena.push_back(out);
+                outputs.push_back(out.get());
+            }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp)){
+                auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(
+                    make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
+                node_arena.push_back(out);
+                outputs.push_back(out.get());
+            }else{
+                throw std::runtime_error("Unknown type of expr in make_function_output "+ast_builder_detail::type_name(exp.type()));
             }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not an int rvalue";
-            }
-            try
-            {
-                function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>
-                    final_output(oname, std::get<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE> *>(rval));
-                outputs.push_back(&final_output);
-                continue;
-            }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not a float rvalue";
-            }
-            try
-            {
-                function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>
-                    final_output(oname, std::get<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE> *>(rval));
-                outputs.push_back(&final_output);
-                continue;
-            }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not a bool rvalue";
-            }
-            std::cerr << "Unknown output type in the PhysicalDefinitionContext" << std::endl;
+            continue;
         }
         if (ChipsParser::ActuatorOutputContext *stuff = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output); stuff != nullptr)
-        {
-            std::string oname = stuff->IDENTIFIER()->getText();
-            std::cout << "before any_cast p_output_actuator" << std::endl;
-
-            rvalue_variant<expression_env::PRIMITIVE> rval;
-
+        {   
+            std::string identifier = stuff->IDENTIFIER()->getText();
+            std::cout << "output " << identifier << std::endl;
             std::any exp = visit(stuff->expr(0));
 
             if(auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp)){
-                rval = make_variant_from_node(expr);
+                auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>(
+                    make_function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>(identifier, expr));
+                node_arena.push_back(out);
+                actuators.push_back(out.get());
             }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp)){
-                rval = make_variant_from_node(expr);
+                auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(
+                    make_function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(identifier, expr));
+                node_arena.push_back(out);
+                actuators.push_back(out.get());
             }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp)){
-                rval = make_variant_from_node(expr);
+                auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(
+                    make_function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(identifier, expr));
+                node_arena.push_back(out);
+                actuators.push_back(out.get());
+            }else{
+                throw std::runtime_error("Unknown type of expr in make_function_output "+ast_builder_detail::type_name(exp.type()));
             }
-
-            /**
-             * PROBLEME
-             * IL FAUT EXTRAIRE LA RVALUE -> 3 if 
-             * ET FAIRE UN MAKE VARIANT FROM NODE
-             */
-            // rvalue_variant<expression_env::PRIMITIVE> rval = std::any_cast<rvalue_variant<expression_env::PRIMITIVE>>(visit(stuff->expr(0)))
-            std::cout << "after any_cast p_output_actuator" << std::endl;
-            try
-            {
-                function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>
-                    final_output(oname, std::get<rvalue<dataflow_type::INT, expression_env::PRIMITIVE> *>(rval));
-                actuators.push_back(&final_output);
-                continue;
-            }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not an int rvalue";
-            }
-            try
-            {
-                function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>
-                    final_output(oname, std::get<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE> *>(rval));
-                actuators.push_back(&final_output);
-                continue;
-            }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not a float rvalue";
-            }
-            try
-            {
-                function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>
-                    final_output(oname, std::get<rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE> *>(rval));
-                actuators.push_back(&final_output);
-                continue;
-            }
-            catch (const std::bad_variant_access &e)
-            {
-                std::cout << "not a bool rvalue";
-            }
-            std::cerr << "Unknown output type in the PhysicalDefinitionContext" << std::endl;
+            continue;
         }
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
@@ -1181,6 +1159,27 @@ std::any ASTBuilder::visitFunctionOutput(ChipsParser::FunctionOutputContext *ctx
 
 std::any ASTBuilder::visitDf_parameter_decl(ChipsParser::Df_parameter_declContext *ctx)
 {
+    std::cout << "visit function parameter logical" << std::endl;
+
+    dataflow_type dft = std::any_cast<dataflow_type>(visit(ctx->df_type())); 
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    
+#define TRY_ADD_PARAM(DFK,DFT) \
+    if(dft == DFT){ \
+        dataflow_declaration<DFT, statement_env::DEFINITION> declaration(identifier); \
+        declaration.get_variable().set_declaration(&declaration); \
+        function_parameter<DFK, DFT> new_ast_param(identifier, declaration); \
+        if(!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())){ \
+            throw std::runtime_error("'"+identifier+"' was already declarated before"); \
+        } \
+        return new_ast_param; \
+    }
+
+        TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::INT)
+        TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::FLOAT)
+        TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::BOOL)
+#undef TRY_ADD_PARAM
+
     throw std::runtime_error("Unimplemented visit method Df_parameter_declContext");
 }
 
@@ -1626,8 +1625,25 @@ rvalue_variant<expenv> ASTBuilder::make_variant_from_node(
     if (auto p = dynamic_cast<variable_expression<dataflow_type::INT, expenv>*>(ptr))    return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<gt<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<gt<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<geq<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<geq<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<leq<expenv, dataflow_type::INT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<leq<expenv, dataflow_type::FLOAT>*>(ptr)) return p;
+    if (auto p = dynamic_cast<eq<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<eq<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<eq<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<neq<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<neq<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<neq<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<and_operator<expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<or_operator<expenv>*>(ptr)) return p;
+    if (auto p = dynamic_cast<not_operator<expenv>*>(ptr)) return p;
 
-    throw std::runtime_error("Unsupported type in make_int_rvalue_variant_from_node");
+    throw std::runtime_error("Unsupported type in make_variant_from_node");
 }
 
 std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)

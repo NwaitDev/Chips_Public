@@ -362,6 +362,24 @@ public:
     std::any visitPassExpr1(ChipsParser::PassExpr1Context *ctx);
 
     std::any visitPassExpr2(ChipsParser::PassExpr2Context *ctx);
+
+
+
+
+    /**
+     * FUNCTION HELPER TO MAKE CLASSES
+     */
+
+
+
+    template<dataflow_kind dfk, dataflow_type dft>
+    function_output<dfk, dft> make_function_output(const std::string& identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr){
+        rvalue_variant<expression_env::PRIMITIVE> rval = make_variant_from_node(expr);
+
+        function_output<dfk, dft>
+            final_output(identifier, std::get<rvalue<dft, expression_env::PRIMITIVE>*>(rval));
+        return final_output;
+    }
 };
 
 #endif
