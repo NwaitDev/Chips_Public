@@ -128,9 +128,10 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
 {
-    std::cout << "visit physical definition" << std::endl;
+    
     ChipsParser::P_function_defContext *pfd = ctx->p_function_def();
     std::string identifier = pfd->IDENTIFIER()->getText();
+    std::cout << "visit physical definition " << identifier << std::endl;
     std::vector<ChipsParser::Pdf_parameter_declContext *> all_params = pfd->pdf_parameter_decl();
     std::vector<function_parameter_variant> params;
     std::vector<physical_parameter_variant> sensors;
@@ -822,12 +823,54 @@ std::any ASTBuilder::visitBlock(ChipsParser::BlockContext *ctx)
 
 std::any ASTBuilder::visitLoop_in(ChipsParser::Loop_inContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Loop_inContext");
+    std::cout << "visit loop in" << std::endl;
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    if(!ctx->expr().empty()) return make_function(identifier, ctx->expr());
+    throw std::runtime_error("Not implement for variable yet in loop_in context");
 }
 
 std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Loop_statementContext");
+    std::cout << "visit loop statement" << std::endl;
+
+    // TODO bien faire le Scope avec SymbolTable
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::any loop_in = visit(ctx->loop_in());
+
+    dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::PRIMITIVE>(loop_in);
+    std::cout << dft_to_string(type) << std::endl;
+
+    auto iterator = handle_statement_declaration(type, 
+                                                 std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), 
+                                                 identifier, 
+                                                 std::any{}, 
+                                                 false);
+
+    switch(type){
+        case dataflow_type::INT:{
+            auto iterable = make_primitive_iterable_variant_from_node(
+                            ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(loop_in));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(iterator);
+            foreach_statement<statement_env::DEFINITION, dataflow_type::INT> foreach(it, iterable);
+            return make_statement_foreach(foreach, ctx->statement());
+        }
+        case dataflow_type::FLOAT:{
+            break;
+        }
+        case dataflow_type::BOOL:{
+            break;
+        }
+        throw std::runtime_error("Unknown kind of type for foreach statement");
+    }
+
+    // for(ChipsParser::StatementContext* stt : ctx->statement()){
+    //     std::cout << "TODO statement loop" << std::endl;
+    // }
+
+
+    throw std::runtime_error("Error in method Loop_statementContext");
 }
 
 std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx)
@@ -845,6 +888,9 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
     std::cout << "visit if else statement" << std::endl;
 
     if_else_statement<statement_env::DEFINITION> if_else;
+
+    //TODO: regarder les scopes avec SymbolTable
+
     visit(ctx->if_statement());
 
     for(ChipsParser::StatementContext* stt : ctx->statement()){
@@ -1011,7 +1057,7 @@ std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementCo
 
 std::any ASTBuilder::visitStatementLoop(ChipsParser::StatementLoopContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method StatementLoopContext");
+    return visit(ctx->loop_statement());
 }
 
 std::any ASTBuilder::visitStatementIfElse(ChipsParser::StatementIfElseContext *ctx)
@@ -1209,37 +1255,7 @@ std::any ASTBuilder::visitCdf_full_declaration(ChipsParser::Cdf_full_declaration
 
 std::any ASTBuilder::visitFunction(ChipsParser::FunctionContext *ctx)
 {
-    std::string fname = ctx->IDENTIFIER()->getText();
-    std::cout << "function_visited, symbol: " << fname << " ";
-
-    if(fname.compare("random") == 0){
-        return std::make_shared<function<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(fname);
-    }
-
-    if(fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0){
-        std::vector<rvalue_variant<expression_env::PRIMITIVE>> parameters;
-        for(auto expr : ctx->expr()){
-            std::any val = visit(expr);
-            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
-            if (!node)
-            {
-                throw std::runtime_error(
-                    "suffixes : l'expression d'indice doit être de type INT "
-                    "(env PRIMITIVE).");
-            }
-            node_arena.push_back(node);
-            parameters.push_back(make_variant_from_node(node));
-            return std::make_shared<function<dataflow_type::INT, expression_env::PRIMITIVE>>(fname, parameters);
-        }
-    }
-
-    if (fname.compare("is_fresh") == 0)
-    {
-        // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
-        throw std::runtime_error("Regnize the function "+fname+" but not implemented yet");
-        // return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
-    }
-    throw std::runtime_error("could not recognize the function" + fname);
+    return make_function(ctx->IDENTIFIER()->getText(), ctx->expr());
 }
 
 std::any ASTBuilder::visitLT(ChipsParser::LTContext *ctx)
@@ -1484,6 +1500,54 @@ std::any ASTBuilder::visitFloatType(ChipsParser::FloatTypeContext * /*ctx*/)
 std::any ASTBuilder::visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/)
 {
     return dataflow_type::BOOL;
+}
+
+std::any ASTBuilder::make_function(const std::string& fname, std::vector<ChipsParser::ExprContext *> exprs){
+    std::cout << "make function symbol: " << fname << std::endl;
+
+    if(fname.compare("random") == 0){
+        return std::make_shared<function<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(fname);
+    }
+
+    if(fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0){
+        std::vector<rvalue_variant<expression_env::PRIMITIVE>> parameters;
+        for(auto expr : exprs){
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT "
+                    "(env PRIMITIVE).");
+            }
+            node_arena.push_back(node);
+            parameters.push_back(make_variant_from_node(node));
+            return std::make_shared<function<dataflow_type::INT, expression_env::PRIMITIVE>>(fname, parameters);
+        }
+    }
+
+    if (fname.compare("is_fresh") == 0)
+    {
+        // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
+        throw std::runtime_error("Regnize the function "+fname+" but not implemented yet");
+        // return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
+    }
+    throw std::runtime_error("could not recognize the function" + fname);
+}
+
+template<dataflow_type dft, expression_env expenv>
+primitive_iterable_variant<expenv> ASTBuilder::make_primitive_iterable_variant_from_node(
+        const std::shared_ptr<rvalue<dft,expenv>>& node){
+
+    auto ptr = node.get();
+
+    if(auto p = dynamic_cast<function<dataflow_type::INT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<function<dataflow_type::FLOAT, expenv>*>(ptr)) return p;
+    if(auto p = dynamic_cast<function<dataflow_type::BOOL, expenv>*>(ptr)) return p;
+    rvalue_variant<expenv> rval = make_variant_from_node(node);
+    return &rval;
+
+    throw std::runtime_error("Unsopported type in make_primitive_iterable_variant_from_node");
 }
 
 template<expression_env expenv>

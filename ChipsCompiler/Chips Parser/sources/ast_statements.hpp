@@ -157,11 +157,21 @@ namespace chips
     template <statement_env stenv, dataflow_type dft>
     class foreach_statement : public statement<stenv, recurring_statement::FOREACH>
     {
+        public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
         dataflow_declaration<dft, stenv> m_iterator;
         primitive_iterable_variant<expenv> m_iterable_expr;
         std::vector<statement_type> m_statements;
+
+        foreach_statement(){}
+        foreach_statement(
+            dataflow_declaration<dft, stenv> iterator, 
+            primitive_iterable_variant<expenv> iterable_expr)
+            : m_iterator(iterator), m_iterable_expr(iterable_expr){}
+
+        inline void add_statement(statement_type stt){ m_statements.push_back(stt); }
+
         void hello() {}
     };
 

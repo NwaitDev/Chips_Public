@@ -175,6 +175,23 @@ public:
 
     std::any visitLoop_in(ChipsParser::Loop_inContext *ctx);
 
+    template<dataflow_type dft, statement_env stenv>
+    std::any make_statement_foreach(foreach_statement<stenv,dft>& node, std::vector<ChipsParser::StatementContext *> statement){
+        std::cout << "make statement of foreach" << std::endl;
+        for(ChipsParser::StatementContext* stt : statement){
+            std::any followup = visit(stt);
+
+            try{
+                node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }catch(const std::runtime_error& e){    
+                std::cout << e.what() << std::endl;
+            }
+
+        }
+        return node;
+    }
+
     std::any visitLoop_statement(ChipsParser::Loop_statementContext *ctx);
 
     std::any visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx);
@@ -311,6 +328,12 @@ public:
     std::any visitFloatType(ChipsParser::FloatTypeContext * /*ctx*/);
 
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
+
+    std::any make_function(const std::string& fname, std::vector<ChipsParser::ExprContext *> expr);
+
+    template<dataflow_type dft, expression_env expenv>
+    primitive_iterable_variant<expenv> make_primitive_iterable_variant_from_node(
+        const std::shared_ptr<rvalue<dft, expenv>>& node);
 
     template<expression_env expenv>
     int_rvalue_expression_variant<expenv> make_int_rvalue_variant_from_node(

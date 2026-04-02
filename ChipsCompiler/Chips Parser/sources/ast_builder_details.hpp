@@ -190,6 +190,20 @@ namespace ast_builder_detail
         return nullptr;
     }
 
+    template <expression_env EXPENV>
+    dataflow_type get_dataflow_type(const std::any &a)
+    {
+        if(ast_builder_detail::try_extract<dataflow_type::INT, EXPENV>(a) != nullptr)
+            return dataflow_type::INT;            
+        if(ast_builder_detail::try_extract<dataflow_type::FLOAT, EXPENV>(a) != nullptr)
+            return dataflow_type::FLOAT;
+        if(ast_builder_detail::try_extract<dataflow_type::BOOL, EXPENV>(a) != nullptr)
+            return dataflow_type::BOOL;
+
+        throw std::runtime_error(
+            "Error get dataflow type");
+    }
+
     // ── extract_as_node ───────────────────────────────────────────────────────
     // Helper global : extrait un shared_ptr<ast_node> depuis n'importe quel
     // std::any retourné par un visiteur, sans connaître le type template.

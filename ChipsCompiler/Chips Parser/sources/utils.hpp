@@ -2,7 +2,11 @@
 #define __UTILS__
 
 #include "metamodel_enums.hpp"
+#include "forward_declarations.hpp"
 #include <string>
+#include <any>
+#include <memory>
+#include <stdexcept>
 
 namespace chips {
     std::string dft_to_string(dataflow_type dft);
