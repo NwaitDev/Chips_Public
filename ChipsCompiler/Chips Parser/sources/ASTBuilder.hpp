@@ -380,6 +380,9 @@ public:
             final_output(identifier, std::get<rvalue<dft, expression_env::PRIMITIVE>*>(rval));
         return final_output;
     }
+
+
+    std::any handle_var(std::string l_identifier, std::any suffixes, bool is_contextual);
 };
 
 #endif

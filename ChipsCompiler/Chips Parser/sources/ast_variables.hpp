@@ -106,6 +106,8 @@ namespace chips {
             m_declaration = decl_ptr;
         };
 
+        inline dataflow_declaration<dft,statement_env::DEFINITION>* get_declaration() { return m_declaration; }
+
         inline void hello(){
             array<expression_env::PRIMITIVE>::hello();
             std::cout << " " << get_name();

@@ -27,6 +27,8 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
         std::any def = visit(stuff);                                                         \
         if(auto* physical = std::any_cast<physical_definition>(&def)){                       \
             prgm.get_preamble().add_definition(physical);                                    \
+        }else if(auto* logical = std::any_cast<logical_definition>(&def)){                   \
+            prgm.get_preamble().add_definition(logical);                                    \
         }else{                                                                               \
             throw std::runtime_error(ast_builder_detail::type_name(def.type())+" not implemented");\
         }                                                                                    \
@@ -103,13 +105,13 @@ std::any ASTBuilder::visitNode_mapping(ChipsParser::Node_mappingContext *ctx)
 
 std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx)
 {
-    std::cout << "visit logical definition" << std::endl;
+    
     ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
     std::string identifier = lfd->IDENTIFIER()->getText();
+    std::cout << "visit logical definition " << identifier << std::endl;
 
     // we enter in a new scope
     SymbolTable::getInstance().enterScope();
-    SymbolTable::getInstance().dump();
 
     std::vector<ChipsParser::Df_parameter_declContext *> old_ast_params = lfd->df_parameter_decl();
     std::vector<function_parameter_variant> params;
@@ -144,12 +146,44 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
     std::vector<ChipsParser::Named_outputContext *> old_ast_outputs = lfd->named_output();
     std::vector<function_output_variant> outputs;
+    std::cout << "visiting output logical" << std::endl;
     for (ChipsParser::Named_outputContext *stuff : old_ast_outputs)
     {
-        outputs.push_back(std::any_cast<function_output_variant>(visit(stuff)));
+        std::string identifier = stuff->IDENTIFIER()->getText();
+        std::cout << "output logical " << identifier << std::endl;
+        std::any exp = visit(stuff->expr(0));
+
+        if(auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp)){
+            auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(
+                make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
+            node_arena.push_back(out);
+            outputs.push_back(out.get());
+        }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp)){
+            auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(
+                make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
+            node_arena.push_back(out);
+            outputs.push_back(out.get());
+        }else if(auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp)){
+            auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(
+                make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
+            node_arena.push_back(out);
+            outputs.push_back(out.get());
+        }else{
+            throw std::runtime_error("Unknown type of expr in make_function_output "+ast_builder_detail::type_name(exp.type()));
+        }
+        continue;
+
+        // outputs.push_back(std::any_cast<function_output_variant>(visit(stuff)));
     }
 
-    return chips::logical_definition(identifier, params, init, then, outputs);
+
+
+    chips::logical_definition logical(identifier, params, init, then, outputs);
+    SymbolTable::getInstance().exitScope();
+    SymbolTable::getInstance().declareFunctionLogical(identifier, logical);
+    SymbolTable::getInstance().dump();
+    std::cout << "END LOGICAL " << identifier << std::endl;
+    return logical;
 }
 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
@@ -163,7 +197,6 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     std::vector<physical_parameter_variant> sensors;
     // we enter in a new scope
     SymbolTable::getInstance().enterScope();
-    SymbolTable::getInstance().dump();
     for (ChipsParser::Pdf_parameter_declContext *parameter : all_params)
     {
         std::string pname = parameter->IDENTIFIER()->getText();
@@ -276,8 +309,12 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
     std::cout << "return physical" << std::endl;
-    chips::physical_definition res(identifier, params, init, then, outputs, with, sensors, actuators);
-    return res;
+    chips::physical_definition physical(identifier, params, init, then, outputs, with, sensors, actuators);
+    SymbolTable::getInstance().exitScope();
+    SymbolTable::getInstance().declareFunctionPhysical(identifier, physical);
+    SymbolTable::getInstance().dump();
+    std::cout << "END PHYSICAL " << identifier << std::endl;
+    return physical;
 }
 
 std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
@@ -352,6 +389,38 @@ std::any ASTBuilder::visitChannelDeclaration(ChipsParser::ChannelDeclarationCont
     return node_element_declaration<node_element::CHANNEL>(ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
 }
 
+std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool is_contextual){
+    std::cout << "visit var " << identifier << std::endl;
+    std::optional<std::any> variable;
+    
+    if(!is_contextual){
+        variable = SymbolTable::getInstance().lookupVariable(identifier);
+        if(!variable.has_value()){
+            variable = SymbolTable::getInstance().lookupSensorVariable(identifier);
+        }
+    }else{
+        variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
+    }
+
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    std::cout << "handle var type: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
+
+    std::cout << "before switch" << std::endl;
+    switch(current_env){
+        case expression_env::PRIMITIVE: {
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+            if(!is_contextual)
+                return tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+            return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        }
+    }
+    std::cout << "after switch" << std::endl;
+    throw std::runtime_error("handle_var: Unsupported environment "+expenv_to_string(current_env));
+}
+
 std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual){
     std::cout << "handle_statement_assignment" << std::endl;
     std::optional<std::any> variable;
@@ -359,25 +428,39 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
         variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
     }else{
         variable = SymbolTable::getInstance().lookupVariable(identifier);
+        //TODO: demander à Anna si un sensor peut etre un lvalue
     }
 
     if(!variable.has_value()){
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+    auto var = (!is_contextual) ? 
+                                tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims) : 
+                                tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+
+    std::cout << "Type var (handle assign) " << identifier << ": " << ast_builder_detail::type_name(var.type()) << std::endl;
+    // try{
+    //     auto exp = std::any_cast<dataflow_primitive_variable<dataflow_type::INT>>(variable.value());
+    //     std::cout << "TYPE VALUE: " << ast_builder_detail::type_name(std::any{exp.get_declaration()}.type()) << std::endl;
+    // }catch(const std::bad_any_cast& e){
+    //     std::cout << "UP " << identifier << std::endl;
+    //     std::cout << e.what() << std::endl;
+    // }
+
 
     if(auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign)){
         try{
             if(!is_contextual){
-                auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::INT>>>(variable.value());
-                auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+                auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>>(var);
                 node_arena.push_back(left);
                 node_arena.push_back(right);
                 dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
                 return assignment;
             }
-            auto var_ptr = std::any_cast<std::shared_ptr<contextual_variable<dataflow_type::INT>>>(variable.value());
-            auto left = std::make_shared<variable_contextual_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+            // auto var_ptr = std::any_cast<std::shared_ptr<contextual_variable<dataflow_type::INT>>>(var);
+            // auto left = std::make_shared<variable_contextual_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
+            auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::INT, expression_env::PRIMITIVE>>>(var);
             node_arena.push_back(left);
             node_arena.push_back(right);
             dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
@@ -385,6 +468,40 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
 
         }catch (const std::bad_any_cast &e){
             throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable INT depuis la SymbolTable");
+        }
+    }else if(auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign)){
+        try{
+            if(!is_contextual){
+                auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>>(var);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
+                return assignment;
+            }
+            auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>>(var);
+            node_arena.push_back(left);
+            node_arena.push_back(right);
+            dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
+            return assignment; 
+        }catch(const std::bad_any_cast& e){
+            throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable FLOAT depuis la SymbolTable");
+        }
+    }else if(auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign)){
+        try{
+            if(!is_contextual){
+                auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>>(var);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
+                return assignment;
+            }
+            auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>>(var);
+            node_arena.push_back(left);
+            node_arena.push_back(right);
+            dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
+            return assignment; 
+        }catch(const std::bad_any_cast& e){
+            throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable BOOL depuis la SymbolTable");
         }
     }
 
@@ -520,11 +637,13 @@ template<dataflow_type DT, expression_env ENV, typename Dims>
 std::any ASTBuilder::tryCastVar(const std::any& var, const Dims& dims) {
 
     if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var)) {
+        std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
         if (*sptr)
             return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
     }
 
     if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var)) {
+        std::cout << "SECOND ANY CAST" << std::endl;
         auto non_const_ptr = const_cast<dataflow_primitive_variable<DT>*>(raw_ptr);
         return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
     }
@@ -550,10 +669,11 @@ std::any ASTBuilder::tryCastVarContextual(const std::any& var, const Dims& dims)
 
 template<expression_env ENV, typename Dims>
 std::any ASTBuilder::tryAllTypes(const std::string& var_name, const std::any& var, const Dims& dims){
+    std::cout << "before try all cast" << std::endl;
     if (auto r = tryCastVar<dataflow_type::INT,   ENV>(var, dims); r.has_value()) return r;
     if (auto r = tryCastVar<dataflow_type::FLOAT, ENV>(var, dims); r.has_value()) return r;
     if (auto r = tryCastVar<dataflow_type::BOOL,  ENV>(var, dims); r.has_value()) return r;
-
+    std::cout << "after try all cast" << std::endl;
     throw std::runtime_error(
         "visitVar: unknown dataflow type for variable '" + var_name + "' "+ast_builder_detail::type_name(var.type())
     );
@@ -573,50 +693,17 @@ std::any ASTBuilder::tryAllTypesContextual(const std::string& var_name, const st
 
 std::any ASTBuilder::visitVar(ChipsParser::VarContext *ctx)
 {
-    
-    std::string var_name = ctx->IDENTIFIER()->getText();
-    std::cout << "visitVar() " << var_name  << std::endl;
-    std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
-    if(!variable.has_value()){
-        variable = SymbolTable::getInstance().lookupSensorVariable(var_name);
-    }
-    std::any suffixes = visit(ctx->suffixes());
-
-    if(!variable.has_value()){
-        throw std::runtime_error("'" + var_name + "' was never declarated before");
-    }    
-
-    std::cout << "Type var: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
-
-    switch(current_env){
-        case expression_env::PRIMITIVE: {
-            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-            return tryAllTypes<expression_env::PRIMITIVE>(var_name, variable.value(), dims);
-        }
-    }
-    throw std::runtime_error("visitVar: unsupported environment");
+    return handle_var(ctx->IDENTIFIER()->getText(),
+                      visit(ctx->suffixes()),
+                      false);
 }
 
 std::any ASTBuilder::visitVarContext(ChipsParser::VarContextContext *ctx)
 {
-    std::cout << "visit var contextual" << std::endl;
-
-    std::string identifier = ctx->IDENTIFIER()->getText();
-    std::optional<std::any> variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
-    std::any suffixes = visit(ctx->suffixes());
-
-    if(!variable.has_value()){
-        throw std::runtime_error("'"+identifier+"' was never declarated before");
-    }
-
-    switch(current_env){
-        case expression_env::PRIMITIVE:{
-            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-            return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
-        }
-    }
-
-    throw std::runtime_error("visitVarContextual: unsopprted environment "+expenv_to_string(current_env));
+    std::cout << "contextual ";
+    return handle_var(ctx->IDENTIFIER()->getText(),
+                      visit(ctx->suffixes()),
+                      true); 
 }
 
 std::any ASTBuilder::visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx)
@@ -812,8 +899,12 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
     std::cout << "visit loop statement" << std::endl;
 
     // TODO bien faire le Scope avec SymbolTable
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
 
     std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "Enter new Scope foreach " << identifier << std::endl;
 
     std::any loop_in = visit(ctx->loop_in());
 
@@ -832,7 +923,10 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
                             ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(loop_in));
             auto it = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(iterator);
             foreach_statement<statement_env::DEFINITION, dataflow_type::INT> foreach(it, iterable);
-            return make_statement_foreach(foreach, ctx->statement());
+            std::any res = make_statement_foreach(foreach, ctx->statement());
+            SymbolTable::getInstance().exitScope();
+            std::cout << "Exit scope foreach" << std::endl; 
+            return res;
         }
         case dataflow_type::FLOAT:{
             break;
@@ -871,6 +965,9 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
 
     visit(ctx->if_statement());
 
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
     for(ChipsParser::StatementContext* stt : ctx->statement()){
         std::any followup = visit(stt);
 
@@ -884,6 +981,9 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
         
 
     }
+
+    SymbolTable::getInstance().exitScope();
+
     return if_else;
     // throw std::runtime_error("Unimplemented visit method If_else_statementContext");
 }
@@ -911,10 +1011,14 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
             "condition : l'expression doit être de type BOOL "
             "(env PRIMITIVE).");
     }
+
     node_arena.push_back(node);
     if_stt.m_condition = make_bool_rvalue_variant_from_node(node);
 
     std::cout << "statements if section" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
 
     for(ChipsParser::StatementContext* stt : ctx->statement()){
         std::any followup = visit(stt);
@@ -927,6 +1031,9 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
         }
         throw std::runtime_error("Unknown kind of statement in if section");
     }
+
+    SymbolTable::getInstance().exitScope();
+
     return if_stt;
 }
 
@@ -948,76 +1055,11 @@ std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentCo
 
     std::any suffixes = visit(ctx->suffixes());
     std::string var_name = ctx->IDENTIFIER()->getText();
+    std::cout << "assign type var: " << ast_builder_detail::type_name(std::any{ctx->expr()}.type()) << std::endl;
     std::any assign = visit(ctx->expr());
 
-    // if(suffixes.has_value()){
-    //     std::cout << "SUFFIXES VALUE" << std::endl;;
-    // }else{
-    //     std::cout << "SUFFIXES NOT VALUE" << std::endl;
-    // }
+    return handle_statement_assignment(var_name, suffixes, assign, false);
 
-    std::optional<std::any> variable = SymbolTable::getInstance().lookupVariable(var_name);
-
-    if (!variable.has_value())
-    {
-        throw std::runtime_error("'" + var_name + "' was never declarated before");
-    }
-
-    // TODO regarder affectation de suffixes
-    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-
-    if (auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign))
-    {
-        try
-        {
-            auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::INT>>>(variable.value());
-            auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
-            node_arena.push_back(left);
-            node_arena.push_back(right);
-            dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
-            return assignment;
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable INT depuis la SymbolTable");
-        }
-    }
-    else if (auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(assign))
-    {
-        try
-        {
-            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-            auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::FLOAT>>>(variable.value());
-            auto left = std::make_shared<variable_expression<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
-            node_arena.push_back(left);
-            node_arena.push_back(right);
-            dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION> assignment(left.get(), right.get());
-            return assignment;
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable FLOAT depuis la SymbolTable");
-        }
-    }
-    else if (auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(assign))
-    {
-        try
-        {
-            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-            auto var_ptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<dataflow_type::BOOL>>>(variable.value());
-            auto left = std::make_shared<variable_expression<dataflow_type::BOOL, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
-            node_arena.push_back(left);
-            node_arena.push_back(right);
-            dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> assignment(left.get(), right.get());
-            return assignment;
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            throw std::runtime_error("Erreur de cast dans la récupération du pointeur de variable BOOL depuis la SymbolTable");
-        }
-    }
-
-    throw std::runtime_error("Unimplemented visitStatementAssignment for other expression_env");
 }
 
 std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx)
@@ -1277,12 +1319,14 @@ std::any ASTBuilder::visitGT(ChipsParser::GTContext *ctx)
 
 std::any ASTBuilder::visitGEQ(ChipsParser::GEQContext *ctx)
 {
+    std::cout << "visit >=" << std::endl;
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GEQBuilder>(
         visit(ctx->expr0()), visit(ctx->expr()), "GEQ");
 }
 
 std::any ASTBuilder::visitEQ(ChipsParser::EQContext *ctx)
 {
+    std::cout << "visit ==" << std::endl;
     return ast_builder_detail::dispatch_binary<ast_builder_detail::EQBuilder>(
         visit(ctx->expr0()), visit(ctx->expr()), "EQ");
 }
@@ -1295,6 +1339,7 @@ std::any ASTBuilder::visitNEQ(ChipsParser::NEQContext *ctx)
 
 std::any ASTBuilder::visitAND(ChipsParser::ANDContext *ctx)
 {
+    std::cout << "visit &&" << std::endl;
     return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
         visit(ctx->expr0()), visit(ctx->expr()), "AND");
 }
@@ -1373,18 +1418,19 @@ std::any ASTBuilder::visitNOT(ChipsParser::NOTContext *ctx)
 // atom
 std::any ASTBuilder::visitIntLiteral(ChipsParser::IntLiteralContext *ctx)
 {
-    // std::cout << "visitIntLit()" << std::endl;
+    std::cout << "visitIntLit()" << std::endl;
     return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(std::stoll(ctx->INT()->getText()));
 }
 
 std::any ASTBuilder::visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx)
 {
-    // std::cout << "visitFloatLit()" << std::endl;
+    std::cout << "visitFloatLit()" << std::endl;
     return std::make_shared<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(std::stod(ctx->FLOAT()->getText()));
 }
 
 std::any ASTBuilder::visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx)
 {
+    std::cout << "visitBoolLit()" << std::endl;
     std::string text = ctx->BOOL()->getText();
     bool value = (text == "true");
     return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(value);
@@ -1508,7 +1554,8 @@ std::any ASTBuilder::make_function(const std::string& fname, std::vector<ChipsPa
         return std::make_shared<function<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(fname);
     }
 
-    if(fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0){
+    if(fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 || 
+       fname.compare("max") == 0 || fname.compare("min") == 0){
         std::vector<rvalue_variant<expression_env::PRIMITIVE>> parameters;
         for(auto expr : exprs){
             std::any val = visit(expr);
@@ -1722,7 +1769,7 @@ std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any s
      * assignment = dataflow_assignment(left, right);
      * return assignment;
      */
-    std::cout << "handle_statement_declaration" << std::endl;
+    std::cout << "handle_statement_declaration " << identifier << std::endl;
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
     switch (type)
     {
@@ -1740,7 +1787,7 @@ std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any s
             // Stocke un shared_ptr dans la SymbolTable
             if (!SymbolTable::getInstance().declareVariable(identifier, var))
             {
-                throw std::runtime_error("Redeclare a variable already declared 1");
+                throw std::runtime_error("Redeclare a variable already declared 1 "+identifier);
             }
             return *decl;
         }
