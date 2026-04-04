@@ -303,12 +303,12 @@ namespace ast_builder_detail
     if (try_extract<DFT, EXPENV>(left_any)) \
         throw std::runtime_error(TXT);
 
-        ITSAWHAT(dataflow_type::FLOAT, expression_env::PRIMITIVE, "Its a float");
-        ITSAWHAT(dataflow_type::FLOAT, expression_env::COLLECTIVE, "Its a float");
-        ITSAWHAT(dataflow_type::FLOAT, expression_env::SYSTEM, "Its a float");
-        ITSAWHAT(dataflow_type::INT, expression_env::PRIMITIVE, "Its a int");
-        ITSAWHAT(dataflow_type::INT, expression_env::COLLECTIVE, "Its a int");
-        ITSAWHAT(dataflow_type::INT, expression_env::SYSTEM, "Its a int");
+        ITSAWHAT(dataflow_type::FLOAT, expression_env::PRIMITIVE, "Its a primitive float");
+        ITSAWHAT(dataflow_type::FLOAT, expression_env::COLLECTIVE, "Its a collective float");
+        ITSAWHAT(dataflow_type::FLOAT, expression_env::SYSTEM, "Its a system float");
+        ITSAWHAT(dataflow_type::INT, expression_env::PRIMITIVE, "Its a primitive int");
+        ITSAWHAT(dataflow_type::INT, expression_env::COLLECTIVE, "Its a collective int");
+        ITSAWHAT(dataflow_type::INT, expression_env::SYSTEM, "Its a system int");
 
 #undef ITSAWHAT
 

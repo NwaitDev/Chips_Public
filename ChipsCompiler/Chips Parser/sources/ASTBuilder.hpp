@@ -352,10 +352,46 @@ public:
     /**
      * STATEMENT
      */
-    std::any handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign);
+    std::any handle_statement_declaration(dataflow_type type,std::any suffixes, std::string identifier, std::any assign, bool have_assign);
+    
+    template<dataflow_type dft>
+    std::any handle_primitive_statement_declaration(
+        std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims,
+        std::string identifier,
+        std::any assign,
+        bool have_assign){
 
+        auto decl = std::make_shared<dataflow_declaration<dft, statement_env::DEFINITION>>(
+            dataflow_primitive_variable<dft>(identifier));
+        auto var = std::make_shared<dataflow_primitive_variable<dft>>(
+            identifier, decl.get(), dims);
+        decl->set_variable(*var);
+        node_arena.push_back(decl);
+        node_arena.push_back(var);
+        if (!have_assign)
+        {
+            // Stocke un shared_ptr dans la SymbolTable
+            if (!SymbolTable::getInstance().declareVariable(identifier, var))
+            {
+                throw std::runtime_error("Redeclare a variable already declared 1 "+identifier);
+            }
+            return *decl;
+        }
+        auto left = std::make_shared<variable_expression<dft, expression_env::PRIMITIVE>>(var.get());
+        auto right = ast_builder_detail::try_extract<dft, expression_env::PRIMITIVE>(assign);
+        node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+        node_arena.push_back(right);
+        if (!right)
+            throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
+        dataflow_assignment<dft, statement_env::DEFINITION> assignment(left.get(), right.get());
+        if (!SymbolTable::getInstance().declareVariable(identifier, var))
+        {
+            throw std::runtime_error("Redeclare a variable already declared 2 "+identifier);
+        }
+        return assignment;
+    }
     std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx);
-
+    
 
     std::any visitPassExpr0(ChipsParser::PassExpr0Context *ctx);
 
@@ -370,8 +406,6 @@ public:
      * FUNCTION HELPER TO MAKE CLASSES
      */
 
-
-
     template<dataflow_kind dfk, dataflow_type dft>
     function_output<dfk, dft> make_function_output(const std::string& identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr){
         rvalue_variant<expression_env::PRIMITIVE> rval = make_variant_from_node(expr);
@@ -380,7 +414,6 @@ public:
             final_output(identifier, std::get<rvalue<dft, expression_env::PRIMITIVE>*>(rval));
         return final_output;
     }
-
 
     std::any handle_var(std::string l_identifier, std::any suffixes, bool is_contextual);
 };

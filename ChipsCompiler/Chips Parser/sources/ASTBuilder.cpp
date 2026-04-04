@@ -47,15 +47,17 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
     std::cout << "nb statements in system section root level: "
               << ctx->system()->s_statement().size() << std::endl;
+    
+    current_env = expression_env::SYSTEM;
     for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
     {
 
 #define SSTATEMENT_CAST(POTENTIAL)                                                                                                   \
-    if (ChipsParser::ObjectDeclarationContext *stuff = dynamic_cast<ChipsParser::ObjectDeclarationContext *>(ssc); stuff != nullptr) \
-    {                                                                                                                                \
-        prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
-        continue;                                                                                                                    \
-    }
+        if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr) \
+        {                                                                                                                                \
+            prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff)));                               \
+            continue;                                                                                                                    \
+        }
 
         SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
         SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
@@ -66,8 +68,9 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
         SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
         SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
 #undef SSTATEMENT_CAST
-
-        std::cerr << "Unknown statement type in the system section root level!\n";
+        
+        std::cerr << "Unknown statement type in the system section root level!\n"
+                << "Rule index: "<<ssc->getRuleIndex()<<std::endl;
     }
 
     return prgm;
@@ -172,8 +175,6 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
             throw std::runtime_error("Unknown type of expr in make_function_output "+ast_builder_detail::type_name(exp.type()));
         }
         continue;
-
-        // outputs.push_back(std::any_cast<function_output_variant>(visit(stuff)));
     }
 
 
@@ -1131,7 +1132,18 @@ std::any ASTBuilder::visitSIfStatement(ChipsParser::SIfStatementContext *ctx)
 
 std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method RegularStatementContext");
+#define STATEMENT_CAST(POTENTIAL) \
+    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ctx->statement()); stuff != nullptr)\
+        return visit(stuff);
+
+    STATEMENT_CAST(ChipsParser::StatementDeclarationContext)
+    STATEMENT_CAST(ChipsParser::StatementAssignmentContext)
+    STATEMENT_CAST(ChipsParser::StatementContextualAssignmentContext)
+    STATEMENT_CAST(ChipsParser::StatementLoopContext)
+    STATEMENT_CAST(ChipsParser::StatementIfElseContext)
+    STATEMENT_CAST(ChipsParser::StatementIfContext)
+#undef STATEMENT_CAST    
+    throw std::runtime_error("Unrecognized statement kind while visiting RegularStatementContext");
 }
 
 std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpressionContext *ctx)
@@ -1419,7 +1431,17 @@ std::any ASTBuilder::visitNOT(ChipsParser::NOTContext *ctx)
 std::any ASTBuilder::visitIntLiteral(ChipsParser::IntLiteralContext *ctx)
 {
     std::cout << "visitIntLit()" << std::endl;
-    return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(std::stoll(ctx->INT()->getText()));
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE :
+        return std::make_shared<direct<dataflow_type::INT, expression_env::PRIMITIVE>>(std::stoll(ctx->INT()->getText()));
+    case expression_env::COLLECTIVE :
+        return std::make_shared<direct<dataflow_type::INT, expression_env::COLLECTIVE>>(std::stoll(ctx->INT()->getText()));
+    case expression_env::SYSTEM :
+        return std::make_shared<direct<dataflow_type::INT, expression_env::SYSTEM>>(std::stoll(ctx->INT()->getText()));
+    default:
+        throw std::runtime_error("Unknown expression environment in visitIntLiteral");
+    }
 }
 
 std::any ASTBuilder::visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx)
@@ -1575,8 +1597,8 @@ std::any ASTBuilder::make_function(const std::string& fname, std::vector<ChipsPa
     if (fname.compare("is_fresh") == 0)
     {
         // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
-        throw std::runtime_error("Regnize the function "+fname+" but not implemented yet");
-        // return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
+        std::cerr<<"WARNING : Recognized the function "+fname+" but it is not fully handled yet, currently replaced by a \"false\""<<std::endl;
+        return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
     }
     throw std::runtime_error("could not recognize the function" + fname);
 }
@@ -1757,6 +1779,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
     }
     throw std::runtime_error("VITAL, FAUT PAS OUBLIER LE CASE DEFAULT");
 }
+    
 std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign)
 {
     /**
@@ -1769,40 +1792,42 @@ std::any ASTBuilder::handle_statement_declaration(dataflow_type type, std::any s
      * assignment = dataflow_assignment(left, right);
      * return assignment;
      */
+    
     std::cout << "handle_statement_declaration " << identifier << std::endl;
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
     switch (type)
     {
     case dataflow_type::INT:
     {
-        auto decl = std::make_shared<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(
-            dataflow_primitive_variable<dataflow_type::INT>(identifier));
-        auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::INT>>(
-            identifier, decl.get(), dims);
-        decl->set_variable(*var);
-        node_arena.push_back(decl);
-        node_arena.push_back(var);
-        if (!have_assign)
-        {
-            // Stocke un shared_ptr dans la SymbolTable
-            if (!SymbolTable::getInstance().declareVariable(identifier, var))
-            {
-                throw std::runtime_error("Redeclare a variable already declared 1 "+identifier);
-            }
-            return *decl;
-        }
-        auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var.get());
-        auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
-        node_arena.push_back(std::static_pointer_cast<ast_node>(left));
-        node_arena.push_back(right);
-        if (!right)
-            throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
-        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
-        if (!SymbolTable::getInstance().declareVariable(identifier, var))
-        {
-            throw std::runtime_error("Redeclare a variable already declared 2 "+identifier);
-        }
-        return assignment;
+        return handle_primitive_statement_declaration<dataflow_type::INT>(dims,identifier,assign,have_assign);
+        // auto decl = std::make_shared<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>>(
+        //     dataflow_primitive_variable<dataflow_type::INT>(identifier));
+        // auto var = std::make_shared<dataflow_primitive_variable<dataflow_type::INT>>(
+        //     identifier, decl.get(), dims);
+        // decl->set_variable(*var);
+        // node_arena.push_back(decl);
+        // node_arena.push_back(var);
+        // if (!have_assign)
+        // {
+        //     // Stocke un shared_ptr dans la SymbolTable
+        //     if (!SymbolTable::getInstance().declareVariable(identifier, var))
+        //     {
+        //         throw std::runtime_error("Redeclare a variable already declared 1 "+identifier);
+        //     }
+        //     return *decl;
+        // }
+        // auto left = std::make_shared<variable_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var.get());
+        // auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign);
+        // node_arena.push_back(std::static_pointer_cast<ast_node>(left));
+        // node_arena.push_back(right);
+        // if (!right)
+        //     throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
+        // dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
+        // if (!SymbolTable::getInstance().declareVariable(identifier, var))
+        // {
+        //     throw std::runtime_error("Redeclare a variable already declared 2 "+identifier);
+        // }
+        // return assignment;
     }
     case dataflow_type::FLOAT:
     {
