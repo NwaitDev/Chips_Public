@@ -8,7 +8,7 @@ chipsc: $(SRCS)
 	mkdir -p build ; cd build ; cmake ..
 	cd build && make 2> ../debug.log
 
-quicktest: quick.chips
+run: quick.chips
 	./build/chipsc quick.chips
 
 clean:

@@ -58,7 +58,7 @@ namespace chips {
 
     template<dataflow_type dft>
     struct SttEnvToVariableKind<dft,statement_env::SYSTEM>{
-        using type = dataflow_primitive_variable<dft>;
+        using type = dataflow_system_variable<dft>;
     };
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -281,6 +281,7 @@ namespace chips {
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
 
+
     template<expression_env expenv>
     using rvalue_variant = std::variant<rvalue<dataflow_type::INT,expenv>*,rvalue<dataflow_type::FLOAT,expenv>*,rvalue<dataflow_type::BOOL,expenv>*>;
 
@@ -301,7 +302,7 @@ namespace chips {
         plus<dataflow_type::INT,expenv>*,
         minus<dataflow_type::INT,expenv>*,
         mult<dataflow_type::INT,expenv>*,
-        div<dataflow_type::INT,expenv>*,
+        chips::div<dataflow_type::INT,expenv>*,
         mod<expenv>*,
         cast_as<dataflow_type::INT,expenv>*,
         uminus_operator<dataflow_type::INT,expenv>*,
@@ -384,6 +385,84 @@ namespace chips {
     template<expression_env expenv>
     struct ChipsOperandToAstNumericType<dataflow_type::FLOAT,expenv>{
         using type = rvalue<dataflow_type::FLOAT,expenv>;
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Struct needed to have a define time variablility for the 
+     * acces of typenames and constructors of dataflow variables  
+     * concrete classes within different contexts
+     */
+    template<expression_env expenv,dataflow_type dft>
+    struct DataflowVariableAliasType;
+
+
+    template<dataflow_type dft>
+    struct DataflowVariableAliasType<expression_env::PRIMITIVE, dft>{
+        using type = dataflow_primitive_variable<dft>;
+    };
+
+
+    template<dataflow_type dft>
+    struct DataflowVariableAliasType<expression_env::COLLECTIVE, dft>{
+        using type = dataflow_collective_variable<dft>;
+    };
+
+    template<dataflow_type dft>
+    struct DataflowVariableAliasType<expression_env::SYSTEM, dft>{
+        using type = dataflow_system_variable<dft>;
+    };
+
+
+    /**
+     * Struct needed to have a define time variablility for the 
+     * acces of typenames and constructors of dataflow variable declaration  
+     * concrete classes within different contexts
+     */
+    template<expression_env expenv,dataflow_type dft>
+    struct DataflowVariableDeclarationAliasType;
+
+    template<dataflow_type dft>
+    struct DataflowVariableDeclarationAliasType<expression_env::PRIMITIVE,dft>{
+        using type = dataflow_declaration<dft, statement_env::DEFINITION>;
+    };
+
+    template<dataflow_type dft>
+    struct DataflowVariableDeclarationAliasType<expression_env::COLLECTIVE,dft>{
+        using type = dataflow_declaration<dft, statement_env::COLLECTIVE>;
+    };
+
+    template<dataflow_type dft>
+    struct DataflowVariableDeclarationAliasType<expression_env::SYSTEM,dft>{
+        using type = dataflow_declaration<dft, statement_env::SYSTEM>;
+    };
+
+
+    /**
+     * Struct needed to have a define time variablility for the 
+     * acces of typenames and constructors of dataflow assignment  
+     * concrete classes within different contexts
+     */
+    template<expression_env env,dataflow_type dft>
+    struct DataflowAssignmentAliasType;
+
+    template<dataflow_type dft>
+    struct DataflowAssignmentAliasType<expression_env::PRIMITIVE,dft>{
+        using type = dataflow_assignment<dft, statement_env::DEFINITION>;
+    };
+
+    template<dataflow_type dft>
+    struct DataflowAssignmentAliasType<expression_env::COLLECTIVE,dft>{
+        using type = dataflow_assignment<dft, statement_env::COLLECTIVE>;
+    };
+
+    template<dataflow_type dft>
+    struct DataflowAssignmentAliasType<expression_env::SYSTEM,dft>{
+        using type = dataflow_assignment<dft, statement_env::SYSTEM>;
     };
 }
 

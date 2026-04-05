@@ -21,6 +21,15 @@ namespace chips
         return "unknown";
     }
 
+    std::string any_demangle(const std::type_info& ti) {
+        int status = 0;
+        std::unique_ptr<char, void(*)(void*)> demangled(
+            abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status),
+            std::free
+        );
+        return (status == 0 && demangled) ? demangled.get() : ti.name();
+    };
+
     template<> std::string dft_to_string<dataflow_type::INT>(){return "int";}
     template<> std::string dft_to_string<dataflow_type::FLOAT>(){return "float";}
     template<> std::string dft_to_string<dataflow_type::BOOL>(){return "bool";}

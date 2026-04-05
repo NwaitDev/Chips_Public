@@ -3,12 +3,11 @@
 
 #include "chips_headers.hpp"
 #include "ast_builder_details.hpp"
+#include "utils.hpp"
 
 #include <any>
-#include <memory>
 #include <stdexcept>
 #include <typeinfo>
-#include "cxxabi.h"
 
 using namespace chips;
 
@@ -24,9 +23,8 @@ private:
     std::vector<std::shared_ptr<ast_node>> node_arena;
 
 public:
-
     std::any visitProgram(ChipsParser::ProgramContext *ctx);
-    
+
     std::any visitObjectDefinition(ChipsParser::ObjectDefinitionContext *ctx);
 
     std::any visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *ctx);
@@ -61,17 +59,17 @@ public:
 
     std::any visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx);
 
-    template<dataflow_type DT, expression_env ENV, typename Dims>
-    std::any tryCastVar(const std::any& var, const Dims& dims);
+    template <dataflow_type DT, expression_env ENV, typename Dims>
+    std::any tryCastVar(const std::any &var, const Dims &dims);
 
-    template<dataflow_type DT, expression_env ENV, typename Dims>
-    std::any tryCastVarContextual(const std::any& var, const Dims& dims);
+    template <dataflow_type DT, expression_env ENV, typename Dims>
+    std::any tryCastVarContextual(const std::any &var, const Dims &dims);
 
-    template<expression_env ENV, typename Dims>
-    std::any tryAllTypes(const std::string& var_name, const std::any& var, const Dims& dims);
+    template <expression_env ENV, typename Dims>
+    std::any tryAllTypes(const std::string &var_name, const std::any &var, const Dims &dims);
 
-    template<expression_env ENV, typename Dims>
-    std::any tryAllTypesContextual(const std::string& var_name, const std::any& var, const Dims& dims);
+    template <expression_env ENV, typename Dims>
+    std::any tryAllTypesContextual(const std::string &var_name, const std::any &var, const Dims &dims);
 
     std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual);
 
@@ -85,14 +83,16 @@ public:
 
     std::any visitThen_section(ChipsParser::Then_sectionContext *ctx);
 
-    template<dataflow_type dft, statement_env sttenv>
-    std::any make_variable_expression(dataflow_assignment<dft,sttenv>& node){
+    template <dataflow_type dft, statement_env sttenv>
+    std::any make_variable_expression(dataflow_assignment<dft, sttenv> &node)
+    {
         std::cout << "make variable expression assign" << std::endl;
         return std::any{};
     }
 
-    template<dataflow_type dft, statement_env sttenv>
-    std::any make_variable_expression(dataflow_declaration<dft,sttenv>& node){
+    template <dataflow_type dft, statement_env sttenv>
+    std::any make_variable_expression(dataflow_declaration<dft, sttenv> &node)
+    {
         std::cout << "make variable expression decl" << std::endl;
         return std::any{};
     }
@@ -175,19 +175,23 @@ public:
 
     std::any visitLoop_in(ChipsParser::Loop_inContext *ctx);
 
-    template<dataflow_type dft, statement_env stenv>
-    std::any make_statement_foreach(foreach_statement<stenv,dft>& node, std::vector<ChipsParser::StatementContext *> statement){
+    template <dataflow_type dft, statement_env stenv>
+    std::any make_statement_foreach(foreach_statement<stenv, dft> &node, std::vector<ChipsParser::StatementContext *> statement)
+    {
         std::cout << "make statement of foreach" << std::endl;
-        for(ChipsParser::StatementContext* stt : statement){
+        for (ChipsParser::StatementContext *stt : statement)
+        {
             std::any followup = visit(stt);
 
-            try{
+            try
+            {
                 node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
                 continue;
-            }catch(const std::runtime_error& e){    
+            }
+            catch (const std::runtime_error &e)
+            {
                 std::cout << e.what() << std::endl;
             }
-
         }
         return node;
     }
@@ -264,7 +268,7 @@ public:
 
     std::any visitDf_parameter_decl(ChipsParser::Df_parameter_declContext *ctx);
 
-    std::any visit_dft(ChipsParser::Df_typeContext* dft);
+    std::any visit_dft(ChipsParser::Df_typeContext *dft);
 
     std::any visitFunctionParameterType(ChipsParser::FunctionParameterTypeContext *ctx);
 
@@ -314,7 +318,7 @@ public:
 
     std::any visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx);
 
-    std::any visitParens(ChipsParser::ParensContext* ctx);
+    std::any visitParens(ChipsParser::ParensContext *ctx);
 
     std::any visitCastAs(ChipsParser::CastAsContext *ctx);
 
@@ -329,42 +333,73 @@ public:
 
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
 
-    std::any make_function(const std::string& fname, std::vector<ChipsParser::ExprContext *> expr);
+    std::any make_function(const std::string &fname, std::vector<ChipsParser::ExprContext *> expr);
 
-    template<dataflow_type dft, expression_env expenv>
+    template <dataflow_type dft, expression_env expenv>
     primitive_iterable_variant<expenv> make_primitive_iterable_variant_from_node(
-        const std::shared_ptr<rvalue<dft, expenv>>& node);
+        const std::shared_ptr<rvalue<dft, expenv>> &node);
 
-    template<expression_env expenv>
+    template <expression_env expenv>
     int_rvalue_expression_variant<expenv> make_int_rvalue_variant_from_node(
-        const std::shared_ptr<rvalue<dataflow_type::INT, expenv>>& node);
+        const std::shared_ptr<rvalue<dataflow_type::INT, expenv>> &node);
 
-    template<expression_env expenv>
+    template <expression_env expenv>
     bool_rvalue_expression_variant<expenv> make_bool_rvalue_variant_from_node(
-        const std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>>& node);
+        const std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>> &node);
 
-    template<dataflow_type dft, expression_env expenv>
+    template <dataflow_type dft, expression_env expenv>
     rvalue_variant<expenv> make_variant_from_node(
-        const std::shared_ptr<rvalue<dft, expenv>>& node);
+        const std::shared_ptr<rvalue<dft, expenv>> &node);
 
-    std::any visitSuffixes(ChipsParser::SuffixesContext* ctx);
+    std::any visitSuffixes(ChipsParser::SuffixesContext *ctx);
+
+    template <expression_env expenv>
+    std::vector<int_rvalue_expression_variant<expenv>> extract_dimensions(ChipsParser::SuffixesContext *ctx)
+    {
+        std::vector<int_rvalue_expression_variant<expenv>> dims;
+        for (auto *expr : ctx->expr())
+        {
+            std::any val = visit(expr);
+            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expenv>(val);
+            if (!node)
+            {
+                throw std::runtime_error(
+                    "suffixes : l'expression d'indice doit être de type INT ");
+            }
+            node_arena.push_back(node);
+            dims.push_back(make_int_rvalue_variant_from_node<expenv>(node));
+        }
+        return dims;
+    }
 
     /**
      * STATEMENT
      */
-    std::any handle_statement_declaration(dataflow_type type,std::any suffixes, std::string identifier, std::any assign, bool have_assign);
-    
-    template<dataflow_type dft>
-    std::any handle_primitive_statement_declaration(
-        std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims,
+
+    template <dataflow_type dft, expression_env expenv>
+    std::any handle_declaration_with_or_without_assign(std::any assign, std::string var_name, std::vector<int_rvalue_expression_variant<expenv>> suffixes)
+    {
+        if (!assign.has_value())
+        {
+            auto decl = handle_statement_declaration<expenv, dft>(suffixes, var_name, assign, false);
+            return decl;
+        }
+        auto assignment = handle_statement_declaration<expenv, dft>(suffixes, var_name, assign, true);
+        return assignment;
+    }
+
+    template <expression_env expenv, dataflow_type dft>
+    std::any handle_statement_declaration(
+        std::vector<int_rvalue_expression_variant<expenv>> suffixes,
         std::string identifier,
         std::any assign,
-        bool have_assign){
-
-        auto decl = std::make_shared<dataflow_declaration<dft, statement_env::DEFINITION>>(
-            dataflow_primitive_variable<dft>(identifier));
-        auto var = std::make_shared<dataflow_primitive_variable<dft>>(
-            identifier, decl.get(), dims);
+        bool have_assign)
+    {
+        std::cout << "handle_statement_declaration " << identifier << std::endl;
+        auto decl = std::make_shared<typename DataflowVariableDeclarationAliasType<expenv, dft>::type>(
+            typename DataflowVariableAliasType<expenv, dft>::type(identifier));
+        auto var = std::make_shared<typename DataflowVariableAliasType<expenv, dft>::type>(
+            identifier, decl.get(), suffixes);
         decl->set_variable(*var);
         node_arena.push_back(decl);
         node_arena.push_back(var);
@@ -373,25 +408,27 @@ public:
             // Stocke un shared_ptr dans la SymbolTable
             if (!SymbolTable::getInstance().declareVariable(identifier, var))
             {
-                throw std::runtime_error("Redeclare a variable already declared 1 "+identifier);
+                throw std::runtime_error("Redeclare a variable already declared 1 " + identifier);
             }
             return *decl;
         }
-        auto left = std::make_shared<variable_expression<dft, expression_env::PRIMITIVE>>(var.get());
-        auto right = ast_builder_detail::try_extract<dft, expression_env::PRIMITIVE>(assign);
+        auto left = std::make_shared<variable_expression<dft, expenv>>(var.get());
+        auto right = ast_builder_detail::try_extract<dft, expenv>(assign);
         node_arena.push_back(std::static_pointer_cast<ast_node>(left));
         node_arena.push_back(right);
         if (!right)
             throw std::runtime_error("handle_statement_declaration INT: expression droite invalide");
-        dataflow_assignment<dft, statement_env::DEFINITION> assignment(left.get(), right.get());
+
+        typename DataflowAssignmentAliasType<expenv, dft>::type assignment(left.get(), right.get());
+
         if (!SymbolTable::getInstance().declareVariable(identifier, var))
         {
-            throw std::runtime_error("Redeclare a variable already declared 2 "+identifier);
+            throw std::runtime_error("Redeclare a variable already declared 2 " + identifier);
         }
         return assignment;
     }
-    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext* ctx);
-    
+
+    std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx);
 
     std::any visitPassExpr0(ChipsParser::PassExpr0Context *ctx);
 
@@ -399,19 +436,17 @@ public:
 
     std::any visitPassExpr2(ChipsParser::PassExpr2Context *ctx);
 
-
-
-
     /**
      * FUNCTION HELPER TO MAKE CLASSES
      */
 
-    template<dataflow_kind dfk, dataflow_type dft>
-    function_output<dfk, dft> make_function_output(const std::string& identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr){
+    template <dataflow_kind dfk, dataflow_type dft>
+    function_output<dfk, dft> make_function_output(const std::string &identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr)
+    {
         rvalue_variant<expression_env::PRIMITIVE> rval = make_variant_from_node(expr);
 
         function_output<dfk, dft>
-            final_output(identifier, std::get<rvalue<dft, expression_env::PRIMITIVE>*>(rval));
+            final_output(identifier, std::get<rvalue<dft, expression_env::PRIMITIVE> *>(rval));
         return final_output;
     }
 

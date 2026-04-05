@@ -6,6 +6,7 @@
 #include <string>
 #include <any>
 #include <memory>
+#include <cxxabi.h>
 #include <stdexcept>
 
 namespace chips {
@@ -16,6 +17,8 @@ namespace chips {
     std::string dft_to_string();
     template<expression_env expenv>
     std::string expenv_to_string();
+
+    std::string any_demangle(const std::type_info& ti);
 }
 
 #endif

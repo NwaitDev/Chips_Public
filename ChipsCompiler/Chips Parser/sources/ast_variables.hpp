@@ -159,7 +159,11 @@ namespace chips {
      * is used in the body/parameters or outputs of a 
      * collective primitive.
      */
-    class collective_variable : public variable<chips::expression_env::COLLECTIVE>{};
+    class collective_variable : public variable<chips::expression_env::COLLECTIVE>{
+        public:
+            collective_variable(std::string name)
+                : variable(name){}
+    };
     
     /**
      * Concrete class
@@ -172,8 +176,32 @@ namespace chips {
     template<dataflow_type dft> 
     class dataflow_collective_variable : public collective_variable
     {
-        dataflow_declaration<dft,statement_env::COLLECTIVE>* m_declaration;
-        void hello(){}
+        public:
+        dataflow_declaration<dft,statement_env::COLLECTIVE>* m_declaration = nullptr;
+        
+        dataflow_collective_variable(std::string name): collective_variable(name){}
+
+        dataflow_collective_variable(
+            std::string name,
+            dataflow_declaration<dft,statement_env::COLLECTIVE>* decl,
+            std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims)
+        : collective_variable(name), m_declaration(decl)
+        {
+            for(auto d : dims){
+                m_dimensions.push_back(d);
+            }
+        }
+
+        inline void set_declaration(dataflow_declaration<dft,statement_env::COLLECTIVE>* decl_ptr){
+            m_declaration = decl_ptr;
+        };
+
+        inline dataflow_declaration<dft,statement_env::COLLECTIVE>* get_declaration() { return m_declaration; }
+
+        inline void hello(){
+            array<expression_env::COLLECTIVE>::hello();
+            std::cout << " " << get_name();
+        }
     };
 
 
@@ -182,7 +210,11 @@ namespace chips {
      * Node of the AST that represents a variable
      * that can be used in the system section.
      */
-    class system_variable : public variable<chips::expression_env::SYSTEM>{};
+    class system_variable : public variable<chips::expression_env::SYSTEM>{
+        public:
+            system_variable(std::string name)
+                : variable(name){}
+    };
     
     /**
      * Concrete class
@@ -209,8 +241,32 @@ namespace chips {
     template<dataflow_type dft> 
     class dataflow_system_variable : public system_variable 
     {
-        dataflow_declaration<dft,statement_env::SYSTEM>* m_declaration;
-        void hello(){}
+        public:
+        dataflow_declaration<dft,statement_env::SYSTEM>* m_declaration = nullptr;
+        
+        dataflow_system_variable(std::string name): system_variable(name){}
+
+        dataflow_system_variable(
+            std::string name,
+            dataflow_declaration<dft,statement_env::SYSTEM>* decl,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims)
+        : system_variable(name), m_declaration(decl)
+        {
+            for(auto d : dims){
+                m_dimensions.push_back(d);
+            }
+        }
+
+        inline void set_declaration(dataflow_declaration<dft,statement_env::COLLECTIVE>* decl_ptr){
+            m_declaration = decl_ptr;
+        };
+
+        inline dataflow_declaration<dft,statement_env::COLLECTIVE>* get_declaration() { return m_declaration; }
+
+        inline void hello(){
+            array<expression_env::SYSTEM>::hello();
+            std::cout << " " << get_name();
+        }
 
     };
     
