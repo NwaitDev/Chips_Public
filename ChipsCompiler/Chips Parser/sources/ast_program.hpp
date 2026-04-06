@@ -28,11 +28,13 @@ namespace chips
      * Node of the Chips AST that holds the description
      * of a complete system (an assembly of Chips components)
      */
-    class system_section_node : public ast_node
+    class system_section_node : public ast_node, public statement_fillable<statement_env::SYSTEM>
     {
     public:
         std::vector<system_statement_variant> m_system_statements;
-        void add_system_statement(system_statement_variant obj);
+        inline void add_statement(typename SttEnvToSttVariant<statement_env::SYSTEM>::type obj){
+            m_system_statements.push_back(obj);
+        }
         void hello();
     };
 

@@ -34,7 +34,6 @@ namespace chips
         }
     }
 
-    void system_section_node::add_system_statement(system_statement_variant obj) { m_system_statements.push_back(obj); };
     void system_section_node::hello() { std::cout << "system " << (this->m_system_statements.empty() ? "vide" : "rempli") << std::endl; }
 
     preamble_section_node program_node::get_preamble() { return m_preamble; }

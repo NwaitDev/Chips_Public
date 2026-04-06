@@ -155,8 +155,18 @@ namespace chips {
         using type = implementation_statement_variant;
     };
 
+    template<expression_env>
+    struct StatementVariantTypeAlias;
+
+    template<>
+    struct StatementVariantTypeAlias<expression_env::PRIMITIVE>{ using type = primitive_statement_variant; };
+    template<>
+    struct StatementVariantTypeAlias<expression_env::COLLECTIVE>{ using type = collective_statement_variant; };
+    template<>
+    struct StatementVariantTypeAlias<expression_env::SYSTEM>{ using type = system_statement_variant; };
 
     using statement_variant = std::variant<node_statement_variant, primitive_statement_variant,collective_statement_variant,system_statement_variant,implementation_statement_variant>;
+    
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -343,6 +353,24 @@ namespace chips {
         not_operator<expenv>*,
         direct<dataflow_type::BOOL,expenv>*,
         variable_expression<dataflow_type::BOOL,expenv>*>;
+
+    template<expression_env expenv, dataflow_type dft>
+    struct RvalueExpressionVariantTypeAlias;
+
+    template<expression_env expenv>
+    struct RvalueExpressionVariantTypeAlias<expenv, dataflow_type::INT>{
+        using type = int_rvalue_expression_variant<expenv>;
+    };
+
+    template<expression_env expenv>
+    struct RvalueExpressionVariantTypeAlias<expenv, dataflow_type::FLOAT>{
+        using type = float_rvalue_expression_variant<expenv>;
+    };
+
+    template<expression_env expenv>
+    struct RvalueExpressionVariantTypeAlias<expenv, dataflow_type::BOOL>{
+        using type = bool_rvalue_expression_variant<expenv>;
+    };
 
 
     ////////////////////////////////////////////////////////////////////////////////

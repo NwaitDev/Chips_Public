@@ -312,6 +312,14 @@ namespace ast_builder_detail
     }
 
 
+     bool is_declaration_with_expression(antlr4::ParserRuleContext *ctx){
+        if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(ctx))
+            if (stuff->expr() != nullptr)
+                return true;
+        
+        return false;
+    }
+
 
     std::shared_ptr<ast_node> extract_as_node(const std::any &a){
         // std::cout << "extract_as_node()" << std::endl;

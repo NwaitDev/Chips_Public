@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "forward_declarations.hpp"
+#include "meta_type_conversions.hpp"
 
 namespace chips
 {
@@ -13,6 +14,11 @@ namespace chips
      */
     class visitor;
 
+    template<statement_env env>
+    class statement_fillable {
+        public:
+        virtual void add_statement(typename SttEnvToSttVariant<env>::type) = 0;
+    };
 
     /**
      * Base abstract class for a node in the Chips 

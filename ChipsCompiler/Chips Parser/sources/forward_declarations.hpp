@@ -147,6 +147,8 @@ namespace chips
     class channel_feeder;
     template <dataflow_kind dfk, dataflow_type dft>
     class collective_cast;
+    template<statement_env env>
+    class statement_fillable;
 }
 
 #endif //__FORWARD_DECLS__

@@ -3,10 +3,10 @@
 //  ANTLR4 + C++17
 // ============================================================
 #include <antlr4-runtime.h>
-#include "ChipsLexer.h"
-#include "ChipsParser.h"
+#include "generated/ChipsLexer.h"
+#include "generated/ChipsParser.h"
 
-#include "chips_headers.hpp"
+#include "sources/chips_headers.hpp"
 
 #include <iostream>
 #include <fstream>

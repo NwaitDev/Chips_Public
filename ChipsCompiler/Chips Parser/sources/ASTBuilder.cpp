@@ -21,10 +21,10 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     for (ChipsParser::PreambleContext *pc : ctx->preamble())
     {
 
-#define APPEND_CASTED_DEF(POTENTIAL, EXPENV)                                                                  \
+#define APPEND_CASTED_DEF(POTENTIAL, EXPENV)                                                          \
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                           \
-    {                                                   \
-        current_env = EXPENV;                                              \
+    {                                                                                                 \
+        current_env = EXPENV;                                                                         \
         std::any def = visit(stuff);                                                                  \
         if (auto *physical = std::any_cast<physical_definition>(&def))                                \
         {                                                                                             \
@@ -58,22 +58,38 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     for (ChipsParser::S_statementContext *ssc : ctx->system()->s_statement())
     {
 
-#define SSTATEMENT_CAST(POTENTIAL)                                                                     \
-    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr)                           \
-    {                                                                                                  \
-        prgm.get_system().add_system_statement(std::any_cast<system_statement_variant>(visit(stuff))); \
-        continue;                                                                                      \
+#define SSTATEMENT_CAST(POTENTIAL, ERRMSG)                                                 \
+    if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr)               \
+    {                                                                                      \
+        std::any res = visit(stuff);                                                       \
+        try                                                                                \
+        {                                                                                  \
+            prgm.get_system().add_statement(std::any_cast<system_statement_variant>(res)); \
+        }                                                                                  \
+        catch (std::bad_any_cast e)                                                        \
+        {                                                                                  \
+            std::cerr << ERRMSG << std::endl;                                              \
+            throw e;                                                                       \
+        }                                                                                  \
+        continue;                                                                          \
     }
 
-        SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext)
-        SSTATEMENT_CAST(ChipsParser::FeedingStatementContext)
-        SSTATEMENT_CAST(ChipsParser::LinkingStatementContext)
-        SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext)
-        SSTATEMENT_CAST(ChipsParser::SLoopStatementContext)
-        SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext)
-        SSTATEMENT_CAST(ChipsParser::SIfStatementContext)
-        SSTATEMENT_CAST(ChipsParser::RegularStatementContext)
+        SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext, "PBLM with ObjectDecl")
+        SSTATEMENT_CAST(ChipsParser::FeedingStatementContext, "PBLM with feeding")
+        SSTATEMENT_CAST(ChipsParser::LinkingStatementContext, "PBLM with linking")
+        SSTATEMENT_CAST(ChipsParser::ImplementationStatementContext, "PBLM with implem")
+        SSTATEMENT_CAST(ChipsParser::SLoopStatementContext, "PBLM with sloop")
+        SSTATEMENT_CAST(ChipsParser::SIfElseStatementContext, "PBLM with sifelse")
+        SSTATEMENT_CAST(ChipsParser::SIfStatementContext, "PBLM with sif")
 #undef SSTATEMENT_CAST
+
+        if (ChipsParser::RegularStatementContext *stt = dynamic_cast<ChipsParser::RegularStatementContext *>(ssc); stt != nullptr)
+        {
+            travel_recurrent_statement<statement_env::SYSTEM>(
+                stt->statement(),
+                static_cast<statement_fillable<statement_env::SYSTEM> *>(&prgm.m_system));
+            continue;
+        }
 
         std::cerr << "Unknown statement type in the system section root level!\n"
                   << "Rule index: " << ssc->getRuleIndex() << std::endl;
@@ -562,7 +578,7 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
     return std::any{};
 }
 
-std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign, bool have_assign)
+std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign)
 {
     std::cout << "handle_statement_declaration_contextual " << dft_to_string(type) << std::endl;
 
@@ -578,7 +594,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
         decl->set_variable(*var);
         node_arena.push_back(decl);
         node_arena.push_back(var);
-        if (!have_assign)
+        if (!assign.has_value())
         {
             if (!SymbolTable::getInstance().declareContextualVariable(identifier, var))
             {
@@ -597,7 +613,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
         decl->set_variable(*var);
         node_arena.push_back(decl);
         node_arena.push_back(var);
-        if (!have_assign)
+        if (!assign.has_value())
         {
             if (!SymbolTable::getInstance().declareContextualVariable(identifier, var))
             {
@@ -616,7 +632,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
         decl->set_variable(*var);
         node_arena.push_back(decl);
         node_arena.push_back(var);
-        if (!have_assign)
+        if (!assign.has_value())
         {
             if (!SymbolTable::getInstance().declareContextualVariable(identifier, var))
             {
@@ -643,18 +659,7 @@ std::any ASTBuilder::visitContextualDeclaration(ChipsParser::ContextualDeclarati
     {
         assign = visit(ctx->expr());
     }
-    else
-    {
-        assign = std::any{};
-    }
-
-    if (!assign.has_value())
-    {
-        auto decl = handle_statement_declaration_contextual(type, suffixes, identifier, assign, false);
-        return decl;
-    }
-    auto assignment = handle_statement_declaration_contextual(type, suffixes, identifier, assign, true);
-    return assignment;
+    return handle_statement_declaration_contextual(type, suffixes, identifier, assign);
 }
 
 std::any ASTBuilder::visitWithRegularStatement(ChipsParser::WithRegularStatementContext *ctx)
@@ -668,12 +673,51 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
     init_section init;
     for (ChipsParser::StatementContext *stt : ctx->statement())
     {
-        std::any followup = visit(stt);
-
         try
         {
-            init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+            std::any followup = visit(stt);
+
+            // DECLARATIONS FEATURING AN ASSIGNMENT MUST BE DISTINGUISHED IN THE METAMODEL
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr))
+            {
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type()))
+                {
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type()))
+                {
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type()))
+                {
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else
+                {
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }
+            else
+            {
+                init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }
         }
         catch (const std::runtime_error &e)
         {
@@ -977,8 +1021,24 @@ std::any ASTBuilder::visitLoop_in(ChipsParser::Loop_inContext *ctx)
 {
     std::cout << "visit loop in" << std::endl;
     std::string identifier = ctx->IDENTIFIER()->getText();
-    if (!ctx->expr().empty())
-        return make_function(identifier, ctx->expr());
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+        if (!ctx->expr().empty())
+            return make_function<expression_env::PRIMITIVE>(identifier, ctx->expr());
+        break;
+    case expression_env::COLLECTIVE:
+        if (!ctx->expr().empty())
+            return make_function<expression_env::COLLECTIVE>(identifier, ctx->expr());
+        break;
+    case expression_env::SYSTEM:
+        if (!ctx->expr().empty())
+            return make_function<expression_env::SYSTEM>(identifier, ctx->expr());
+        break;
+    default:
+        break;
+    }
+
     throw std::runtime_error("Not implement for variable yet in loop_in context");
 }
 
@@ -1000,38 +1060,42 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
     std::cout << dft_to_string(type) << std::endl;
 
     std::any iterator;
-    switch(current_env){
-        case expression_env::PRIMITIVE:
-        switch (type){
-            case dataflow_type::INT:
-            iterator = handle_statement_declaration<expression_env::PRIMITIVE,dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(),identifier,std::any{},false);
-            case dataflow_type::FLOAT:
-            iterator = handle_statement_declaration<expression_env::PRIMITIVE,dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(),identifier,std::any{},false);
-            case dataflow_type::BOOL:
-            iterator = handle_statement_declaration<expression_env::PRIMITIVE,dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(),identifier,std::any{},false);
-            default:
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+        switch (type)
+        {
+        case dataflow_type::INT:
+            iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+        case dataflow_type::FLOAT:
+            iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+        case dataflow_type::BOOL:
+            iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+        default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
-        case expression_env::COLLECTIVE:
-        switch (type){
-            case dataflow_type::INT:
-            iterator = handle_statement_declaration<expression_env::COLLECTIVE,dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(),identifier,std::any{},false);
-            case dataflow_type::FLOAT:
-            iterator = handle_statement_declaration<expression_env::COLLECTIVE,dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(),identifier,std::any{},false);
-            case dataflow_type::BOOL:
-            iterator = handle_statement_declaration<expression_env::COLLECTIVE,dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(),identifier,std::any{},false);
-            default:
+    case expression_env::COLLECTIVE:
+        switch (type)
+        {
+        case dataflow_type::INT:
+            iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+        case dataflow_type::FLOAT:
+            iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+        case dataflow_type::BOOL:
+            iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+        default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
-        case expression_env::SYSTEM:
-        switch (type){
-            case dataflow_type::INT:
-            iterator = handle_statement_declaration<expression_env::SYSTEM,dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(),identifier,std::any{},false);
-            case dataflow_type::FLOAT:
-            iterator = handle_statement_declaration<expression_env::SYSTEM,dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(),identifier,std::any{},false);
-            case dataflow_type::BOOL:
-            iterator = handle_statement_declaration<expression_env::SYSTEM,dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(),identifier,std::any{},false);
-            default:
+    case expression_env::SYSTEM:
+        switch (type)
+        {
+        case dataflow_type::INT:
+            iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+        case dataflow_type::FLOAT:
+            iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+        case dataflow_type::BOOL:
+            iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+        default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
     }
@@ -1433,7 +1497,22 @@ std::any ASTBuilder::visitCdf_full_declaration(ChipsParser::Cdf_full_declaration
 
 std::any ASTBuilder::visitFunction(ChipsParser::FunctionContext *ctx)
 {
-    return make_function(ctx->IDENTIFIER()->getText(), ctx->expr());
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+        return make_function<expression_env::PRIMITIVE>(identifier, ctx->expr());
+        break;
+    case expression_env::COLLECTIVE:
+        return make_function<expression_env::COLLECTIVE>(identifier, ctx->expr());
+        break;
+    case expression_env::SYSTEM:
+        return make_function<expression_env::SYSTEM>(identifier, ctx->expr());
+        break;
+    default:
+        break;
+    }
+    throw std::runtime_error("unknown function environment");
 }
 
 std::any ASTBuilder::visitLT(ChipsParser::LTContext *ctx)
@@ -1572,7 +1651,17 @@ std::any ASTBuilder::visitIntLiteral(ChipsParser::IntLiteralContext *ctx)
 std::any ASTBuilder::visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx)
 {
     std::cout << "visitFloatLit()" << std::endl;
-    return std::make_shared<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(std::stod(ctx->FLOAT()->getText()));
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+        return std::make_shared<direct<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(std::stod(ctx->FLOAT()->getText()));
+    case expression_env::COLLECTIVE:
+        return std::make_shared<direct<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(std::stod(ctx->FLOAT()->getText()));
+    case expression_env::SYSTEM:
+        return std::make_shared<direct<dataflow_type::FLOAT, expression_env::SYSTEM>>(std::stod(ctx->FLOAT()->getText()));
+    default:
+        throw std::runtime_error("Unknown expression environment in visitFloatLiteral");
+    }
 }
 
 std::any ASTBuilder::visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx)
@@ -1580,7 +1669,17 @@ std::any ASTBuilder::visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx)
     std::cout << "visitBoolLit()" << std::endl;
     std::string text = ctx->BOOL()->getText();
     bool value = (text == "true");
-    return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(value);
+    switch (current_env)
+    {
+    case expression_env::PRIMITIVE:
+        return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(value);
+    case expression_env::COLLECTIVE:
+        return std::make_shared<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>>(value);
+    case expression_env::SYSTEM:
+        return std::make_shared<direct<dataflow_type::BOOL, expression_env::SYSTEM>>(value);
+    default:
+        throw std::runtime_error("Unknown expression environment in visitBoolLiteral");
+    }
 }
 
 std::any ASTBuilder::visitParens(ChipsParser::ParensContext *ctx)
@@ -1678,6 +1777,12 @@ std::any ASTBuilder::visitCast(ChipsParser::CastContext *ctx)
     return handle_cast(target, operand_any);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Type primitif
 std::any ASTBuilder::visitIntType(ChipsParser::IntTypeContext * /*ctx*/)
 {
@@ -1692,44 +1797,6 @@ std::any ASTBuilder::visitFloatType(ChipsParser::FloatTypeContext * /*ctx*/)
 std::any ASTBuilder::visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/)
 {
     return dataflow_type::BOOL;
-}
-
-std::any ASTBuilder::make_function(const std::string &fname, std::vector<ChipsParser::ExprContext *> exprs)
-{
-    std::cout << "make function symbol: " << fname << std::endl;
-
-    if (fname.compare("random") == 0)
-    {
-        return std::make_shared<function<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(fname);
-    }
-
-    if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
-        fname.compare("max") == 0 || fname.compare("min") == 0)
-    {
-        std::vector<rvalue_variant<expression_env::PRIMITIVE>> parameters;
-        for (auto expr : exprs)
-        {
-            std::any val = visit(expr);
-            auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(val);
-            if (!node)
-            {
-                throw std::runtime_error(
-                    "suffixes : l'expression d'indice doit être de type INT "
-                    "(env PRIMITIVE).");
-            }
-            node_arena.push_back(node);
-            parameters.push_back(make_variant_from_node(node));
-            return std::make_shared<function<dataflow_type::INT, expression_env::PRIMITIVE>>(fname, parameters);
-        }
-    }
-
-    if (fname.compare("is_fresh") == 0)
-    {
-        // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
-        std::cerr << "WARNING : Recognized the function " + fname + " but it is not fully handled yet, currently replaced by a \"false\"" << std::endl;
-        return std::make_shared<direct<dataflow_type::BOOL, expression_env::PRIMITIVE>>(false);
-    }
-    throw std::runtime_error("could not recognize the function" + fname);
 }
 
 template <dataflow_type dft, expression_env expenv>
@@ -1931,7 +1998,6 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
     throw std::runtime_error("VITAL, FAUT PAS OUBLIER LE CASE DEFAULT");
 }
 
-
 std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx)
 {
     std::cout << "visit StatementDeclaration" << std::endl;
@@ -1939,37 +2005,39 @@ std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclaration
     dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
     std::string var_name = ctx->IDENTIFIER()->getText();
     std::any assign;
-
     if (ctx->expr())
     {
         assign = visit(ctx->expr());
     }
-    else
+
+#define RESWITCH(EXPENV)                                                                                                                                                                \
+    std::vector<int_rvalue_expression_variant<EXPENV>> suffs = std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes()));                               \
+    switch (type_any)                                                                                                                                                                   \
+    {                                                                                                                                                                                   \
+    case dataflow_type::INT:                                                                                                                                                            \
+        return handle_statement_declaration<EXPENV, dataflow_type::INT>(std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())), var_name, assign);   \
+    case dataflow_type::FLOAT:                                                                                                                                                          \
+        return handle_statement_declaration<EXPENV, dataflow_type::FLOAT>(std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())), var_name, assign); \
+    case dataflow_type::BOOL:                                                                                                                                                           \
+        return handle_statement_declaration<EXPENV, dataflow_type::BOOL>(std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())), var_name, assign);  \
+    default:                                                                                                                                                                            \
+        throw std::runtime_error("unknown type for variable declaration");                                                                                                              \
+    }
+
+    if (current_env == expression_env::PRIMITIVE)
     {
-        assign = std::any{};
-    }
-    std::any decl;
-    std::any assignment;
-    switch (current_env){
-
-#define RESWITCH(EXPENV) \
-        case EXPENV:switch (type_any)\
-            {\
-            case dataflow_type::INT: return handle_declaration_with_or_without_assign<dataflow_type::INT, EXPENV>(assign, var_name, std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())));\
-            case dataflow_type::FLOAT: return handle_declaration_with_or_without_assign<dataflow_type::FLOAT, EXPENV>(assign, var_name, std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())));\
-            case dataflow_type::BOOL: return handle_declaration_with_or_without_assign<dataflow_type::BOOL, EXPENV>(assign, var_name, std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())));\
-            default: throw std::runtime_error("unknown type for variable declaration");\
-            }
-
         RESWITCH(expression_env::PRIMITIVE)
-        RESWITCH(expression_env::COLLECTIVE)
-        RESWITCH(expression_env::SYSTEM)
-
-#undef RESWITCH
     }
-    
-   
-    
+    else if (current_env == expression_env::SYSTEM)
+    {
+        RESWITCH(expression_env::SYSTEM)
+    }
+    else if (current_env == expression_env::SYSTEM)
+    {
+        RESWITCH(expression_env::COLLECTIVE)
+    }
+#undef RESWITCH
+    throw std::runtime_error("Ooops, looks like the environment for this statement is not handled...");
 }
 
 // pass to children

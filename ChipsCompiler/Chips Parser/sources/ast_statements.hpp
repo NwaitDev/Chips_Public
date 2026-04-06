@@ -84,6 +84,7 @@ namespace chips
         }
     };
 
+
     /**
      * Concrete class
      * Node of the AST that represents the ordered list of the statements
@@ -91,13 +92,15 @@ namespace chips
      * is evaluated as true
      */
     template <statement_env stenv>
-    class if_section : public ast_node
+    class if_section : public ast_node, public statement_fillable<stenv>
     {
         public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_if_statements;
         if_section(){};
-        inline void add_statement(statement_type stt){m_if_statements.push_back(stt);}
+        inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
+            m_if_statements.push_back(stt);
+        }
         void hello() {}
     };
 
@@ -108,13 +111,15 @@ namespace chips
      * is evaluated as false
      */
     template <statement_env stenv>
-    class else_section : public ast_node
+    class else_section : public ast_node, public statement_fillable<stenv>
     {
         public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         std::vector<statement_type> m_else_statements;
         else_section(){}
-        inline void add_statement(statement_type stt){m_else_statements.push_back(stt);}
+        inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
+            m_else_statements.push_back(stt);
+        }
         void hello() {}
     };
 

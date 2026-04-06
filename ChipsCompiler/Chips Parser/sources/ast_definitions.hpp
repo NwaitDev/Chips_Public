@@ -32,12 +32,14 @@ namespace chips
      * that can be used to define node specific informations
      * (contextual variables and channels)
      */
-    class with_section : public ast_node
+    class with_section : public ast_node, public statement_fillable<statement_env::NODE>
     {
         public:
         std::vector<node_statement_variant> m_statements;
         with_section(){};
-        inline void add_statement(node_statement_variant stt){m_statements.push_back(stt);}
+        inline void add_statement(typename SttEnvToSttVariant<statement_env::NODE>::type stt){
+            m_statements.push_back(stt);
+        }
         void hello();
     };
 
@@ -47,12 +49,14 @@ namespace chips
      * that can be used to define and initialize a functional 
      * block stateful information (mainly inner variables)
      */
-    class init_section : public ast_node
+    class init_section : public ast_node,  public statement_fillable<statement_env::DEFINITION>
     {
         public:
         std::vector<primitive_statement_variant> m_statements;
         init_section(){};
-        inline void add_statement(primitive_statement_variant stt){m_statements.push_back(stt);}
+        inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
+            m_statements.push_back(stt);
+        }
         void hello();
     };
 
@@ -62,12 +66,14 @@ namespace chips
      * that can be used to make a functional block state evolve 
      * according to its current state and its input parameters.
      */
-    class then_section : public ast_node
+    class then_section : public ast_node,  public statement_fillable<statement_env::DEFINITION>
     {
         public:
         std::vector<primitive_statement_variant> m_statements;
         then_section(){};
-        inline void add_statement(primitive_statement_variant stt){m_statements.push_back(stt);}
+        inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
+            m_statements.push_back(stt);
+        }
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -78,11 +84,14 @@ namespace chips
      * data can be propagated/aggregated among a set of
      * interconnected components
      */
-    class collectiveops_section : public ast_node
+    class collectiveops_section : public ast_node, public statement_fillable<statement_env::COLLECTIVE>
     {
         public:
         std::vector<collective_statement_variant> m_statements;
-        void hello();// override {std::cout<<"hello"<<std::endl;}
+        void hello();
+        inline void add_statement(typename SttEnvToSttVariant<statement_env::COLLECTIVE>::type stt){
+            m_statements.push_back(stt);
+        }
     };
 
     /**

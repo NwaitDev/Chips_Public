@@ -2,6 +2,7 @@
 #define AST_BUILDER_DETAILS
 
 #include "ChipsBaseVisitor.h"
+#include "ChipsParser.h"
 #include "ast_base.hpp"
 #include "ast_program.hpp"
 #include "ast_lrxvalues.hpp"
@@ -21,7 +22,7 @@ namespace ast_builder_detail
 
     /**
      * Nom de type lisible pour les messages d'erreur
-     */ 
+     */
     std::string type_name(const std::type_info &ti);
 
     /**
@@ -108,16 +109,19 @@ namespace ast_builder_detail
                     return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
                 }
 
-            if(auto* p = std::any_cast<std::shared_ptr<variable_expression<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<variable_expression<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
 
-            if(auto* p = std::any_cast<std::shared_ptr<function<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<function<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
 
-            if(auto* p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
         }
 
@@ -170,16 +174,19 @@ namespace ast_builder_detail
             if (auto *p = std::any_cast<std::shared_ptr<not_operator<EXPENV>>>(&a))
                 return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
 
-            if(auto* p = std::any_cast<std::shared_ptr<variable_expression<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<variable_expression<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
 
-            if(auto* p = std::any_cast<std::shared_ptr<function<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<function<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
 
-            if(auto* p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT,EXPENV>>>(&a)){
-                return std::static_pointer_cast<rvalue<DFT,EXPENV>>(*p);
+            if (auto *p = std::any_cast<std::shared_ptr<variable_contextual_expression<DFT, EXPENV>>>(&a))
+            {
+                return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
         }
 
@@ -193,11 +200,11 @@ namespace ast_builder_detail
     template <expression_env EXPENV>
     dataflow_type get_dataflow_type(const std::any &a)
     {
-        if(ast_builder_detail::try_extract<dataflow_type::INT, EXPENV>(a) != nullptr)
-            return dataflow_type::INT;            
-        if(ast_builder_detail::try_extract<dataflow_type::FLOAT, EXPENV>(a) != nullptr)
+        if (ast_builder_detail::try_extract<dataflow_type::INT, EXPENV>(a) != nullptr)
+            return dataflow_type::INT;
+        if (ast_builder_detail::try_extract<dataflow_type::FLOAT, EXPENV>(a) != nullptr)
             return dataflow_type::FLOAT;
-        if(ast_builder_detail::try_extract<dataflow_type::BOOL, EXPENV>(a) != nullptr)
+        if (ast_builder_detail::try_extract<dataflow_type::BOOL, EXPENV>(a) != nullptr)
             return dataflow_type::BOOL;
 
         throw std::runtime_error(
@@ -233,37 +240,41 @@ namespace ast_builder_detail
     std::any dispatch_numeric_binary(
         const std::any &left_any,
         const std::any &right_any,
-        const char *op_name){
-        // std::cout << "dispatch_numeric_binary()" << std::endl;
-        #define TRY_BINARY(DFT, EXPENV)                                         \
-        {                                                                        \
-            auto l = try_extract<DFT, EXPENV>(left_any);                        \
-            if (l) {                                                             \
-                auto r = try_extract<DFT, EXPENV>(right_any);                   \
-                if (!r) {                                                        \
-                    throw std::runtime_error(                                    \
-                        std::string(op_name) + " : erreur de type — "           \
-                        "operande gauche et droit incompatibles. "              \
-                        "Les deux operandes doivent avoir le meme type. "       \
-                        "Utilisez cast_as pour convertir explicitement. "+      \
-                        type_name(left_any.type())+" "+type_name(right_any.type()));\
-                }                                                                \
-                return Builder<DFT, EXPENV>::build(std::move(l), std::move(r)); \
-            }                                                                    \
-        }
+        const char *op_name)
+    {
+// std::cout << "dispatch_numeric_binary()" << std::endl;
+#define TRY_BINARY(DFT, EXPENV)                                                                \
+    {                                                                                          \
+        auto l = try_extract<DFT, EXPENV>(left_any);                                           \
+        if (l)                                                                                 \
+        {                                                                                      \
+            auto r = try_extract<DFT, EXPENV>(right_any);                                      \
+            if (!r)                                                                            \
+            {                                                                                  \
+                throw std::runtime_error(                                                      \
+                    std::string(op_name) + " : erreur de type — "                              \
+                                           "operande gauche et droit incompatibles. "          \
+                                           "Les deux operandes doivent avoir le meme type. "   \
+                                           "Utilisez cast_as pour convertir explicitement. " + \
+                    type_name(left_any.type()) + " " + type_name(right_any.type()));           \
+            }                                                                                  \
+            return Builder<DFT, EXPENV>::build(std::move(l), std::move(r));                    \
+        }                                                                                      \
+    }
 
-        TRY_BINARY(dataflow_type::INT,   expression_env::PRIMITIVE)
+        TRY_BINARY(dataflow_type::INT, expression_env::PRIMITIVE)
         TRY_BINARY(dataflow_type::FLOAT, expression_env::PRIMITIVE)
         TRY_BINARY(dataflow_type::INT, expression_env::COLLECTIVE)
         TRY_BINARY(dataflow_type::FLOAT, expression_env::COLLECTIVE)
         TRY_BINARY(dataflow_type::INT, expression_env::SYSTEM)
         TRY_BINARY(dataflow_type::FLOAT, expression_env::SYSTEM)
 
-        #undef TRY_BINARY
+#undef TRY_BINARY
 
         throw std::runtime_error(
             std::string(op_name) + " : type non valide pour un operateur numerique "
-            "(BOOL non supporte, seuls INT et FLOAT sont valides)."+type_name(left_any.type())+" "+type_name(right_any.type()));
+                                   "(BOOL non supporte, seuls INT et FLOAT sont valides)." +
+            type_name(left_any.type()) + " " + type_name(right_any.type()));
     }
 
     template <template <dataflow_type, expression_env> class Builder>
@@ -285,8 +296,8 @@ namespace ast_builder_detail
                     std::string(op_name) + " : erreur de type — "                             \
                                            "operande gauche et droit incompatibles. "         \
                                            "Les deux operandes doivent avoir le meme type. "  \
-                                           "Utilisez cast_as pour convertir explicitement."+  \
-                                           type_name(left_any.type())+" "+type_name(right_any.type()));\
+                                           "Utilisez cast_as pour convertir explicitement." + \
+                    type_name(left_any.type()) + " " + type_name(right_any.type()));          \
             }                                                                                 \
             std::cout << "builder !!!\n";                                                     \
             return Builder<dataflow_type::BOOL, EXPENV>::build(std::move(l), std::move(r));   \
@@ -316,7 +327,7 @@ namespace ast_builder_detail
             std::string(op_name) + " : type non valide pour un booleen "
                                    "(INT et FLOAT non supportes, seul BOOL est valide).");
     }
-template <template <dataflow_type, expression_env> class Builder>
+    template <template <dataflow_type, expression_env> class Builder>
     std::any dispatch_binary(
         const std::any &left_any,
         const std::any &right_any,
@@ -335,8 +346,8 @@ template <template <dataflow_type, expression_env> class Builder>
                     std::string(op_name) + " : erreur de type — "                             \
                                            "operande gauche et droit incompatibles. "         \
                                            "Les deux operandes doivent avoir le meme type. "  \
-                                           "Utilisez cast_as pour convertir explicitement."+   \
-                                           type_name(left_any.type())+" "+type_name(right_any.type()));\
+                                           "Utilisez cast_as pour convertir explicitement." + \
+                    type_name(left_any.type()) + " " + type_name(right_any.type()));          \
             }                                                                                 \
             return Builder<DFT, EXPENV>::build(std::move(l), std::move(r));                   \
         }                                                                                     \
@@ -414,160 +425,190 @@ template <template <dataflow_type, expression_env> class Builder>
             std::string(op_name) + " : type non valide pour un operateur comparaison unaire.");
     }
 
-    // ── Builders par opérateur ────────────────────────────────────────────────
-    // Pour ajouter un opérateur : écrire un Builder + un visiteur d'une ligne.
-
+    bool is_declaration_with_expression(antlr4::ParserRuleContext *ctx);
     
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct PlusBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            // std::cout << "PlusBuilder.build()" << std::endl;
-            return std::make_shared<plus<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct SubBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<minus<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+    template <statement_env stenv, dataflow_type dft>
+    void get_typed_pair_of_decl_and_expr(statement_fillable<stenv>* datastruct, std::any& followup)
+    {
+        constexpr auto expenv = SttEnvToExpEnv<stenv>::value;
+        using the_good_pair = std::pair<
+            typename DataflowVariableDeclarationAliasType<expenv, dft>::type,
+            typename DataflowAssignmentAliasType<expenv, dft>::type>;
+        the_good_pair followup_pair = std::any_cast<the_good_pair>(followup);
+        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+    }
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct NegateBuilder {
-        static std::any build(std::shared_ptr<rvalue<DFT,EXPENV>> r){
-            // std::cout << "negateBuilder()" << std::endl;
-            return std::make_shared<uminus_operator<DFT,EXPENV>>(std::move(r));
-        }
-    };
+// ── Builders par opérateur ────────────────────────────────────────────────
+// Pour ajouter un opérateur : écrire un Builder + un visiteur d'une ligne.
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct MultBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<mult<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct PlusBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        // std::cout << "PlusBuilder.build()" << std::endl;
+        return std::make_shared<plus<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct DivBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<chips::div<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct SubBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<minus<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct ModBuilder;
+template <dataflow_type DFT, expression_env EXPENV>
+struct NegateBuilder
+{
+    static std::any build(std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        // std::cout << "negateBuilder()" << std::endl;
+        return std::make_shared<uminus_operator<DFT, EXPENV>>(std::move(r));
+    }
+};
 
-    template<expression_env EXPENV>
-    struct ModBuilder<dataflow_type::INT,EXPENV> {
-        static std::any build(
-            std::shared_ptr<rvalue<dataflow_type::INT, EXPENV>> l,
-            std::shared_ptr<rvalue<dataflow_type::INT, EXPENV>> r)
-        {
-            return std::make_shared<mod<EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct MultBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<mult<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct LTBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<lt<EXPENV,DFT>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct DivBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<chips::div<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct LEQBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<leq<EXPENV,DFT>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct ModBuilder;
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct GTBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<gt<EXPENV,DFT>>(std::move(l), std::move(r));
-        }
-    };
+template <expression_env EXPENV>
+struct ModBuilder<dataflow_type::INT, EXPENV>
+{
+    static std::any build(
+        std::shared_ptr<rvalue<dataflow_type::INT, EXPENV>> l,
+        std::shared_ptr<rvalue<dataflow_type::INT, EXPENV>> r)
+    {
+        return std::make_shared<mod<EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct GEQBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<geq<EXPENV,DFT>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct LTBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<lt<EXPENV, DFT>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct EQBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<eq<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct LEQBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<leq<EXPENV, DFT>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct NEQBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<neq<DFT,EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct GTBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<gt<EXPENV, DFT>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct ANDBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<and_operator<EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct GEQBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<geq<EXPENV, DFT>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct ORBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> l,
-            std::shared_ptr<rvalue<DFT,EXPENV>> r)
-        {
-            return std::make_shared<or_operator<EXPENV>>(std::move(l), std::move(r));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct EQBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<eq<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
 
-    template<dataflow_type DFT, expression_env EXPENV>
-    struct NOTBuilder {
-        static std::any build(
-            std::shared_ptr<rvalue<DFT,EXPENV>> o)
-        {
-            return std::make_shared<not_operator<EXPENV>>(std::move(o));
-        }
-    };
+template <dataflow_type DFT, expression_env EXPENV>
+struct NEQBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<neq<DFT, EXPENV>>(std::move(l), std::move(r));
+    }
+};
+
+template <dataflow_type DFT, expression_env EXPENV>
+struct ANDBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<and_operator<EXPENV>>(std::move(l), std::move(r));
+    }
+};
+
+template <dataflow_type DFT, expression_env EXPENV>
+struct ORBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> l,
+        std::shared_ptr<rvalue<DFT, EXPENV>> r)
+    {
+        return std::make_shared<or_operator<EXPENV>>(std::move(l), std::move(r));
+    }
+};
+
+template <dataflow_type DFT, expression_env EXPENV>
+struct NOTBuilder
+{
+    static std::any build(
+        std::shared_ptr<rvalue<DFT, EXPENV>> o)
+    {
+        return std::make_shared<not_operator<EXPENV>>(std::move(o));
+    }
+};
 
 } // namespace ast_builder_detail
 
