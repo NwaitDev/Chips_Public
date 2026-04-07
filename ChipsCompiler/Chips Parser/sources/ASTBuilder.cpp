@@ -1067,37 +1067,49 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     case expression_env::COLLECTIVE:
         switch (type)
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     case expression_env::SYSTEM:
         switch (type)
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     }
 
     switch (type)
