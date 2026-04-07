@@ -1,4 +1,4 @@
-.PHONY: all test clean quicktest
+.PHONY: all test clean run
 
 SRCS := $(shell ls -d sources/*)
 
