@@ -1,96 +1,120 @@
 # Additional Chips Features
 
-- size :
+## size :
     ```c
     int size(<sth>[] iterable);
     ```
     size operator to measure the size of an iterable
 
-- resize:
+## resize:
     ```c
     <sth>[] size(<sth>[] iterable);
     ```
     change the quantity of information an iterable can hold. Copies or crop the initial data
 
-- switch :
-    ```c
-    switch ($value) {
-        (litteral){
-            stt;
-        }
-        (litteral, litteral, litteral){
-            stt;
-            stt;
-        }
-        (default) { stts }
-    }
-    ```
-    or
-    ```c
-    if ($value == litteral) {
-        stt;
-        stt;
-    } elif($value == litteral || $value == litteral) {
-        stt;
-    } elif($value == litteral || $value == litteral) {
-        stt;
-    } else {
-        bla bla...
-    }
-    ```
-    I'd rather use the second possibility because it is easier to translate to BIP and very expressive
-
-- flagbearer :
-    list of alternative enums for which a check of presence of something would be
-    easy. Need to find a proper syntax. It would look like a struct only containing
-    boolean values, except they have name.
-    Would allow another use of the 'in' operator.
-
-    ```c
-    flagb symb = LETTERS°NUMBERS°NONALPHANUM..SMALL°BIG..USUAL°UNUSUAL; // internal representation : 3bits
-    // maybe like this
-    flagb symb = (LETTERS or NUMBERS or NONALPHANUM) and (SMALL or BIG) and (USUAL or UNUSUAL);
-    symb x = LETTERS..SMALL..USUAL;
-    symb y = SMALL..NUMBERS..USUAL;
-    symb z = UNUSUAL; // other fields will be undefined
-
-    if (x == y)
-        // do sth
-    if (LETTERS in x)
-        // do sth
-    if (LETTERS and SMALL in y)
-        // do sth
-    ```
-
-- struct :
+## struct :
     to more easily pass parameters between components
 
-- control receipes:
+## control receipes:
+
 ```c
 
 
-physical Catom (float current, int[6] neighborhood_signals) with {
-    ctx float x = 0;
+physical Catom (float current, sensor int[12] neighborhood_signals) with {
+    ctx float x = 0; // differentiate actual value and desired enforced value
     ctx float y = 0;
-}
+    ctx float z = 0;
+} init {
+    int [12] signals_for_neighbors;
+    int r, g,b;
+} then {
+    // process to react to the 
+    // neighborhood signals 
+    // acknowledging contextual data
+} -> actuator signals_for_neighbors(signals_for_neighbors)
+-> actuator light(blablabla)
 
-object SIMPLEX with {
-    // side so the simplex tries to get equilateral
-    ctx float side = 10.0;
-}
-receipe Equilateral among POINT {
-    for point in POINT{
-        for other_point in POINT {
-            if (other_point != point){
-                error = sqrt((point.x-other_point.x)**2 + (point.y-other_point.y)**2) - side;
-                float [2] displ = pid(side, error);
-                point.x = point.x + displ;
-                point.y = point.y + displ;
+object CatomSet with {
+    ctx float distance = 10.0;
+    ctx float sensitivity = 1.0;
+    ctx bool achieved = false;
+    ctx float [3] avg_pos = 0;
+    ctx int nb_catoms = 0;
+    ctx goal_pos = 0;
+} receipe DistanceHomogeneity among Catom {
+    avg_pos = 0;
+    nb_catoms = 0;
+    for pos in Catom {
+        nb_catoms = nb_catoms + 1;
+        avg_pos[0] = avg_pos[0] + pos.x;
+        avg_pos[1] = avg_pos[1] + pos.y;
+        avg_pos[2] = avg_pos[2] + pos.z;
+        for other_pos in Catom {
+            if (other_pos != pos){
+                error = sqrt(
+                    (pos.x-other_pos.x)**2 
+                    + (pos.y-other_pos.y)**2
+                    + (pos.z-other_pos.z)**2
+                ) - distance;
+                if(error < sensitivity){
+                    achieved = true;
+                } else {
+                    float [3] displ = pid(distance, error);
+                    pos.x = pos.x + displ[0];
+                    pos.y = pos.y + displ[1];
+                    pos.z = pos.z + displ[2];
+                }
             }
+        }
+    }
+    for i in range(3){
+        avg_pos[i] = avg_pos[i]/(float)nb_catoms;
+    }
+} receipe ReachGoalPos among Catom {
+    if(achieved) {
+        float[3] displ = normalize(goal_pos - avg_pos)*0.3;
+        for pos in Catom {
+            pos.x = pos.x + displ[0];
+            pos.y = pos.y + displ[1];
+            pos.z = pos.z + displ[2];
         }
     }
 }
 
-object 
+object CatomSetSet with {
+    ctx int shape = NONE;
+    ctx bool achieved = true;
+    CatomSet center_piece = NULL;
+    ctx int nb_catom_sets = 0; 
+} receipe CountCatomSets among CatomSet {
+    nb_catom_sets = 0;
+    for cs in CatomSet {
+        nb_catom_sets = nb_catom_sets + 1;
+    }
+} receipe ComputeCenterPiece among CatomSet {
+    nb_catom_sets = 0;
+    for cs in CatomSet {
+        
+    }
+} receipe ShapeShift among CatomSet {
+    if(achieved){
+        if(shape == TOWER){
+            shape = LINE;
+            achieved = false;
+        } else {
+            shape = TOWER;
+            achieved = false;
+        }
+    }
+} receipe ToTower among CatomSet {
+    if(shape == TOWER){
+        // represent the process that
+        // builds the TOWER by moving 
+        // CatomSets on top of eachothers
+    }
+} receipe ToLine {
+    // other kind of procedure to realize
+    // the shape
+} 
 
 ```
