@@ -67,45 +67,30 @@
 
 - control receipes:
 ```c
-object POINT with{
+
+
+physical Catom (float current, int[6] neighborhood_signals) with {
     ctx float x = 0;
     ctx float y = 0;
 }
 
-object ThreePoints with {
-    ctx float respected_dist = 10.0;
+object SIMPLEX with {
+    // side so the simplex tries to get equilateral
+    ctx float side = 10.0;
 }
-receipe among POINT {
+receipe Equilateral among POINT {
     for point in POINT{
         for other_point in POINT {
             if (other_point != point){
-                error = (point.x-other_point.x)*(point.x-other_point.x) + (point.y-other_point.y)*(point.y-other_point.y) - respected_dist;
-                float [2] displ = pid(respected_dist, error);
-                point.y = displ()
+                error = sqrt((point.x-other_point.x)**2 + (point.y-other_point.y)**2) - side;
+                float [2] displ = pid(side, error);
+                point.x = point.x + displ;
+                point.y = point.y + displ;
             }
         }
     }
 }
 
-object AA with {
-    ctx int nb_quads = 0;
-    ctx int command;
-} receipe among A {
-    
-}
-
-object AAA with {
-    ctx int nb_cubes = 0;
-    ctx int command = MAKE_FACES;
-} receipe among AA {
-    if(command == MAKE_FACES && nb_cubes == 0){
-        int nb_faces = 0;
-        for i in AA.nb_quads {
-            nb_faces = nb_faces + i;
-        }
-    }
-} receipe among AA {
-
-}
+object 
 
 ```
