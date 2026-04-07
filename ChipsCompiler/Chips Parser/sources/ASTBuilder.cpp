@@ -680,6 +680,7 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
             // DECLARATIONS FEATURING AN ASSIGNMENT MUST BE DISTINGUISHED IN THE METAMODEL
             if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr))
             {
+                std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
                 if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type()))
                 {
                     using chiant = std::pair<
@@ -715,6 +716,7 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
             }
             else
             {
+                std::cout << "ICI TRY EXTRACT RECCURING" << std::endl;
                 init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
                 continue;
             }
@@ -738,10 +740,39 @@ std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
         std::cout << "statement of then section" << std::endl;
         std::any followup = visit(stt);
 
-        try
-        {
-            then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                std::cout << "THEN TRY EXTRACT " << ast_builder_detail::type_name(followup.type()) << std::endl;
+                then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }
         }
         catch (const std::runtime_error &e)
         {
@@ -1170,10 +1201,42 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
     {
         std::any followup = visit(stt);
 
-        try
-        {
-            if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }            
         }
         catch (const std::runtime_error &e)
         {
@@ -1224,10 +1287,39 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
     {
         std::any followup = visit(stt);
 
-        try
-        {
-            if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }            
         }
         catch (const std::runtime_error &e)
         {
