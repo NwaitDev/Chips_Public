@@ -33,7 +33,11 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
         else if (auto *logical = std::any_cast<logical_definition>(&def))                             \
         {                                                                                             \
             prgm.get_preamble().add_definition(logical);                                              \
-        }                                                                                             \
+        }else if(auto* object = std::any_cast<object_definition>(&def)){ \
+            prgm.get_preamble().add_definition(object); \
+        }else if(auto* collective = std::any_cast<collective_function_definition>(&def)){\
+            prgm.get_preamble().add_definition(collective);\
+        }\
         else                                                                                          \
         {                                                                                             \
             throw std::runtime_error(ast_builder_detail::type_name(def.type()) + " not implemented"); \
@@ -100,12 +104,13 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
 std::any ASTBuilder::visitObjectDefinition(ChipsParser::ObjectDefinitionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method ObjectDefinitionContext");
+    return visit(ctx->object_def());
 }
 
 std::any ASTBuilder::visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveOperationDefinitionContext");
+    return visit(ctx->collective_op_def());
+    // throw std::runtime_error("Unimplemented visit method CollectiveOperationDefinitionContext");
 }
 
 std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *ctx)
@@ -115,7 +120,25 @@ std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDe
 
 std::any ASTBuilder::visitObject_def(ChipsParser::Object_defContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Object_defContext");
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "visit object " << identifier << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+
+    with_section with = std::any_cast<with_section>(visit(ctx->with_section()));
+
+    object_definition object(identifier, with);
+
+    SymbolTable::getInstance().exitScope();
+    if(SymbolTable::getInstance().lookupNodeDefinition(identifier).has_value()){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
+    if(!SymbolTable::getInstance().declareObject(identifier, object)){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
+
+    return object;
 }
 
 std::any ASTBuilder::visitImplementation_def(ChipsParser::Implementation_defContext *ctx)
@@ -130,7 +153,6 @@ std::any ASTBuilder::visitNode_mapping(ChipsParser::Node_mappingContext *ctx)
 
 std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx)
 {
-
     ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
     std::string identifier = lfd->IDENTIFIER()->getText();
     std::cout << "visit logical definition " << identifier << std::endl;
@@ -210,6 +232,9 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
     chips::logical_definition logical(identifier, params, init, then, outputs);
     SymbolTable::getInstance().exitScope();
+    if(SymbolTable::getInstance().lookupNodeDefinition(identifier).has_value()){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
     SymbolTable::getInstance().declareFunctionLogical(identifier, logical);
     SymbolTable::getInstance().dump();
     std::cout << "END LOGICAL " << identifier << std::endl;
@@ -218,7 +243,6 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
 {
-
     ChipsParser::P_function_defContext *pfd = ctx->p_function_def();
     std::string identifier = pfd->IDENTIFIER()->getText();
     std::cout << "visit physical definition " << identifier << std::endl;
@@ -355,7 +379,12 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     std::cout << "return physical" << std::endl;
     chips::physical_definition physical(identifier, params, init, then, outputs, with, sensors, actuators);
     SymbolTable::getInstance().exitScope();
-    SymbolTable::getInstance().declareFunctionPhysical(identifier, physical);
+    if(SymbolTable::getInstance().lookupFunctionLogical(identifier).has_value()){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
+    if(!SymbolTable::getInstance().declareFunctionPhysical(identifier, physical)){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
     SymbolTable::getInstance().dump();
     std::cout << "END PHYSICAL " << identifier << std::endl;
     return physical;
@@ -363,7 +392,197 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
 
 std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Collective_op_defContext");
+    std::cout << "visit Collective op definition" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+
+    ChipsParser::C_signatureContext* sign = ctx->c_signature();
+
+    std::string keyword = std::any_cast<std::string>(visit(sign->c_keywords()));
+    
+    collective_function_type type = (keyword == "collect") ? collective_function_type::COLLECT
+                                                           : collective_function_type::SPREAD; 
+
+    std::string fname = sign->IDENTIFIER(0)->getText();
+    std::string among = sign->IDENTIFIER(1)->getText();
+
+    std::optional<std::any> support = SymbolTable::getInstance().lookupNodeDefinition(among);
+
+    if(!support.has_value()){
+        throw std::runtime_error("'"+among+"' was never defined before");
+    }
+
+    node_definition* node_support = nullptr;
+
+    if(auto* node = std::any_cast<physical_definition>(&support.value())){
+        node_support = node->get_node_definition();
+    }else if(auto* node = std::any_cast<object_definition>(&support.value())){
+        node_support = node->get_node_definition();
+    }
+
+    std::cout << "AVANT DECL CONTEXT SUPPORT" << std::endl;
+
+    // Ajouter les contextuel de la fonction support à la table des symboles
+    throw std::runtime_error("PROBLEME ICI BORDEL");
+    for(auto stt : node_support->get_with_section().get_statements()){
+        std::cout << ast_builder_detail::type_name(std::any{stt}.type()) << std::endl;
+    }
+
+    
+    std::cout << "APRES DECL CONTEXT SUPPORT" << std::endl;
+
+    std::vector<ChipsParser::Cdf_defaulted_declContext*> all_params = sign->cdf_defaulted_decl();
+    std::vector<collective_parameter_variant> params;
+
+    for(ChipsParser::Cdf_defaulted_declContext* param : all_params){
+
+        std::string pname = param->IDENTIFIER()->getText();
+        dataflow_type dft = std::any_cast<dataflow_type>(visit(param->df_type()));
+        std::any c_expr = visit(param->c_expr());
+
+#define TRY_ADD_COLLECTIVE_PARAM(DFT) \
+        if(dft == DFT){ \
+            auto expr = ast_builder_detail::try_extract<DFT,expression_env::COLLECTIVE>(c_expr);\
+            dataflow_declaration<DFT, statement_env::COLLECTIVE> declaration(pname); \
+            declaration.get_variable().set_declaration(&declaration); \
+            collective_parameter<DFT> new_ast_param(pname, declaration, *expr); \
+            params.push_back(&new_ast_param); \
+            if(!SymbolTable::getInstance().declareVariable(pname, declaration.get_variable())){ \
+                throw std::runtime_error("'"+pname+"' was already declarated before"); \
+            } \
+            continue; \
+        } \
+
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::INT)
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::FLOAT)
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::BOOL)
+#undef TRY_ADD_COLLECTIVE_PARAM
+
+    }
+
+    SymbolTable::getInstance().dump();
+
+    accumulator_definition accumulator(params);
+
+    collectiveops_section stts;
+
+    for(ChipsParser::C_statementContext* stt : ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        std::cout << "TYPE STT COLLECTIVE: " << ast_builder_detail::type_name(std::any{stt}.type()) << std::endl;
+
+        try{
+            if(ChipsParser::CollectiveVariableDeclarationContext* stuff = dynamic_cast<ChipsParser::CollectiveVariableDeclarationContext*>(stt); (stuff != nullptr) && (stuff->cdf_full_declaration()->c_expr() != nullptr)){
+                std::cout << "HEREEEE" << std::endl;
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                    
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in collective section");
+    }
+
+    std::vector<rvalue_variant<expression_env::COLLECTIVE>> target_output_exprs;
+
+    for(auto* expr : ctx->c_expr()){
+
+        std::any exp = visit(expr);
+
+        if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+        }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+        }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+        }
+
+    }
+
+    std::vector<rvalue_variant<expression_env::COLLECTIVE>> default_output_exprs;
+    std::vector<channeled_output> channeled_outputs;
+
+    for(ChipsParser::C_outputContext* output : ctx->c_output()){
+        if(ChipsParser::DefaultOutputContext* stuff = dynamic_cast<ChipsParser::DefaultOutputContext*>(output); stuff != nullptr){
+            if(!default_output_exprs.empty()){
+                throw std::runtime_error("Only one default output is valid");
+            }
+            for(auto* expr : stuff->c_expr()){
+
+                std::any exp = visit(expr);
+
+                if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+                }
+
+            }
+        }else if(ChipsParser::ChanneledOutputContext* stuff = dynamic_cast<ChipsParser::ChanneledOutputContext*>(output); stuff != nullptr){
+            throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
+        }
+    }
+
+    target_output target(target_output_exprs);
+    default_output default_o(default_output_exprs);
+
+    SymbolTable::getInstance().exitScope();
+
+    collective_function_definition collective(fname,
+                                              type,
+                                              accumulator,
+                                              node_support,
+                                              stts,
+                                              target,
+                                              default_o,
+                                              channeled_outputs);
+
+
+    if(keyword == "collect"){
+        if(!SymbolTable::getInstance().declareFunctionCollect(fname, collective)){
+            throw std::runtime_error("'"+fname+"' was already defined before");
+        }
+    }else if(keyword == "spread"){
+        if(!SymbolTable::getInstance().declareFunctionSpread(fname, collective)){
+            throw std::runtime_error("'"+fname+"' was already defined before");
+        }
+    }else{
+        throw std::runtime_error("The keyword of this collective function doesn't exist");
+    }
+
+    return collective;
 }
 
 std::any ASTBuilder::visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx)
@@ -388,12 +607,21 @@ std::any ASTBuilder::visitP_function_def(ChipsParser::P_function_defContext *ctx
 
 std::any ASTBuilder::visitC_signature(ChipsParser::C_signatureContext *ctx)
 {
+    std::cout << "visit Csignature" << std::endl;
+
+    std::string keyword = std::any_cast<std::string>(visit(ctx->c_keywords()));
+    
+    std::string fname = ctx->IDENTIFIER(0)->getText();
+    std::string among = ctx->IDENTIFIER(1)->getText();
+
+
     throw std::runtime_error("Unimplemented visit method C_signatureContext");
 }
 
 std::any ASTBuilder::visitC_keywords(ChipsParser::C_keywordsContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_keywordsContext");
+    if(ctx->SPREAD_KW()) return ctx->SPREAD_KW()->getText();
+    return ctx->COLLECT_KW()->getText();
 }
 
 std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
@@ -438,6 +666,8 @@ std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool 
     std::cout << "visit var " << identifier << std::endl;
     std::optional<std::any> variable;
 
+    SymbolTable::getInstance().dump();
+
     if (!is_contextual)
     {
         variable = SymbolTable::getInstance().lookupVariable(identifier);
@@ -456,20 +686,22 @@ std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool 
         throw std::runtime_error("'" + identifier + "' was never declarated before");
     }
 
-    std::cout << "handle var type: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
-
-    std::cout << "before switch" << std::endl;
     switch (current_env)
     {
-    case expression_env::PRIMITIVE:
-    {
-        auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-        if (!is_contextual)
-            return tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
-        return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        case expression_env::PRIMITIVE:
+        {
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+            if (!is_contextual)
+                return tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+            return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        }
+        case expression_env::COLLECTIVE:{
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>>(suffixes);
+            if(!is_contextual)
+                return tryAllTypes<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
+            return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
+        }
     }
-    }
-    std::cout << "after switch" << std::endl;
     throw std::runtime_error("handle_var: Unsupported environment " + expenv_to_string(current_env));
 }
 
@@ -787,20 +1019,39 @@ std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
 template <dataflow_type DT, expression_env ENV, typename Dims>
 std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
 {
+    if constexpr(ENV == expression_env::PRIMITIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var))
+        {
+            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
+            if (*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
 
-    if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var))
-    {
-        std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
-        if (*sptr)
-            return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var))
+        {
+            std::cout << "SECOND ANY CAST" << std::endl;
+            auto non_const_ptr = const_cast<dataflow_primitive_variable<DT>*>(raw_ptr);
+            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+        }
+    }else if constexpr(ENV == expression_env::COLLECTIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<dataflow_collective_variable<DT>>>(&var))
+        {
+            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
+            if (*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
+
+        if (auto raw_ptr = std::any_cast<dataflow_collective_variable<DT>>(&var))
+        {
+            std::cout << "SECOND ANY CAST" << std::endl;
+            auto non_const_ptr = const_cast<dataflow_collective_variable<DT>*>(raw_ptr);
+            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+        }
+    }else{
+        throw std::runtime_error("en vrai de vrai jsp");
     }
 
-    if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var))
-    {
-        std::cout << "SECOND ANY CAST" << std::endl;
-        auto non_const_ptr = const_cast<dataflow_primitive_variable<DT> *>(raw_ptr);
-        return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
-    }
+    
 
     return {};
 }
@@ -808,18 +1059,24 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
 template <dataflow_type DT, expression_env ENV, typename Dims>
 std::any ASTBuilder::tryCastVarContextual(const std::any &var, const Dims &dims)
 {
+    if constexpr(ENV == expression_env::PRIMITIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var))
+        {
+            if (*sptr)
+                return std::make_shared<variable_contextual_expression<DT, ENV>>(sptr->get(), dims);
+        }
 
-    if (auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var))
-    {
-        if (*sptr)
-            return std::make_shared<variable_contextual_expression<DT, ENV>>(sptr->get(), dims);
+        if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var))
+        {
+            auto non_const_ptr = const_cast<contextual_variable<DT> *>(raw_ptr);
+            return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
+        }
+    }else if constexpr(ENV == expression_env::COLLECTIVE){
+        throw std::runtime_error("la collective faut la faire");
+    }else{
+        throw std::runtime_error("JA");
     }
-
-    if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var))
-    {
-        auto non_const_ptr = const_cast<contextual_variable<DT> *>(raw_ptr);
-        return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
-    }
+    
 
     return {};
 }
@@ -870,92 +1127,120 @@ std::any ASTBuilder::visitVarContext(ChipsParser::VarContextContext *ctx)
 
 std::any ASTBuilder::visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CStoplessExpressionContext");
+    return visit(ctx->c_stopless_expr());
 }
 
 std::any ASTBuilder::visitStop(ChipsParser::StopContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method StopContext");
+    return std::make_shared<stop>();
 }
 
 std::any ASTBuilder::visitCLT(ChipsParser::CLTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CLTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LTBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "LT");
 }
 
 std::any ASTBuilder::visitCGT(ChipsParser::CGTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CGTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GTBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "GT");
 }
 
 std::any ASTBuilder::visitCLEQ(ChipsParser::CLEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CLEQContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LEQBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "LEQ");
 }
 
 std::any ASTBuilder::visitCGEQ(ChipsParser::CGEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CGEQContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GEQBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "GEQ");
 }
 
 std::any ASTBuilder::visitCNEQ(ChipsParser::CNEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNEQContext");
+    std::cout << "visit !=" << std::endl;
+    return ast_builder_detail::dispatch_binary<
+                ast_builder_detail::NEQBuilder>(
+                    visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "NEQ");
 }
 
 std::any ASTBuilder::visitCEQ(ChipsParser::CEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CEQContext");
+    std::cout << "visit ==" << std::endl;
+    return ast_builder_detail::dispatch_binary<
+                ast_builder_detail::EQBuilder>(
+                    visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "EQ");
 }
 
 std::any ASTBuilder::visitCAND(ChipsParser::CANDContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CANDContext");
+    std::cout << "visit &&" << std::endl;
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "AND");
 }
 
 std::any ASTBuilder::visitCOR(ChipsParser::CORContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CORContext");
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "OR");
 }
 
 std::any ASTBuilder::visitPassCExpr0(ChipsParser::PassCExpr0Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr0Context");
+    return visit(ctx->c_stopless_expr0());
+}
+
+std::any ASTBuilder::visitPassCExpr01(ChipsParser::PassCExpr01Context* ctx){
+    return visit(ctx->c_stopless_expr01());
 }
 
 std::any ASTBuilder::visitCPLUS(ChipsParser::CPLUSContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CPLUSContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
+        visit(ctx->c_stopless_expr01()), visit(ctx->c_stopless_expr0()), "PLUS");
 }
 
 std::any ASTBuilder::visitCSUB(ChipsParser::CSUBContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CSUBContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::SubBuilder>(
+        visit(ctx->c_stopless_expr01()), visit(ctx->c_stopless_expr0()), "SUB");
 }
 
 std::any ASTBuilder::visitCNegate(ChipsParser::CNegateContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNegateContext");
+    return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
+        visit(ctx->c_stopless_expr1()), "Negate");
 }
 
 std::any ASTBuilder::visitPassCExpr1(ChipsParser::PassCExpr1Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr1Context");
+    return visit(ctx->c_stopless_expr1());
 }
 
 std::any ASTBuilder::visitCMULT(ChipsParser::CMULTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CMULTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::MultBuilder>(
+        visit(ctx->c_stopless_expr2()), visit(ctx->c_stopless_expr1()), "MULT");
 }
 
 std::any ASTBuilder::visitCDIV(ChipsParser::CDIVContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CDIVContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::DivBuilder>(
+        visit(ctx->c_stopless_expr2()), visit(ctx->c_stopless_expr1()), "DIV");
 }
 
 std::any ASTBuilder::visitCMOD(ChipsParser::CMODContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CMODContext");
+    auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->c_stopless_expr2()));
+    auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->c_stopless_expr1()));
+    if (left_collect && right_collect)
+    {
+        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
+    }
+    throw std::runtime_error("Error with modulo");
 }
 
 std::any ASTBuilder::visitCNOT(ChipsParser::CNOTContext *ctx)
@@ -965,37 +1250,58 @@ std::any ASTBuilder::visitCNOT(ChipsParser::CNOTContext *ctx)
 
 std::any ASTBuilder::visitPassCExpr2(ChipsParser::PassCExpr2Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr2Context");
+    return visit(ctx->c_stopless_expr2());
 }
 
 std::any ASTBuilder::visitCVariableExpression(ChipsParser::CVariableExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CVariableExpressionContext");
+    return handle_var(
+        ctx->IDENTIFIER()->getText(),
+        visit(ctx->c_suffixes()),
+        false);
 }
 
 std::any ASTBuilder::visitCINT(ChipsParser::CINTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CINTContext");
+    std::cout << "visit CINT" << std::endl;
+    return std::make_shared<direct<dataflow_type::INT, expression_env::COLLECTIVE>>(std::stoll(ctx->INT()->getText()));
 }
 
 std::any ASTBuilder::visitCFLOAT(ChipsParser::CFLOATContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CFLOATContext");
+    std::cout << "visit CFLOAT" << std::endl;
+    return std::make_shared<direct<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(std::stoll(ctx->FLOAT()->getText()));
 }
 
 std::any ASTBuilder::visitCBOOL(ChipsParser::CBOOLContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CBOOLContext");
+    std::cout << "visit CBOOL" << std::endl;
+    return std::make_shared<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>>(std::stoll(ctx->BOOL()->getText()));
 }
 
 std::any ASTBuilder::visitINPUT(ChipsParser::INPUTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method INPUTContext");
+    return std::make_shared<input>();
 }
 
 std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CtxVariableExpressionContext");
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "contextual var collect " << identifier << std::endl;
+
+    SymbolTable::getInstance().dump();
+
+    std::optional<std::any> variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
+
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    throw std::runtime_error("ICI");
+    // auto dims = extract_dimensions_collective(ctx->c_suffixes());
+    // return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
 }
 
 std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
@@ -1005,12 +1311,15 @@ std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpr
 
 std::any ASTBuilder::visitFunctionCall(ChipsParser::FunctionCallContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method FunctionCallContext");
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    std::cout << "visit function call " << identifier << std::endl;
+    
+    return make_function<expression_env::COLLECTIVE>(identifier, ctx->c_expr());
 }
 
 std::any ASTBuilder::visitCParenthesis(ChipsParser::CParenthesisContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CParenthesisContext");
+    return visit(ctx->c_stopless_expr());
 }
 
 std::any ASTBuilder::visitCCastAs(ChipsParser::CCastAsContext *ctx)
@@ -1023,9 +1332,26 @@ std::any ASTBuilder::visitC_cast(ChipsParser::C_castContext *ctx)
     throw std::runtime_error("Unimplemented visit method C_castContext");
 }
 
+std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> ASTBuilder::extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx){
+    std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims;
+    for (auto *expr : ctx->c_stopless_expr())
+    {
+        std::any val = visit(expr);
+        auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(val);
+        if (!node)
+        {
+            throw std::runtime_error(
+                "suffixes : l'expression d'indice doit être de type INT ");
+        }
+        node_arena.push_back(node);
+        dims.push_back(make_int_rvalue_variant_from_node<expression_env::COLLECTIVE>(node));
+    }
+    return dims;
+}
+
 std::any ASTBuilder::visitC_suffixes(ChipsParser::C_suffixesContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_suffixesContext");
+    return extract_dimensions_collective(ctx);
 }
 
 std::any ASTBuilder::visitSSuffixableVariableExpression(ChipsParser::SSuffixableVariableExpressionContext *ctx)
@@ -1258,7 +1584,46 @@ std::any ASTBuilder::visitS_if_else_statement(ChipsParser::S_if_else_statementCo
 
 std::any ASTBuilder::visitC_if_else_statement(ChipsParser::C_if_else_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_if_else_statementContext");
+    std::cout << "visit if else collective statement" << std::endl;
+
+    if_else_statement<statement_env::COLLECTIVE> if_else;
+
+    std::any if_stt = visit(ctx->c_if_statement());
+
+    if_else.m_if_section = std::any_cast<if_statement<statement_env::COLLECTIVE>>(if_stt).m_if_section;
+    if_else.m_condition = std::any_cast<if_statement<statement_env::COLLECTIVE>>(if_stt).m_condition;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::C_statementContext* stt : ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::Cdf_full_declarationContext* stuff = dynamic_cast<ChipsParser::Cdf_full_declarationContext*>(stt); (stuff != nullptr) && (stuff->c_expr() != nullptr)){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais");
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais");
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais oauis");
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_else.m_else_section.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in else collective section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+
+    return if_else;
 }
 
 std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
@@ -1340,7 +1705,51 @@ std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx
 
 std::any ASTBuilder::visitC_if_statement(ChipsParser::C_if_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_if_statementContext");
+    std::cout << "visit if collective statement" << std::endl;
+    if_statement<statement_env::COLLECTIVE> if_stt;
+
+    std::any val = visit(ctx->c_expr());
+    auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(val);
+    if(!node){
+        throw std::runtime_error(
+            "condition: l'expression doit être de type BOOL "
+            "(env COLLECTIVE)");
+    }
+    node_arena.push_back(node);
+    if_stt.m_condition = make_bool_rvalue_variant_from_node<expression_env::COLLECTIVE>(node);
+
+    std::cout << "statements if collective section" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::C_statementContext* stt: ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::Cdf_full_declarationContext* stuff = dynamic_cast<ChipsParser::Cdf_full_declarationContext*>(stt); (stuff != nullptr) && (stuff->c_expr() != nullptr)){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais");
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais");
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais oauis");
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in if collective section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+    return if_stt;
 }
 
 std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx)
@@ -1459,11 +1868,42 @@ std::any ASTBuilder::visitCollective_operation(ChipsParser::Collective_operation
 
 std::any ASTBuilder::visitCollectiveVariableDeclaration(ChipsParser::CollectiveVariableDeclarationContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveVariableDeclarationContext");
+
+    std::cout << "visit collective statement declaration" << std::endl;
+
+    dataflow_type type = std::any_cast<dataflow_type>(visit(ctx->cdf_full_declaration()->df_type()));
+    std::string var = ctx->cdf_full_declaration()->IDENTIFIER()->getText();
+    std::any assign;
+
+    if(ctx->cdf_full_declaration()->c_expr()){
+        assign = visit(ctx->cdf_full_declaration()->c_expr());
+    }
+
+    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>>(visit(ctx->cdf_full_declaration()->suffixes()));
+
+    switch(type){
+        case dataflow_type::INT:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::INT>(dims, var, assign);
+        case dataflow_type::FLOAT:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::FLOAT>(dims, var, assign);
+        case dataflow_type::BOOL:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::BOOL>(dims, var, assign);
+        default:
+            throw std::runtime_error("unknown type for variable declaration");
+    }
 }
 
 std::any ASTBuilder::visitCollectiveAssignment(ChipsParser::CollectiveAssignmentContext *ctx)
 {
+    std::cout << "visit collective assignment" << std::endl;
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    std::any suffixes = visit(ctx->c_suffixes());
+
+    std::any assign = visit(ctx->c_expr());
+
+    return handle_statement_assignment<expression_env::COLLECTIVE, statement_env::COLLECTIVE>(identifier, suffixes, assign, false);
+
     throw std::runtime_error("Unimplemented visit method CollectiveAssignmentContext");
 }
 
@@ -1479,12 +1919,14 @@ std::any ASTBuilder::visitCollectiveLoopStatement(ChipsParser::CollectiveLoopSta
 
 std::any ASTBuilder::visitCollectiveIfElseStatement(ChipsParser::CollectiveIfElseStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveIfElseStatementContext");
+    std::cout << "visit statement if else" << std::endl;
+    return visit(ctx->c_if_else_statement());
 }
 
 std::any ASTBuilder::visitCollectiveIfStatement(ChipsParser::CollectiveIfStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveIfStatementContext");
+    std::cout << "visit statement collective if" << std::endl;
+    return visit(ctx->c_if_statement());
 }
 
 std::any ASTBuilder::visitNamed_output(ChipsParser::Named_outputContext *ctx)
@@ -1674,13 +2116,13 @@ std::any ASTBuilder::visitPLUS(ChipsParser::PLUSContext *ctx)
 {
     // std::cout << "visitPLUS()" << std::endl;
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
-        visit(ctx->expr1()), visit(ctx->expr0()), "PLUS");
+        visit(ctx->expr01()), visit(ctx->expr0()), "PLUS");
 }
 
 std::any ASTBuilder::visitSUB(ChipsParser::SUBContext *ctx)
 {
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::SubBuilder>(
-        visit(ctx->expr1()), visit(ctx->expr0()), "SUB");
+        visit(ctx->expr01()), visit(ctx->expr0()), "SUB");
 }
 
 std::any ASTBuilder::visitNegate(ChipsParser::NegateContext *ctx)
@@ -1709,13 +2151,6 @@ std::any ASTBuilder::visitMOD(ChipsParser::MODContext *ctx)
     if (left_prim && right_prim)
     {
         return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::PRIMITIVE>::build(left_prim, right_prim);
-    }
-
-    auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr2()));
-    auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr1()));
-    if (left_collect && right_collect)
-    {
-        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
     }
 
     auto left_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr2()));
@@ -2148,6 +2583,10 @@ std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclaration
 std::any ASTBuilder::visitPassExpr0(ChipsParser::PassExpr0Context *ctx)
 {
     return visit(ctx->expr0());
+}
+
+std::any ASTBuilder::visitPassExpr01(ChipsParser::PassExpr01Context* ctx){
+    return visit(ctx->expr01());
 }
 
 std::any ASTBuilder::visitPassExpr1(ChipsParser::PassExpr1Context *ctx)

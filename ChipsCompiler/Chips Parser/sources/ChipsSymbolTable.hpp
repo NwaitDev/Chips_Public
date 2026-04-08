@@ -57,6 +57,10 @@ namespace chips {
                 return declare(name, value, SymbolKind::FUNCTION_PHYSICAL);
             }
 
+            bool declareObject(const std::string& name, const std::any& value){
+                return declare(name, value, SymbolKind::OBJECT);
+            }
+
             bool declareFunctionSpread(const std::string& name, const std::any& value){
                 return declare(name, value, SymbolKind::FUNCTION_SPREAD);
             }
@@ -81,8 +85,19 @@ namespace chips {
                 return lookup(name, SymbolKind::FUNCTION_LOGICAL);
             }
 
-            std::optional<std::any> lookupFunctionPhysical(const std::string& name) const{
-                return lookup(name, SymbolKind::FUNCTION_PHYSICAL);
+            // std::optional<std::any> lookupFunctionPhysical(const std::string& name) const{
+            //     return lookup(name, SymbolKind::FUNCTION_PHYSICAL);
+            // }
+
+            /**
+             * Retourne un noeud de type node qui est soit:
+             * - physical
+             * - object
+             */
+            std::optional<std::any> lookupNodeDefinition(const std::string& name){
+                std::optional<std::any> res = lookup(name, SymbolKind::FUNCTION_PHYSICAL);
+                if(res.has_value()) return res;
+                return lookup(name, SymbolKind::OBJECT);
             }
 
             std::optional<std::any> lookupFunctionSpread(const std::string& name) const{
@@ -116,6 +131,7 @@ namespace chips {
                 FUNCTION_PHYSICAL,
                 FUNCTION_SPREAD,
                 FUNCTION_COLLECT,
+                OBJECT,
             };
 
             std::string SymbolKindToString(SymbolKind kind) const{
@@ -127,6 +143,7 @@ namespace chips {
                     case FUNCTION_PHYSICAL: return "function physical";
                     case FUNCTION_SPREAD: return "function spread";
                     case FUNCTION_COLLECT: return "function collect";
+                    case OBJECT: return "object";
                 }
                 return "NOTHING FOUND HERE";
             }

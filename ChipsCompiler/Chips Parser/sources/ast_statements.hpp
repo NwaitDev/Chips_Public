@@ -34,7 +34,7 @@ namespace chips
 
         dataflow_declaration() = default;
 
-        dataflow_declaration(std::string name) : m_variable(dataflow_primitive_variable<dft>(name)) {};
+        dataflow_declaration(std::string name) : m_variable(typename SttEnvToVariableKind<dft, stenv>::type(name)) {};
 
         dataflow_declaration(df_variable_type variable)
             : m_variable(variable) {}

@@ -73,6 +73,83 @@ public:
 
     std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual);
 
+    template<expression_env expenv, statement_env stenv>
+    std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual){
+        std::cout << "handle_statement_assignment " << expenv_to_string(expenv) << std::endl;
+        std::optional<std::any> variable;
+        if(is_contextual){
+            variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
+        }else{
+            variable = SymbolTable::getInstance().lookupVariable(identifier);
+        }
+
+        if(!variable.has_value()){
+            throw std::runtime_error("'"+identifier+"' was never declarated before");
+        }
+
+        std::cout << "Type dynamique var: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
+
+
+        auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expenv>>>(suffixes);
+        std::any var = (!is_contextual) ? tryAllTypes<expenv>(identifier, variable.value(), dims)
+                                   : tryAllTypesContextual<expenv>(identifier, variable.value(), dims);
+
+        
+        if(auto right = ast_builder_detail::try_extract<dataflow_type::INT, expenv>(assign)){
+            try{
+                if(!is_contextual){
+                    auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::INT, expenv>>>(var);
+                    node_arena.push_back(left);
+                    node_arena.push_back(right);
+                    dataflow_assignment<dataflow_type::INT,stenv> assignment(left.get(), right.get());
+                    return assignment;
+                }
+                auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::INT, expenv>>>(var);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::INT,stenv> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur any_cast lors de left value dans assignment");
+            }
+        }else if(auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expenv>(assign)){
+            try{
+                if(!is_contextual){
+                    auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::FLOAT, expenv>>>(var);
+                    node_arena.push_back(left);
+                    node_arena.push_back(right);
+                    dataflow_assignment<dataflow_type::FLOAT,stenv> assignment(left.get(), right.get());
+                    return assignment;
+                }
+                auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::FLOAT, expenv>>>(var);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::FLOAT,stenv> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur any_cast lors de left value dans assignment");
+            }
+        }else if(auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expenv>(assign)){
+            try{
+                if(!is_contextual){
+                    auto left = std::any_cast<std::shared_ptr<variable_expression<dataflow_type::BOOL, expenv>>>(var);
+                    node_arena.push_back(left);
+                    node_arena.push_back(right);
+                    dataflow_assignment<dataflow_type::BOOL,stenv> assignment(left.get(), right.get());
+                    return assignment;
+                }
+                auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::BOOL, expenv>>>(var);
+                node_arena.push_back(left);
+                node_arena.push_back(right);
+                dataflow_assignment<dataflow_type::BOOL,stenv> assignment(left.get(), right.get());
+                return assignment;
+            }catch(const std::bad_any_cast& e){
+                throw std::runtime_error("Erreur any_cast lors de left value dans assignment");
+            }
+        }
+        throw std::runtime_error("error");
+    }
+
     std::any handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign);
 
     std::any visitContextualDeclaration(ChipsParser::ContextualDeclarationContext *ctx);
@@ -122,6 +199,8 @@ public:
     std::any visitCOR(ChipsParser::CORContext *ctx);
 
     std::any visitPassCExpr0(ChipsParser::PassCExpr0Context *ctx);
+
+    std::any visitPassCExpr01(ChipsParser::PassCExpr01Context* ctx);
 
     std::any visitCPLUS(ChipsParser::CPLUSContext *ctx);
 
@@ -310,6 +389,40 @@ public:
     std::any visitCdf_full_declaration(ChipsParser::Cdf_full_declarationContext *ctx);
 
     template<expression_env expenv>
+    std::any make_function(const std::string& fname, std::vector<ChipsParser::C_exprContext*> exprs){
+        std::cout << "make function symbol: " << fname << std::endl;
+
+        if (fname.compare("random") == 0){
+            return std::make_shared<function<dataflow_type::FLOAT, expenv>>(fname);
+        }
+
+        if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
+            fname.compare("max") == 0 || fname.compare("min") == 0){
+            std::vector<rvalue_variant<expenv>> parameters;
+            for (auto expr : exprs){
+                std::any val = visit(expr);
+                auto node = ast_builder_detail::try_extract<dataflow_type::INT, expenv>(val);
+                if (!node)
+                {
+                    throw std::runtime_error(
+                        "suffixes : l'expression d'indice doit être de type INT "
+                        "(env PRIMITIVE).");
+                }
+                node_arena.push_back(node);
+                parameters.push_back(make_variant_from_node(node));
+                return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
+            }
+        }
+
+        if (fname.compare("is_fresh") == 0){
+            // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
+            std::cerr << "WARNING : Recognized the function " + fname + " but it is not fully handled yet, currently replaced by a \"false\"" << std::endl;
+            return std::make_shared<direct<dataflow_type::BOOL, expenv>>(false);
+        }
+        throw std::runtime_error("could not recognize the function" + fname);
+    };
+
+    template<expression_env expenv>
     std::any make_function(const std::string &fname, std::vector<ChipsParser::ExprContext *> exprs)
     {
         std::cout << "make function symbol: " << fname << std::endl;
@@ -438,6 +551,8 @@ public:
         return dims;
     }
 
+    std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx);
+
     template <expression_env expenv, dataflow_type dft>
     std::any handle_statement_declaration(
         std::vector<int_rvalue_expression_variant<expenv>> suffixes,
@@ -479,6 +594,8 @@ public:
     std::any visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx);
 
     std::any visitPassExpr0(ChipsParser::PassExpr0Context *ctx);
+
+    std::any visitPassExpr01(ChipsParser::PassExpr01Context* ctx);
 
     std::any visitPassExpr1(ChipsParser::PassExpr1Context *ctx);
 

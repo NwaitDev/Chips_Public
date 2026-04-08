@@ -297,6 +297,8 @@ namespace chips {
 
     using rvalue_primitive_variant = rvalue_variant<expression_env::PRIMITIVE>;
 
+    using rvalue_collective_variant = rvalue_variant<expression_env::COLLECTIVE>;
+
     template<expression_env expenv>
     using primitive_iterable_variant = std::variant<
         function<dataflow_type::INT,expenv>*,

@@ -40,6 +40,9 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::NODE>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<node_statement_variant> get_statements() { return m_statements; }
+
         void hello();
     };
 
@@ -104,6 +107,12 @@ namespace chips
     {
         public:
         std::vector<collective_parameter_variant> m_accumulator;
+
+        accumulator_definition(){}
+
+        accumulator_definition(std::vector<collective_parameter_variant> accumulator)
+            : m_accumulator(accumulator){}
+
         void hello();
     };
 
@@ -117,6 +126,10 @@ namespace chips
         public:
         with_section m_with;
         node_definition(std::string id, with_section with) : definition(id), m_with(with) {}
+
+        with_section get_with_section() { return m_with; }
+
+        node_definition* get_node_definition() { return this; }
     };
 
     /**
@@ -129,6 +142,10 @@ namespace chips
     class object_definition : public node_definition
     {
         public:
+
+        object_definition(std::string identifier, with_section with)
+            : node_definition(identifier, with){}
+
         void hello();
     };
 
@@ -217,6 +234,19 @@ namespace chips
         target_output m_target_output;
         default_output m_default_output;
         std::vector<channeled_output> m_channeled_outputs;
+
+        collective_function_definition(std::string identifier,
+                                       collective_function_type type,
+                                       accumulator_definition accumulator,
+                                       node_definition* support,
+                                       collectiveops_section operations,
+                                       target_output target,
+                                       default_output default_output,
+                                       std::vector<channeled_output> channeled_output)
+            : definition(identifier), m_collective_function_type(type), m_accumulator(accumulator), 
+              m_support_object(support), m_operations(operations), m_target_output(target), 
+              m_default_output(default_output), m_channeled_outputs(channeled_output){}
+
         void hello();
     };
 

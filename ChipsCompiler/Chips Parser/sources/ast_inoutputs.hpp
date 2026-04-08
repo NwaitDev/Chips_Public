@@ -42,9 +42,17 @@ namespace chips {
     template<dataflow_type dft>
     class collective_parameter : public ast_node
     {
+        public:
         rvalue<dft,expression_env::COLLECTIVE> m_default_value;
         dataflow_declaration<dft,statement_env::COLLECTIVE> m_declaration;
         std::string m_name;
+
+        collective_parameter(
+            std::string name, 
+            dataflow_declaration<dft, statement_env::COLLECTIVE> declaration,
+            rvalue<dft, expression_env::COLLECTIVE> default_value)
+            : m_name(name), m_declaration(declaration), m_default_value(default_value){}
+
         void hello(){};
     };
 
@@ -94,7 +102,12 @@ namespace chips {
      */
     class default_output : collective_output<collective_output_kind::DEFAULTED>
     {
+        public:
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
+
+        default_output(std::vector<rvalue_variant<expression_env::COLLECTIVE>> accumulator_exprs)
+            : m_accumulator_expressions(accumulator_exprs){}
+
         void hello();
     };
     
@@ -108,8 +121,13 @@ namespace chips {
      */
     class target_output : collective_output<collective_output_kind::TARGET>
     {
+        public:
         // you should only allow stopless expressions for this member attribute
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_expressions;
+
+        target_output(std::vector<rvalue_variant<expression_env::COLLECTIVE>> expressions)
+            : m_expressions(expressions){}
+
         void hello();
     };
 

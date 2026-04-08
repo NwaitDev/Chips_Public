@@ -642,6 +642,28 @@ namespace chips
 
         inline void accept(visitor &v) { v.visit(*this); }
     };
+
+    class input : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>{
+
+
+
+        public:
+            
+            inline void hello(){}
+    };
+
+    class stop : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>{
+
+
+
+        public:
+            
+            inline void hello(){}
+    };
 }
 
 #endif
