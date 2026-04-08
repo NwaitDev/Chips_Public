@@ -107,6 +107,18 @@ helper def: allPortTypes : Set(bip!PortType) =
 		->collect(typesBag | thisModule.TypesBagAsPortType(typesBag));
 
 
+unique lazy rule PortTypeSync {
+	from emptystringplease: String
+
+	to pts : bip!PortType(
+		name <- 'port_t',
+		native <- false,
+		superTypes <- Sequence{},
+		castableTypes <- Sequence{},
+		dataParameterDeclarations <- Sequence{}
+	)
+}
+
 unique lazy rule TypesBagAsPortType {
 	from tb : Bag(String)
 	
@@ -146,6 +158,37 @@ unique lazy rule MakeChipsDataType {
 	)
 }
 
+lazy rule MakeBufferPetriNet {
+	from seq  : Sequence(bip!AtomInternalPortDeclaration)
+
+	to pn : bip!PetriNet(
+		states <- Sequence{rcv_state, snd_state},
+		initStates <- Sequence{rcv_state},
+		transitions <- Sequence{t_snd_to_rcv, t_rcv_to_snd}
+	),
+
+	t_rcv_to_snd : bip!Transition(
+		sources <- Sequence{rcv_state},
+		destinations <- Sequence{snd_state},
+		triggerPort <- seq->at(1)
+	),
+
+	t_snd_to_rcv : bip!Transition(
+		sources <- Sequence{snd_state},
+		destinations <- Sequence{rcv_state},
+		triggerPort <- seq->at(2)
+		-- actions <- Add the tick clock for chips variables 
+	),
+
+	rcv_state : bip!State(
+		name <- 'DATA_RECEIVING'
+	),
+
+	snd_state : bip!State(
+		name <- 'DATA_SENDING'
+	)
+}
+
 unique lazy rule MakeChipsBuffer{
 	from typename: String
 	
@@ -159,7 +202,7 @@ unique lazy rule MakeChipsBuffer{
 	        exportedDataDeclarations <- Sequence{aidd}, -- only for component type
 	        dataParameterDeclarations <- Sequence{}, -- only for component type
 	        internalPortDeclarations <- Sequence{aipd_input,aipd_output}, -- only for atom type
-	        behavior <- OclUndefined, -- only for atom type
+	        behavior <- thisModule.MakeBufferPetriNet(Sequence{aipd_input,aipd_output}), -- only for atom type
 	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
 	        exportPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for atom type
 	        priorities <- Sequence{}, -- only for atom type
@@ -247,7 +290,6 @@ rule FunctionDefinition2AtomType {
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
 			->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl));
-		
 	}
     to componenttype: bip!AtomType(
     	name <- chipsfunction.name + '_core', -- only for type  	OK
@@ -257,48 +299,98 @@ rule FunctionDefinition2AtomType {
         exportedPortDeclarations <- Sequence{}, -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
 		dataParameterDeclarations <- Sequence{}, -- only for component type
-        internalPortDeclarations <- Sequence{}, -- only for atom type
+        internalPortDeclarations <- Sequence{start_port, calc_port,snd_port,rcv_port}, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
-        behavior <- OclUndefined, -- only for atom type
+        behavior <- pn, -- only for atom type
         internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner}->flatten(), -- only for atom type
-        exportPortDeclarations <- Sequence{}, -- only for atom type
+        exportPortDeclarations <- Sequence{snd_port,rcv_port}, -- only for atom type
         priorities <- Sequence{}, -- only for atom type
         invariants <- Sequence{} -- only for atom type
-    )
---	
---	aidd : bip!AtomInternalDataDeclaration(
---			dataType <- thisModule.MakeChipsDataType(typename),
---			name <- typename + '_data',
---			const <- false,
---			exported <- true
---		),
---		ddrdp: bip!DataDeclarationReferenceDataParameter(
---			dataDeclarationReference <- aidd,
---			parameterDeclaration <- aidd,
---			type <- thisModule.MakeChipsDataType(typename)
---		),
---		aipd_input : bip!AtomInternalPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-typename+'_input',
---			dataParameters <- Sequence{ddrdp}
---		),
---		aipd_output : bip!AtomInternalPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-typename+'_output',
---			dataParameters <- Sequence{ddrdp}
---		),
---		aepd_in: bip!AtomExportPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-'input',
---			dataParameters <- Sequence{ddrdp},
---			portDeclarationReferences <- Sequence{aipd_input}
---		),
---		aepd_out: bip!AtomExportPortDeclaration(
---			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
---			name <-'output',
---			dataParameters <- Sequence{ddrdp},
---			portDeclarationReferences <- Sequence{aipd_output}
---		)
+    ),
+	start_port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.PortTypeSync(''),
+		name <- 'start',
+		dataParameters <- Sequence{}
+	),
+
+	calc_port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.PortTypeSync(''),
+		name <- 'then',
+		dataParameters <- Sequence{}
+	),
+
+	snd_port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.PortTypeSync(''),
+		name <- 'send',
+		dataParameters <- Sequence{}
+	),
+
+	exported_snd_port : bip!AtomExportPortDeclaration(
+		portType <- thisModule.PortTypeSync(''),
+		name <- 'send',
+		dataParameters <- Sequence{}
+	),
+
+	rcv_port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.PortTypeSync(''),
+		name <- 'recv',
+		dataParameters <- Sequence{}
+	),
+
+	pn : bip!PetriNet(
+		states <- Sequence{init_state, rcv_state, then_state, snd_state},
+		initStates <- Sequence{init_state},
+		transitions <- Sequence{t_init_to_rcv,t_init_to_snd,t_rcv_to_then,t_then_to_snd,t_snd_to_rcv},
+		initialActions <- Sequence{} -- put the call to the init function here
+	),
+
+	t_init_to_rcv : bip!Transition(
+		sources <- Sequence{init_state},
+		destinations <- Sequence{rcv_state},
+		triggerPort <- start_port,
+		guard <- OclUndefined -- include guard on the "isSource" parameter of the component
+	),
+
+	t_init_to_snd : bip!Transition(
+		sources <- Sequence{init_state},
+		destinations <- Sequence{snd_state},
+		triggerPort <- start_port,
+		guard <- OclUndefined -- include guard on the "isSource" parameter of the component
+	),
+
+	t_rcv_to_then : bip!Transition(
+		sources <- Sequence{rcv_state},
+		destinations <- Sequence{then_state},
+		triggerPort <- rcv_port
+	),
+
+	t_then_to_snd : bip!Transition(
+		sources <- Sequence{then_state},
+		destinations <- Sequence{snd_state},
+		triggerPort <- calc_port
+	),
+
+	t_snd_to_rcv : bip!Transition(
+		sources <- Sequence{snd_state},
+		destinations <- Sequence{rcv_state},
+		triggerPort <- snd_port
+	),
+
+	init_state : bip!State(
+		name <- 'INIT'
+	),
+
+	rcv_state : bip!State(
+		name <- 'RECEIVING'
+	),
+
+	snd_state : bip!State(
+		name <- 'SENDING'
+	),
+
+	then_state : bip!State(
+		name <- 'THEN'
+	)
 }
 
 rule Program2BipPackage {
@@ -307,7 +399,7 @@ rule Program2BipPackage {
 	using {
 		dts: Sequence(bip!DataType) = thisModule.allDataTypeNames->collect(t | thisModule.MakeChipsDataType(t));
 		base_pts : Sequence(bip!PortType) = Sequence{Bag{'int'},Bag{'float'},Bag{'bool'}}->collect(t | thisModule.TypesBagAsPortType(t));
-		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->asSequence();
+		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->union(Set{thisModule.PortTypeSync('')})->asSequence();
 		base_ats: Sequence(bip!AtomType) = Sequence{thisModule.MakeChipsBuffer('int'),thisModule.MakeChipsBuffer('float'),thisModule.MakeChipsBuffer('bool')};
 		core_ats: Sequence(bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
 		
