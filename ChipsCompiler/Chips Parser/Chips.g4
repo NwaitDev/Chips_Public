@@ -113,9 +113,13 @@ expr
     ;
 
 expr0
-    : expr1 PLUS expr0      # PLUS
-    | expr1 MINUS expr0     # SUB
-    | MINUS expr1           # Negate
+    : expr01 PLUS expr0      # PLUS
+    | expr01 MINUS expr0     # SUB
+    | expr01                # PassExpr01
+    ;
+
+expr01
+    : MINUS expr1           # Negate
     | expr1                 # PassExpr1
     ;
 
@@ -160,9 +164,13 @@ c_stopless_expr
     ;
 
 c_stopless_expr0
-    : c_stopless_expr1 PLUS c_stopless_expr0    #CPLUS
-    | c_stopless_expr1 MINUS c_stopless_expr0   #CSUB
-    | MINUS c_stopless_expr0                    #CNegate
+    : c_stopless_expr01 PLUS c_stopless_expr0    #CPLUS
+    | c_stopless_expr01 MINUS c_stopless_expr0   #CSUB
+    | c_stopless_expr01                         #PassCExpr01
+    ;
+
+c_stopless_expr01
+    : MINUS c_stopless_expr1                    #CNegate
     | c_stopless_expr1                          #PassCExpr1
     ;
 
