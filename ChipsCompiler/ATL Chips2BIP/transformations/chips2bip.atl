@@ -20,16 +20,31 @@ helper context Integer def : toString: String =
 
 helper context chips!logical_parameter  def : typeToInt : Integer =
 	Sequence{
-	chips!int_logical_parameter,
-	chips!float_logical_parameter,
-	chips!bool_logical_parameter}->indexOf(self.oclType());
+		chips!int_logical_parameter,
+		chips!float_logical_parameter,
+		chips!bool_logical_parameter
+	}->indexOf(self.oclType());
 
 helper context chips!logical_output  def : typeToInt : Integer =
 	Sequence{
-	chips!"chips::outputs::logical::int_output",
-	chips!"chips::outputs::logical::float_output",
-	chips!"chips::outputs::logical::bool_output"}->indexOf(self.oclType());
+		chips!"chips::outputs::logical::int_output",
+		chips!"chips::outputs::logical::float_output",
+		chips!"chips::outputs::logical::bool_output"
+	}->indexOf(self.oclType());
 	
+helper context chips!physical_parameter  def : typeToInt : Integer =
+	Sequence{
+		chips!int_physical_parameter,
+		chips!float_physical_parameter,
+		chips!bool_physical_parameter
+	}->indexOf(self.oclType());
+
+helper context chips!physical_output  def : typeToInt : Integer =
+	Sequence{
+		chips!"chips::outputs::physical::int_output",
+		chips!"chips::outputs::physical::float_output",
+		chips!"chips::outputs::physical::bool_output"
+	}->indexOf(self.oclType());
 
 helper context String def : toIntType : Integer =
     if thisModule.primitiveTypes->exists(t | (t = self) ) then
@@ -70,6 +85,30 @@ helper context chips!logical_output  def : extractTypeAsString : String =
 		endif
 	endif;
 
+helper context chips!physical_parameter  def : extractTypeAsString : String =
+	if self.oclIsTypeOf(chips!int_physical_parameter)
+	then thisModule.primitiveTypes->at(1)
+	else if self.oclIsTypeOf(chips!float_physical_parameter)
+		then thisModule.primitiveTypes->at(2)
+		else if self.oclIsTypeOf(chips!bool_physical_parameter)
+			then thisModule.primitiveTypes->at(3)
+			else 'unknown_type'
+			endif
+		endif
+	endif;
+
+helper context chips!physical_output  def : extractTypeAsString : String =
+	if self.oclIsTypeOf(chips!"chips::outputs::physical::int_output")
+	then thisModule.primitiveTypes->at(1)
+	else if self.oclIsTypeOf(chips!"chips::outputs::physical::float_output")
+		then thisModule.primitiveTypes->at(2)
+		else if self.oclIsTypeOf(chips!"chips::outputs::physical::bool_output")
+			then thisModule.primitiveTypes->at(3)
+			else 'unknown_type'
+			endif
+		endif
+	endif;
+
 helper context chips!primitive_declaration  def : extractTypeAsString : String =
 	if self.oclIsTypeOf(chips!"chips::statements::primitive::int_declaration")
 	then thisModule.primitiveTypes->at(1)
@@ -95,11 +134,23 @@ helper def: allDataTypeNames : Set(String) =
 
 helper def: allPortTypes : Set(bip!PortType) =
 	chips!function_definition.allInstances()
-        ->collect(fd | fd.parameters)
+        ->collect(fd | fd.parameters->union(
+			if fd.oclIsTypeOf(chips!physical_definition) then
+				fd.sensor
+			else
+				Sequence{}
+			endif
+		))
 		->collect(paramlist | paramlist->collect(param | param.typeToInt)->asBag())
 		->union(
 			chips!function_definition.allInstances()
-			->collect(fd | fd.outputs)
+			->collect(fd | fd.outputs->union(
+				if fd.oclIsTypeOf(chips!physical_definition) then
+					fd.actuator
+				else
+					Sequence{}
+				endif
+			))
 			->collect(outputlist | outputlist->collect(o | o.typeToInt)->asBag())
 		)
 		->asSet()
@@ -155,6 +206,18 @@ unique lazy rule MakeChipsDataType {
 		superTypes <- Sequence{},
 		castableTypes <- Sequence{},
 		backendName <- 'chips_'+typename
+	)
+}
+
+unique lazy rule MakeBaseDataType {
+	from typename: String
+
+	to dt : bip!DataType(
+		name <- typename,
+		native <- true,
+		superTypes <- Sequence{},
+		castableTypes <- Sequence{},
+		backendName <- typename
 	)
 }
 
@@ -245,7 +308,7 @@ unique lazy rule MakeChipsBuffer{
 		
 }
 
-rule Parameter2AtomIntenalDataDeclaration{
+rule LogicalParameter2AtomIntenalDataDeclaration{
 	from param : chips!logical_parameter
 	
 	to aidd : bip!AtomInternalDataDeclaration(
@@ -256,7 +319,7 @@ rule Parameter2AtomIntenalDataDeclaration{
 	)
 }
 
-rule Output2AtomIntenalDataDeclaration{
+rule LogicalOutput2AtomIntenalDataDeclaration{
 	from output : chips!logical_output
 	
 	to aidd : bip!AtomInternalDataDeclaration(
@@ -267,6 +330,27 @@ rule Output2AtomIntenalDataDeclaration{
 	)
 }
 
+rule PhysicalParameter2AtomIntenalDataDeclaration{
+	from param : chips!physical_parameter
+	
+	to aidd : bip!AtomInternalDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(param.extractTypeAsString),
+		name <- param.name + '_in',
+		const <- false,
+		exported <- true
+	)
+}
+
+rule PhysicalOutput2AtomIntenalDataDeclaration{
+	from output : chips!physical_output
+	
+	to aidd : bip!AtomInternalDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(output.extractTypeAsString),
+		name <- output.name + '_out',
+		const <- false,
+		exported <- true
+	)
+}
 
 lazy rule PrimitiveDecl2AtomInternalDataDeclaration {
 	from primdecl : chips!primitive_declaration
@@ -280,25 +364,41 @@ lazy rule PrimitiveDecl2AtomInternalDataDeclaration {
 }
 
 rule FunctionDefinition2AtomType {
-    
     from chipsfunction: chips!function_definition
 	
 	using {
-    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = chipsfunction.parameters;
-		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = chipsfunction.outputs;
+		allparams : Sequence(OclAny) = chipsfunction.parameters->union(
+				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
+					chipsfunction.sensor
+				else
+					Sequence{}
+				endif 
+			);
+    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = allparams;
+
+		alloutputs : Sequence(OclAny) = chipsfunction.outputs->union(
+				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
+					chipsfunction.actuator
+				else
+					Sequence{}
+				endif 
+			);
+		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = alloutputs;
+			
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
 			->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl));
 	}
+
     to componenttype: bip!AtomType(
     	name <- chipsfunction.name + '_core', -- only for type  	OK
         native <- false, -- only for type							OK
         superTypes <- Sequence{}, -- only for type					OK
         castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{}, -- only for component type
+        exportedPortDeclarations <- Sequence{snd_port, rcv_port}, -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
-		dataParameterDeclarations <- Sequence{}, -- only for component type
+		dataParameterDeclarations <- Sequence{isSource}, -- only for component type
         internalPortDeclarations <- Sequence{start_port, calc_port,snd_port,rcv_port}, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
         behavior <- pn, -- only for atom type
@@ -307,6 +407,14 @@ rule FunctionDefinition2AtomType {
         priorities <- Sequence{}, -- only for atom type
         invariants <- Sequence{} -- only for atom type
     ),
+
+
+	isSource : bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBaseDataType('bool'),
+		name <- 'isSource',
+		const <- true
+	),
+
 	start_port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.PortTypeSync(''),
 		name <- 'start',
@@ -320,19 +428,13 @@ rule FunctionDefinition2AtomType {
 	),
 
 	snd_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
-		name <- 'send',
-		dataParameters <- Sequence{}
-	),
-
-	exported_snd_port : bip!AtomExportPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
+		portType <- thisModule.TypesBagAsPortType(allparams->collect(param | param.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->asBag()),
 		name <- 'send',
 		dataParameters <- Sequence{}
 	),
 
 	rcv_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
+		portType <- thisModule.TypesBagAsPortType(alloutputs->collect(output | output.typeToInt)->asBag()->collect(typeAsInt | typeAsInt.toStringType)->asBag()),
 		name <- 'recv',
 		dataParameters <- Sequence{}
 	),
@@ -397,7 +499,12 @@ rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
 	using {
-		dts: Sequence(bip!DataType) = thisModule.allDataTypeNames->collect(t | thisModule.MakeChipsDataType(t));
+		dts: Sequence(bip!DataType) = 
+		thisModule.allDataTypeNames->collect(t | thisModule.MakeChipsDataType(t))
+			->asSequence()
+			->append(thisModule.MakeBaseDataType('int'))
+			->append(thisModule.MakeBaseDataType('float'))
+			->append(thisModule.MakeBaseDataType('bool'));
 		base_pts : Sequence(bip!PortType) = Sequence{Bag{'int'},Bag{'float'},Bag{'bool'}}->collect(t | thisModule.TypesBagAsPortType(t));
 		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->union(Set{thisModule.PortTypeSync('')})->asSequence();
 		base_ats: Sequence(bip!AtomType) = Sequence{thisModule.MakeChipsBuffer('int'),thisModule.MakeChipsBuffer('float'),thisModule.MakeChipsBuffer('bool')};
