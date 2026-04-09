@@ -178,7 +178,7 @@ c_stopless_expr1
     : c_stopless_expr2 TIMES c_stopless_expr1   #CMULT
     | c_stopless_expr2 DIV c_stopless_expr1     #CDIV
     | c_stopless_expr2 MOD c_stopless_expr1     #CMOD
-    | NOT c_stopless_expr1                      #CNOT
+    | NOT c_stopless_expr2                      #CNOT
     | c_stopless_expr2                          #PassCExpr2
     ;
 
