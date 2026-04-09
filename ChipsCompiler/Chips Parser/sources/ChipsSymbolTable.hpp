@@ -49,6 +49,10 @@ namespace chips {
                 return declare(name, value, SymbolKind::VARIABLE_SENSOR);
             }
 
+            bool declareChannel(const std::string& name, const std::any& value){
+                return declare(name, value, SymbolKind::CHANNEL);
+            }
+
             bool declareFunctionLogical(const std::string& name, const std::any& value){
                 return declare(name, value, SymbolKind::FUNCTION_LOGICAL);
             }
@@ -79,6 +83,10 @@ namespace chips {
 
             std::optional<std::any> lookupSensorVariable(const std::string& name){
                 return lookup(name, SymbolKind::VARIABLE_SENSOR);
+            }
+
+            std::optional<std::any> lookupChannel(const std::string& name){
+                return lookup(name, SymbolKind::CHANNEL);
             }
 
             std::optional<std::any> lookupFunctionLogical(const std::string& name) const{
@@ -132,6 +140,7 @@ namespace chips {
                 FUNCTION_SPREAD,
                 FUNCTION_COLLECT,
                 OBJECT,
+                CHANNEL,
             };
 
             std::string SymbolKindToString(SymbolKind kind) const{
@@ -144,6 +153,7 @@ namespace chips {
                     case FUNCTION_SPREAD: return "function spread";
                     case FUNCTION_COLLECT: return "function collect";
                     case OBJECT: return "object";
+                    case CHANNEL: return "channel";
                 }
                 return "NOTHING FOUND HERE";
             }

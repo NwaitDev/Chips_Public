@@ -110,7 +110,6 @@ std::any ASTBuilder::visitObjectDefinition(ChipsParser::ObjectDefinitionContext 
 std::any ASTBuilder::visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *ctx)
 {
     return visit(ctx->collective_op_def());
-    // throw std::runtime_error("Unimplemented visit method CollectiveOperationDefinitionContext");
 }
 
 std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *ctx)
@@ -423,9 +422,28 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
     std::cout << "AVANT DECL CONTEXT SUPPORT" << std::endl;
 
     // Ajouter les contextuel de la fonction support à la table des symboles
-    throw std::runtime_error("PROBLEME ICI BORDEL");
     for(auto stt : node_support->get_with_section().get_statements()){
-        std::cout << ast_builder_detail::type_name(std::any{stt}.type()) << std::endl;
+
+        if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_INT>*>(&stt)){
+            auto contex = *n;
+            // std::cout << "name " << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx int " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_FLOAT>*>(&stt)){
+            auto contex = *n;
+            // std::cout << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx float " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_BOOL>*>(&stt)){
+            auto contex = *n;
+            // std::cout << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx bool " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CHANNEL>*>(&stt)){
+            auto contex = *n;
+            SymbolTable::getInstance().declareChannel(contex->get_name(), contex);
+        }
+        // throw std::runtime_error("not a contextual variable in with section of "+among);
     }
 
     
@@ -551,7 +569,35 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
             }
         }else if(ChipsParser::ChanneledOutputContext* stuff = dynamic_cast<ChipsParser::ChanneledOutputContext*>(output); stuff != nullptr){
-            throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
+            SymbolTable::getInstance().dump();
+
+            std::vector<rvalue_variant<expression_env::COLLECTIVE>> exprs_output;
+
+            for(ChipsParser::C_exprContext* expr : stuff->c_expr()){
+                std::any exp = visit(expr);
+
+                if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+                }
+            }
+
+            std::optional<std::any> channel = SymbolTable::getInstance().lookupChannel(stuff->IDENTIFIER()->getText());
+
+            if(!channel.has_value()){
+                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was never declarated before");
+            }
+
+            auto chan = std::any_cast<node_element_declaration<node_element::CHANNEL>*>(channel.value());
+
+            channeled_output channel_output(chan, exprs_output);
+
+            channeled_outputs.push_back(channel_output);
+
+            // throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
         }
     }
 
@@ -658,7 +704,10 @@ std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
 std::any ASTBuilder::visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx)
 {
     std::cout << "Visiting Channel declaration" << std::endl;
-    return node_element_declaration<node_element::CHANNEL>(ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
+    auto decl = std::make_shared<node_element_declaration<node_element::CHANNEL>>(
+        ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
+    node_arena.push_back(decl);
+    return decl.get();
 }
 
 std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool is_contextual)
@@ -832,7 +881,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an int contextual assignment");
     }
@@ -851,7 +900,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an float contextual assignment");
     }
@@ -870,7 +919,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an BOOL contextual assignment");
     }
@@ -1072,7 +1121,17 @@ std::any ASTBuilder::tryCastVarContextual(const std::any &var, const Dims &dims)
             return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
         }
     }else if constexpr(ENV == expression_env::COLLECTIVE){
-        throw std::runtime_error("la collective faut la faire");
+        std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
+        if(auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var)){
+            if(*sptr)
+                return std::make_shared<variable_contextual_expression<DT, ENV>>(
+                    reinterpret_cast<variable<ENV>*>(sptr->get()), dims);
+        }
+        if(auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var)){
+            auto non_const_ptr = const_cast<contextual_variable<DT>*>(raw_ptr);
+            return std::make_shared<variable_contextual_expression<DT,ENV>>(
+                reinterpret_cast<variable<ENV>*>(non_const_ptr), dims);
+        }
     }else{
         throw std::runtime_error("JA");
     }
@@ -1245,7 +1304,9 @@ std::any ASTBuilder::visitCMOD(ChipsParser::CMODContext *ctx)
 
 std::any ASTBuilder::visitCNOT(ChipsParser::CNOTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNOTContext");
+    std::cout << "visit not" << std::endl;
+    return ast_builder_detail::dispatch_boolean_unary<ast_builder_detail::NOTBuilder>(
+        visit(ctx->c_stopless_expr2()), "NOT");
 }
 
 std::any ASTBuilder::visitPassCExpr2(ChipsParser::PassCExpr2Context *ctx)
@@ -1299,9 +1360,9 @@ std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressi
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
 
-    throw std::runtime_error("ICI");
-    // auto dims = extract_dimensions_collective(ctx->c_suffixes());
-    // return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
+    // throw std::runtime_error("ICI");
+    auto dims = extract_dimensions_collective(ctx->c_suffixes());
+    return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
 }
 
 std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
@@ -2383,7 +2444,10 @@ int_rvalue_expression_variant<expenv> ASTBuilder::make_int_rvalue_variant_from_n
         return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::INT, expenv> *>(ptr))
         return p;
-
+    if (auto p = dynamic_cast<input*>(ptr))
+        return p;
+    if (auto p = dynamic_cast<stop*>(ptr))
+        return p;
     throw std::runtime_error("Unsupported type in make_int_rvalue_variant_from_node");
 }
 
@@ -2430,6 +2494,10 @@ bool_rvalue_expression_variant<expenv> ASTBuilder::make_bool_rvalue_variant_from
     if (auto p = dynamic_cast<direct<dataflow_type::BOOL, expenv> *>(ptr))
         return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::BOOL, expenv> *>(ptr))
+        return p;
+    if (auto p = dynamic_cast<input*>(ptr))
+        return p;
+    if (auto p = dynamic_cast<stop*>(ptr))
         return p;
 
     throw std::runtime_error("Unsupported type in make_bool_rvalue_variant_from_node");
@@ -2519,6 +2587,13 @@ rvalue_variant<expenv> ASTBuilder::make_variant_from_node(
         return p;
     if (auto p = dynamic_cast<not_operator<expenv> *>(ptr))
         return p;
+    if constexpr (expenv == expression_env::COLLECTIVE)
+    {
+        if (auto p = dynamic_cast<input *>(ptr))
+            return static_cast<rvalue<dft, expenv> *>(p);
+        if (auto p = dynamic_cast<stop *>(ptr))
+            return static_cast<rvalue<dft, expenv> *>(p);
+    }
 
     throw std::runtime_error("Unsupported type in make_variant_from_node");
 }

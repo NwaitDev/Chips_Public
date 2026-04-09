@@ -90,8 +90,16 @@ namespace chips {
      */
     class channeled_output : collective_output<collective_output_kind::CHANNELED>
     {
+        public:
         node_element_declaration<node_element::CHANNEL>* m_channel;
         std::vector<rvalue_variant<expression_env::COLLECTIVE>> m_accumulator_expressions;
+
+        channeled_output(){}
+
+        channeled_output(node_element_declaration<node_element::CHANNEL>* channel,
+                         std::vector<rvalue_variant<expression_env::COLLECTIVE>> accumulator_exprs)
+            : m_channel(channel), m_accumulator_expressions(accumulator_exprs){}
+
         void hello();
     };
 

@@ -588,7 +588,6 @@ namespace ast_builder_detail
             typename DataflowVariableDeclarationAliasType<expenv, dft>::type,
             typename DataflowAssignmentAliasType<expenv, dft>::type>;
         the_good_pair followup_pair = std::any_cast<the_good_pair>(followup);
-        std::cout << "SYSTEM TRY EXTRACT BEFORE FAILED" << std::endl;
         datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement<stenv>(followup_pair.first)));
         datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement<stenv>(followup_pair.second)));
     }

@@ -19,42 +19,30 @@ namespace ast_builder_detail
     
     node_statement_variant try_extract_node_specific_statement(std::any statement)
     {
-        try
+        if (auto p = std::any_cast<node_element_declaration<node_element::CHANNEL>*>(&statement))
         {
-            node_element_declaration<node_element::CHANNEL> new_ast_stt = std::any_cast<node_element_declaration<node_element::CHANNEL>>(statement);
-            return &new_ast_stt;
+            return *p;
         }
-        catch (const std::bad_any_cast &e)
+        std::cout << "not a channel declaration" << std::endl;
+
+        if (auto p = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_INT>*>(&statement))
         {
-            std::cout << "not a channel declaration" << std::endl;
+            return *p;
         }
-        try
+        std::cout << "not a contextual int declaration" << std::endl;
+
+        if (auto p = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_FLOAT>*>(&statement))
         {
-            node_element_declaration<node_element::CONTEXTUAL_INT> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_INT>>(statement);
-            return &new_ast_stt;
+            return *p;
         }
-        catch (const std::bad_any_cast &e)
+        std::cout << "not a contextual float declaration" << std::endl;
+
+        if (auto p = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_BOOL>*>(&statement))
         {
-            std::cout << "not a contextual int declaration" << std::endl;
+            return *p;
         }
-        try
-        {
-            node_element_declaration<node_element::CONTEXTUAL_FLOAT> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_FLOAT>>(statement);
-            return &new_ast_stt;
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            std::cout << "not a contextual float declaration" << std::endl;
-        }
-        try
-        {
-            node_element_declaration<node_element::CONTEXTUAL_BOOL> new_ast_stt = std::any_cast<node_element_declaration<node_element::CONTEXTUAL_BOOL>>(statement);
-            return &new_ast_stt;
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            std::cout << "not a contextual bool declaration" << std::endl;
-        }
+        std::cout << "not a contextual bool declaration" << std::endl;
+
         throw std::runtime_error("failed to extract node specific statement");
     }
 
