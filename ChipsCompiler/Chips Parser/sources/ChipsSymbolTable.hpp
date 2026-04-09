@@ -73,6 +73,10 @@ namespace chips {
                 return declare(name, value, SymbolKind::FUNCTION_COLLECT);
             }
 
+            bool declareBlock(const std::string& name, const std::any& value){
+                return declare(name, value, SymbolKind::BLOCK);   
+            }
+
             std::optional<std::any> lookupVariable(const std::string& name) const{
                 return lookup(name, SymbolKind::VARIABLE);
             }
@@ -116,6 +120,10 @@ namespace chips {
                 return lookup(name, SymbolKind::FUNCTION_COLLECT);
             }
 
+            std::optional<std::any> lookupBlock(const std::string& name) const{
+                return lookup(name, SymbolKind::BLOCK);
+            }
+
             void dump() const {
                 std::cout << "===== Symbol Table =====\n";
                 int level = scopes.size();
@@ -141,6 +149,7 @@ namespace chips {
                 FUNCTION_COLLECT,
                 OBJECT,
                 CHANNEL,
+                BLOCK,
             };
 
             std::string SymbolKindToString(SymbolKind kind) const{
@@ -154,6 +163,7 @@ namespace chips {
                     case FUNCTION_COLLECT: return "function collect";
                     case OBJECT: return "object";
                     case CHANNEL: return "channel";
+                    case BLOCK: return "block";
                 }
                 return "NOTHING FOUND HERE";
             }

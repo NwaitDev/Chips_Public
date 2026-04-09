@@ -225,7 +225,21 @@ namespace chips {
     template<block_type bt> 
     class block_variable : public system_variable 
     {
+        public:
         block_declaration<bt>* m_declaration;
+
+        block_variable(){}
+
+        block_variable(std::string name) : system_variable(name){}
+        block_variable(std::string name, 
+                       block_declaration<bt>* declaration,
+                       std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims)
+            : system_variable(name), m_declaration(declaration){
+                for(auto dim : dims){
+                    m_dimensions.push_back(dim);
+                }
+            }
+
         void hello(){}
     };
     

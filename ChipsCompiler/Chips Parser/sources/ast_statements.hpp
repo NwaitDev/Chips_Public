@@ -204,11 +204,23 @@ namespace chips
     template <block_type bt>
     class block_declaration : public statement<statement_env::SYSTEM, recurring_statement::DECLARATION>
     {
+        public:
         using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
         using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
 
         block_definition_t *m_defintion;
         block_variable_t m_variable;
+
+        block_declaration(){}
+        block_declaration(std::string name) : m_variable(block_variable_t(name)){}
+
+        block_declaration(block_definition_t* definition,
+                          block_variable_t variable)
+            : m_defintion(definition), m_variable(variable){}
+
+        void set_variable(block_variable_t var) { m_variable = var; }
+        block_variable_t get_variable() { return m_variable; }
+
         void hello() {}
     };
 

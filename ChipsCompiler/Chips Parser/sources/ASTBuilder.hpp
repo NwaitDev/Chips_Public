@@ -553,6 +553,67 @@ public:
 
     std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx);
 
+    template<block_type bt>
+    std::any handle_statement_declaration(
+        std::string type,
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> suffixes,
+        std::string identifier){
+
+        std::cout << "handle_statement_declaration (bt)" << std::endl;
+            
+        if constexpr(bt == block_type::PHYSICAL){
+            auto def = std::any_cast<physical_definition>(SymbolTable::getInstance().lookupNodeDefinition(type).value());
+
+            auto decl = std::make_shared<block_declaration<block_type::PHYSICAL>>(identifier);
+            auto var = std::make_shared<block_variable<block_type::PHYSICAL>>(identifier, decl.get(), suffixes);
+            decl->set_variable(*var);
+            node_arena.push_back(decl);
+            node_arena.push_back(var);
+
+            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+                throw std::runtime_error("'"+identifier+"' was already declarated before");
+            }
+            return *decl;
+        }else if constexpr(bt == block_type::LOGICAL){
+            auto def = std::any_cast<logical_definition>(SymbolTable::getInstance().lookupFunctionLogical(type).value());
+
+            auto decl = std::make_shared<block_declaration<block_type::LOGICAL>>(identifier);
+            auto var = std::make_shared<block_variable<block_type::LOGICAL>>(identifier, decl.get(), suffixes);
+            decl->set_variable(*var);
+            node_arena.push_back(decl);
+            node_arena.push_back(var);
+
+            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+                throw std::runtime_error("'"+identifier+"' was already declarated before");
+            }
+            return *decl;
+        }else if constexpr(bt == block_type::OBJECT){
+            auto def = std::any_cast<object_definition>(SymbolTable::getInstance().lookupNodeDefinition(type).value());
+
+            auto decl = std::make_shared<block_declaration<block_type::OBJECT>>(identifier);
+            auto var = std::make_shared<block_variable<block_type::OBJECT>>(identifier, decl.get(), suffixes);
+            decl->set_variable(*var);
+            node_arena.push_back(decl);
+            node_arena.push_back(var);
+
+            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+                throw std::runtime_error("'"+identifier+"' was already declarated before");
+            }
+            return *decl;
+        }
+        throw std::runtime_error("Unsupported block type");
+            
+
+        //     std::cout << "handle_statement_declaration " << identifier << std::endl;
+        // auto decl = std::make_shared<typename DataflowVariableDeclarationAliasType<expenv, dft>::type>(
+        //     typename DataflowVariableAliasType<expenv, dft>::type(identifier));
+        // auto var = std::make_shared<typename DataflowVariableAliasType<expenv, dft>::type>(
+        //     identifier, decl.get(), suffixes);
+        // decl->set_variable(*var);
+        // node_arena.push_back(decl);
+        // node_arena.push_back(var);
+        }
+
     template <expression_env expenv, dataflow_type dft>
     std::any handle_statement_declaration(
         std::vector<int_rvalue_expression_variant<expenv>> suffixes,
@@ -588,6 +649,7 @@ public:
         {
             throw std::runtime_error("Redeclare a variable already declared 2 " + identifier);
         }
+        std::cout << "return PAIR" << std::endl;
         return std::pair{*decl,assignment};
     }
 
@@ -649,7 +711,7 @@ public:
             {
                 static constexpr auto expenv = SttEnvToExpEnv<stenv>::value;
                 using sttvarianttype = typename StatementVariantTypeAlias<expenv>::type;
-                datastruct->add_statement(std::get<sttvarianttype>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                datastruct->add_statement(std::get<sttvarianttype>(ast_builder_detail::try_extract_recurring_statement<stenv>(followup)));
             }
         }
         catch (const std::runtime_error &e)

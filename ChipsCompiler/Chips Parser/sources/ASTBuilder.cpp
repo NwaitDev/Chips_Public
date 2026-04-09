@@ -66,16 +66,16 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr)               \
     {                                                                                      \
         std::any res = visit(stuff);                                                       \
-        try                                                                                \
-        {                                                                                  \
-            prgm.get_system().add_statement(std::any_cast<system_statement_variant>(res)); \
-        }                                                                                  \
-        catch (std::bad_any_cast e)                                                        \
-        {                                                                                  \
-            std::cerr << ERRMSG << std::endl;                                              \
-            throw e;                                                                       \
-        }                                                                                  \
-        continue;                                                                          \
+        if(auto* block = std::any_cast<block_declaration<block_type::PHYSICAL>>(&res)){\
+            prgm.get_system().add_statement(block); \
+        }else if(auto* block = std::any_cast<block_declaration<block_type::LOGICAL>>(&res)){\
+            prgm.get_system().add_statement(block);\
+        }else if(auto* block = std::any_cast<block_declaration<block_type::OBJECT>>(&res)){\
+            prgm.get_system().add_statement(block);\
+        }else{\
+            throw std::runtime_error(ERRMSG);\
+        }\
+        continue;\
     }
 
         SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext, "PBLM with ObjectDecl")
@@ -95,8 +95,8 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
             continue;
         }
 
-        std::cerr << "Unknown statement type in the system section root level!\n"
-                  << "Rule index: " << ssc->getRuleIndex() << std::endl;
+        throw std::runtime_error("Unknown statement type in the system section root level!\n"
+                                 "Rule index: "+ssc->getRuleIndex());
     }
 
     return prgm;
@@ -750,6 +750,12 @@ std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool 
                 return tryAllTypes<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
             return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
         }
+        case expression_env::SYSTEM:{
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes);
+            if(!is_contextual)
+                return tryAllTypes<expression_env::SYSTEM>(identifier, variable.value(), dims);
+            throw std::runtime_error("Impossible to use a variable of nowhere");
+        }
     }
     throw std::runtime_error("handle_var: Unsupported environment " + expenv_to_string(current_env));
 }
@@ -1096,8 +1102,19 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
             auto non_const_ptr = const_cast<dataflow_collective_variable<DT>*>(raw_ptr);
             return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
         }
+    }else if constexpr(ENV == expression_env::SYSTEM){
+        std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
+        if(auto sptr = std::any_cast<std::shared_ptr<dataflow_system_variable<DT>>>(&var)){
+            if(*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
+
+        if(auto raw_ptr = std::any_cast<dataflow_system_variable<DT>>(&var)){
+            auto non_const_ptr = const_cast<dataflow_system_variable<DT>*>(raw_ptr);
+            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+        }
     }else{
-        throw std::runtime_error("en vrai de vrai jsp");
+        throw std::runtime_error("Unsupported environment: "+expenv_to_string(ENV));
     }
 
     
@@ -1858,6 +1875,26 @@ std::any ASTBuilder::visitStatementIf(ChipsParser::StatementIfContext *ctx)
 
 std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContext *ctx)
 {
+    std::string identifier = ctx->IDENTIFIER(1)->getText();
+
+    std::cout << "visit object declaration " << identifier << std::endl;
+
+    std::string type = ctx->IDENTIFIER(0)->getText();
+    std::any suffixes = visit(ctx->suffixes());
+
+    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes);
+
+    if(SymbolTable::getInstance().lookupFunctionLogical(type).has_value()){
+        return handle_statement_declaration<block_type::LOGICAL>(type, dims, identifier);
+    }else if(auto node = SymbolTable::getInstance().lookupNodeDefinition(type); node.has_value()){
+        if(auto* n = std::any_cast<physical_definition>(&(node.value()))){
+            return handle_statement_declaration<block_type::PHYSICAL>(type, dims, identifier);
+        }
+        return handle_statement_declaration<block_type::OBJECT>(type, dims, identifier);
+    }else{
+        throw std::runtime_error("'"+type+"' was never defined before");
+    }
+
     throw std::runtime_error("Unimplemented visit method ObjectDeclarationContext");
 }
 
