@@ -74,32 +74,54 @@ namespace chips {
     };
 
 
-    /**
-     * Abstract class
-     * Base tamplate class for system component variable elements
-     * logical, physical or object
-     */
-    template<block_type bt>
-    class system_variable_block_expression : public ast_node, public system_iterable
-    {
-        using block_variable_type = typename BlockTypeToBlockVariable<bt>::type;
-        block_variable_type* m_variable;
-        rvalue<dataflow_type::INT,expression_env::SYSTEM> m_index;
-    };
+    // /**
+    //  * Abstract class
+    //  * Base tamplate class for system component variable elements
+    //  * logical, physical or object
+    //  */
+    // template<block_type bt>
+    // class system_variable_block_expression : public ast_node, public system_iterable
+    // {
+        
+    // };
 
     /**
      * Template specialization of system_variable_block_expression 
      * for implementing LOGICAL specific interfaces
      */
     template<>
-    class system_variable_block_expression<block_type::LOGICAL> : public linkable{};
+    class system_variable_block_expression<block_type::LOGICAL> : public ast_node, public system_iterable, public linkable{
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::LOGICAL>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable<block_type::LOGICAL>* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
     /**
      * Template specialization of system_variable_block_expression 
      * for implementing PHYSICAL specific interfaces
      */
     template<>
-    class system_variable_block_expression<block_type::PHYSICAL> : public support, public node_variable_expression, public implementer {};
+    class system_variable_block_expression<block_type::PHYSICAL> : public system_iterable, public linkable, public support, public node_variable_expression, public implementer {
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::PHYSICAL>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable<block_type::PHYSICAL>* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
     /**
      * Template specialization of system_variable_block_expression 
@@ -107,7 +129,19 @@ namespace chips {
      */
     template<>
     class system_variable_block_expression<block_type::OBJECT> 
-    : public linkable, public support, public node_variable_expression, public interface, public implementer {};
+    : public system_iterable, public linkable, public support, public node_variable_expression, public interface, public implementer {
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::OBJECT>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable<block_type::OBJECT>* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
 
     /**

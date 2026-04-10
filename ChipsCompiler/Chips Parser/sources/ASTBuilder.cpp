@@ -72,6 +72,14 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
             prgm.get_system().add_statement(block);\
         }else if(auto* block = std::any_cast<block_declaration<block_type::OBJECT>>(&res)){\
             prgm.get_system().add_statement(block);\
+        }else if(auto* linking = std::any_cast<linking_statement>(&res)){\
+            prgm.get_system().add_statement(linking);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::INT>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::FLOAT>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::BOOL>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
         }else{\
             throw std::runtime_error(ERRMSG);\
         }\
@@ -1377,7 +1385,6 @@ std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressi
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
 
-    // throw std::runtime_error("ICI");
     auto dims = extract_dimensions_collective(ctx->c_suffixes());
     return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
 }
@@ -1439,7 +1446,9 @@ std::any ASTBuilder::visitSSuffixableVariableExpression(ChipsParser::SSuffixable
 
 std::any ASTBuilder::visitSSuffixableFunctionCallExpression(ChipsParser::SSuffixableFunctionCallExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SSuffixableFunctionCallExpressionContext");
+    std::cout << "visit s_suffixable_expr function" << std::endl;
+
+    return make_function<expression_env::SYSTEM>(ctx->IDENTIFIER()->getText(), ctx->expr());
 }
 
 std::any ASTBuilder::visitSSuffixableBlockOutputExpression(ChipsParser::SSuffixableBlockOutputExpressionContext *ctx)
@@ -1585,7 +1594,41 @@ std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext 
 
 std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method S_loop_statementContext");
+    std::cout << "visit loop statement" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "ENter new Scope foreach " << identifier << std::endl;
+
+    // throw std::runtime_error("ICI");
+
+    std::any suffixable_expr = visit(ctx->s_suffixable_expr());
+    dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::SYSTEM>(suffixable_expr);
+
+    
+
+    switch(type){
+        case dataflow_type::INT:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::INT, expression_env::SYSTEM>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::SYSTEM>>(iterator);
+            foreach_statement<statement_env::SYSTEM, dataflow_type::INT> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->s_statement());
+            SymbolTable::getInstance().exitScope();
+            std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+        case dataflow_type::FLOAT:
+            break;
+        case dataflow_type::BOOL:
+            break;
+    }
+
+    throw std::runtime_error("Faut faire le reste mais ya pas dans l'exemple encore");
 }
 
 std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContext *ctx)
@@ -1778,7 +1821,70 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
 
 std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method S_if_statementContext");
+    std::cout << "visit if system statement" << std::endl;
+
+    if_statement<statement_env::SYSTEM> if_stt;
+
+    std::any val = visit(ctx->expr());
+    auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(val);
+    if(!node){
+        throw std::runtime_error(
+            "condition : l'expression doit être de type BOOL "
+            "(env SYSTEM)");
+    }
+
+    node_arena.push_back(node);
+    if_stt.m_condition = make_bool_rvalue_variant_from_node(node);
+
+    std::cout << "statements if system section" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::S_statementContext* stt : ctx->s_statement()){
+
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::StatementDeclarationContext* stuff = dynamic_cast<ChipsParser::StatementDeclarationContext*>(stt); (stuff != nullptr) && stuff->expr() != nullptr){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("Unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in if system section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+
+    return if_stt;
 }
 
 std::any ASTBuilder::visitC_if_statement(ChipsParser::C_if_statementContext *ctx)
@@ -1838,7 +1944,12 @@ std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentCo
     std::cout << "assign type var: " << ast_builder_detail::type_name(std::any{ctx->expr()}.type()) << std::endl;
     std::any assign = visit(ctx->expr());
 
-    return handle_statement_assignment(var_name, suffixes, assign, false);
+    switch(current_env){
+        case expression_env::PRIMITIVE: return handle_statement_assignment<expression_env::PRIMITIVE, statement_env::DEFINITION>(var_name, suffixes, assign, false);
+        case expression_env::COLLECTIVE: return handle_statement_assignment<expression_env::COLLECTIVE, statement_env::COLLECTIVE>(var_name, suffixes, assign, false);
+        case expression_env::SYSTEM: return handle_statement_assignment<expression_env::SYSTEM, statement_env::SYSTEM>(var_name, suffixes, assign, false);
+    }
+    throw std::runtime_error("Unsupported environment: "+expenv_to_string(current_env));
 }
 
 std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx)
@@ -1905,7 +2016,77 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
 
 std::any ASTBuilder::visitLinkingStatement(ChipsParser::LinkingStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method LinkingStatementContext");
+    std::string linkable_id = ctx->IDENTIFIER(0)->getText();
+    std::any suffixes_linkable = visit(ctx->suffixes(0));
+
+    auto dims_link = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes_linkable);
+
+    std::string support_id = ctx->IDENTIFIER(1)->getText();
+    std::any suffixes_support = visit(ctx->suffixes(1));
+
+    auto dims_support = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes_support);
+
+    std::cout << "visit link " << linkable_id << " to " << support_id << std::endl;
+
+    std::optional<std::any> linkable = SymbolTable::getInstance().lookupBlock(linkable_id);
+
+    if(!linkable.has_value()){
+        throw std::runtime_error("'"+linkable_id+"' was never declarated before");
+    }
+
+    std::optional<std::any> support = SymbolTable::getInstance().lookupBlock(support_id);
+
+    if(!support.has_value()){
+        throw std::runtime_error("'"+support_id+"' was never declarated before");
+    }
+
+    std::cout << "linkable type: " << ast_builder_detail::type_name(linkable.value().type()) << std::endl;
+    std::cout << "support type: " << ast_builder_detail::type_name(support.value().type()) << std::endl;
+
+    block_type linkable_bt = ast_builder_detail::get_block_type(linkable.value());
+    block_type support_bt = ast_builder_detail::get_block_type(support.value());
+
+    switch(linkable_bt){
+        case block_type::LOGICAL:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::LOGICAL, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    std::cout << "ICI je crois" << std::endl;
+                    return make_linking_statement<block_type::LOGICAL, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+        case block_type::OBJECT:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::OBJECT, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    return make_linking_statement<block_type::OBJECT, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+        case block_type::PHYSICAL:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::PHYSICAL, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    return make_linking_statement<block_type::PHYSICAL, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+    }
+
+    throw std::runtime_error("Unhandled block type combination in linking statement");
 }
 
 std::any ASTBuilder::visitImplementationStatement(ChipsParser::ImplementationStatementContext *ctx)
@@ -1915,7 +2096,7 @@ std::any ASTBuilder::visitImplementationStatement(ChipsParser::ImplementationSta
 
 std::any ASTBuilder::visitSLoopStatement(ChipsParser::SLoopStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SLoopStatementContext");
+    return visit(ctx->s_loop_statement());
 }
 
 std::any ASTBuilder::visitSIfElseStatement(ChipsParser::SIfElseStatementContext *ctx)
@@ -1925,7 +2106,7 @@ std::any ASTBuilder::visitSIfElseStatement(ChipsParser::SIfElseStatementContext 
 
 std::any ASTBuilder::visitSIfStatement(ChipsParser::SIfStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SIfStatementContext");
+    return visit(ctx->s_if_statement());
 }
 
 std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext *ctx)

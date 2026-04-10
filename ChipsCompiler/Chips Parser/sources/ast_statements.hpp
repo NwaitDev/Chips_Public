@@ -282,9 +282,15 @@ namespace chips
      */
     class linking_statement : public system_statement<recurring_statement::LINKING>
     {
+        public:
         linkable *m_linked_component;
         support *m_support_node;
-        void hello();
+
+        linking_statement(){}
+        linking_statement(linkable* linked_component, support* support_node)
+            : m_linked_component(linked_component), m_support_node(support_node){}
+
+        void hello(){};
     };
 
     /**

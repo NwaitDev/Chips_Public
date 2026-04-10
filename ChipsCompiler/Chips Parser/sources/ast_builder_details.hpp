@@ -363,6 +363,16 @@ namespace ast_builder_detail
             "Error get dataflow type");
     }
 
+    inline block_type get_block_type(const std::any& a){
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::LOGICAL>>>(&a))
+            return block_type::LOGICAL;
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(&a))
+            return block_type::OBJECT;
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(&a))
+            return block_type::PHYSICAL;
+        throw std::runtime_error("Error get block type "+type_name(a.type()));
+    }
+
     // ── extract_as_node ───────────────────────────────────────────────────────
     // Helper global : extrait un shared_ptr<ast_node> depuis n'importe quel
     // std::any retourné par un visiteur, sans connaître le type template.

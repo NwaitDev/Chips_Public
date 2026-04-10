@@ -304,6 +304,56 @@ public:
         return node;
     }
 
+    template <dataflow_type dft, statement_env stenv>
+    std::any make_statement_foreach(foreach_statement<stenv, dft> &node, std::vector<ChipsParser::S_statementContext *> statement)
+    {
+        std::cout << "make statement of foreach" << std::endl;
+        for (ChipsParser::S_statementContext *stt : statement)
+        {
+            std::any followup = visit(stt);
+
+            try{
+
+                if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                    std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
+                    if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                        using chiant = std::pair<
+                            dataflow_declaration<dataflow_type::INT, stenv>,
+                            dataflow_assignment<dataflow_type::INT, stenv>>;
+                        chiant followup_pair = std::any_cast<chiant>(followup);
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                        using chiant = std::pair<
+                            dataflow_declaration<dataflow_type::FLOAT, stenv>,
+                            dataflow_assignment<dataflow_type::FLOAT, stenv>>;
+                        chiant followup_pair = std::any_cast<chiant>(followup);
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                        using chiant = std::pair<
+                            dataflow_declaration<dataflow_type::BOOL, stenv>,
+                            dataflow_assignment<dataflow_type::BOOL, stenv>>;
+                        chiant followup_pair = std::any_cast<chiant>(followup);
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    }else{
+                        throw std::runtime_error("unrecognized variable type");
+                    }
+                    continue;
+                }else{
+                    node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                    continue;
+                }
+            }
+            catch (const std::runtime_error &e)
+            {
+                std::cout << e.what() << std::endl;
+            }
+        }
+        return node;
+    }
+
     std::any visitLoop_statement(ChipsParser::Loop_statementContext *ctx);
 
     std::any visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx);
@@ -553,6 +603,22 @@ public:
 
     std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx);
 
+    template<dataflow_type dft, expression_env expenv>
+    std::any handle_statement_declaration_foreach(std::string identifier){
+        switch (current_env){
+            case expression_env::PRIMITIVE:
+                return handle_statement_declaration<expression_env::PRIMITIVE, dft>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+                break;
+            case expression_env::COLLECTIVE:
+                return handle_statement_declaration<expression_env::COLLECTIVE, dft>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+                break;
+            case expression_env::SYSTEM:
+                return handle_statement_declaration<expression_env::SYSTEM, dft>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+                break;
+        }
+        throw std::runtime_error("Unsupported environment");
+    }
+
     template<block_type bt>
     std::any handle_statement_declaration(
         std::string type,
@@ -666,6 +732,23 @@ public:
     /**
      * FUNCTION HELPERS TO MAKE CLASSES
      */
+
+    template<block_type lk, block_type st, typename Dims_link, typename Dims_sup>
+    linking_statement make_linking_statement(std::any linkable_any, Dims_link dims_link, 
+                                             std::any support_any, Dims_sup dims_sup){
+        if constexpr(st == block_type::LOGICAL){
+            throw std::runtime_error("Logical can't be support for link method");
+        } else {
+            auto linkable_var = std::any_cast<std::shared_ptr<block_variable<lk>>>(linkable_any);
+            auto support_var = std::any_cast<std::shared_ptr<block_variable<st>>>(support_any);
+
+            system_variable_block_expression<lk> linkable(linkable_var.get(), dims_link);
+            system_variable_block_expression<st> support(support_var.get(), dims_sup);
+
+            linking_statement linking(&linkable, &support);
+            return linking;
+        }
+    }
 
     template <dataflow_kind dfk, dataflow_type dft>
     function_output<dfk, dft> make_function_output(const std::string &identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr)
