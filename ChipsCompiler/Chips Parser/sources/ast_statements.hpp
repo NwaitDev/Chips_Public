@@ -221,6 +221,8 @@ namespace chips
         void set_variable(block_variable_t var) { m_variable = var; }
         block_variable_t get_variable() { return m_variable; }
 
+        block_definition_t* get_definition(){ return m_defintion; }
+
         void hello() {}
     };
 

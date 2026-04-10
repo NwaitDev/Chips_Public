@@ -580,6 +580,8 @@ public:
     rvalue_variant<expenv> make_variant_from_node(
         const std::shared_ptr<rvalue<dft, expenv>> &node);
 
+    functional_block_variant make_functional_block_from_any(std::any& node);
+
     std::any visitSuffixes(ChipsParser::SuffixesContext *ctx);
 
     template <expression_env expenv>

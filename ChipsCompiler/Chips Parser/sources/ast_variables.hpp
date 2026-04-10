@@ -240,6 +240,8 @@ namespace chips {
                 }
             }
 
+        block_declaration<bt>* get_declaration() { return m_declaration; }
+
         void hello(){}
     };
     

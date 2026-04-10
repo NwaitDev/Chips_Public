@@ -166,8 +166,20 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class feeder_block_expression : public feeder<dfk,dft>, public ast_node
     {
+        public:
         functional_block_variant m_variable_expression;
         function_output<dfk,dft>* m_output;
+        
+        feeder_block_expression(){}
+        
+        void set_variable_expression(functional_block_variant variable){
+            m_variable_expression = variable;
+        }
+
+        void set_output(function_output<dfk,dft>* output){
+            m_output = output;
+        }
+
         inline void hello(){}
     };
 
@@ -205,8 +217,14 @@ namespace chips {
      */
     template<dataflow_kind dfk, dataflow_type dft>
     class collective_cast : public feeder<dfk,dft> {
+        public:
         collective_function_definition* variable_expression;
         feeder<dfk, dft> m_feeder;
+
+        collective_cast(collective_function_definition* variable, feeder<dfk, dft> feed)
+            : variable_expression(variable), m_feeder(feed){}
+
+        void hello(){}
     };
 }
 

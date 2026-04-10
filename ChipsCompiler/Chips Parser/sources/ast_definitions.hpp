@@ -164,6 +164,8 @@ namespace chips
         function_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
                             then_section then, std::vector<function_output_variant> outputs)
             : definition(identifier), m_init(init), m_then(then), m_parameters(parameters), m_outputs(outputs) {}
+
+        std::vector<function_output_variant> get_outputs() { return m_outputs; }
         
     };
     
@@ -199,6 +201,9 @@ namespace chips
                            then_section then, std::vector<function_output_variant> outputs, with_section with, 
                            std::vector<physical_parameter_variant> sensors, std::vector<physical_output_variant> actuators) 
             : function_definition(identifier, parameters, init, then, outputs), node_definition(identifier,with), m_sensor(sensors), m_actuator(actuators) {};
+        
+        std::vector<physical_output_variant> get_actuators() { return m_actuator; }
+        
         void hello();
     };
 

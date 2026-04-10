@@ -2011,6 +2011,16 @@ std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContex
 
 std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext *ctx)
 {
+
+    std::string identifier = ctx->block()->IDENTIFIER()->getText();
+    
+
+    std::cout << "visit feeding statement " << identifier << std::endl;
+
+    std::any suffixes = visit(ctx->block()->suffixes());
+
+    std::any s_expr = visit(ctx->s_expr());
+
     throw std::runtime_error("Unimplemented visit method FeedingStatementContext");
 }
 
@@ -2130,8 +2140,48 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
     throw std::runtime_error("Unimplemented visit method SBlockOutputExpressionContext");
 }
 
+functional_block_variant ASTBuilder::make_functional_block_from_any(std::any& node){
+    if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::LOGICAL>>>(&node))
+        return p->get();
+    if(auto* p = std::any_cast<block_variable<block_type::LOGICAL>>(&node))
+        return p;
+    if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(&node))
+        return p->get();
+    if(auto* p = std::any_cast<block_variable<block_type::PHYSICAL>>(&node))
+        return p;
+    throw std::runtime_error("Unsopported type in make_functional_block_from_any");
+}
+
 std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCastExpressionContext *ctx)
 {
+
+    std::string identifier = ctx->block()->IDENTIFIER()->getText();
+
+    std::cout << "visit collective cast expr " << identifier << std::endl;
+
+    std::any suffixes = visit(ctx->block()->suffixes());
+
+    std::string function_output_id = ctx->IDENTIFIER()->getText();
+    std::string collective_op = ctx->collective_operation()->IDENTIFIER()->getText();
+
+    std::optional<std::any> collective = SymbolTable::getInstance().lookupFunctionSpread(collective_op);
+    if(!collective.has_value()){
+        collective = SymbolTable::getInstance().lookupFunctionCollect(collective_op);
+    }
+
+    if(!collective.has_value()){
+        throw std::runtime_error("'"+collective_op+"' was never defined before");
+    }
+
+    std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
+    if(!feeder_who_eaten.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value());
+
+    throw std::runtime_error("Faut faire avec le function output");
+
     throw std::runtime_error("Unimplemented visit method SCollectiveCastExpressionContext");
 }
 
