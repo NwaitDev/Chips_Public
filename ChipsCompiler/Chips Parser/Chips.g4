@@ -41,7 +41,7 @@ collective_op_def
     : c_signature L_CURL
         c_statement*
       R_CURL
-      ARROW TARGET_KW L_PARENTH (c_expr)+ R_PARENTH
+      ARROW TARGET_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
       c_output+
     ;
 
