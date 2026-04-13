@@ -37,4 +37,33 @@ namespace chips
     template<> std::string expenv_to_string<expression_env::COLLECTIVE>(){return "collective";}
     template<> std::string expenv_to_string<expression_env::SYSTEM>(){return "system";}
 
+    bool is_function_output(std::any& value){
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&value))
+        //     return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>>(&value))
+            return true;
+        return false;
+    }
+
+    
 } // namespace chips

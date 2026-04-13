@@ -73,8 +73,35 @@ namespace chips {
                 return declare(name, value, SymbolKind::FUNCTION_COLLECT);
             }
 
-            bool declareBlock(const std::string& name, const std::any& value){
-                return declare(name, value, SymbolKind::BLOCK);   
+            bool declareBlock(const std::string& type, const std::string& name, const std::any& value){
+                bool res = declare(name, value, SymbolKind::BLOCK);
+                if(!res) return res;
+                declarated_block_system[name] = type;
+                return res;
+            }
+
+            void declareTypeOfDeclaratedBlock(const std::string& type, const std::string& variable){
+                declarated_block_system[variable] = type;
+            }
+
+            bool declareFunctionOutput(const std::string& fname, const std::string& output, const std::any& value){
+                for(const auto& [k1, v1] : function_outputs){
+                    for(const auto& [k2, v2]: v1){
+                        if(output == k2) return false;
+                    }
+                }
+                function_outputs[fname][output] = value;
+                return true;
+            }
+
+            bool declareFunctionParameter(const std::string& fname, const std::string& parameter, const std::any& value){
+                for(const auto& [k1, v1] : function_parameters){
+                    for(const auto& [k2, v2] : v1){
+                        if(parameter == k2) return false;
+                    }
+                }
+                function_parameters[fname][parameter] = value;
+                return true;
             }
 
             std::optional<std::any> lookupVariable(const std::string& name) const{
@@ -124,6 +151,38 @@ namespace chips {
                 return lookup(name, SymbolKind::BLOCK);
             }
 
+            std::optional<std::any> lookupOutput(const std::string& fname, const std::string& output) const{
+                for(auto it = function_outputs.cbegin(); it != function_outputs.cend(); it++){
+                    if(it->first == fname){
+                        auto second = it->second;
+                        for(auto it2 = second.cbegin(); it2 != second.cend(); it2++){
+                            if(it2->first == output){
+                                return it2->second;
+                            }
+                        }
+                    }
+                }
+                return std::nullopt;
+            }
+
+            std::optional<std::any> lookupParameter(const std::string& fname, const std::string& parameter) const{
+                for(auto it = function_parameters.cbegin(); it != function_parameters.cend(); it++){
+                    if(it->first == fname){
+                        auto second = it->second;
+                        for(auto it2 = second.cbegin(); it2 != second.cend(); it2++){
+                            if(it2->first == parameter){
+                                return it2->second;
+                            }
+                        }
+                    }
+                }
+                return std::nullopt;
+            }
+
+            std::string getTypeOfDeclaratedBlock(const std::string& variable){
+                return declarated_block_system[variable];
+            }
+
             void dump() const {
                 std::cout << "===== Symbol Table =====\n";
                 int level = scopes.size();
@@ -132,6 +191,16 @@ namespace chips {
                     for (const auto& [k, v] : scope) {
                         std::cout << "  " << k << " (" << SymbolKindToString(v.kind) << " " << ast_builder_detail::type_name(v.value.type()) <<")\n";
                     }
+                }
+                std::cout << "===== Symbol Table Output =====\n";
+                for(const auto& [fname, v] : function_outputs){
+                    for(const auto& [output, value] : v){
+                        std::cout << fname << " " << output << " (" << ast_builder_detail::type_name(value.type()) << ")\n";
+                    }
+                }
+                std::cout << "===== Symbol Table Declared Block =====\n";
+                for(const auto& [k, v] : declarated_block_system){
+                    std::cout << k << " " << v << std::endl;
                 }
                 std::cout << "========================\n";
             }
@@ -226,6 +295,12 @@ namespace chips {
 
             std::vector<std::unordered_map<std::string, Symbol>> scopes;
             // std::vector<std::unordered_map<std::string, std::any>> scopes;
+
+            // to get the function output of a function
+            std::unordered_map<std::string, std::unordered_map<std::string, std::any>> function_outputs;
+            std::unordered_map<std::string, std::unordered_map<std::string, std::any>> function_parameters;
+
+            std::unordered_map<std::string, std::string> declarated_block_system;
     };
 }
 

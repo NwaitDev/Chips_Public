@@ -270,8 +270,13 @@ namespace chips
     template <dataflow_kind dfk, dataflow_type dft>
     class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dfk, dft>
     {
+        public:
         eater<dfk, dft> m_eater;
-        feeder<dfk, dft> m_feeder;
+        feeder<dfk, dft>* m_feeder = nullptr;
+
+        feeding_statement(eater<dfk, dft> eat, feeder<dfk, dft>* feed)
+            : m_eater(eat), m_feeder(feed){}
+
         void hello() {}
     };
 

@@ -15,6 +15,7 @@ class ASTBuilder : public ChipsBaseVisitor
 {
 private:
     expression_env current_env = expression_env::PRIMITIVE;
+    std::string fname_current;
 
     // Arène de noeuds alloués sur le tas dans le builder.
     // Les shared_ptr ici prolongent la durée de vie de tous les nœuds
@@ -638,7 +639,7 @@ public:
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
-            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+            if(!SymbolTable::getInstance().declareBlock(type, identifier, var)){
                 throw std::runtime_error("'"+identifier+"' was already declarated before");
             }
             return *decl;
@@ -651,7 +652,7 @@ public:
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
-            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+            if(!SymbolTable::getInstance().declareBlock(type, identifier, var)){
                 throw std::runtime_error("'"+identifier+"' was already declarated before");
             }
             return *decl;
@@ -664,7 +665,7 @@ public:
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
-            if(!SymbolTable::getInstance().declareBlock(identifier, var)){
+            if(!SymbolTable::getInstance().declareBlock(type, identifier, var)){
                 throw std::runtime_error("'"+identifier+"' was already declarated before");
             }
             return *decl;
@@ -804,6 +805,8 @@ public:
             std::cerr << e.what() << std::endl;
         }
     }
+
+    bool is_function_parameter(std::any& value);
 };
 
 #endif

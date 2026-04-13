@@ -24,6 +24,8 @@ namespace chips
         public:
         std::string m_name;
         definition(std::string id) : m_name(id) {}
+
+        std::string get_name() { return m_name; }
     };
 
     /**

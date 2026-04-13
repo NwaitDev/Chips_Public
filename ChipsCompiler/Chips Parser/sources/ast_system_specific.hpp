@@ -152,8 +152,13 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class eater : public ast_node
     {
+        public:
         functional_block_variant m_variable_expression;
         function_parameter<dfk,dft>* m_parameter;
+
+        eater(functional_block_variant variable, function_parameter<dfk,dft>* parameter)
+            : m_variable_expression(variable), m_parameter(parameter){}
+
         inline void hello(){}
     }; 
 
@@ -164,13 +169,15 @@ namespace chips {
      * Expression that can produce a dataflow eaten by another component
      */
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeder_block_expression : public feeder<dfk,dft>, public ast_node
+    class feeder_block_expression : public feeder<dfk,dft>
     {
         public:
         functional_block_variant m_variable_expression;
         function_output<dfk,dft>* m_output;
         
         feeder_block_expression(){}
+        feeder_block_expression(functional_block_variant variable, function_output<dfk,dft>* output)
+            : m_variable_expression(variable), m_output(output){}
         
         void set_variable_expression(functional_block_variant variable){
             m_variable_expression = variable;
@@ -194,6 +201,10 @@ namespace chips {
         public:
         node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_eating_channel;
+
+        channel_eater(node_variable_expression* node, node_element_declaration<node_element::CHANNEL>* eating_channel)
+            : m_node(node), m_eating_channel(eating_channel){}
+
         void hello() {std::cout<<"hello"<<std::endl;}
     };
 
@@ -207,6 +218,11 @@ namespace chips {
         public:
         node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_feeding_channel;
+
+        channel_feeder(node_variable_expression* node, 
+                       node_element_declaration<node_element::CHANNEL>* feeding_channel)
+            : m_node(node), m_feeding_channel(feeding_channel){}
+
         void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -219,10 +235,10 @@ namespace chips {
     class collective_cast : public feeder<dfk,dft> {
         public:
         collective_function_definition* variable_expression;
-        feeder<dfk, dft> m_feeder;
+        feeder<dfk, dft>* m_feeder;
 
-        collective_cast(collective_function_definition* variable, feeder<dfk, dft> feed)
-            : variable_expression(variable), m_feeder(feed){}
+        collective_cast(collective_function_definition* variable, feeder<dfk, dft>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
 
         void hello(){}
     };

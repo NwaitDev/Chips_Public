@@ -130,6 +130,7 @@ std::any ASTBuilder::visitObject_def(ChipsParser::Object_defContext *ctx)
     std::string identifier = ctx->IDENTIFIER()->getText();
 
     std::cout << "visit object " << identifier << std::endl;
+    fname_current = identifier;
 
     SymbolTable::getInstance().enterScope();
 
@@ -163,6 +164,7 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
     ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
     std::string identifier = lfd->IDENTIFIER()->getText();
     std::cout << "visit logical definition " << identifier << std::endl;
+    fname_current = identifier;
 
     // we enter in a new scope
     SymbolTable::getInstance().enterScope();
@@ -251,8 +253,9 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
 {
     ChipsParser::P_function_defContext *pfd = ctx->p_function_def();
-    std::string identifier = pfd->IDENTIFIER()->getText();
-    std::cout << "visit physical definition " << identifier << std::endl;
+    std::string fname = pfd->IDENTIFIER()->getText();
+    std::cout << "visit physical definition " << fname << std::endl;
+    fname_current = fname;
     std::vector<ChipsParser::Pdf_parameter_declContext *> all_params = pfd->pdf_parameter_decl();
     std::vector<function_parameter_variant> params;
     std::vector<physical_parameter_variant> sensors;
@@ -272,6 +275,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         declaration.get_variable().set_declaration(&declaration);                            \
         function_parameter<DFK, DFT> new_ast_param(pname, declaration);                      \
         SymbolTable::getInstance().declareSensorVariable(pname, declaration.get_variable()); \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, new_ast_param);\
         sensors.push_back(&new_ast_param);                                                   \
         continue;                                                                            \
     }
@@ -294,6 +298,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         function_parameter<DFK, DFT> new_ast_param(pname, declaration);                \
         params.push_back(&new_ast_param);                                              \
         SymbolTable::getInstance().declareVariable(pname, declaration.get_variable()); \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, new_ast_param);\
         continue;                                                                      \
     }
 
@@ -327,6 +332,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
@@ -334,6 +342,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
@@ -341,6 +352,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else
             {
@@ -351,7 +365,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::ActuatorOutputContext *stuff = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output); stuff != nullptr)
         {
             std::string identifier = stuff->IDENTIFIER()->getText();
-            std::cout << "output " << identifier << std::endl;
+            std::cout << "output actuator " << identifier << std::endl;
             std::any exp = visit(stuff->expr(0));
 
             if (auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp))
@@ -360,6 +374,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
@@ -367,6 +384,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
@@ -374,6 +394,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else
             {
@@ -384,16 +407,16 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
     std::cout << "return physical" << std::endl;
-    chips::physical_definition physical(identifier, params, init, then, outputs, with, sensors, actuators);
+    chips::physical_definition physical(fname, params, init, then, outputs, with, sensors, actuators);
     SymbolTable::getInstance().exitScope();
-    if(SymbolTable::getInstance().lookupFunctionLogical(identifier).has_value()){
-        throw std::runtime_error("'"+identifier+"' was already defined before");
+    if(SymbolTable::getInstance().lookupFunctionLogical(fname).has_value()){
+        throw std::runtime_error("'"+fname+"' was already defined before");
     }
-    if(!SymbolTable::getInstance().declareFunctionPhysical(identifier, physical)){
-        throw std::runtime_error("'"+identifier+"' was already defined before");
+    if(!SymbolTable::getInstance().declareFunctionPhysical(fname, physical)){
+        throw std::runtime_error("'"+fname+"' was already defined before");
     }
     SymbolTable::getInstance().dump();
-    std::cout << "END PHYSICAL " << identifier << std::endl;
+    std::cout << "END PHYSICAL " << fname << std::endl;
     return physical;
 }
 
@@ -412,6 +435,8 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
     std::string fname = sign->IDENTIFIER(0)->getText();
     std::string among = sign->IDENTIFIER(1)->getText();
+
+    fname_current = fname;
 
     std::optional<std::any> support = SymbolTable::getInstance().lookupNodeDefinition(among);
 
@@ -715,6 +740,7 @@ std::any ASTBuilder::visitChannelDeclaration(ChipsParser::ChannelDeclarationCont
     auto decl = std::make_shared<node_element_declaration<node_element::CHANNEL>>(
         ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
     node_arena.push_back(decl);
+    SymbolTable::getInstance().declareFunctionOutput(fname_current, ctx->IDENTIFIER(1)->getText(), decl);
     return decl.get();
 }
 
@@ -2013,13 +2039,66 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
 {
 
     std::string identifier = ctx->block()->IDENTIFIER()->getText();
-    
+    std::string function_parameter_id = ctx->IDENTIFIER()->getText();
 
-    std::cout << "visit feeding statement " << identifier << std::endl;
+    std::cout << "visit feeding statement " << identifier << "." << function_parameter_id << std::endl;
 
     std::any suffixes = visit(ctx->block()->suffixes());
 
     std::any s_expr = visit(ctx->s_expr());
+
+    std::optional<std::any> variable = SymbolTable::getInstance().lookupBlock(identifier);
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    std::optional<std::any> type = SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier);
+    if(!type.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    //BORDEL CEST UN PARAMETRE PAS UN OUTPUT
+    std::optional<std::any> parameter_who_eat = SymbolTable::getInstance().lookupParameter(std::any_cast<std::string>(type.value()), function_parameter_id);
+
+    if(!parameter_who_eat.has_value()){
+        throw std::runtime_error("'"+function_parameter_id+"' was never defined before");
+    }
+
+    std::cout << "type eater: " << ast_builder_detail::type_name(parameter_who_eat.value().type()) << std::endl;
+    std::cout << "type s_expr: " << ast_builder_detail::type_name(s_expr.type()) << std::endl;
+
+    std::cout << "Is function param " << (is_function_parameter(parameter_who_eat.value()) ? "param" : "non") << std::endl;
+
+    if(is_function_parameter(parameter_who_eat.value())){
+        functional_block_variant variable_expression = make_functional_block_from_any(variable.value());
+        if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::LOGICAL, dataflow_type::INT> eat(variable_expression, parameter);
+            
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed);
+            }
+
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+            std::cout << "logical float" << std::endl;
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+            std::cout << "logical nool" << std::endl;
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::PHYSICAL, dataflow_type::INT> eat(variable_expression, parameter);
+            
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else{
+                throw std::runtime_error("En vrai de vrai ya un prob");
+            }
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+            std::cout << "physical float" << std::endl;
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+            std::cout << "physical bool" << std::endl;
+        }
+    }else{
+        throw std::runtime_error("CHANNEL A IMPLEMETER");
+    }
 
     throw std::runtime_error("Unimplemented visit method FeedingStatementContext");
 }
@@ -2173,21 +2252,101 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         throw std::runtime_error("'"+collective_op+"' was never defined before");
     }
 
+    auto collective_func_def = std::make_shared<collective_function_definition>(
+        std::any_cast<collective_function_definition>(collective.value()));
+    node_arena.push_back(collective_func_def);
+
+    std::cout << "feeder who eaten " << identifier << "(" << SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier) << ")" << std::endl; 
+
     std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
     if(!feeder_who_eaten.has_value()){
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
 
+    std::optional<std::any> output_who_eaten = SymbolTable::getInstance().lookupOutput(SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier), function_output_id);
+    if(!output_who_eaten.has_value()){
+        throw std::runtime_error("'"+function_output_id+"' was never defined before");
+    }
+
     functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value());
 
-    throw std::runtime_error("Faut faire avec le function output");
+    std::cout << "bordel ce type: " << ast_builder_detail::type_name(output_who_eaten.value().type()) << std::endl;
 
-    throw std::runtime_error("Unimplemented visit method SCollectiveCastExpressionContext");
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical bool" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            return collect_cast;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical bool" << std::endl;
+    }
+        
+
+    throw std::runtime_error("Unsupported type or kind");
 }
 
 std::any ASTBuilder::visitSRegularExpression(ChipsParser::SRegularExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SRegularExpressionContext");
+    throw std::runtime_error("Voir avec Anna c'est quoi la classe extacte");
+    return visit(ctx->expr());
 }
 
 std::any ASTBuilder::visitCollective_operation(ChipsParser::Collective_operationContext *ctx)
@@ -2941,3 +3100,20 @@ std::any ASTBuilder::visitPassExpr2(ChipsParser::PassExpr2Context *ctx)
 {
     return visit(ctx->expr2());
 }
+
+bool ASTBuilder::is_function_parameter(std::any& value){
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&value))
+            return true;    
+        
+        return false;
+    }

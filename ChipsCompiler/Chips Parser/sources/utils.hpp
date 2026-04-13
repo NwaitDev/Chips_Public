@@ -19,6 +19,10 @@ namespace chips {
     std::string expenv_to_string();
 
     std::string any_demangle(const std::type_info& ti);
+
+    bool is_function_output(std::any& value);
+
+    
 }
 
 #endif
