@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ast_variables.hpp"
+#include "ast_system_specific.hpp"
 
 namespace chips
 {
@@ -253,9 +254,21 @@ namespace chips
         // need to perform check on connectivity
         // (only connect channels 1-to-1, never 1-to-many or many-to-one)
 
+        public:
         channel_eater *m_eater;
         channel_feeder *m_feeder;
-        void hello();
+
+        channel_plugging(){}
+        channel_plugging(channel_eater* eat, channel_feeder* feed)
+            : m_eater(eat), m_feeder(feed){}
+
+        void set_eater(channel_eater* eat) { m_eater = eat; }
+        channel_eater* get_eater() { return m_eater; }
+
+        void set_feeder(channel_feeder* feed) { m_feeder = feed; }
+        channel_feeder* get_feeder() { return m_feeder; }
+
+        void hello(){}
     };
 
     /**

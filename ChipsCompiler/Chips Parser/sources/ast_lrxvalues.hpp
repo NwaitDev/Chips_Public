@@ -6,6 +6,7 @@
 
 #include "meta_type_conversions.hpp"
 #include "ast_base.hpp"
+#include "ast_system_specific.hpp"
 
 namespace chips
 {
@@ -30,6 +31,13 @@ namespace chips
     {
     public:
         inline void hello() { std::cout << "I am interpreted as an rvalue" << std::endl; }
+    };
+
+    // Regarder pour fix le probleme de specialisation
+    template<dataflow_type dft>
+    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL, dft>{
+        public:
+            inline void hello() { std::cout << "I am interpreted as a system rvalue" << std::endl; }
     };
 
     /**
@@ -69,15 +77,6 @@ namespace chips
     };
 
     /**
-     * Interface
-     * Node of the AST that represents something
-     * that can be iterated on in the system section
-     */
-    class system_iterable
-    {
-    };
-
-    /**
      * Concrete class
      * Node of the AST that represents a pure function call
      * As the language doesn't allow to define them yet, its
@@ -90,7 +89,7 @@ namespace chips
      * - bool is_fresh(dataflow_variable)
      */
     template <dataflow_type dft, expression_env expenv>
-    class function : public rvalue<dft, expenv>, system_iterable
+    class function : public rvalue<dft, expenv>, public system_iterable
     {
     private:
         std::string m_name;

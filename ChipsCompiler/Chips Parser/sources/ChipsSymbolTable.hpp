@@ -87,7 +87,7 @@ namespace chips {
             bool declareFunctionOutput(const std::string& fname, const std::string& output, const std::any& value){
                 for(const auto& [k1, v1] : function_outputs){
                     for(const auto& [k2, v2]: v1){
-                        if(output == k2) return false;
+                        if(fname == k1 && output == k2) return false;
                     }
                 }
                 function_outputs[fname][output] = value;
@@ -97,7 +97,11 @@ namespace chips {
             bool declareFunctionParameter(const std::string& fname, const std::string& parameter, const std::any& value){
                 for(const auto& [k1, v1] : function_parameters){
                     for(const auto& [k2, v2] : v1){
-                        if(parameter == k2) return false;
+                        if(fname == k1 && parameter == k2){
+                            std::cout << fname << " " << parameter << "already in scope" << std::endl;
+                            return false;
+                        }
+                        // } return false;
                     }
                 }
                 function_parameters[fname][parameter] = value;
@@ -196,6 +200,12 @@ namespace chips {
                 for(const auto& [fname, v] : function_outputs){
                     for(const auto& [output, value] : v){
                         std::cout << fname << " " << output << " (" << ast_builder_detail::type_name(value.type()) << ")\n";
+                    }
+                }
+                std::cout << "===== Symbol Table Parameter =====\n";
+                for(const auto& [fname, v] : function_parameters){
+                    for(const auto& [param, value]: v){
+                        std::cout << fname << " " << param << "(" << ast_builder_detail::type_name(value.type()) << ")\n";
                     }
                 }
                 std::cout << "===== Symbol Table Declared Block =====\n";

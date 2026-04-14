@@ -272,28 +272,28 @@ public:
                             dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
                             dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                     }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
                         using chiant = std::pair<
                             dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
                             dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                     }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
                         using chiant = std::pair<
                             dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
                             dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                        node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                     }else{
                         throw std::runtime_error("unrecognized variable type");
                     }
                     continue;
                 }else{
-                    node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                    node.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup)));
                     continue;
                 }
             }
@@ -322,28 +322,28 @@ public:
                             dataflow_declaration<dataflow_type::INT, stenv>,
                             dataflow_assignment<dataflow_type::INT, stenv>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
                     }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
                         using chiant = std::pair<
                             dataflow_declaration<dataflow_type::FLOAT, stenv>,
                             dataflow_assignment<dataflow_type::FLOAT, stenv>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
                     }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
                         using chiant = std::pair<
                             dataflow_declaration<dataflow_type::BOOL, stenv>,
                             dataflow_assignment<dataflow_type::BOOL, stenv>>;
                         chiant followup_pair = std::any_cast<chiant>(followup);
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                        node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
                     }else{
                         throw std::runtime_error("unrecognized variable type");
                     }
                     continue;
                 }else{
-                    node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                    node.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup)));
                     continue;
                 }
             }
@@ -581,7 +581,7 @@ public:
     rvalue_variant<expenv> make_variant_from_node(
         const std::shared_ptr<rvalue<dft, expenv>> &node);
 
-    functional_block_variant make_functional_block_from_any(std::any& node);
+    functional_block_variant make_functional_block_from_any(std::any& node, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
 
     std::any visitSuffixes(ChipsParser::SuffixesContext *ctx);
 
@@ -807,6 +807,12 @@ public:
     }
 
     bool is_function_parameter(std::any& value);
+
+    channel_eater make_channel_eater(std::any& variable, std::any& parameter_who_eat, 
+                                     std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
+
+    channel_feeder make_channel_feeder(std::any& variable, std::any& channel_who_feed,
+                                     std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
 };
 
 #endif

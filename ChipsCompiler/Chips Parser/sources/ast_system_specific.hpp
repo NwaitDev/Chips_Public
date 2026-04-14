@@ -3,6 +3,7 @@
 
 
 #include <vector>
+#include "ast_base.hpp"
 
 namespace chips {
 
@@ -12,7 +13,7 @@ namespace chips {
      * can be eaten by another component in system section
      */
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeder : public ast_node{};
+    class feeder : public virtual ast_node{};
 
     /**
      * Interface
@@ -47,6 +48,13 @@ namespace chips {
      * can support another Chips Object
      */
     class support{};
+
+    /**
+     * Interface
+     * Node of the AST that represents something
+     * that can be iterated on in the system section
+     */
+    class system_iterable{};
 
     /**
      * Abstract class
@@ -116,7 +124,7 @@ namespace chips {
         std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
 
         system_variable_block_expression(
-            block_variable<block_type::PHYSICAL>* var,
+            block_variable_type* var,
             std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
             : m_variable(var), m_index(index){}
 

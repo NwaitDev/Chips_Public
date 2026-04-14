@@ -60,6 +60,9 @@ void parse(std::istream& input) {
 
     // for(auto* stmt : tree->statement()){
         // std::any result = builder.visit(stmt);
+    throw std::runtime_error("Faut faire le main");
+    std::cout << "MAIN" << std::endl;
+
         std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
 
         if(rootPtr){

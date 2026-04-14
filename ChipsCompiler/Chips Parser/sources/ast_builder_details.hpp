@@ -175,8 +175,58 @@ namespace ast_builder_detail
         {
             std::cout << "not a bool assignment statement" << std::endl;
         }
+        if constexpr(sttenv == statement_env::SYSTEM){
+            try{
+                auto new_ast_stt = std::any_cast<linking_statement>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a linking statement" << std::endl;
+            }
 
-        throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type()));
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical int statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical float statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical bool statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical int statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical float statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical bool statement" << std::endl;
+            }
+        }
+
+        throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type())+" HERREEEEE");
     }
 
     // ── try_extract ───────────────────────────────────────────────────────────
