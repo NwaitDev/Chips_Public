@@ -15,6 +15,119 @@
 ## struct :
     to more easily pass parameters between components
 
+
+## some probably very useful collective primitives
+
+All of the following collective primitive definitions assume there is only one producing/consuming function per node of the comunication tree.
+
+### some defaultly available spread collective primitive
+
+```c
+spread (<type> v = input)
+broadcast among <node type> 
+{}
+->@(v)
+->default(v)
+```
+
+```c
+spread (int d = 0)
+logical_distance among <node type> 
+{}
+->@(d)
+->default(d+1)
+```
+
+```c
+spread (float d = 0.)
+physical_distance among <having dist ctx node type> 
+{}
+->@(d)
+->default(d+ctx.dist)
+```
+
+```c
+spread (int value = input[0], int id = input[1])
+send_to_id among <having id ctx node type> 
+{
+    int output;
+    int next;
+    if(id == ctx.id){
+        output = value;
+        next = stop;
+    } else {
+        output = stop;
+        next = value;
+    }
+}
+->@(output)
+->default(next, id)
+```
+
+### some defaultly available collect collective primitive
+
+```c
+collect (<numeric type> acc = 0, int nb = 0)
+avg among <node type>
+{
+    <numeric type> sum = 0;
+    int nb_next = 0;
+    for chan in channels {
+        sum = sum + chan.acc;
+        nb_next = nb_next + chan.nb;
+    }
+    sum = sum + input;
+    nb_next = nb_next + 1;
+} ->@(sum/nb_next)
+-> default(sum, nb_next)
+```
+
+```c
+collect (int[nb_keys] histog = zeros(nb_keys))
+histogram among <node type>
+{
+    int [nb_keys] merged_histog = zeros(nb_keys);
+    int nb_next = 0;
+    for chan in channels {
+        for i in range(nb_keys) {
+            merged_histog[i] = merged_histog[i] + chan.histog[i];
+        }
+    }
+    merged_histog[input[0]] = merged_histog[input[0]] + input[1];
+} ->@(merged_histog)
+-> default(merged_histog)
+```
+
+```c
+collect (int[nb_values] acc = zeros(nb_values), int count = 0)
+concatenate among <node type>
+{
+    int[nb_values] next_acc = zeros(nb_values);
+    int next_count = 0
+    for chan in channels {
+        for i in range(chan.count) {
+            next_acc[next_count + i] = chan.acc[i];
+        }
+        next_count = next_count + chan.count;
+    }
+    next_acc[next_count] = input;
+} ->@(next_acc)
+-> default(next_acc, next_count + 1)
+```
+
+```c
+collect (<DataStructure> acc = <DataStructure>.ZERO)
+VECTORSPACE among <node type>
+{
+    <DataStructure> next_acc = <DataStructure>.ZERO;
+    for chan in channels {
+        next_acc = <DataStructure>.plus(next_acc, chan.acc);
+    }
+    next_acc = <DataStructure>.plus(next_acc, input);
+} ->@(next_acc)
+-> default(next_acc)
+```
+
 ## control receipes:
 
 ```c
