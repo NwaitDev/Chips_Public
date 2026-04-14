@@ -2028,7 +2028,7 @@
       </outputs>
       <parameters
           xsi:type="chips.parameters.logical:bool_logical_parameter"
-          name="redirection dp">
+          name="redirection">
         <declaration>
           <variable
               name="redirection"/>

@@ -141,7 +141,7 @@ helper def: allPortTypes : Set(bip!PortType) =
 				Sequence{}
 			endif
 		))
-		->collect(paramlist | paramlist->collect(param | param.typeToInt)->asBag())
+		->collect(paramlist | paramlist->collect(param | param.typeToInt))
 		->union(
 			chips!function_definition.allInstances()
 			->collect(fd | fd.outputs->union(
@@ -151,11 +151,11 @@ helper def: allPortTypes : Set(bip!PortType) =
 					Sequence{}
 				endif
 			))
-			->collect(outputlist | outputlist->collect(o | o.typeToInt)->asBag())
+			->collect(outputlist | outputlist->collect(o | o.typeToInt))
 		)
+		->collect(list_of_type_as_int | list_of_type_as_int->collect(intType | intType.toStringType)->sortedBy(s | s))
 		->asSet()
-		->collect(intTypeBag | intTypeBag->collect(intType | intType.toStringType))
-		->collect(typesBag | thisModule.TypesBagAsPortType(typesBag));
+		->collect(typeStringsOrderedSequence | thisModule.TypeStringsOrderedSequenceAsPortType(typeStringsOrderedSequence));
 
 
 unique lazy rule PortTypeSync {
@@ -167,32 +167,6 @@ unique lazy rule PortTypeSync {
 		superTypes <- Sequence{},
 		castableTypes <- Sequence{},
 		dataParameterDeclarations <- Sequence{}
-	)
-}
-
-unique lazy rule TypesBagAsPortType {
-	from tb : Bag(String)
-	
-	to pt : bip!PortType(
-		name <- tb->iterate(tname ; accu : String = '' | accu+tname)+'_port_t',
-		dataParameterDeclarations <- tb
-			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed 
-				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
-			)
-			->select(e | e > 0) -- removes the first element
-			->collect( typeAsInt | thisModule.TypeNameAsPortDataParameterDeclaration(typeAsInt))
-	)
-}
-
-lazy rule TypeNameAsPortDataParameterDeclaration {
-	from encodedDecl: Integer
-	using {
-		typeAsInt : Integer = 1 + (encodedDecl mod thisModule.nbPrimitiveTypes);
-		declIndex : Integer = encodedDecl div thisModule.nbPrimitiveTypes;
-	}
-	to pdpd: bip!PortDataParameterDeclaration(
-		name <- 'v'+declIndex.toString,
-		dataType <- thisModule.MakeChipsDataType(typeAsInt.toStringType)
 	)
 }
 
@@ -264,7 +238,7 @@ unique lazy rule MakeChipsBuffer{
 	        exportedPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for component type
 	        exportedDataDeclarations <- Sequence{aidd}, -- only for component type
 	        dataParameterDeclarations <- Sequence{}, -- only for component type
-	        internalPortDeclarations <- Sequence{aipd_input,aipd_output}, -- only for atom type
+	        internalPortDeclarations <- Sequence{aipd_input, aipd_output, aepd_in, aepd_out}, -- only for atom type
 	        behavior <- thisModule.MakeBufferPetriNet(Sequence{aipd_input,aipd_output}), -- only for atom type
 	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
 	        exportPortDeclarations <- Sequence{aepd_in, aepd_out}, -- only for atom type
@@ -284,23 +258,23 @@ unique lazy rule MakeChipsBuffer{
 			type <- thisModule.MakeChipsDataType(typename)
 		),
 		aipd_input : bip!AtomInternalPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
+			portType <-thisModule.TypeStringsOrderedSequenceAsPortType(Sequence{typename}),
 			name <-typename+'_input',
 			dataParameters <- Sequence{ddrdp}
 		),
 		aipd_output : bip!AtomInternalPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
+			portType <-thisModule.TypeStringsOrderedSequenceAsPortType(Sequence{typename}),
 			name <-typename+'_output',
 			dataParameters <- Sequence{ddrdp}
 		),
 		aepd_in: bip!AtomExportPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
+			portType <-thisModule.TypeStringsOrderedSequenceAsPortType(Sequence{typename}),
 			name <-'input',
 			dataParameters <- Sequence{ddrdp},
 			portDeclarationReferences <- Sequence{aipd_input}
 		),
 		aepd_out: bip!AtomExportPortDeclaration(
-			portType <-thisModule.TypesBagAsPortType(Bag{typename}),
+			portType <-thisModule.TypeStringsOrderedSequenceAsPortType(Sequence{typename}),
 			name <-'output',
 			dataParameters <- Sequence{ddrdp},
 			portDeclarationReferences <- Sequence{aipd_output}
@@ -363,28 +337,108 @@ lazy rule PrimitiveDecl2AtomInternalDataDeclaration {
 		)
 }
 
+-- Lazy rule to create each DataDeclarationReferenceDataParameter
+lazy rule MakeRcvDataParam {
+	from
+		pdpd : Sequence(bip!PortDataParameterDeclaration),
+		dataname: String,
+		biptype: Integer,
+		portparamid: Integer,
+		allinputs: Sequence(bip!AtomInternalDataDeclaration)
+
+	to dataparam : bip!DataDeclarationReferenceDataParameter(
+		parameterDeclaration <- pdpd->get(portparamid),
+		type <- thisModule.MakeChipsDataType(biptype),
+		dataDeclarationReference <- allinputs->any(input| input.name = dataname)
+	)
+}
+
+
+lazy rule MakeSndDataParam {
+	from
+		pdpd : Sequence(bip!PortDataParameterDeclaration),
+		dataname: String,
+		biptype: Integer,
+		portparamid: Integer,
+		allinputs: Sequence(bip!AtomInternalDataDeclaration)
+
+	to dataparam : bip!DataDeclarationReferenceDataParameter(
+		parameterDeclaration <- pdpd->get(portparamid),
+		type <- thisModule.MakeChipsDataType(biptype),
+		dataDeclarationReference <- allinputs->any(input| input.name = dataname)
+	)
+}
+
+unique lazy rule TypeStringsOrderedSequenceAsPortType {
+	from type_ordered_sequence : Sequence(String)
+	using{
+		pdpd : Sequence(bip!PortDataParameterDeclaration) = type_ordered_sequence
+			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
+				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
+			)
+			->select(e | e > 0) -- removes the first element
+			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,type_ordered_sequence));
+	}
+	to pt : bip!PortType(
+		name <- type_ordered_sequence->iterate(tname ; accu : String = '' | accu+tname)+'_port_t',
+		dataParameterDeclarations <-pdpd 
+	)
+}
+
+unique lazy rule TypeNameAsPortDataParameterDeclaration {
+	from 
+		encodedDecl: Integer,
+		typesOrderedSequence: Sequence(String) -- specify the typesOrderedSequence to allow duplication of parameter declarations when not used in the same port type
+	using {
+		typeAsInt : Integer = 1 + (encodedDecl mod thisModule.nbPrimitiveTypes);
+		declIndex : Integer = encodedDecl div thisModule.nbPrimitiveTypes;
+	}
+	to pdpd: bip!PortDataParameterDeclaration(
+		name <- 'v'+declIndex.toString,
+		dataType <- thisModule.MakeChipsDataType(typeAsInt.toStringType)
+	)
+}
+
+
 rule FunctionDefinition2AtomType {
     from chipsfunction: chips!function_definition
 	
 	using {
-		allparams : Sequence(OclAny) = chipsfunction.parameters->union(
+		allparamsdecl : Sequence(OclAny) = chipsfunction.parameters->union(
 				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
 					chipsfunction.sensor
 				else
 					Sequence{}
 				endif 
 			);
-    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = allparams;
+    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = allparamsdecl;
+		rcv_type_ordered_sequence : Sequence(String) = allparamsdecl->collect(param | param.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->sortedBy(s | s);
+		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = rcv_type_ordered_sequence
+			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
+				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
+			)
+			->select(e | e > 0) -- removes the first element
+			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,rcv_type_ordered_sequence));
+		rcv_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(rcv_type_ordered_sequence);
 
-		alloutputs : Sequence(OclAny) = chipsfunction.outputs->union(
+		alloutputsdecl : Sequence(OclAny) = chipsfunction.outputs->union(
 				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
 					chipsfunction.actuator
 				else
 					Sequence{}
 				endif 
 			);
-		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = alloutputs;
-			
+    	aidd_output : Sequence(bip!AtomIntenalDataDeclaration) = alloutputsdecl;
+		snd_type_ordered_sequence : Sequence(String) = alloutputsdecl->collect(out | out.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->sortedBy(s | s);
+		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = snd_type_ordered_sequence
+			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
+				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
+			)
+			->select(e | e > 0) -- removes the first element
+			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,snd_type_ordered_sequence));
+		snd_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(snd_type_ordered_sequence);
+
+
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
@@ -396,14 +450,14 @@ rule FunctionDefinition2AtomType {
         native <- false, -- only for type							OK
         superTypes <- Sequence{}, -- only for type					OK
         castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{snd_port, rcv_port}, -- only for component type
+        exportedPortDeclarations <- Sequence{}, -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
 		dataParameterDeclarations <- Sequence{isSource}, -- only for component type
-        internalPortDeclarations <- Sequence{start_port, calc_port,snd_port,rcv_port}, -- only for atom type
+        internalPortDeclarations <- Sequence{start_port, calc_port, snd_port, rcv_port}, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
         behavior <- pn, -- only for atom type
         internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner}->flatten(), -- only for atom type
-        exportPortDeclarations <- Sequence{snd_port,rcv_port}, -- only for atom type
+        exportPortDeclarations <- Sequence{aepd_snd,aepd_rcv}, -- only for atom type
         priorities <- Sequence{}, -- only for atom type
         invariants <- Sequence{} -- only for atom type
     ),
@@ -427,16 +481,67 @@ rule FunctionDefinition2AtomType {
 		dataParameters <- Sequence{}
 	),
 
+	aepd_snd : bip!AtomExportPortDeclaration(
+		portType <-snd_porttype,
+		name <-'output',
+		dataParameters <- Sequence{},
+		portDeclarationReferences <- Sequence{}
+	),
+	aepd_rcv : bip!AtomExportPortDeclaration(
+		portType <-rcv_porttype,
+		name <-'input',
+		dataParameters <- Sequence{},
+		portDeclarationReferences <- Sequence{}
+	),
+
 	snd_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.TypesBagAsPortType(allparams->collect(param | param.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->asBag()),
+		portType <- snd_porttype,
 		name <- 'send',
-		dataParameters <- Sequence{}
+		dataParameters <- alloutputsdecl->iterate(
+			output ; 
+			dataparamsAsTuples : 
+			Sequence(
+				TupleType(
+					dataname : String,
+					biptype : Integer,
+					portparamid : Integer
+				)
+			) = Sequence{Tuple{dataname = '', biptype = 0, portparamid = -1}} |
+			dataparamsAsTuples.append(
+				Tuple{
+					dataname = output.name,
+					biptype = output.typeToInt,
+					portparamid = dataparamsAsTuples.last().portparamid +1
+				}
+			)
+		)
+		->select(t | t.portparamid >= 0)
+		->collect(t | thisModule.MakeSndDataParam(pdpd_outputs, t.dataname, t.biptype, t.portparamid, aidd_output))
 	),
 
 	rcv_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.TypesBagAsPortType(alloutputs->collect(output | output.typeToInt)->asBag()->collect(typeAsInt | typeAsInt.toStringType)->asBag()),
+		portType <- rcv_porttype,
 		name <- 'recv',
-		dataParameters <- Sequence{}
+		dataParameters <- allparamsdecl->iterate(
+			param ; 
+			dataparamsAsTuples : 
+			Sequence(
+				TupleType(
+					dataname : String,
+					biptype : Integer,
+					portparamid : Integer
+				)
+			) = Sequence{Tuple{dataname = '', biptype = 0, portparamid = -1}} |
+			dataparamsAsTuples.append(
+				Tuple{
+					dataname = param.name,
+					biptype = param.typeToInt,
+					portparamid = dataparamsAsTuples.last().portparamid +1
+				}
+			)
+		)
+		->select(t | t.portparamid >= 0)
+		->collect(t | thisModule.MakeRcvDataParam(pdpd_inputs, t.dataname, t.biptype, t.portparamid, aidd_input))
 	),
 
 	pn : bip!PetriNet(
@@ -505,7 +610,9 @@ rule Program2BipPackage {
 			->append(thisModule.MakeBaseDataType('int'))
 			->append(thisModule.MakeBaseDataType('float'))
 			->append(thisModule.MakeBaseDataType('bool'));
-		base_pts : Sequence(bip!PortType) = Sequence{Bag{'int'},Bag{'float'},Bag{'bool'}}->collect(t | thisModule.TypesBagAsPortType(t));
+		base_pts : Sequence(bip!PortType) = 
+			Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'}}
+			->collect(t | thisModule.TypeStringsOrderedSequenceAsPortType(t));
 		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->union(Set{thisModule.PortTypeSync('')})->asSequence();
 		base_ats: Sequence(bip!AtomType) = Sequence{thisModule.MakeChipsBuffer('int'),thisModule.MakeChipsBuffer('float'),thisModule.MakeChipsBuffer('bool')};
 		core_ats: Sequence(bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));

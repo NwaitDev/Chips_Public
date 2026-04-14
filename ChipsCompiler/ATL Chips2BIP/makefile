@@ -10,4 +10,4 @@ run:
 	./emftvm.sh metamodels/chips1.1.ecore metamodels/BIP.ecore models/TeaStoreVariation.xmi transformations/chips2bip.atl models/output.xmi
 
 clean: 
-	rm *.class
+	rm *.class transformations/*.emftvm
