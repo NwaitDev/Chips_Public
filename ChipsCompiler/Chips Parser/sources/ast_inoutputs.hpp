@@ -27,6 +27,9 @@ namespace chips {
         : m_name(name), m_declaration(declaration), m_default_value(default_value){};
         function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration)
         : m_name(name), m_declaration(declaration), m_default_value(std::nullopt){};
+
+        const std::string& get_name() const { return m_name; }
+        std::string& get_name() { return m_name; }
         
         void hello(){
             std::cout << "FUNCTION PARAMETER" << std::endl;

@@ -21,22 +21,44 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     for (ChipsParser::PreambleContext *pc : ctx->preamble())
     {
 
+        std::cout << "prezamble size: " << prgm.get_preamble().get_definitions().size() << std::endl;
+
 #define APPEND_CASTED_DEF(POTENTIAL, EXPENV)                                                          \
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                           \
     {                                                                                                 \
         current_env = EXPENV;                                                                         \
         std::any def = visit(stuff);                                                                  \
-        if (auto *physical = std::any_cast<physical_definition>(&def))                                \
+        if (auto **physical = std::any_cast<physical_definition *>(&def))                             \
+        {                                                                                              \
+            prgm.get_preamble().add_definition(*physical);                                             \
+        }                                                                                              \
+        else if (auto *physical = std::any_cast<physical_definition>(&def))                            \
         {                                                                                             \
-            prgm.get_preamble().add_definition(physical);                                             \
+            auto owned = std::make_shared<physical_definition>(*physical);                             \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
         }                                                                                             \
+        else if (auto **logical = std::any_cast<logical_definition *>(&def))                           \
+        {                                                                                              \
+            prgm.get_preamble().add_definition(*logical);                                              \
+        }                                                                                              \
         else if (auto *logical = std::any_cast<logical_definition>(&def))                             \
         {                                                                                             \
-            prgm.get_preamble().add_definition(logical);                                              \
-        }else if(auto* object = std::any_cast<object_definition>(&def)){ \
-            prgm.get_preamble().add_definition(object); \
-        }else if(auto* collective = std::any_cast<collective_function_definition>(&def)){\
-            prgm.get_preamble().add_definition(collective);\
+            auto owned = std::make_shared<logical_definition>(*logical);                               \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
+        } else if (auto **object = std::any_cast<object_definition *>(&def)) {                        \
+            prgm.get_preamble().add_definition(*object);                                               \
+        } else if (auto *object = std::any_cast<object_definition>(&def)) {                           \
+            auto owned = std::make_shared<object_definition>(*object);                                 \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
+        } else if (auto **collective = std::any_cast<collective_function_definition *>(&def)) {       \
+            prgm.get_preamble().add_definition(*collective);                                           \
+        } else if (auto *collective = std::any_cast<collective_function_definition>(&def)) {          \
+            auto owned = std::make_shared<collective_function_definition>(*collective);                \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
         }\
         else                                                                                          \
         {                                                                                             \
@@ -54,6 +76,8 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
         std::cerr << "Unknown definition type in the preamble section!\n";
     }
+
+    std::cout << "nb preamble in total: " << prgm.get_preamble().get_definitions().size() << std::endl;
 
     std::cout << "nb statements in system section root level: "
               << ctx->system()->s_statement().size() << std::endl;
@@ -149,17 +173,18 @@ std::any ASTBuilder::visitObject_def(ChipsParser::Object_defContext *ctx)
 
     with_section with = std::any_cast<with_section>(visit(ctx->with_section()));
 
-    object_definition object(identifier, with);
+    auto object = std::make_shared<object_definition>(identifier, with);
+    node_arena.push_back(object);
 
     SymbolTable::getInstance().exitScope();
     if(SymbolTable::getInstance().lookupNodeDefinition(identifier).has_value()){
         throw std::runtime_error("'"+identifier+"' was already defined before");
     }
-    if(!SymbolTable::getInstance().declareObject(identifier, object)){
+    if(!SymbolTable::getInstance().declareObject(identifier, *object)){
         throw std::runtime_error("'"+identifier+"' was already defined before");
     }
 
-    return object;
+    return object.get();
 }
 
 std::any ASTBuilder::visitImplementation_def(ChipsParser::Implementation_defContext *ctx)
@@ -196,13 +221,14 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
     {                                                                                            \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(identifier);            \
         declaration.get_variable().set_declaration(&declaration);                                \
-        function_parameter<DFK, DFT> new_ast_param(identifier, declaration);                     \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(identifier, declaration); \
+        node_arena.push_back(new_ast_param);                                                     \
         if (!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())) \
         {                                                                                        \
             throw std::runtime_error("The parameter '" + identifier + "' of the function '"+fname_current+"'was already declarated before here");      \
         }                                                                                        \
-        SymbolTable::getInstance().declareFunctionParameter(fname_current, identifier, new_ast_param);\
-        params.push_back(&new_ast_param);                                                        \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, identifier, *new_ast_param);\
+        params.push_back(new_ast_param.get());                                                   \
         continue;                                                                                \
     }
 
@@ -262,15 +288,16 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
         continue;
     }
 
-    chips::logical_definition logical(fname, params, init, then, outputs);
+    auto logical = std::make_shared<chips::logical_definition>(fname, params, init, then, outputs);
+    node_arena.push_back(logical);
     SymbolTable::getInstance().exitScope();
     if(SymbolTable::getInstance().lookupNodeDefinition(fname).has_value()){
         throw std::runtime_error("'"+fname+"' was already defined before");
     }
-    SymbolTable::getInstance().declareFunctionLogical(fname, logical);
+    SymbolTable::getInstance().declareFunctionLogical(fname, *logical);
     SymbolTable::getInstance().dump();
     std::cout << "END LOGICAL " << fname << std::endl;
-    return logical;
+    return logical.get();
 }
 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
@@ -296,10 +323,11 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     {                                                                                        \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);             \
         declaration.get_variable().set_declaration(&declaration);                            \
-        function_parameter<DFK, DFT> new_ast_param(pname, declaration);                      \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        node_arena.push_back(new_ast_param);                                                  \
         SymbolTable::getInstance().declareSensorVariable(pname, declaration.get_variable()); \
-        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, new_ast_param);\
-        sensors.push_back(&new_ast_param);                                                   \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, *new_ast_param);\
+        sensors.push_back(new_ast_param.get());                                              \
         continue;                                                                            \
     }
 
@@ -318,10 +346,11 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     {                                                                                  \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);       \
         declaration.get_variable().set_declaration(&declaration);                      \
-        function_parameter<DFK, DFT> new_ast_param(pname, declaration);                \
-        params.push_back(&new_ast_param);                                              \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        node_arena.push_back(new_ast_param);                                           \
+        params.push_back(new_ast_param.get());                                         \
         SymbolTable::getInstance().declareVariable(pname, declaration.get_variable()); \
-        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, new_ast_param);\
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, *new_ast_param);\
         continue;                                                                      \
     }
 
@@ -430,17 +459,18 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
     std::cout << "return physical" << std::endl;
-    chips::physical_definition physical(fname, params, init, then, outputs, with, sensors, actuators);
+    auto physical = std::make_shared<chips::physical_definition>(fname, params, init, then, outputs, with, sensors, actuators);
+    node_arena.push_back(physical);
     SymbolTable::getInstance().exitScope();
     if(SymbolTable::getInstance().lookupFunctionLogical(fname).has_value()){
         throw std::runtime_error("'"+fname+"' was already defined before");
     }
-    if(!SymbolTable::getInstance().declareFunctionPhysical(fname, physical)){
+    if(!SymbolTable::getInstance().declareFunctionPhysical(fname, *physical)){
         throw std::runtime_error("'"+fname+"' was already defined before");
     }
     SymbolTable::getInstance().dump();
     std::cout << "END PHYSICAL " << fname << std::endl;
-    return physical;
+    return physical.get();
 }
 
 std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
@@ -519,8 +549,9 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
             auto expr = ast_builder_detail::try_extract<DFT,expression_env::COLLECTIVE>(c_expr);\
             dataflow_declaration<DFT, statement_env::COLLECTIVE> declaration(pname); \
             declaration.get_variable().set_declaration(&declaration); \
-            collective_parameter<DFT> new_ast_param(pname, declaration, *expr); \
-            params.push_back(&new_ast_param); \
+            auto new_ast_param = std::make_shared<collective_parameter<DFT>>(pname, declaration, *expr); \
+            node_arena.push_back(new_ast_param); \
+            params.push_back(new_ast_param.get()); \
             if(!SymbolTable::getInstance().declareVariable(pname, declaration.get_variable())){ \
                 throw std::runtime_error("'"+pname+"' was already declarated before"); \
             } \
@@ -674,29 +705,30 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
     SymbolTable::getInstance().exitScope();
 
-    collective_function_definition collective(fname,
-                                              type,
-                                              accumulator,
-                                              node_support,
-                                              stts,
-                                              target,
-                                              default_o,
-                                              channeled_outputs);
+    auto collective = std::make_shared<collective_function_definition>(fname,
+                                                                       type,
+                                                                       accumulator,
+                                                                       node_support,
+                                                                       stts,
+                                                                       target,
+                                                                       default_o,
+                                                                       channeled_outputs);
+    node_arena.push_back(collective);
 
 
     if(keyword == "collect"){
-        if(!SymbolTable::getInstance().declareFunctionCollect(fname, collective)){
+        if(!SymbolTable::getInstance().declareFunctionCollect(fname, *collective)){
             throw std::runtime_error("'"+fname+"' was already defined before");
         }
     }else if(keyword == "spread"){
-        if(!SymbolTable::getInstance().declareFunctionSpread(fname, collective)){
+        if(!SymbolTable::getInstance().declareFunctionSpread(fname, *collective)){
             throw std::runtime_error("'"+fname+"' was already defined before");
         }
     }else{
         throw std::runtime_error("The keyword of this collective function doesn't exist");
     }
 
-    return collective;
+    return collective.get();
 }
 
 std::any ASTBuilder::visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx)

@@ -228,6 +228,8 @@ namespace ast_builder_detail
                 const_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION> *>(p),
                 [](ast_node *) {});
 
+        std::cout << "extract as node type reel: " << type_name(a.type()) << std::endl;
+
         throw std::runtime_error(
             "extract_as_node : type inconnu dans le std::any : " + type_name(a.type()) + ". Ajouter la combinaison dans extract_as_node si un nouveau "
                                                                                          "visiteur produit ce type (sauf BOOL et SYSTEM, voir commentaire).");

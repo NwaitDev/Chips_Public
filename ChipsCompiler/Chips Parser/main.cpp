@@ -33,7 +33,7 @@ public:
 };
 
 
-void parse(std::istream& input) {
+void parse(std::istream& input, std::string filename) {
 
     antlr4::ANTLRInputStream    stream(input);
     ChipsLexer                  lexer(&stream);
@@ -57,27 +57,35 @@ void parse(std::istream& input) {
     ChipsToXmiVisitor visitor(body_writer, body_out);
 
     std::any result = builder.visit(tree);
+    program_node* rootPtr = std::any_cast<program_node>(&result);
 
-    // for(auto* stmt : tree->statement()){
-        // std::any result = builder.visit(stmt);
-    throw std::runtime_error("Faut faire le main");
-    std::cout << "MAIN" << std::endl;
+    if(rootPtr){
+        // int status;
+        // const std::type_info& ti = typeid(*rootPtr);
+        // char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+        // std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
+        // free(realname);
 
-        std::shared_ptr<ast_node> rootPtr = ast_builder_detail::extract_as_node(result);
+        // rootPtr->hello();
+        SymbolTable::getInstance().dump();
 
-        if(rootPtr){
-            int status;
-            const std::type_info& ti = typeid(*rootPtr);
-            char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
-            std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
-            free(realname);
+        rootPtr->accept(visitor);
 
-            rootPtr->hello();
+        std::ofstream out(output);
 
-            SymbolTable::getInstance().dump();
-        }else{
-            std::cout << "no" << std::endl;
-        }
+        ChipsToXmiWriter writer(out);
+        writer.copy_namespaces_from(body_writer);
+        writer.xmi_header(filename);
+        out << body_out.str();
+        writer.xmi_footer();
+
+        out.close();
+
+        std::cout << "XMI généré: " << output << std::endl;
+
+    }else{
+        std::cout << "no" << std::endl;
+    }
     // }
 }
 
@@ -96,7 +104,7 @@ int main(int argc, char* argv[]) {
             std::exit(1);
         }
         try {
-            parse(file);
+            parse(file, filename);
         } catch (const std::exception& e) {
             std::cerr << "Erreur : " << e.what() << "\n";
             std::exit(1);

@@ -1,6 +1,8 @@
 #include "ChipsToXmiVisitor.hpp"
 #include "ast_definitions.hpp"
 
+#include "ast_builder_details.hpp"
+
 #define UNUSED(x) (void)(x)
 
 
@@ -717,6 +719,215 @@ void ChipsToXmiVisitor::visit(ast_node& node){
     //TODO: regarder pour regler ce probleme
 }
 
+void ChipsToXmiVisitor::visit(program_node& node){
+    auto preamble = node.get_preamble();
+    auto system = node.get_system();
+    std::cerr << "PREAMBLE SIZE: " << preamble.get_definitions().size() << std::endl;
+    std::cerr << "SYSTEM SIZE: " << system.get_statements().size() << std::endl;
+    if(!preamble.get_definitions().empty()){
+        out() << repeat("\t", nbTab) << "<preamble>\n";
+        nbTab++;
+        preamble.accept(*this);
+        nbTab--;
+        out() << repeat("\t", nbTab) << "</preamble>\n";
+    }
+    if(!system.get_statements().empty()){
+        out() << repeat("\t", nbTab) << "<system>\n";
+        nbTab++;
+        system.accept(*this);
+        nbTab--;
+        out() << repeat("\t", nbTab) << "</system>\n";
+    }
+}
+
+void ChipsToXmiVisitor::visit(system_section_node& node){
+    out() << "<!-- TODO -->\n";
+}
+
+void ChipsToXmiVisitor::visit(preamble_section_node& node){
+    for(auto definition : node.get_definitions()){
+        out() << repeat("\t", nbTab) << "<definitions\n";
+        if(auto* logical = std::get_if<logical_definition*>(&definition)){
+            out() << repeat("\t", nbTab) << "logical";
+        }else if(auto* physical = std::get_if<physical_definition*>(&definition)){
+            nbTab++;
+            if(*physical){
+                std::cout << ast_builder_detail::type_name(std::any{physical}.type()) << std::endl;
+                (*physical)->accept(*this);
+            }
+            nbTab--;
+
+        }else if(auto* object = std::get_if<object_definition*>(&definition)){
+            out() << repeat("\t", nbTab) << "object";
+        }else if(auto* collective = std::get_if<collective_function_definition*>(&definition)){
+            out() << repeat("\t", nbTab) << "collective";
+        }
+        out() << repeat("\t", nbTab) << "</definitions>\n";
+    }
+}
+
+void ChipsToXmiVisitor::visit(physical_definition& node){
+
+    // Enregistrer la définition physique dans la table des symboles
+    // Le chemin est : //@preamble/@definitions.X (déterminé par le contexte d'appel)
+    register_variable(node.get_name(), get_ast_path(), "physical");
+
+    // Extract the definition index from the current path (e.g., "//@preamble/@definitions.0" -> 0)
+    int def_index = 0;
+    std::string path = get_ast_path();
+    size_t pos = path.rfind("@definitions.");
+    if(pos != std::string::npos){
+        try{
+            def_index = std::stoi(path.substr(pos + 13));
+        }catch(...){
+            def_index = 0;
+        }
+    }
+
+    // Register the definition in the definitions table
+    register_definition(node.get_name(), "physical", get_ast_path(), def_index);
+    m_current_definition = node.get_name();
+
+    std::cerr << "[DEBUG] Physical definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+
+    nbTab++;
+    out() << repeat("\t", nbTab);
+    writeAttribute("xsi:type", "definitions:physical_definition");
+    out() << "\n" << repeat("\t", nbTab);
+    writeAttribute("name", node.get_name());
+    out() << ">\n";
+    nbTab--;
+
+    // Enregistrer les paramètres (sensors, actuators, etc.) dans la table des symboles
+    int sensor_index = 0;
+    for(auto& param : node.get_sensors()){
+        if(auto* p = std::get_if<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>*>(&param)){
+            if(*p){
+                auto node_param = *p;
+                std::string param_name = node_param->get_name();
+                std::string dft = dft_to_string(dataflow_type::INT);
+                std::string sensor_base_path = get_ast_path() + "/@sensor." + std::to_string(sensor_index);
+                std::string param_path = sensor_base_path + "/@declaration/@variable";
+                register_variable(param_name, param_path, "sensor:" + dft);
+                std::cerr << "[DEBUG] Paramètre sensor '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
+                sensor_index++;
+            }
+        }else if(auto* p = std::get_if<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*>(&param)){
+            if(*p){
+                auto node_param = *p;
+                std::string param_name = node_param->get_name();
+                std::string dft = dft_to_string(dataflow_type::FLOAT);
+                std::string sensor_base_path = get_ast_path() + "/@sensor." + std::to_string(sensor_index);
+                std::string param_path = sensor_base_path + "/@declaration/@variable";
+                register_variable(param_name, param_path, "sensor:" + dft);
+                std::cerr << "[DEBUG] Paramètre sensor '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
+                sensor_index++;
+            }
+        }else if(auto* p = std::get_if<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(&param)){
+            if(*p){
+                auto node_param = *p;
+                std::string param_name = node_param->get_name();
+                std::string dft = dft_to_string(dataflow_type::BOOL);
+                std::string sensor_base_path = get_ast_path() + "/@sensor." + std::to_string(sensor_index);
+                std::string param_path = sensor_base_path + "/@declaration/@variable";
+                register_variable(param_name, param_path, "sensor:" + dft);
+                std::cerr << "[DEBUG] Paramètre sensor '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
+                sensor_index++;
+            }
+        }
+    }
+
+    auto with = node.get_with_section();
+    if(!with.get_statements().empty()){
+        push_ast_path("/@with");
+        out() << repeat("\t", nbTab) << "<with>\n";
+        nbTab++;
+        with.accept(*this);
+        nbTab--;
+        out() << repeat("\t", nbTab) << "</with>\n";
+        pop_ast_path("/@with");
+    }
+}
+
+void ChipsToXmiVisitor::visit(with_section& node){
+    for(auto& statement : node.get_statements()){
+        out() << repeat("\t", nbTab) << "<statements\n";
+        if(auto* if_stt = std::get_if<node_statement<recurring_statement::IF>*>(&statement)){
+            out() << ("<!-- TODO IF NODE XMI -->\n");
+        }else if(auto* foreach = std::get_if<node_statement<recurring_statement::FOREACH>*>(&statement)){
+            out() << ("<!-- TODO FOREACH NODE XMI-->\n");
+        }else if(auto* channel = std::get_if<node_element_declaration<node_element::CHANNEL>*>(&statement)){
+            // out() << ("<!-- TODO CHANNEL NODE XMI-->\n");
+
+            auto node_channel = *channel;
+
+            std::string type_id = node_channel->get_variable();
+            std::string name = node_channel->get_name();
+            std::string type = statement_type("channel_declaration", StatementFamily::Node);
+
+            // Enregistrer le channel dans la table des symboles
+            // Le chemin du channel est juste get_ast_path() car on est déjà dans /@with/@statements.X
+            register_variable(name, get_ast_path(), "channel");
+
+            // Also register in the current definition if we're in one
+            if (!m_current_definition.empty()) {
+                register_definition_variable(m_current_definition, name, get_ast_path(), "channel");
+            }
+
+            std::cerr << "[DEBUG] Channel '" << name << "' enregistré avec le chemin: " << get_ast_path() << std::endl;
+
+            nbTab++;
+            out() << repeat("\t", nbTab);
+            writeAttribute("xsi:type", type);
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("name", name+"_"+toLower(type_id));
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("type_identifier", type_id);
+            out() << "/>\n";
+            nbTab--;
+
+        }else if(auto* ctx_int = std::get_if<node_element_declaration<node_element::CONTEXTUAL_INT>*>(&statement)){
+            auto node_ctx = *ctx_int;
+
+            std::string identifier = node_ctx->get_name();
+
+            // Enregistrer le ctx dans la table des symboles
+            // Le chemin du ctx est juste get_ast_path() car on est déjà dans /@with/@statements.X
+            register_variable(identifier, get_ast_path(), "ctx");
+
+            // Also register in the current definition if we're in one
+            if (!m_current_definition.empty()) {
+                register_definition_variable(m_current_definition, identifier, get_ast_path(), "ctx");
+            }
+
+            nbTab++;
+            out() << repeat("\t", nbTab);
+            writeAttribute("xsi:type", "contextual_int_declaration");
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("identifier", identifier);
+            out() << "/>\n";
+            // nbTab--;
+
+            out() << repeat("\t", nbTab) << "<variable\n";
+            nbTab++;
+            out() << repeat("\t", nbTab);
+            writeAttribute("name", identifier);
+            out() << "/>\n"; 
+            nbTab--;
+            nbTab--;
+
+        }else if(auto* ctx_float = std::get_if<node_element_declaration<node_element::CONTEXTUAL_FLOAT>*>(&statement)){
+            out() << ("<!-- TODO CTX FLOAT NODE XMI-->\n");
+        }else if(auto* ctx_bool = std::get_if<node_element_declaration<node_element::CONTEXTUAL_BOOL>*>(&statement)){
+            out() << ("<!-- TODO CTX BOOL NODE XMI-->\n");
+        }
+    }
+    out() << repeat("\t", nbTab) << "</statements>\n";
+}
+
+void ChipsToXmiVisitor::visit(logical_definition& node){
+    out() << "<!-- TODO logical -->\n";
+}
 
 void ChipsToXmiVisitor::writeAttribute(const std::string& name, const std::string& value){
     std::string normalized = name;
@@ -758,4 +969,67 @@ void ChipsToXmiVisitor::ensure_namespace_for_type(const std::string& type_value)
         return;
     }
     ensure_namespace_for_prefix(type_value.substr(0, colon_pos));
+}
+
+ChipsToXmiVisitor::StatementFamily ChipsToXmiVisitor::detect_statement_family() const
+{
+    const std::string &path = m_current_ast_path;
+
+    if (path.find("/@system") != std::string::npos)
+    {
+        return StatementFamily::System;
+    }
+    if (path.find("/@operations") != std::string::npos)
+    {
+        return StatementFamily::Collective;
+    }
+    if (path.find("/@having") != std::string::npos)
+    {
+        return StatementFamily::Implementation;
+    }
+    if (path.find("/@with") != std::string::npos)
+    {
+        return StatementFamily::Node;
+    }
+    if (path.find("/@init") != std::string::npos || path.find("/@then") != std::string::npos)
+    {
+        return StatementFamily::Primitive;
+    }
+
+    return StatementFamily::Primitive;
+}
+
+std::string ChipsToXmiVisitor::statement_prefix(StatementFamily family) const
+{
+    if (family == StatementFamily::Auto)
+    {
+        family = detect_statement_family();
+    }
+
+    switch (family)
+    {
+    case StatementFamily::System:
+        return "chips.statements.system";
+    case StatementFamily::Node:
+        return "chips.statements.node";
+    case StatementFamily::Collective:
+        return "chips.statements.collective";
+    case StatementFamily::Implementation:
+        return "chips.statements.implementation";
+    case StatementFamily::Primitive:
+    case StatementFamily::Auto:
+    default:
+        return "chips.statements.primitive";
+    }
+}
+
+std::string ChipsToXmiVisitor::statement_type(const std::string &suffix, StatementFamily family) const
+{
+    return statement_prefix(family) + ":" + suffix;
+}
+
+void ChipsToXmiVisitor::report_semantic_error(const std::string &message)
+{
+    m_semantic_errors.push_back(message);
+    std::cerr << "[SEMANTIC ERROR] " << message << std::endl;
 }

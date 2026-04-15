@@ -10,6 +10,8 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <cctype>
+#include <algorithm>
 
 #include <typeinfo>
 #include <cxxabi.h>
@@ -67,9 +69,9 @@ class ChipsToXmiVisitor : public visitor{
         // chips::visitor déclare 35 méthodes = 0. ChipsToXmiVisitor n'en
         // implémentait que 2 → classe abstraite, impossible à instancier.
         // Stubs à compléter progressivement avec la vraie logique XMI.
-        void visit(program_node& node) override              { out() << "<!-- program_node -->\n"; }
-        void visit(preamble_section_node& node) override     { out() << "<!-- preamble_section_node -->\n"; }
-        void visit(system_section_node& node) override       { out() << "<!-- system_section_node -->\n"; }
+        void visit(program_node& node);// override              { out() << "<!-- program_node -->\n"; }
+        void visit(preamble_section_node& node);// override     { out() << "<!-- preamble_section_node -->\n"; }
+        void visit(system_section_node& node);// override       { out() << "<!-- system_section_node -->\n"; }
         // void visit(primitive_variable& node) override        { out() << "<!-- primitive_variable -->\n"; }
         // void visit(node_variable& node) override             { out() << "<!-- node_variable -->\n"; }
         // void visit(collective_variable& node) override       { out() << "<!-- collective_variable -->\n"; }
@@ -81,7 +83,7 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(target_output& node) override             { out() << "<!-- target_output -->\n"; }
         // void visit(channeled_output& node) override          { out() << "<!-- channeled_output -->\n"; }
         // void visit(definition& node) override                { out() << "<!-- definition -->\n"; }
-        // void visit(with_section& node) override              { out() << "<!-- with_section -->\n"; }
+        void visit(with_section& node);// override              { out() << "<!-- with_section -->\n"; }
         // void visit(init_section& node) override              { out() << "<!-- init_section -->\n"; }
         // void visit(then_section& node) override              { out() << "<!-- then_section -->\n"; }
         // void visit(collectiveops_section& node) override     { out() << "<!-- collectiveops_section -->\n"; }
@@ -89,8 +91,8 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(node_definition& node) override           { out() << "<!-- node_definition -->\n"; }
         // void visit(object_definition& node) override         { out() << "<!-- object_definition -->\n"; }
         // void visit(function_definition& node) override       { out() << "<!-- function_definition -->\n"; }
-        // void visit(logical_definition& node) override        { out() << "<!-- logical_definition -->\n"; }
-        // void visit(physical_definition& node) override       { out() << "<!-- physical_definition -->\n"; }
+        void visit(logical_definition& node);// override        { out() << "<!-- logical_definition -->\n"; }
+        void visit(physical_definition& node);// override       { out() << "<!-- physical_definition -->\n"; }
         // void visit(implementation_defintion& node) override  { out() << "<!-- implementation_defintion -->\n"; }
         // void visit(collective_function_definition& node) override { out() << "<!-- collective_function_definition -->\n"; }
         // void visit(system_iterable& node) override           { out() << "<!-- system_iterable -->\n"; }
@@ -354,6 +356,24 @@ class ChipsToXmiVisitor : public visitor{
             }
         }
 
+        std::string repeat(const std::string&  s, std::size_t n){
+            std::string out;
+            out.reserve(s.size() * n);
+            for(std::size_t i = 0; i < n; i++){
+                out += s;
+            }
+            return out;
+        }
+
+        std::string toLower(const std::string& str) {
+            std::string result = str;
+            std::transform(result.begin(), result.end(), result.begin(),
+                        [](unsigned char c){ return std::tolower(c); });
+            return result;
+        }
+
+
+
         // Members
         ChipsToXmiWriter &m_writer;
         std::ostream &m_out;
@@ -366,6 +386,8 @@ class ChipsToXmiVisitor : public visitor{
         std::string m_statement_tag = "statements";  // Tag name override for if/else sections
         std::vector<std::string> m_semantic_errors;
         int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
+
+        int nbTab = 1;
 };
 
 #endif
