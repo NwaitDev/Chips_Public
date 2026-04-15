@@ -2,6 +2,7 @@
 #define __chips_system_spe__
 
 
+#include <variant>
 #include <vector>
 #include "ast_base.hpp"
 
@@ -243,10 +244,30 @@ namespace chips {
     class collective_cast : public feeder<dfk,dft> {
         public:
         collective_function_definition* variable_expression;
-        feeder<dfk, dft>* m_feeder;
+        using feeder_variant = std::variant<
+            feeder<dfk, dataflow_type::INT>*,
+            feeder<dfk, dataflow_type::FLOAT>*,
+            feeder<dfk, dataflow_type::BOOL>*
+        >;
 
-        collective_cast(collective_function_definition* variable, feeder<dfk, dft>& feed)
+        feeder_variant m_feeder;
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::INT>& feed)
             : variable_expression(variable), m_feeder(&feed){}
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::FLOAT>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::BOOL>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
+
+        template<dataflow_type feeder_dft>
+        feeder<dfk, feeder_dft>* get_feeder_as(){
+            if(auto* casted = std::get_if<feeder<dfk, feeder_dft>*>(&m_feeder)){
+                return *casted;
+            }
+            return nullptr;
+        }
 
         void hello(){}
     };

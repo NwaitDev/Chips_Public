@@ -813,6 +813,33 @@ public:
 
     channel_feeder make_channel_feeder(std::any& variable, std::any& channel_who_feed,
                                      std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
+
+    template<expression_env expenv>
+    dataflow_type get_type_of_output(std::any& value){
+        std::cout << "get_type_of_output: " << ast_builder_detail::type_name(value.type()) << std::endl;
+        if constexpr(expenv == expression_env::COLLECTIVE){
+            if(auto* output = std::any_cast<target_output>(&value)){
+                const auto& expr0 = output->m_expressions.at(0);
+                std::cout << "expr0: " << ast_builder_detail::type_name(std::any{expr0}.type()) << std::endl;
+                if(std::holds_alternative<rvalue<dataflow_type::INT,expenv>*>(expr0)){
+                    return dataflow_type::INT;
+                }
+                if(std::holds_alternative<rvalue<dataflow_type::FLOAT,expenv>*>(expr0)){
+                    return dataflow_type::FLOAT;
+                }
+                if(std::holds_alternative<rvalue<dataflow_type::BOOL,expenv>*>(expr0)){
+                    return dataflow_type::BOOL;
+                }
+            }
+            if(auto* output = std::any_cast<default_output>(&value)){
+                return ast_builder_detail::get_dataflow_type<expenv>(output->m_accumulator_expressions.at(0));
+            }
+        }
+        throw std::runtime_error("The value is not a default or target output");
+    };
+
+    // template<dataflow_kind dfk, dataflow_type dft, expression_env expenv>
+    // collective_cast<dfk, dft
 };
 
 #endif

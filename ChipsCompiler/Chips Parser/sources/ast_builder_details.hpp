@@ -224,6 +224,13 @@ namespace ast_builder_detail
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical bool statement" << std::endl;
             }
+
+            try{
+                auto new_ast_stt = std::any_cast<channel_plugging>(statement);
+                return &new_ast_stt;
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a channel plugging statement" << std::endl;
+            }
         }
 
         throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type())+" HERREEEEE");

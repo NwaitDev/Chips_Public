@@ -653,12 +653,24 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
             channeled_outputs.push_back(channel_output);
 
+            if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, stuff->IDENTIFIER()->getText(), channel_output)){
+                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was already declarated before");
+            }
+
             // throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
         }
     }
 
     target_output target(target_output_exprs);
     default_output default_o(default_output_exprs);
+
+    if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "@", target)){
+        throw std::runtime_error("'@' was already declarated before");
+    }
+
+    if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "default", default_o)){
+        throw std::runtime_error("'default' was already declarated before");
+    }
 
     SymbolTable::getInstance().exitScope();
 
@@ -2089,12 +2101,13 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }    
 
-    std::cout << "type eater: " << ast_builder_detail::type_name(parameter_who_eat.value().type()) << std::endl;
+    
     std::cout << "Is function param " << (is_function_parameter(parameter_who_eat.value()) ? "param" : "non") << std::endl;
 
     if(is_function_param){
         std::any s_expr = visit(ctx->s_expr());
         
+        std::cout << "type eater: " << ast_builder_detail::type_name(parameter_who_eat.value().type()) << std::endl;
         std::cout << "type s_expr: " << ast_builder_detail::type_name(s_expr.type()) << std::endl;
         
         functional_block_variant variable_expression = make_functional_block_from_any(variable.value(), suffixes);
@@ -2459,10 +2472,19 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         throw std::runtime_error("'"+collective_op+"' was never defined before");
     }
 
+    std::optional<std::any> target_output_opt = SymbolTable::getInstance().lookupOutput(collective_op, "@");
+
+    if(!target_output_opt.has_value()){
+        throw std::runtime_error("'@' was never defined before");
+    }
+
     auto collective_func_def = std::make_shared<collective_function_definition>(
         std::any_cast<collective_function_definition>(collective.value()));
     node_arena.push_back(collective_func_def);
 
+    dataflow_type type_target_output = get_type_of_output<expression_env::COLLECTIVE>(target_output_opt.value());
+
+    std::cout << "TYPE OF TARGET: " << dft_to_string(type_target_output) << std::endl;
     std::cout << "feeder who eaten " << identifier << "(" << SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier) << ")" << std::endl; 
 
     std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
@@ -2483,8 +2505,24 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not logical int" << std::endl;
@@ -2494,8 +2532,23 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not logical float" << std::endl;
@@ -2505,8 +2558,23 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not logical bool" << std::endl;
@@ -2516,8 +2584,23 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not physical int" << std::endl;
@@ -2527,8 +2610,23 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not physical float" << std::endl;
@@ -2539,8 +2637,23 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
             
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
-            return collect_cast;
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
         }
     }catch(const std::bad_any_cast& e){
         std::cout << "not physical bool" << std::endl;
