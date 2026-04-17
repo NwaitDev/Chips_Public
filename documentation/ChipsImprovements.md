@@ -168,7 +168,7 @@ RingAggregate among <node type>
 -> default(next_acc)
 ```
 
-## control receipes:
+## control recipes:
 
 ```c
 
@@ -194,7 +194,7 @@ object CatomSet with {
     ctx float [3] avg_pos = 0;
     ctx int nb_catoms = 0;
     ctx goal_pos = 0;
-} receipe DistanceHomogeneity among Catom {
+} recipe DistanceHomogeneity among Catom {
     avg_pos = 0;
     nb_catoms = 0;
     for pos in Catom {
@@ -223,7 +223,7 @@ object CatomSet with {
     for i in range(3){
         avg_pos[i] = avg_pos[i]/(float)nb_catoms;
     }
-} receipe ReachGoalPos among Catom {
+} recipe ReachGoalPos among Catom {
     if(achieved) {
         float[3] displ = normalize(goal_pos - avg_pos)*0.3;
         for pos in Catom {
@@ -239,17 +239,17 @@ object CatomSetSet with {
     ctx bool achieved = true;
     CatomSet center_piece = NULL;
     ctx int nb_catom_sets = 0; 
-} receipe CountCatomSets among CatomSet {
+} recipe CountCatomSets among CatomSet {
     nb_catom_sets = 0;
     for cs in CatomSet {
         nb_catom_sets = nb_catom_sets + 1;
     }
-} receipe ComputeCenterPiece among CatomSet {
+} recipe ComputeCenterPiece among CatomSet {
     nb_catom_sets = 0;
     for cs in CatomSet {
         
     }
-} receipe ShapeShift among CatomSet {
+} recipe ShapeShift among CatomSet {
     if(achieved){
         if(shape == TOWER){
             shape = LINE;
@@ -259,13 +259,13 @@ object CatomSetSet with {
             achieved = false;
         }
     }
-} receipe ToTower among CatomSet {
+} recipe ToTower among CatomSet {
     if(shape == TOWER){
         // represent the process that
         // builds the TOWER by moving 
         // CatomSets on top of each others
     }
-} receipe ToLine {
+} recipe ToLine {
     // other kind of procedure to realize
     // the shape
 } 
