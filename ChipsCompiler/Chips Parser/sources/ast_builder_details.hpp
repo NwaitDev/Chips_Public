@@ -20,6 +20,19 @@ using namespace chips;
 namespace ast_builder_detail
 {
 
+    inline std::vector<std::shared_ptr<void>>& extracted_statement_arena(){
+        static std::vector<std::shared_ptr<void>> arena;
+        return arena;
+    }
+
+    template<typename T>
+    T* keep_extracted_statement_alive(const T& statement){
+        auto owned = std::make_shared<T>(statement);
+        auto* raw = owned.get();
+        extracted_statement_arena().push_back(owned);
+        return raw;
+    }
+
     /**
      * Nom de type lisible pour les messages d'erreur
      */
@@ -50,6 +63,191 @@ namespace ast_builder_detail
      * @throws std::runtime error if no common statement matches the parameter
      */
     statement_variant try_extract_recurring_statement(std::any statement);
+
+    template<statement_env sttenv>
+    statement_variant try_extract_recurring_statement(std::any statement){
+        std::cout << "BEGINNING TRY EXTRACT RECCURING STATEMENT TEMPLATE " << type_name(statement.type()) << std::endl;
+
+        try
+        {
+            // must try this one before the if statement because
+            // "if else" derives from "if" statement
+            if_else_statement<sttenv> new_ast_stt =
+                std::any_cast<if_else_statement<sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an if else statement" << std::endl;
+        }
+
+        try
+        {
+            if_statement<sttenv> new_ast_stt =
+                std::any_cast<if_statement<sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an if statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<sttenv, dataflow_type::INT> new_ast_stt =
+                std::any_cast<foreach_statement<sttenv, dataflow_type::INT>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach int statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<sttenv, dataflow_type::FLOAT> new_ast_stt =
+                std::any_cast<foreach_statement<sttenv, dataflow_type::FLOAT>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach float statement" << std::endl;
+        }
+
+        try
+        {
+            foreach_statement<sttenv, dataflow_type::BOOL> new_ast_stt =
+                std::any_cast<foreach_statement<sttenv, dataflow_type::BOOL>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a foreach bool statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::INT, sttenv> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::INT, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a int declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::FLOAT, sttenv> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::FLOAT, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a float declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_declaration<dataflow_type::BOOL, sttenv> new_ast_stt =
+                std::any_cast<dataflow_declaration<dataflow_type::BOOL, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a bool declaration statement" << std::endl;
+        }
+
+        try
+        {
+            dataflow_assignment<dataflow_type::INT, sttenv> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::INT, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not an int assignement statement" << std::endl;
+        }
+        try
+        {
+            dataflow_assignment<dataflow_type::FLOAT, sttenv> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::FLOAT, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a float assignment statement" << std::endl;
+        }
+        try
+        {
+            dataflow_assignment<dataflow_type::BOOL, sttenv> new_ast_stt =
+                std::any_cast<dataflow_assignment<dataflow_type::BOOL, sttenv>>(statement);
+            return keep_extracted_statement_alive(new_ast_stt);
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            std::cout << "not a bool assignment statement" << std::endl;
+        }
+        if constexpr(sttenv == statement_env::SYSTEM){
+            try{
+                auto new_ast_stt = std::any_cast<linking_statement>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a linking statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical int statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical float statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding logical bool statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical int statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical float statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a feeding physical bool statement" << std::endl;
+            }
+
+            try{
+                auto new_ast_stt = std::any_cast<channel_plugging>(statement);
+                return keep_extracted_statement_alive(new_ast_stt);
+            }catch(const std::bad_any_cast& e){
+                std::cout << "not a channel plugging statement" << std::endl;
+            }
+        }
+
+        throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type())+" HERREEEEE");
+    }
 
     // ── try_extract ───────────────────────────────────────────────────────────
     // Tente de récupérer shared_ptr<rvalue<DFT,EXPENV>> depuis un std::any.
@@ -123,6 +321,18 @@ namespace ast_builder_detail
             {
                 return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
+
+            if constexpr (EXPENV == expression_env::COLLECTIVE)
+            {
+                if (auto *p = std::any_cast<std::shared_ptr<input>>(&a))
+                {
+                    return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
+                }
+                if (auto *p = std::any_cast<std::shared_ptr<stop>>(&a))
+                {
+                    return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
+                }
+            }
         }
 
         // extractation des opérateurs qui sont de type booléens
@@ -188,6 +398,18 @@ namespace ast_builder_detail
             {
                 return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
+
+            if constexpr (EXPENV == expression_env::COLLECTIVE)
+            {
+                if (auto *p = std::any_cast<std::shared_ptr<input>>(&a))
+                {
+                    return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
+                }
+                if (auto *p = std::any_cast<std::shared_ptr<stop>>(&a))
+                {
+                    return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
+                }
+            }
         }
 
         // Fallback : le any contient déjà shared_ptr<rvalue<DFT,EXPENV>>
@@ -209,6 +431,16 @@ namespace ast_builder_detail
 
         throw std::runtime_error(
             "Error get dataflow type");
+    }
+
+    inline block_type get_block_type(const std::any& a){
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::LOGICAL>>>(&a))
+            return block_type::LOGICAL;
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(&a))
+            return block_type::OBJECT;
+        if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(&a))
+            return block_type::PHYSICAL;
+        throw std::runtime_error("Error get block type "+type_name(a.type()));
     }
 
     // ── extract_as_node ───────────────────────────────────────────────────────
@@ -436,8 +668,8 @@ namespace ast_builder_detail
             typename DataflowVariableDeclarationAliasType<expenv, dft>::type,
             typename DataflowAssignmentAliasType<expenv, dft>::type>;
         the_good_pair followup_pair = std::any_cast<the_good_pair>(followup);
-        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement<stenv>(followup_pair.first)));
+        datastruct->add_statement(std::get<typename StatementVariantTypeAlias<expenv>::type>(ast_builder_detail::try_extract_recurring_statement<stenv>(followup_pair.second)));
     }
 
 // ── Builders par opérateur ────────────────────────────────────────────────

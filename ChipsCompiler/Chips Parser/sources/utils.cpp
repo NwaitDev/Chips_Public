@@ -21,6 +21,15 @@ namespace chips
         return "unknown";
     }
 
+    dataflow_type ne_to_dft(node_element ne){
+        switch(ne){
+            case node_element::CONTEXTUAL_BOOL: return dataflow_type::BOOL;
+            case node_element::CONTEXTUAL_FLOAT: return dataflow_type::FLOAT;
+            case node_element::CONTEXTUAL_INT: return dataflow_type::INT;
+        }
+        throw std::runtime_error("Can't transform ne to dft");
+    }
+
     std::string any_demangle(const std::type_info& ti) {
         int status = 0;
         std::unique_ptr<char, void(*)(void*)> demangled(
@@ -36,5 +45,37 @@ namespace chips
     template<> std::string expenv_to_string<expression_env::PRIMITIVE>(){return "primitive";}
     template<> std::string expenv_to_string<expression_env::COLLECTIVE>(){return "collective";}
     template<> std::string expenv_to_string<expression_env::SYSTEM>(){return "system";}
+
+    template<> dataflow_type ne_to_dft<node_element::CONTEXTUAL_INT>(){return dataflow_type::INT;}
+    template<> dataflow_type ne_to_dft<node_element::CONTEXTUAL_FLOAT>(){return dataflow_type::FLOAT;}
+    template<> dataflow_type ne_to_dft<node_element::CONTEXTUAL_BOOL>(){return dataflow_type::BOOL;}
+
+    bool is_function_output(std::any& value){
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&value))
+        //     return true;
+        // if(auto* p = std::any_cast<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&value))
+        //     return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(&value))
+            return true;
+        if(auto* p = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>>(&value))
+            return true;
+        return false;
+    }
 
 } // namespace chips

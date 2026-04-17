@@ -20,6 +20,11 @@ namespace chips
     public:
         std::vector<definition_variant> m_definitions;
         void add_definition(definition_variant obj);
+
+        std::vector<definition_variant>& get_definitions();
+
+        void accept(visitor& v) { v.visit(*this); }
+
         void hello();
     };
 
@@ -35,6 +40,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::SYSTEM>::type obj){
             m_system_statements.push_back(obj);
         }
+
+        std::vector<system_statement_variant> get_statements();
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -49,12 +58,16 @@ namespace chips
         preamble_section_node m_preamble;
         system_section_node m_system;
 
+        void accept(visitor& v) { v.visit(*this); }
+
         inline void hello()
         {
             std::cout << m_filename << std::endl;
         }
-        preamble_section_node get_preamble();
-        system_section_node get_system();
+        preamble_section_node &get_preamble();
+        const preamble_section_node &get_preamble() const;
+        system_section_node &get_system();
+        const system_section_node &get_system() const;
     };
 }
 

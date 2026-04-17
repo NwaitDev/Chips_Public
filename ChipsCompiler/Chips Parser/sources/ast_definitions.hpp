@@ -19,11 +19,16 @@ namespace chips
      * Node of the AST that represents an element of
      * the preamble section of a Chips program
      */
-    class definition : public ast_node
+    class definition : public virtual ast_node
     {
         public:
         std::string m_name;
+
+        definition() = default;
         definition(std::string id) : m_name(id) {}
+
+        std::string& get_name() { return m_name; }
+        const std::string& get_name() const { return m_name; }
     };
 
     /**
@@ -40,6 +45,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::NODE>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<node_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -57,6 +66,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<primitive_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -74,6 +87,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<primitive_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -92,6 +109,8 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::COLLECTIVE>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<collective_statement_variant>& get_statements() { return m_statements; }
     };
 
     /**
@@ -104,6 +123,12 @@ namespace chips
     {
         public:
         std::vector<collective_parameter_variant> m_accumulator;
+
+        accumulator_definition(){}
+
+        accumulator_definition(std::vector<collective_parameter_variant> accumulator)
+            : m_accumulator(accumulator){}
+
         void hello();
     };
 
@@ -112,11 +137,15 @@ namespace chips
      * Node of the AST that represents a Chips Node
      * (i.e. an Object or a Physical function)
      */
-    class node_definition : public definition
+    class node_definition : public virtual definition
     {
         public:
         with_section m_with;
         node_definition(std::string id, with_section with) : definition(id), m_with(with) {}
+
+        with_section& get_with_section() { return m_with; }
+
+        node_definition* get_node_definition() { return this; }
     };
 
     /**
@@ -129,6 +158,10 @@ namespace chips
     class object_definition : public node_definition
     {
         public:
+
+        object_definition(std::string identifier, with_section with)
+            : definition(identifier), node_definition(identifier, with){}
+
         void hello();
     };
 
@@ -137,7 +170,7 @@ namespace chips
      * Node of the AST that represents a functional
      * block (i.e. something that has an "init" and a "then" section)
      */
-    class function_definition : public definition
+    class function_definition : public virtual definition
     {
         public:
         init_section m_init;
@@ -147,6 +180,11 @@ namespace chips
         function_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
                             then_section then, std::vector<function_output_variant> outputs)
             : definition(identifier), m_init(init), m_then(then), m_parameters(parameters), m_outputs(outputs) {}
+
+        std::vector<function_output_variant>& get_outputs() { return m_outputs; }
+        std::vector<function_parameter_variant>& get_parameters() { return m_parameters; }
+        init_section& get_init_section() { return m_init; }
+        then_section& get_then_section() { return m_then; }
         
     };
     
@@ -160,8 +198,9 @@ namespace chips
         public:
         logical_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
                            then_section then, std::vector<function_output_variant> outputs)
-            : function_definition(identifier, parameters, init, then, outputs) {}
+            : definition(identifier), function_definition(identifier, parameters, init, then, outputs) {}
         
+        void accept(visitor& v) { v.visit(*this);}
         void hello();
     };
 
@@ -181,7 +220,12 @@ namespace chips
         physical_definition(std::string identifier, std::vector<function_parameter_variant> parameters, init_section init,
                            then_section then, std::vector<function_output_variant> outputs, with_section with, 
                            std::vector<physical_parameter_variant> sensors, std::vector<physical_output_variant> actuators) 
-            : function_definition(identifier, parameters, init, then, outputs), node_definition(identifier,with), m_sensor(sensors), m_actuator(actuators) {};
+            : definition(identifier), function_definition(identifier, parameters, init, then, outputs), node_definition(identifier,with), m_sensor(sensors), m_actuator(actuators) {};
+        
+        std::vector<physical_output_variant>& get_actuators() { return m_actuator; }
+        std::vector<physical_parameter_variant>& get_sensors() { return m_sensor; }
+        
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -217,6 +261,19 @@ namespace chips
         target_output m_target_output;
         default_output m_default_output;
         std::vector<channeled_output> m_channeled_outputs;
+
+        collective_function_definition(std::string identifier,
+                                       collective_function_type type,
+                                       accumulator_definition accumulator,
+                                       node_definition* support,
+                                       collectiveops_section operations,
+                                       target_output target,
+                                       default_output default_output,
+                                       std::vector<channeled_output> channeled_output)
+            : definition(identifier), m_collective_function_type(type), m_accumulator(accumulator), 
+              m_support_object(support), m_operations(operations), m_target_output(target), 
+              m_default_output(default_output), m_channeled_outputs(channeled_output){}
+
         void hello();
     };
 

@@ -2,7 +2,9 @@
 #define __chips_system_spe__
 
 
+#include <variant>
 #include <vector>
+#include "ast_base.hpp"
 
 namespace chips {
 
@@ -12,7 +14,7 @@ namespace chips {
      * can be eaten by another component in system section
      */
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeder : public ast_node{};
+    class feeder : public virtual ast_node{};
 
     /**
      * Interface
@@ -49,6 +51,13 @@ namespace chips {
     class support{};
 
     /**
+     * Interface
+     * Node of the AST that represents something
+     * that can be iterated on in the system section
+     */
+    class system_iterable{};
+
+    /**
      * Abstract class
      * Node of the AST that represents some syntactical 
      * elements that can provide a dataflow
@@ -74,32 +83,54 @@ namespace chips {
     };
 
 
-    /**
-     * Abstract class
-     * Base tamplate class for system component variable elements
-     * logical, physical or object
-     */
-    template<block_type bt>
-    class system_variable_block_expression : public ast_node, public system_iterable
-    {
-        using block_variable_type = typename BlockTypeToBlockVariable<bt>::type;
-        block_variable_type* m_variable;
-        rvalue<dataflow_type::INT,expression_env::SYSTEM> m_index;
-    };
+    // /**
+    //  * Abstract class
+    //  * Base tamplate class for system component variable elements
+    //  * logical, physical or object
+    //  */
+    // template<block_type bt>
+    // class system_variable_block_expression : public ast_node, public system_iterable
+    // {
+        
+    // };
 
     /**
      * Template specialization of system_variable_block_expression 
      * for implementing LOGICAL specific interfaces
      */
     template<>
-    class system_variable_block_expression<block_type::LOGICAL> : public linkable{};
+    class system_variable_block_expression<block_type::LOGICAL> : public ast_node, public system_iterable, public linkable{
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::LOGICAL>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable<block_type::LOGICAL>* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
     /**
      * Template specialization of system_variable_block_expression 
      * for implementing PHYSICAL specific interfaces
      */
     template<>
-    class system_variable_block_expression<block_type::PHYSICAL> : public support, public node_variable_expression, public implementer {};
+    class system_variable_block_expression<block_type::PHYSICAL> : public system_iterable, public linkable, public support, public node_variable_expression, public implementer {
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::PHYSICAL>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable_type* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
     /**
      * Template specialization of system_variable_block_expression 
@@ -107,7 +138,19 @@ namespace chips {
      */
     template<>
     class system_variable_block_expression<block_type::OBJECT> 
-    : public linkable, public support, public node_variable_expression, public interface, public implementer {};
+    : public system_iterable, public linkable, public support, public node_variable_expression, public interface, public implementer {
+        public:
+        using block_variable_type = typename BlockTypeToBlockVariable<block_type::OBJECT>::type;
+        block_variable_type* m_variable;
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> m_index;
+
+        system_variable_block_expression(
+            block_variable<block_type::OBJECT>* var,
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
+            : m_variable(var), m_index(index){}
+
+        void hello(){}
+    };
 
 
     /**
@@ -118,8 +161,13 @@ namespace chips {
     template<dataflow_kind dfk, dataflow_type dft>
     class eater : public ast_node
     {
+        public:
         functional_block_variant m_variable_expression;
         function_parameter<dfk,dft>* m_parameter;
+
+        eater(functional_block_variant variable, function_parameter<dfk,dft>* parameter)
+            : m_variable_expression(variable), m_parameter(parameter){}
+
         inline void hello(){}
     }; 
 
@@ -130,10 +178,24 @@ namespace chips {
      * Expression that can produce a dataflow eaten by another component
      */
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeder_block_expression : public feeder<dfk,dft>, public ast_node
+    class feeder_block_expression : public feeder<dfk,dft>
     {
+        public:
         functional_block_variant m_variable_expression;
         function_output<dfk,dft>* m_output;
+        
+        feeder_block_expression(){}
+        feeder_block_expression(functional_block_variant variable, function_output<dfk,dft>* output)
+            : m_variable_expression(variable), m_output(output){}
+        
+        void set_variable_expression(functional_block_variant variable){
+            m_variable_expression = variable;
+        }
+
+        void set_output(function_output<dfk,dft>* output){
+            m_output = output;
+        }
+
         inline void hello(){}
     };
 
@@ -148,6 +210,10 @@ namespace chips {
         public:
         node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_eating_channel;
+
+        channel_eater(node_variable_expression* node, node_element_declaration<node_element::CHANNEL>* eating_channel)
+            : m_node(node), m_eating_channel(eating_channel){}
+
         void hello() {std::cout<<"hello"<<std::endl;}
     };
 
@@ -161,6 +227,11 @@ namespace chips {
         public:
         node_variable_expression* m_node;
         node_element_declaration<node_element::CHANNEL>* m_feeding_channel;
+
+        channel_feeder(node_variable_expression* node, 
+                       node_element_declaration<node_element::CHANNEL>* feeding_channel)
+            : m_node(node), m_feeding_channel(feeding_channel){}
+
         void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -171,8 +242,34 @@ namespace chips {
      */
     template<dataflow_kind dfk, dataflow_type dft>
     class collective_cast : public feeder<dfk,dft> {
+        public:
         collective_function_definition* variable_expression;
-        feeder<dfk, dft> m_feeder;
+        using feeder_variant = std::variant<
+            feeder<dfk, dataflow_type::INT>*,
+            feeder<dfk, dataflow_type::FLOAT>*,
+            feeder<dfk, dataflow_type::BOOL>*
+        >;
+
+        feeder_variant m_feeder;
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::INT>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::FLOAT>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
+
+        explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::BOOL>& feed)
+            : variable_expression(variable), m_feeder(&feed){}
+
+        template<dataflow_type feeder_dft>
+        feeder<dfk, feeder_dft>* get_feeder_as(){
+            if(auto* casted = std::get_if<feeder<dfk, feeder_dft>*>(&m_feeder)){
+                return *casted;
+            }
+            return nullptr;
+        }
+
+        void hello(){}
     };
 }
 

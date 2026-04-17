@@ -6,6 +6,7 @@
 
 #include "meta_type_conversions.hpp"
 #include "ast_base.hpp"
+#include "ast_system_specific.hpp"
 
 namespace chips
 {
@@ -29,7 +30,15 @@ namespace chips
     class rvalue : public virtual ast_node
     {
     public:
+        void accept(visitor& v) { v.visit(*this); }
         inline void hello() { std::cout << "I am interpreted as an rvalue" << std::endl; }
+    };
+
+    // Regarder pour fix le probleme de specialisation
+    template<dataflow_type dft>
+    class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL, dft>{
+        public:
+            inline void hello() { std::cout << "I am interpreted as a system rvalue" << std::endl; }
     };
 
     /**
@@ -47,7 +56,7 @@ namespace chips
     public:
         direct(value_type value) : m_value(value) {};
 
-        inline value_type get_value() { return m_value; }
+        inline value_type& get_value() { return m_value; }
 
         inline void accept(visitor &v) { v.visit(*this); }
 
@@ -69,15 +78,6 @@ namespace chips
     };
 
     /**
-     * Interface
-     * Node of the AST that represents something
-     * that can be iterated on in the system section
-     */
-    class system_iterable
-    {
-    };
-
-    /**
      * Concrete class
      * Node of the AST that represents a pure function call
      * As the language doesn't allow to define them yet, its
@@ -90,7 +90,7 @@ namespace chips
      * - bool is_fresh(dataflow_variable)
      */
     template <dataflow_type dft, expression_env expenv>
-    class function : public rvalue<dft, expenv>, system_iterable
+    class function : public rvalue<dft, expenv>, public system_iterable
     {
     private:
         std::string m_name;
@@ -102,6 +102,9 @@ namespace chips
 
         function(std::string name, std::vector<rvalue_variant<expenv>> param)
             : m_name(name), m_parameters(param){}
+
+        std::string& get_name() { return m_name; }
+        std::vector<rvalue_variant<expenv>>& get_parameters() { return m_parameters; }
 
         inline void accept(visitor &v) { v.visit(*this); }
         inline void hello() {};
@@ -621,6 +624,7 @@ namespace chips
             : m_variable(variable) {}
 
         variable<expenv> *get_variable() { return m_variable; }
+        std::vector<int_rvalue_expression_variant<expenv>> get_index() { return m_index; }
 
         void accept(visitor &v) { v.visit(*this); }
         inline void hello()
@@ -641,6 +645,28 @@ namespace chips
             : variable_expression<dft, expenv>(variable) {}
 
         inline void accept(visitor &v) { v.visit(*this); }
+    };
+
+    class input : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>{
+
+
+
+        public:
+            
+            inline void hello(){}
+    };
+
+    class stop : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
+                  public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>{
+
+
+
+        public:
+            
+            inline void hello(){}
     };
 }
 

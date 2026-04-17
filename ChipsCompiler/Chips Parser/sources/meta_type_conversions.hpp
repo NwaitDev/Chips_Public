@@ -297,6 +297,8 @@ namespace chips {
 
     using rvalue_primitive_variant = rvalue_variant<expression_env::PRIMITIVE>;
 
+    using rvalue_collective_variant = rvalue_variant<expression_env::COLLECTIVE>;
+
     template<expression_env expenv>
     using primitive_iterable_variant = std::variant<
         function<dataflow_type::INT,expenv>*,
@@ -316,7 +318,9 @@ namespace chips {
         mod<expenv>*,
         cast_as<dataflow_type::INT,expenv>*,
         uminus_operator<dataflow_type::INT,expenv>*,
-        variable_expression<dataflow_type::INT,expenv>*
+        variable_expression<dataflow_type::INT,expenv>*,
+        input*,
+        stop*
     >;
 
     template<expression_env expenv>
@@ -329,7 +333,9 @@ namespace chips {
         div<dataflow_type::FLOAT,expenv>*,
         cast_as<dataflow_type::FLOAT,expenv>*,
         uminus_operator<dataflow_type::FLOAT,expenv>*,
-        variable_expression<dataflow_type::FLOAT,expenv>*
+        variable_expression<dataflow_type::FLOAT,expenv>*,
+        input*,
+        stop*
     >;
 
     template<expression_env expenv>
@@ -352,7 +358,10 @@ namespace chips {
         and_operator<expenv>*,
         not_operator<expenv>*,
         direct<dataflow_type::BOOL,expenv>*,
-        variable_expression<dataflow_type::BOOL,expenv>*>;
+        variable_expression<dataflow_type::BOOL,expenv>*,
+        input*,
+        stop*    
+    >;
 
     template<expression_env expenv, dataflow_type dft>
     struct RvalueExpressionVariantTypeAlias;

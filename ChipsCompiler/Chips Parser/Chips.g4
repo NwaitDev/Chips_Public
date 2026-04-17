@@ -41,7 +41,7 @@ collective_op_def
     : c_signature L_CURL
         c_statement*
       R_CURL
-      ARROW TARGET_KW L_PARENTH (c_expr)+ R_PARENTH
+      ARROW TARGET_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
       c_output+
     ;
 
@@ -113,9 +113,13 @@ expr
     ;
 
 expr0
-    : expr1 PLUS expr0      # PLUS
-    | expr1 MINUS expr0     # SUB
-    | MINUS expr1           # Negate
+    : expr01 PLUS expr0      # PLUS
+    | expr01 MINUS expr0     # SUB
+    | expr01                # PassExpr01
+    ;
+
+expr01
+    : MINUS expr1           # Negate
     | expr1                 # PassExpr1
     ;
 
@@ -160,9 +164,13 @@ c_stopless_expr
     ;
 
 c_stopless_expr0
-    : c_stopless_expr1 PLUS c_stopless_expr0    #CPLUS
-    | c_stopless_expr1 MINUS c_stopless_expr0   #CSUB
-    | MINUS c_stopless_expr0                    #CNegate
+    : c_stopless_expr01 PLUS c_stopless_expr0    #CPLUS
+    | c_stopless_expr01 MINUS c_stopless_expr0   #CSUB
+    | c_stopless_expr01                         #PassCExpr01
+    ;
+
+c_stopless_expr01
+    : MINUS c_stopless_expr1                    #CNegate
     | c_stopless_expr1                          #PassCExpr1
     ;
 
@@ -170,7 +178,7 @@ c_stopless_expr1
     : c_stopless_expr2 TIMES c_stopless_expr1   #CMULT
     | c_stopless_expr2 DIV c_stopless_expr1     #CDIV
     | c_stopless_expr2 MOD c_stopless_expr1     #CMOD
-    | NOT c_stopless_expr1                      #CNOT
+    | NOT c_stopless_expr2                      #CNOT
     | c_stopless_expr2                          #PassCExpr2
     ;
 

@@ -21,19 +21,45 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     for (ChipsParser::PreambleContext *pc : ctx->preamble())
     {
 
+        std::cout << "prezamble size: " << prgm.get_preamble().get_definitions().size() << std::endl;
+
 #define APPEND_CASTED_DEF(POTENTIAL, EXPENV)                                                          \
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(pc); stuff != nullptr)                           \
     {                                                                                                 \
         current_env = EXPENV;                                                                         \
         std::any def = visit(stuff);                                                                  \
-        if (auto *physical = std::any_cast<physical_definition>(&def))                                \
+        if (auto **physical = std::any_cast<physical_definition *>(&def))                             \
+        {                                                                                              \
+            prgm.get_preamble().add_definition(*physical);                                             \
+        }                                                                                              \
+        else if (auto *physical = std::any_cast<physical_definition>(&def))                            \
         {                                                                                             \
-            prgm.get_preamble().add_definition(physical);                                             \
+            auto owned = std::make_shared<physical_definition>(*physical);                             \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
         }                                                                                             \
+        else if (auto **logical = std::any_cast<logical_definition *>(&def))                           \
+        {                                                                                              \
+            prgm.get_preamble().add_definition(*logical);                                              \
+        }                                                                                              \
         else if (auto *logical = std::any_cast<logical_definition>(&def))                             \
         {                                                                                             \
-            prgm.get_preamble().add_definition(logical);                                              \
-        }                                                                                             \
+            auto owned = std::make_shared<logical_definition>(*logical);                               \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
+        } else if (auto **object = std::any_cast<object_definition *>(&def)) {                        \
+            prgm.get_preamble().add_definition(*object);                                               \
+        } else if (auto *object = std::any_cast<object_definition>(&def)) {                           \
+            auto owned = std::make_shared<object_definition>(*object);                                 \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
+        } else if (auto **collective = std::any_cast<collective_function_definition *>(&def)) {       \
+            prgm.get_preamble().add_definition(*collective);                                           \
+        } else if (auto *collective = std::any_cast<collective_function_definition>(&def)) {          \
+            auto owned = std::make_shared<collective_function_definition>(*collective);                \
+            node_arena.push_back(owned);                                                               \
+            prgm.get_preamble().add_definition(owned.get());                                           \
+        }\
         else                                                                                          \
         {                                                                                             \
             throw std::runtime_error(ast_builder_detail::type_name(def.type()) + " not implemented"); \
@@ -51,6 +77,8 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
         std::cerr << "Unknown definition type in the preamble section!\n";
     }
 
+    std::cout << "nb preamble in total: " << prgm.get_preamble().get_definitions().size() << std::endl;
+
     std::cout << "nb statements in system section root level: "
               << ctx->system()->s_statement().size() << std::endl;
 
@@ -62,16 +90,36 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr)               \
     {                                                                                      \
         std::any res = visit(stuff);                                                       \
-        try                                                                                \
-        {                                                                                  \
-            prgm.get_system().add_statement(std::any_cast<system_statement_variant>(res)); \
-        }                                                                                  \
-        catch (std::bad_any_cast e)                                                        \
-        {                                                                                  \
-            std::cerr << ERRMSG << std::endl;                                              \
-            throw e;                                                                       \
-        }                                                                                  \
-        continue;                                                                          \
+        if(auto* block = std::any_cast<block_declaration<block_type::PHYSICAL>>(&res)){\
+            prgm.get_system().add_statement(block); \
+        }else if(auto* block = std::any_cast<block_declaration<block_type::LOGICAL>>(&res)){\
+            prgm.get_system().add_statement(block);\
+        }else if(auto* block = std::any_cast<block_declaration<block_type::OBJECT>>(&res)){\
+            prgm.get_system().add_statement(block);\
+        }else if(auto* linking = std::any_cast<linking_statement>(&res)){\
+            prgm.get_system().add_statement(linking);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::INT>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::FLOAT>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
+        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::BOOL>>(&res)){\
+            prgm.get_system().add_statement(sloop);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&res)){\
+            prgm.get_system().add_statement(feeding);\
+        }else{\
+            throw std::runtime_error(ERRMSG);\
+        }\
+        continue;\
     }
 
         SSTATEMENT_CAST(ChipsParser::ObjectDeclarationContext, "PBLM with ObjectDecl")
@@ -85,14 +133,15 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
         if (ChipsParser::RegularStatementContext *stt = dynamic_cast<ChipsParser::RegularStatementContext *>(ssc); stt != nullptr)
         {
+            std::cout << "travel regular stt ctx" << std::endl;
             travel_recurrent_statement<statement_env::SYSTEM>(
                 stt->statement(),
                 static_cast<statement_fillable<statement_env::SYSTEM> *>(&prgm.m_system));
             continue;
         }
 
-        std::cerr << "Unknown statement type in the system section root level!\n"
-                  << "Rule index: " << ssc->getRuleIndex() << std::endl;
+        throw std::runtime_error("Unknown statement type in the system section root level!\n"
+                                 "Rule index: "+ssc->getRuleIndex());
     }
 
     return prgm;
@@ -100,12 +149,12 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
 std::any ASTBuilder::visitObjectDefinition(ChipsParser::ObjectDefinitionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method ObjectDefinitionContext");
+    return visit(ctx->object_def());
 }
 
 std::any ASTBuilder::visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveOperationDefinitionContext");
+    return visit(ctx->collective_op_def());
 }
 
 std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *ctx)
@@ -115,7 +164,27 @@ std::any ASTBuilder::visitImplementationDefinition(ChipsParser::ImplementationDe
 
 std::any ASTBuilder::visitObject_def(ChipsParser::Object_defContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Object_defContext");
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "visit object " << identifier << std::endl;
+    fname_current = identifier;
+
+    SymbolTable::getInstance().enterScope();
+
+    with_section with = std::any_cast<with_section>(visit(ctx->with_section()));
+
+    auto object = std::make_shared<object_definition>(identifier, with);
+    node_arena.push_back(object);
+
+    SymbolTable::getInstance().exitScope();
+    if(SymbolTable::getInstance().lookupNodeDefinition(identifier).has_value()){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
+    if(!SymbolTable::getInstance().declareObject(identifier, *object)){
+        throw std::runtime_error("'"+identifier+"' was already defined before");
+    }
+
+    return object.get();
 }
 
 std::any ASTBuilder::visitImplementation_def(ChipsParser::Implementation_defContext *ctx)
@@ -130,10 +199,10 @@ std::any ASTBuilder::visitNode_mapping(ChipsParser::Node_mappingContext *ctx)
 
 std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx)
 {
-
     ChipsParser::L_function_defContext *lfd = ctx->l_function_def();
-    std::string identifier = lfd->IDENTIFIER()->getText();
-    std::cout << "visit logical definition " << identifier << std::endl;
+    std::string fname = lfd->IDENTIFIER()->getText();
+    std::cout << "visit logical definition " << fname << std::endl;
+    fname_current = fname;
 
     // we enter in a new scope
     SymbolTable::getInstance().enterScope();
@@ -152,12 +221,14 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
     {                                                                                            \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(identifier);            \
         declaration.get_variable().set_declaration(&declaration);                                \
-        function_parameter<DFK, DFT> new_ast_param(identifier, declaration);                     \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(identifier, declaration); \
+        node_arena.push_back(new_ast_param);                                                     \
         if (!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())) \
         {                                                                                        \
-            throw std::runtime_error("'" + identifier + "' was already declarated before");      \
+            throw std::runtime_error("The parameter '" + identifier + "' of the function '"+fname_current+"'was already declarated before here");      \
         }                                                                                        \
-        params.push_back(&new_ast_param);                                                        \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, identifier, *new_ast_param);\
+        params.push_back(new_ast_param.get());                                                   \
         continue;                                                                                \
     }
 
@@ -186,6 +257,9 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
             node_arena.push_back(out);
             outputs.push_back(out.get());
+            if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, identifier, out)){
+                throw std::runtime_error("'"+identifier+"' was already defined before");
+            }
         }
         else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
         {
@@ -193,6 +267,9 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
             node_arena.push_back(out);
             outputs.push_back(out.get());
+            if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, identifier, out)){
+                throw std::runtime_error("'"+identifier+"' was already defined before");
+            }
         }
         else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
         {
@@ -200,6 +277,9 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
             node_arena.push_back(out);
             outputs.push_back(out.get());
+            if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, identifier, out)){
+                throw std::runtime_error("'"+identifier+"' was already defined before");
+            }
         }
         else
         {
@@ -208,20 +288,24 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
         continue;
     }
 
-    chips::logical_definition logical(identifier, params, init, then, outputs);
+    auto logical = std::make_shared<chips::logical_definition>(fname, params, init, then, outputs);
+    node_arena.push_back(logical);
     SymbolTable::getInstance().exitScope();
-    SymbolTable::getInstance().declareFunctionLogical(identifier, logical);
+    if(SymbolTable::getInstance().lookupNodeDefinition(fname).has_value()){
+        throw std::runtime_error("'"+fname+"' was already defined before");
+    }
+    SymbolTable::getInstance().declareFunctionLogical(fname, *logical);
     SymbolTable::getInstance().dump();
-    std::cout << "END LOGICAL " << identifier << std::endl;
-    return logical;
+    std::cout << "END LOGICAL " << fname << std::endl;
+    return logical.get();
 }
 
 std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionContext *ctx)
 {
-
     ChipsParser::P_function_defContext *pfd = ctx->p_function_def();
-    std::string identifier = pfd->IDENTIFIER()->getText();
-    std::cout << "visit physical definition " << identifier << std::endl;
+    std::string fname = pfd->IDENTIFIER()->getText();
+    std::cout << "visit physical definition " << fname << std::endl;
+    fname_current = fname;
     std::vector<ChipsParser::Pdf_parameter_declContext *> all_params = pfd->pdf_parameter_decl();
     std::vector<function_parameter_variant> params;
     std::vector<physical_parameter_variant> sensors;
@@ -239,9 +323,11 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     {                                                                                        \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);             \
         declaration.get_variable().set_declaration(&declaration);                            \
-        function_parameter<DFK, DFT> new_ast_param(pname, declaration);                      \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        node_arena.push_back(new_ast_param);                                                  \
         SymbolTable::getInstance().declareSensorVariable(pname, declaration.get_variable()); \
-        sensors.push_back(&new_ast_param);                                                   \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, *new_ast_param);\
+        sensors.push_back(new_ast_param.get());                                              \
         continue;                                                                            \
     }
 
@@ -260,9 +346,11 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
     {                                                                                  \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);       \
         declaration.get_variable().set_declaration(&declaration);                      \
-        function_parameter<DFK, DFT> new_ast_param(pname, declaration);                \
-        params.push_back(&new_ast_param);                                              \
+        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        node_arena.push_back(new_ast_param);                                           \
+        params.push_back(new_ast_param.get());                                         \
         SymbolTable::getInstance().declareVariable(pname, declaration.get_variable()); \
+        SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, *new_ast_param);\
         continue;                                                                      \
     }
 
@@ -296,6 +384,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
@@ -303,6 +394,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
@@ -310,6 +404,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
                 outputs.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else
             {
@@ -320,7 +417,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::ActuatorOutputContext *stuff = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output); stuff != nullptr)
         {
             std::string identifier = stuff->IDENTIFIER()->getText();
-            std::cout << "output " << identifier << std::endl;
+            std::cout << "output actuator " << identifier << std::endl;
             std::any exp = visit(stuff->expr(0));
 
             if (auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp))
@@ -329,6 +426,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
@@ -336,6 +436,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
@@ -343,6 +446,9 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
                 actuators.push_back(out.get());
+                if(!SymbolTable::getInstance().declareFunctionOutput(fname, identifier, out)){
+                    throw std::runtime_error("'"+identifier+"' was already defined before");
+                }
             }
             else
             {
@@ -353,17 +459,276 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         std::cerr << "Unknown output super type in the PhysicalDefinitionContext" << std::endl;
     }
     std::cout << "return physical" << std::endl;
-    chips::physical_definition physical(identifier, params, init, then, outputs, with, sensors, actuators);
+    auto physical = std::make_shared<chips::physical_definition>(fname, params, init, then, outputs, with, sensors, actuators);
+    node_arena.push_back(physical);
     SymbolTable::getInstance().exitScope();
-    SymbolTable::getInstance().declareFunctionPhysical(identifier, physical);
+    if(SymbolTable::getInstance().lookupFunctionLogical(fname).has_value()){
+        throw std::runtime_error("'"+fname+"' was already defined before");
+    }
+    if(!SymbolTable::getInstance().declareFunctionPhysical(fname, *physical)){
+        throw std::runtime_error("'"+fname+"' was already defined before");
+    }
     SymbolTable::getInstance().dump();
-    std::cout << "END PHYSICAL " << identifier << std::endl;
-    return physical;
+    std::cout << "END PHYSICAL " << fname << std::endl;
+    return physical.get();
 }
 
 std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method Collective_op_defContext");
+    std::cout << "visit Collective op definition" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+
+    ChipsParser::C_signatureContext* sign = ctx->c_signature();
+
+    std::string keyword = std::any_cast<std::string>(visit(sign->c_keywords()));
+    
+    collective_function_type type = (keyword == "collect") ? collective_function_type::COLLECT
+                                                           : collective_function_type::SPREAD; 
+
+    std::string fname = sign->IDENTIFIER(0)->getText();
+    std::string among = sign->IDENTIFIER(1)->getText();
+
+    fname_current = fname;
+
+    std::optional<std::any> support = SymbolTable::getInstance().lookupNodeDefinition(among);
+
+    if(!support.has_value()){
+        throw std::runtime_error("'"+among+"' was never defined before");
+    }
+
+    node_definition* node_support = nullptr;
+
+    if(auto* node = std::any_cast<physical_definition>(&support.value())){
+        node_support = node->get_node_definition();
+    }else if(auto* node = std::any_cast<object_definition>(&support.value())){
+        node_support = node->get_node_definition();
+    }
+
+    std::cout << "AVANT DECL CONTEXT SUPPORT" << std::endl;
+
+    // Ajouter les contextuel de la fonction support à la table des symboles
+    for(auto stt : node_support->get_with_section().get_statements()){
+
+        if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_INT>*>(&stt)){
+            auto contex = *n;
+            // std::cout << "name " << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx int " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_FLOAT>*>(&stt)){
+            auto contex = *n;
+            // std::cout << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx float " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_BOOL>*>(&stt)){
+            auto contex = *n;
+            // std::cout << contex->get_name() << std::endl;
+            SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
+            std::cout << "ctx bool " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
+        }else if(auto n = std::get_if<node_element_declaration<node_element::CHANNEL>*>(&stt)){
+            auto contex = *n;
+            SymbolTable::getInstance().declareChannel(contex->get_name(), contex);
+        }
+        // throw std::runtime_error("not a contextual variable in with section of "+among);
+    }
+
+    
+    std::cout << "APRES DECL CONTEXT SUPPORT" << std::endl;
+
+    std::vector<ChipsParser::Cdf_defaulted_declContext*> all_params = sign->cdf_defaulted_decl();
+    std::vector<collective_parameter_variant> params;
+
+    for(ChipsParser::Cdf_defaulted_declContext* param : all_params){
+
+        std::string pname = param->IDENTIFIER()->getText();
+        dataflow_type dft = std::any_cast<dataflow_type>(visit(param->df_type()));
+        std::any c_expr = visit(param->c_expr());
+
+#define TRY_ADD_COLLECTIVE_PARAM(DFT) \
+        if(dft == DFT){ \
+            auto expr = ast_builder_detail::try_extract<DFT,expression_env::COLLECTIVE>(c_expr);\
+            dataflow_declaration<DFT, statement_env::COLLECTIVE> declaration(pname); \
+            declaration.get_variable().set_declaration(&declaration); \
+            auto new_ast_param = std::make_shared<collective_parameter<DFT>>(pname, declaration, *expr); \
+            node_arena.push_back(new_ast_param); \
+            params.push_back(new_ast_param.get()); \
+            if(!SymbolTable::getInstance().declareVariable(pname, declaration.get_variable())){ \
+                throw std::runtime_error("'"+pname+"' was already declarated before"); \
+            } \
+            continue; \
+        } \
+
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::INT)
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::FLOAT)
+        TRY_ADD_COLLECTIVE_PARAM(dataflow_type::BOOL)
+#undef TRY_ADD_COLLECTIVE_PARAM
+
+    }
+
+    SymbolTable::getInstance().dump();
+
+    accumulator_definition accumulator(params);
+
+    collectiveops_section stts;
+
+    for(ChipsParser::C_statementContext* stt : ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        std::cout << "TYPE STT COLLECTIVE: " << ast_builder_detail::type_name(std::any{stt}.type()) << std::endl;
+
+        try{
+            if(ChipsParser::CollectiveVariableDeclarationContext* stuff = dynamic_cast<ChipsParser::CollectiveVariableDeclarationContext*>(stt); (stuff != nullptr) && (stuff->cdf_full_declaration()->c_expr() != nullptr)){
+                std::cout << "HEREEEE" << std::endl;
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                    
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->cdf_full_declaration()->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::COLLECTIVE>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::COLLECTIVE>>;
+
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.first)));
+                    stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                stts.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in collective section");
+    }
+
+    std::vector<rvalue_variant<expression_env::COLLECTIVE>> target_output_exprs;
+
+    for(auto* expr : ctx->c_expr()){
+
+        std::any exp = visit(expr);
+
+        if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+        }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+        }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+            target_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+        }
+
+    }
+
+    std::vector<rvalue_variant<expression_env::COLLECTIVE>> default_output_exprs;
+    std::vector<channeled_output> channeled_outputs;
+
+    for(ChipsParser::C_outputContext* output : ctx->c_output()){
+        if(ChipsParser::DefaultOutputContext* stuff = dynamic_cast<ChipsParser::DefaultOutputContext*>(output); stuff != nullptr){
+            if(!default_output_exprs.empty()){
+                throw std::runtime_error("Only one default output is valid");
+            }
+            for(auto* expr : stuff->c_expr()){
+
+                std::any exp = visit(expr);
+
+                if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    default_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+                }
+
+            }
+        }else if(ChipsParser::ChanneledOutputContext* stuff = dynamic_cast<ChipsParser::ChanneledOutputContext*>(output); stuff != nullptr){
+            SymbolTable::getInstance().dump();
+
+            std::vector<rvalue_variant<expression_env::COLLECTIVE>> exprs_output;
+
+            for(ChipsParser::C_exprContext* expr : stuff->c_expr()){
+                std::any exp = visit(expr);
+
+                if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
+                }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    exprs_output.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
+                }
+            }
+
+            std::optional<std::any> channel = SymbolTable::getInstance().lookupChannel(stuff->IDENTIFIER()->getText());
+
+            if(!channel.has_value()){
+                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was never declarated before");
+            }
+
+            auto chan = std::any_cast<node_element_declaration<node_element::CHANNEL>*>(channel.value());
+
+            channeled_output channel_output(chan, exprs_output);
+
+            channeled_outputs.push_back(channel_output);
+
+            if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, stuff->IDENTIFIER()->getText(), channel_output)){
+                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was already declarated before");
+            }
+
+            // throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
+        }
+    }
+
+    target_output target(target_output_exprs);
+    default_output default_o(default_output_exprs);
+
+    if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "@", target)){
+        throw std::runtime_error("'@' was already declarated before");
+    }
+
+    if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "default", default_o)){
+        throw std::runtime_error("'default' was already declarated before");
+    }
+
+    SymbolTable::getInstance().exitScope();
+
+    auto collective = std::make_shared<collective_function_definition>(fname,
+                                                                       type,
+                                                                       accumulator,
+                                                                       node_support,
+                                                                       stts,
+                                                                       target,
+                                                                       default_o,
+                                                                       channeled_outputs);
+    node_arena.push_back(collective);
+
+
+    if(keyword == "collect"){
+        if(!SymbolTable::getInstance().declareFunctionCollect(fname, *collective)){
+            throw std::runtime_error("'"+fname+"' was already defined before");
+        }
+    }else if(keyword == "spread"){
+        if(!SymbolTable::getInstance().declareFunctionSpread(fname, *collective)){
+            throw std::runtime_error("'"+fname+"' was already defined before");
+        }
+    }else{
+        throw std::runtime_error("The keyword of this collective function doesn't exist");
+    }
+
+    return collective.get();
 }
 
 std::any ASTBuilder::visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx)
@@ -388,12 +753,21 @@ std::any ASTBuilder::visitP_function_def(ChipsParser::P_function_defContext *ctx
 
 std::any ASTBuilder::visitC_signature(ChipsParser::C_signatureContext *ctx)
 {
+    std::cout << "visit Csignature" << std::endl;
+
+    std::string keyword = std::any_cast<std::string>(visit(ctx->c_keywords()));
+    
+    std::string fname = ctx->IDENTIFIER(0)->getText();
+    std::string among = ctx->IDENTIFIER(1)->getText();
+
+
     throw std::runtime_error("Unimplemented visit method C_signatureContext");
 }
 
 std::any ASTBuilder::visitC_keywords(ChipsParser::C_keywordsContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_keywordsContext");
+    if(ctx->SPREAD_KW()) return ctx->SPREAD_KW()->getText();
+    return ctx->COLLECT_KW()->getText();
 }
 
 std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
@@ -430,13 +804,19 @@ std::any ASTBuilder::visitWith_section(ChipsParser::With_sectionContext *ctx)
 std::any ASTBuilder::visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx)
 {
     std::cout << "Visiting Channel declaration" << std::endl;
-    return node_element_declaration<node_element::CHANNEL>(ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
+    auto decl = std::make_shared<node_element_declaration<node_element::CHANNEL>>(
+        ctx->IDENTIFIER(0)->getText(), ctx->IDENTIFIER(1)->getText());
+    node_arena.push_back(decl);
+    SymbolTable::getInstance().declareFunctionOutput(fname_current, ctx->IDENTIFIER(1)->getText(), decl);
+    return decl.get();
 }
 
 std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool is_contextual)
 {
     std::cout << "visit var " << identifier << std::endl;
     std::optional<std::any> variable;
+
+    SymbolTable::getInstance().dump();
 
     if (!is_contextual)
     {
@@ -456,20 +836,28 @@ std::any ASTBuilder::handle_var(std::string identifier, std::any suffixes, bool 
         throw std::runtime_error("'" + identifier + "' was never declarated before");
     }
 
-    std::cout << "handle var type: " << ast_builder_detail::type_name(variable.value().type()) << std::endl;
-
-    std::cout << "before switch" << std::endl;
     switch (current_env)
     {
-    case expression_env::PRIMITIVE:
-    {
-        auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
-        if (!is_contextual)
-            return tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
-        return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        case expression_env::PRIMITIVE:
+        {
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
+            if (!is_contextual)
+                return tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+            return tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
+        }
+        case expression_env::COLLECTIVE:{
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>>(suffixes);
+            if(!is_contextual)
+                return tryAllTypes<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
+            return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
+        }
+        case expression_env::SYSTEM:{
+            auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes);
+            if(!is_contextual)
+                return tryAllTypes<expression_env::SYSTEM>(identifier, variable.value(), dims);
+            throw std::runtime_error("Impossible to use a variable of nowhere");
+        }
     }
-    }
-    std::cout << "after switch" << std::endl;
     throw std::runtime_error("handle_var: Unsupported environment " + expenv_to_string(current_env));
 }
 
@@ -600,7 +988,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an int contextual assignment");
     }
@@ -619,7 +1007,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an float contextual assignment");
     }
@@ -638,7 +1026,7 @@ std::any ASTBuilder::handle_statement_declaration_contextual(dataflow_type type,
             {
                 throw std::runtime_error("Redeclare a contextual variable already declared");
             }
-            return *decl;
+            return decl.get();
         }
         throw std::runtime_error("TODO: Implemented for declaration of an BOOL contextual assignment");
     }
@@ -680,14 +1068,15 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
             // DECLARATIONS FEATURING AN ASSIGNMENT MUST BE DISTINGUISHED IN THE METAMODEL
             if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr))
             {
+                std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
                 if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type()))
                 {
                     using chiant = std::pair<
                         dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
                         dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
                     chiant followup_pair = std::any_cast<chiant>(followup);
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                 }
                 else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type()))
                 {
@@ -695,8 +1084,8 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
                         dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
                         dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
                     chiant followup_pair = std::any_cast<chiant>(followup);
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                 }
                 else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type()))
                 {
@@ -704,8 +1093,8 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
                         dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
                         dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
                     chiant followup_pair = std::any_cast<chiant>(followup);
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.first)));
-                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup_pair.second)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
                 }
                 else
                 {
@@ -715,7 +1104,8 @@ std::any ASTBuilder::visitInit_section(ChipsParser::Init_sectionContext *ctx)
             }
             else
             {
-                init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
+                std::cout << "ICI TRY EXTRACT RECCURING" << std::endl;
+                init.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup)));
                 continue;
             }
         }
@@ -738,10 +1128,39 @@ std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
         std::cout << "statement of then section" << std::endl;
         std::any followup = visit(stt);
 
-        try
-        {
-            then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                std::cout << "THEN TRY EXTRACT " << ast_builder_detail::type_name(followup.type()) << std::endl;
+                then.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup)));
+                continue;
+            }
         }
         catch (const std::runtime_error &e)
         {
@@ -756,20 +1175,53 @@ std::any ASTBuilder::visitThen_section(ChipsParser::Then_sectionContext *ctx)
 template <dataflow_type DT, expression_env ENV, typename Dims>
 std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
 {
+    if constexpr(ENV == expression_env::PRIMITIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var))
+        {
+            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << sptr->get()->get_name() << std::endl;
+            if (*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
 
-    if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var))
-    {
-        std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
-        if (*sptr)
-            return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var))
+        {
+            std::cout << "SECOND ANY CAST" << std::endl;
+            auto owned_var = std::make_shared<dataflow_primitive_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
+        }
+    }else if constexpr(ENV == expression_env::COLLECTIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<dataflow_collective_variable<DT>>>(&var))
+        {
+            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
+            if (*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
+
+        if (auto raw_ptr = std::any_cast<dataflow_collective_variable<DT>>(&var))
+        {
+            std::cout << "SECOND ANY CAST" << std::endl;
+            auto owned_var = std::make_shared<dataflow_collective_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
+        }
+    }else if constexpr(ENV == expression_env::SYSTEM){
+        std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
+        if(auto sptr = std::any_cast<std::shared_ptr<dataflow_system_variable<DT>>>(&var)){
+            if(*sptr)
+                return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
+        }
+
+        if(auto raw_ptr = std::any_cast<dataflow_system_variable<DT>>(&var)){
+            auto owned_var = std::make_shared<dataflow_system_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
+        }
+    }else{
+        throw std::runtime_error("Unsupported environment: "+expenv_to_string(ENV));
     }
 
-    if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var))
-    {
-        std::cout << "SECOND ANY CAST" << std::endl;
-        auto non_const_ptr = const_cast<dataflow_primitive_variable<DT> *>(raw_ptr);
-        return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
-    }
+    
 
     return {};
 }
@@ -777,18 +1229,36 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
 template <dataflow_type DT, expression_env ENV, typename Dims>
 std::any ASTBuilder::tryCastVarContextual(const std::any &var, const Dims &dims)
 {
+    if constexpr(ENV == expression_env::PRIMITIVE){
+        if (auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var))
+        {
+            if (*sptr)
+                return std::make_shared<variable_contextual_expression<DT, ENV>>(sptr->get(), dims);
+        }
 
-    if (auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var))
-    {
-        if (*sptr)
-            return std::make_shared<variable_contextual_expression<DT, ENV>>(sptr->get(), dims);
+        if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var))
+        {
+            auto owned_var = std::make_shared<contextual_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_contextual_expression<DT, ENV>>(owned_var.get(), dims);
+        }
+    }else if constexpr(ENV == expression_env::COLLECTIVE){
+        std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
+        if(auto sptr = std::any_cast<std::shared_ptr<contextual_variable<DT>>>(&var)){
+            if(*sptr)
+                return std::make_shared<variable_contextual_expression<DT, ENV>>(
+                    reinterpret_cast<variable<ENV>*>(sptr->get()), dims);
+        }
+        if(auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var)){
+            auto owned_var = std::make_shared<contextual_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_contextual_expression<DT,ENV>>(
+                reinterpret_cast<variable<ENV>*>(owned_var.get()), dims);
+        }
+    }else{
+        throw std::runtime_error("JA");
     }
-
-    if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var))
-    {
-        auto non_const_ptr = const_cast<contextual_variable<DT> *>(raw_ptr);
-        return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
-    }
+    
 
     return {};
 }
@@ -839,132 +1309,182 @@ std::any ASTBuilder::visitVarContext(ChipsParser::VarContextContext *ctx)
 
 std::any ASTBuilder::visitCStoplessExpression(ChipsParser::CStoplessExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CStoplessExpressionContext");
+    return visit(ctx->c_stopless_expr());
 }
 
 std::any ASTBuilder::visitStop(ChipsParser::StopContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method StopContext");
+    return std::make_shared<stop>();
 }
 
 std::any ASTBuilder::visitCLT(ChipsParser::CLTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CLTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LTBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "LT");
 }
 
 std::any ASTBuilder::visitCGT(ChipsParser::CGTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CGTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GTBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "GT");
 }
 
 std::any ASTBuilder::visitCLEQ(ChipsParser::CLEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CLEQContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::LEQBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "LEQ");
 }
 
 std::any ASTBuilder::visitCGEQ(ChipsParser::CGEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CGEQContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::GEQBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "GEQ");
 }
 
 std::any ASTBuilder::visitCNEQ(ChipsParser::CNEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNEQContext");
+    std::cout << "visit !=" << std::endl;
+    return ast_builder_detail::dispatch_binary<
+                ast_builder_detail::NEQBuilder>(
+                    visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "NEQ");
 }
 
 std::any ASTBuilder::visitCEQ(ChipsParser::CEQContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CEQContext");
+    std::cout << "visit ==" << std::endl;
+    return ast_builder_detail::dispatch_binary<
+                ast_builder_detail::EQBuilder>(
+                    visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "EQ");
 }
 
 std::any ASTBuilder::visitCAND(ChipsParser::CANDContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CANDContext");
+    std::cout << "visit &&" << std::endl;
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "AND");
 }
 
 std::any ASTBuilder::visitCOR(ChipsParser::CORContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CORContext");
+    return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "OR");
 }
 
 std::any ASTBuilder::visitPassCExpr0(ChipsParser::PassCExpr0Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr0Context");
+    return visit(ctx->c_stopless_expr0());
+}
+
+std::any ASTBuilder::visitPassCExpr01(ChipsParser::PassCExpr01Context* ctx){
+    return visit(ctx->c_stopless_expr01());
 }
 
 std::any ASTBuilder::visitCPLUS(ChipsParser::CPLUSContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CPLUSContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
+        visit(ctx->c_stopless_expr01()), visit(ctx->c_stopless_expr0()), "PLUS");
 }
 
 std::any ASTBuilder::visitCSUB(ChipsParser::CSUBContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CSUBContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::SubBuilder>(
+        visit(ctx->c_stopless_expr01()), visit(ctx->c_stopless_expr0()), "SUB");
 }
 
 std::any ASTBuilder::visitCNegate(ChipsParser::CNegateContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNegateContext");
+    return ast_builder_detail::dispatch_numeric_unary<ast_builder_detail::NegateBuilder>(
+        visit(ctx->c_stopless_expr1()), "Negate");
 }
 
 std::any ASTBuilder::visitPassCExpr1(ChipsParser::PassCExpr1Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr1Context");
+    return visit(ctx->c_stopless_expr1());
 }
 
 std::any ASTBuilder::visitCMULT(ChipsParser::CMULTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CMULTContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::MultBuilder>(
+        visit(ctx->c_stopless_expr2()), visit(ctx->c_stopless_expr1()), "MULT");
 }
 
 std::any ASTBuilder::visitCDIV(ChipsParser::CDIVContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CDIVContext");
+    return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::DivBuilder>(
+        visit(ctx->c_stopless_expr2()), visit(ctx->c_stopless_expr1()), "DIV");
 }
 
 std::any ASTBuilder::visitCMOD(ChipsParser::CMODContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CMODContext");
+    auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->c_stopless_expr2()));
+    auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->c_stopless_expr1()));
+    if (left_collect && right_collect)
+    {
+        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
+    }
+    throw std::runtime_error("Error with modulo");
 }
 
 std::any ASTBuilder::visitCNOT(ChipsParser::CNOTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CNOTContext");
+    std::cout << "visit not" << std::endl;
+    return ast_builder_detail::dispatch_boolean_unary<ast_builder_detail::NOTBuilder>(
+        visit(ctx->c_stopless_expr2()), "NOT");
 }
 
 std::any ASTBuilder::visitPassCExpr2(ChipsParser::PassCExpr2Context *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method PassCExpr2Context");
+    return visit(ctx->c_stopless_expr2());
 }
 
 std::any ASTBuilder::visitCVariableExpression(ChipsParser::CVariableExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CVariableExpressionContext");
+    return handle_var(
+        ctx->IDENTIFIER()->getText(),
+        visit(ctx->c_suffixes()),
+        false);
 }
 
 std::any ASTBuilder::visitCINT(ChipsParser::CINTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CINTContext");
+    std::cout << "visit CINT" << std::endl;
+    return std::make_shared<direct<dataflow_type::INT, expression_env::COLLECTIVE>>(std::stoll(ctx->INT()->getText()));
 }
 
 std::any ASTBuilder::visitCFLOAT(ChipsParser::CFLOATContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CFLOATContext");
+    std::cout << "visit CFLOAT" << std::endl;
+    return std::make_shared<direct<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(std::stoll(ctx->FLOAT()->getText()));
 }
 
 std::any ASTBuilder::visitCBOOL(ChipsParser::CBOOLContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CBOOLContext");
+    std::cout << "visit CBOOL" << std::endl;
+    return std::make_shared<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>>(std::stoll(ctx->BOOL()->getText()));
 }
 
 std::any ASTBuilder::visitINPUT(ChipsParser::INPUTContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method INPUTContext");
+    return std::make_shared<input>();
 }
 
 std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CtxVariableExpressionContext");
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "contextual var collect " << identifier << std::endl;
+
+    SymbolTable::getInstance().dump();
+
+    std::optional<std::any> variable = SymbolTable::getInstance().lookupContextualVariable(identifier);
+
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    auto dims = extract_dimensions_collective(ctx->c_suffixes());
+    return tryAllTypesContextual<expression_env::COLLECTIVE>(identifier, variable.value(), dims);
 }
 
 std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
@@ -974,12 +1494,15 @@ std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpr
 
 std::any ASTBuilder::visitFunctionCall(ChipsParser::FunctionCallContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method FunctionCallContext");
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    std::cout << "visit function call " << identifier << std::endl;
+    
+    return make_function<expression_env::COLLECTIVE>(identifier, ctx->c_expr());
 }
 
 std::any ASTBuilder::visitCParenthesis(ChipsParser::CParenthesisContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CParenthesisContext");
+    return visit(ctx->c_stopless_expr());
 }
 
 std::any ASTBuilder::visitCCastAs(ChipsParser::CCastAsContext *ctx)
@@ -992,9 +1515,26 @@ std::any ASTBuilder::visitC_cast(ChipsParser::C_castContext *ctx)
     throw std::runtime_error("Unimplemented visit method C_castContext");
 }
 
+std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> ASTBuilder::extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx){
+    std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims;
+    for (auto *expr : ctx->c_stopless_expr())
+    {
+        std::any val = visit(expr);
+        auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(val);
+        if (!node)
+        {
+            throw std::runtime_error(
+                "suffixes : l'expression d'indice doit être de type INT ");
+        }
+        node_arena.push_back(node);
+        dims.push_back(make_int_rvalue_variant_from_node<expression_env::COLLECTIVE>(node));
+    }
+    return dims;
+}
+
 std::any ASTBuilder::visitC_suffixes(ChipsParser::C_suffixesContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_suffixesContext");
+    return extract_dimensions_collective(ctx);
 }
 
 std::any ASTBuilder::visitSSuffixableVariableExpression(ChipsParser::SSuffixableVariableExpressionContext *ctx)
@@ -1004,7 +1544,9 @@ std::any ASTBuilder::visitSSuffixableVariableExpression(ChipsParser::SSuffixable
 
 std::any ASTBuilder::visitSSuffixableFunctionCallExpression(ChipsParser::SSuffixableFunctionCallExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SSuffixableFunctionCallExpressionContext");
+    std::cout << "visit s_suffixable_expr function" << std::endl;
+
+    return make_function<expression_env::SYSTEM>(ctx->IDENTIFIER()->getText(), ctx->expr());
 }
 
 std::any ASTBuilder::visitSSuffixableBlockOutputExpression(ChipsParser::SSuffixableBlockOutputExpressionContext *ctx)
@@ -1067,37 +1609,49 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::PRIMITIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     case expression_env::COLLECTIVE:
         switch (type)
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     case expression_env::SYSTEM:
         switch (type)
         {
         case dataflow_type::INT:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::INT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         case dataflow_type::FLOAT:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::FLOAT>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         case dataflow_type::BOOL:
             iterator = handle_statement_declaration<expression_env::SYSTEM, dataflow_type::BOOL>(std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>(), identifier, std::any{});
+            break;
         default:
             throw std::runtime_error("couldn't find type for the iterator in loop statement");
         }
+        break;
     }
 
     switch (type)
@@ -1138,7 +1692,41 @@ std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext 
 
 std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method S_loop_statementContext");
+    std::cout << "visit loop statement" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    std::cout << "ENter new Scope foreach " << identifier << std::endl;
+
+    // throw std::runtime_error("ICI");
+
+    std::any suffixable_expr = visit(ctx->s_suffixable_expr());
+    dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::SYSTEM>(suffixable_expr);
+
+    
+
+    switch(type){
+        case dataflow_type::INT:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::INT, expression_env::SYSTEM>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::SYSTEM>>(iterator);
+            foreach_statement<statement_env::SYSTEM, dataflow_type::INT> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->s_statement());
+            SymbolTable::getInstance().exitScope();
+            std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+        case dataflow_type::FLOAT:
+            break;
+        case dataflow_type::BOOL:
+            break;
+    }
+
+    throw std::runtime_error("Faut faire le reste mais ya pas dans l'exemple encore");
 }
 
 std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContext *ctx)
@@ -1158,10 +1746,42 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
     {
         std::any followup = visit(stt);
 
-        try
-        {
-            if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }
+                else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_else.m_else_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup)));
+                continue;
+            }            
         }
         catch (const std::runtime_error &e)
         {
@@ -1183,7 +1803,46 @@ std::any ASTBuilder::visitS_if_else_statement(ChipsParser::S_if_else_statementCo
 
 std::any ASTBuilder::visitC_if_else_statement(ChipsParser::C_if_else_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_if_else_statementContext");
+    std::cout << "visit if else collective statement" << std::endl;
+
+    if_else_statement<statement_env::COLLECTIVE> if_else;
+
+    std::any if_stt = visit(ctx->c_if_statement());
+
+    if_else.m_if_section = std::any_cast<if_statement<statement_env::COLLECTIVE>>(if_stt).m_if_section;
+    if_else.m_condition = std::any_cast<if_statement<statement_env::COLLECTIVE>>(if_stt).m_condition;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::C_statementContext* stt : ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::Cdf_full_declarationContext* stuff = dynamic_cast<ChipsParser::Cdf_full_declarationContext*>(stt); (stuff != nullptr) && (stuff->c_expr() != nullptr)){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais");
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais");
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais oauis");
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_else.m_else_section.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in else collective section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+
+    return if_else;
 }
 
 std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
@@ -1212,10 +1871,39 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
     {
         std::any followup = visit(stt);
 
-        try
-        {
-            if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement(followup)));
-            continue;
+        try{
+
+            if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }
+                else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<primitive_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::DEFINITION>(followup)));
+                continue;
+            }            
         }
         catch (const std::runtime_error &e)
         {
@@ -1231,12 +1919,119 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
 
 std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method S_if_statementContext");
+    std::cout << "visit if system statement" << std::endl;
+
+    if_statement<statement_env::SYSTEM> if_stt;
+
+    std::any val = visit(ctx->expr());
+    auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(val);
+    if(!node){
+        throw std::runtime_error(
+            "condition : l'expression doit être de type BOOL "
+            "(env SYSTEM)");
+    }
+
+    node_arena.push_back(node);
+    if_stt.m_condition = make_bool_rvalue_variant_from_node(node);
+
+    std::cout << "statements if system section" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::S_statementContext* stt : ctx->s_statement()){
+
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::StatementDeclarationContext* stuff = dynamic_cast<ChipsParser::StatementDeclarationContext*>(stt); (stuff != nullptr) && stuff->expr() != nullptr){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::INT, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::INT, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::FLOAT, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::FLOAT, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    using chiant = std::pair<
+                        dataflow_declaration<dataflow_type::BOOL, statement_env::SYSTEM>,
+                        dataflow_assignment<dataflow_type::BOOL, statement_env::SYSTEM>>;
+                    chiant followup_pair = std::any_cast<chiant>(followup);
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                    if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                }else{
+                    throw std::runtime_error("Unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<system_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in if system section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+
+    return if_stt;
 }
 
 std::any ASTBuilder::visitC_if_statement(ChipsParser::C_if_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_if_statementContext");
+    std::cout << "visit if collective statement" << std::endl;
+    if_statement<statement_env::COLLECTIVE> if_stt;
+
+    std::any val = visit(ctx->c_expr());
+    auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(val);
+    if(!node){
+        throw std::runtime_error(
+            "condition: l'expression doit être de type BOOL "
+            "(env COLLECTIVE)");
+    }
+    node_arena.push_back(node);
+    if_stt.m_condition = make_bool_rvalue_variant_from_node<expression_env::COLLECTIVE>(node);
+
+    std::cout << "statements if collective section" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    SymbolTable::getInstance().dump();
+
+    for(ChipsParser::C_statementContext* stt: ctx->c_statement()){
+        std::any followup = visit(stt);
+
+        try{
+            if(ChipsParser::Cdf_full_declarationContext* stuff = dynamic_cast<ChipsParser::Cdf_full_declarationContext*>(stt); (stuff != nullptr) && (stuff->c_expr() != nullptr)){
+                if(dynamic_cast<ChipsParser::IntTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais");
+                }else if(dynamic_cast<ChipsParser::FloatTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais");
+                }else if(dynamic_cast<ChipsParser::BoolTypeContext*>(stuff->df_type())){
+                    throw std::runtime_error("ouais ouais oauis");
+                }else{
+                    throw std::runtime_error("unrecognized variable type");
+                }
+                continue;
+            }else{
+                if_stt.m_if_section.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::COLLECTIVE>(followup)));
+                continue;
+            }
+        }catch(const std::runtime_error& e){
+            std::cout << e.what() << std::endl;
+        }
+        throw std::runtime_error("Unknown kind of statement in if collective section");
+    }
+
+    SymbolTable::getInstance().exitScope();
+    return if_stt;
 }
 
 std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx)
@@ -1247,7 +2042,12 @@ std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentCo
     std::cout << "assign type var: " << ast_builder_detail::type_name(std::any{ctx->expr()}.type()) << std::endl;
     std::any assign = visit(ctx->expr());
 
-    return handle_statement_assignment(var_name, suffixes, assign, false);
+    switch(current_env){
+        case expression_env::PRIMITIVE: return handle_statement_assignment<expression_env::PRIMITIVE, statement_env::DEFINITION>(var_name, suffixes, assign, false);
+        case expression_env::COLLECTIVE: return handle_statement_assignment<expression_env::COLLECTIVE, statement_env::COLLECTIVE>(var_name, suffixes, assign, false);
+        case expression_env::SYSTEM: return handle_statement_assignment<expression_env::SYSTEM, statement_env::SYSTEM>(var_name, suffixes, assign, false);
+    }
+    throw std::runtime_error("Unsupported environment: "+expenv_to_string(current_env));
 }
 
 std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx)
@@ -1284,17 +2084,265 @@ std::any ASTBuilder::visitStatementIf(ChipsParser::StatementIfContext *ctx)
 
 std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContext *ctx)
 {
+    std::string identifier = ctx->IDENTIFIER(1)->getText();
+
+    std::cout << "visit object declaration " << identifier << std::endl;
+
+    std::string type = ctx->IDENTIFIER(0)->getText();
+    std::any suffixes = visit(ctx->suffixes());
+
+    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes);
+
+    if(SymbolTable::getInstance().lookupFunctionLogical(type).has_value()){
+        return handle_statement_declaration<block_type::LOGICAL>(type, dims, identifier);
+    }else if(auto node = SymbolTable::getInstance().lookupNodeDefinition(type); node.has_value()){
+        if(auto* n = std::any_cast<physical_definition>(&(node.value()))){
+            return handle_statement_declaration<block_type::PHYSICAL>(type, dims, identifier);
+        }
+        return handle_statement_declaration<block_type::OBJECT>(type, dims, identifier);
+    }else{
+        throw std::runtime_error("'"+type+"' was never defined before");
+    }
+
     throw std::runtime_error("Unimplemented visit method ObjectDeclarationContext");
 }
 
 std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext *ctx)
 {
+
+    std::string identifier = ctx->block()->IDENTIFIER()->getText();
+    std::string function_parameter_id = ctx->IDENTIFIER()->getText();
+    auto suffixes = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(ctx->block()->suffixes()));
+
+    bool is_function_param = true;
+
+    std::optional<std::any> type = SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier);
+    if(!type.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    std::optional<std::any> parameter_who_eat = SymbolTable::getInstance().lookupParameter(std::any_cast<std::string>(type.value()), function_parameter_id);
+
+    if(!parameter_who_eat.has_value()){
+        parameter_who_eat = SymbolTable::getInstance().lookupOutput(std::any_cast<std::string>(type.value()), function_parameter_id);
+        if(!parameter_who_eat.has_value()){
+            throw std::runtime_error("'"+function_parameter_id+"' was never defined before");
+        }
+        is_function_param = false;
+    }
+
+    std::cout << "visit feeding statement " << identifier << "." << function_parameter_id << std::endl;    
+
+    std::optional<std::any> variable = SymbolTable::getInstance().lookupBlock(identifier);
+    if(!variable.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }    
+
+    
+    std::cout << "Is function param " << (is_function_parameter(parameter_who_eat.value()) ? "param" : "non") << std::endl;
+
+    if(is_function_param){
+        std::any s_expr = visit(ctx->s_expr());
+        
+        std::cout << "type eater: " << ast_builder_detail::type_name(parameter_who_eat.value().type()) << std::endl;
+        std::cout << "type s_expr: " << ast_builder_detail::type_name(s_expr.type()) << std::endl;
+        
+        functional_block_variant variable_expression = make_functional_block_from_any(variable.value(), suffixes);
+        if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::LOGICAL, dataflow_type::INT> eat(variable_expression, parameter);
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(s_expr)){
+                if(feed){
+                    feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed.get());
+                    return feeding_stt;
+                }
+            }
+
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::LOGICAL, dataflow_type::FLOAT> eat(variable_expression, parameter);
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(s_expr)){
+                if(feed){
+                    feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed.get());
+                    return feeding_stt;
+                }
+            }
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::LOGICAL, dataflow_type::BOOL> eat(variable_expression, parameter);
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&s_expr)){
+                feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(s_expr)){
+                if(feed){
+                    feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed.get());
+                    return feeding_stt;
+                }
+            }
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::PHYSICAL, dataflow_type::INT> eat(variable_expression, parameter);
+            
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(s_expr)){
+                std::runtime_error("Expression can't be the feeder of a feeding statement where eater is a physical parameter");
+            }
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> eat(variable_expression, parameter);
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(s_expr)){
+                std::runtime_error("Expression can't be the feeder of a feeding statement where eater is a physical parameter");
+            }
+        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+            eater<dataflow_kind::PHYSICAL, dataflow_type::BOOL> eat(variable_expression, parameter);
+            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&s_expr)){
+                feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
+                return feeding_stt;
+            }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(s_expr)){
+                std::runtime_error("Expression can't be the feeder of a feeding statement where eater is a physical parameter");
+            }
+        }
+    }else{
+        auto eating_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(parameter_who_eat.value()).get();
+        
+        std::cout << "type channel who eat: " << ast_builder_detail::type_name(std::any{eating_channel}.type()) << std::endl;
+
+        channel_eater eat = make_channel_eater(variable.value(), parameter_who_eat.value(), suffixes);
+
+
+        if(auto* expr = dynamic_cast<ChipsParser::SBlockOutputExpressionContext*>(ctx->s_expr())){
+
+            std::string variable_feeder_id = expr->block()->IDENTIFIER()->getText();
+            auto suffixes_feeder = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(expr->block()->suffixes()));
+            std::string channel_feeder_id = expr->IDENTIFIER()->getText();
+
+            std::optional<std::any> variable_feeder_opt = SymbolTable::getInstance().lookupBlock(variable_feeder_id);
+            if(!variable_feeder_opt.has_value()){
+                throw std::runtime_error("'"+variable_feeder_id+"' was never declarated before");
+            }
+
+            std::optional<std::any> type_feeder = SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier);
+            if(!type_feeder.has_value()){
+                throw std::runtime_error("'"+identifier+"' was never declarated before");
+            }
+
+            std::optional<std::any> channel_who_feed = SymbolTable::getInstance().lookupOutput(std::any_cast<std::string>(type_feeder.value()), channel_feeder_id);
+            if(!channel_who_feed.has_value()){
+                throw std::runtime_error("'"+channel_feeder_id+"' was never defined before");
+            }
+
+            channel_feeder feed = make_channel_feeder(variable_feeder_opt.value(), channel_who_feed.value(), suffixes_feeder);
+
+            channel_plugging plugging(&eat, &feed);
+            return plugging;
+        }else if(auto* expr = dynamic_cast<ChipsParser::SCollectiveCastExpressionContext*>(ctx->s_expr())){
+            throw std::runtime_error("Le feeder du channel plugging est un SCollective cast");
+        }else{
+            throw std::runtime_error("The feeder of a channel plugging can be only a block which is phyisical or object");
+        }
+        throw std::runtime_error("CHANNEL A IMPLEMETER");
+    }
+
     throw std::runtime_error("Unimplemented visit method FeedingStatementContext");
 }
 
 std::any ASTBuilder::visitLinkingStatement(ChipsParser::LinkingStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method LinkingStatementContext");
+    std::string linkable_id = ctx->IDENTIFIER(0)->getText();
+    std::any suffixes_linkable = visit(ctx->suffixes(0));
+
+    auto dims_link = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes_linkable);
+
+    std::string support_id = ctx->IDENTIFIER(1)->getText();
+    std::any suffixes_support = visit(ctx->suffixes(1));
+
+    auto dims_support = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(suffixes_support);
+
+    std::cout << "visit link " << linkable_id << " to " << support_id << std::endl;
+
+    std::optional<std::any> linkable = SymbolTable::getInstance().lookupBlock(linkable_id);
+
+    if(!linkable.has_value()){
+        throw std::runtime_error("'"+linkable_id+"' was never declarated before");
+    }
+
+    std::optional<std::any> support = SymbolTable::getInstance().lookupBlock(support_id);
+
+    if(!support.has_value()){
+        throw std::runtime_error("'"+support_id+"' was never declarated before");
+    }
+
+    std::cout << "linkable type: " << ast_builder_detail::type_name(linkable.value().type()) << std::endl;
+    std::cout << "support type: " << ast_builder_detail::type_name(support.value().type()) << std::endl;
+
+    block_type linkable_bt = ast_builder_detail::get_block_type(linkable.value());
+    block_type support_bt = ast_builder_detail::get_block_type(support.value());
+
+    switch(linkable_bt){
+        case block_type::LOGICAL:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::LOGICAL, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    std::cout << "ICI je crois" << std::endl;
+                    return make_linking_statement<block_type::LOGICAL, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+        case block_type::OBJECT:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::OBJECT, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    return make_linking_statement<block_type::OBJECT, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+        case block_type::PHYSICAL:{
+            switch(support_bt){
+                case block_type::LOGICAL:
+                    throw std::runtime_error("Logical can't be support for link method");
+                case block_type::OBJECT:
+                    return make_linking_statement<block_type::PHYSICAL, block_type::OBJECT>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+                case block_type::PHYSICAL:
+                    return make_linking_statement<block_type::PHYSICAL, block_type::PHYSICAL>(
+                        linkable.value(), dims_link, support.value(), dims_support);
+            }
+        }
+    }
+
+    throw std::runtime_error("Unhandled block type combination in linking statement");
 }
 
 std::any ASTBuilder::visitImplementationStatement(ChipsParser::ImplementationStatementContext *ctx)
@@ -1304,7 +2352,7 @@ std::any ASTBuilder::visitImplementationStatement(ChipsParser::ImplementationSta
 
 std::any ASTBuilder::visitSLoopStatement(ChipsParser::SLoopStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SLoopStatementContext");
+    return visit(ctx->s_loop_statement());
 }
 
 std::any ASTBuilder::visitSIfElseStatement(ChipsParser::SIfElseStatementContext *ctx)
@@ -1314,7 +2362,7 @@ std::any ASTBuilder::visitSIfElseStatement(ChipsParser::SIfElseStatementContext 
 
 std::any ASTBuilder::visitSIfStatement(ChipsParser::SIfStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SIfStatementContext");
+    return visit(ctx->s_if_statement());
 }
 
 std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext *ctx)
@@ -1335,17 +2383,326 @@ std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext 
 
 std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SBlockOutputExpressionContext");
+    std::string identifier = ctx->block()->IDENTIFIER()->getText();
+    auto suffixes = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(ctx->block()->suffixes()));
+    std::string function_output_id = ctx->IDENTIFIER()->getText();
+
+    std::cout << "visit SBlock output expr " << identifier << std::endl;
+
+    std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
+    if(!feeder_who_eaten.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    std::optional<std::any> output_who_eaten = SymbolTable::getInstance().lookupOutput(SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier), function_output_id);
+    if(!output_who_eaten.has_value()){
+        throw std::runtime_error("'"+function_output_id+"' was never defined before");
+    }
+
+    functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value(), suffixes);
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical bool" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            return *feeder_block;
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical bool" << std::endl;
+    }
+        
+
+    throw std::runtime_error("Unsupported type or kind");
+
+    // throw std::runtime_error("Unimplemented visit method SBlockOutputExpressionContext");
+}
+
+functional_block_variant ASTBuilder::make_functional_block_from_any(std::any& node, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
+    if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::LOGICAL>>>(&node)){
+        p->get()->set_dimensions(dims);
+        return p->get();
+    }
+    if(auto* p = std::any_cast<block_variable<block_type::LOGICAL>>(&node)){
+        p->set_dimensions(dims);
+        return p;
+    }
+    if(auto* p = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(&node)){
+        p->get()->set_dimensions(dims);
+        return p->get();
+    }
+    if(auto* p = std::any_cast<block_variable<block_type::PHYSICAL>>(&node)){
+        p->set_dimensions(dims);
+        return p;
+    }
+    throw std::runtime_error("Unsopported type in make_functional_block_from_any");
 }
 
 std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCastExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SCollectiveCastExpressionContext");
+
+    std::string identifier = ctx->block()->IDENTIFIER()->getText();
+
+    std::cout << "visit collective cast expr " << identifier << std::endl;
+
+    auto suffixes = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(ctx->block()->suffixes()));
+
+    std::string function_output_id = ctx->IDENTIFIER()->getText();
+    std::string collective_op = ctx->collective_operation()->IDENTIFIER()->getText();
+
+    std::optional<std::any> collective = SymbolTable::getInstance().lookupFunctionSpread(collective_op);
+    if(!collective.has_value()){
+        collective = SymbolTable::getInstance().lookupFunctionCollect(collective_op);
+    }
+
+    if(!collective.has_value()){
+        throw std::runtime_error("'"+collective_op+"' was never defined before");
+    }
+
+    std::optional<std::any> target_output_opt = SymbolTable::getInstance().lookupOutput(collective_op, "@");
+
+    if(!target_output_opt.has_value()){
+        throw std::runtime_error("'@' was never defined before");
+    }
+
+    auto collective_func_def = std::make_shared<collective_function_definition>(
+        std::any_cast<collective_function_definition>(collective.value()));
+    node_arena.push_back(collective_func_def);
+
+    dataflow_type type_target_output = get_type_of_output<expression_env::COLLECTIVE>(target_output_opt.value());
+
+    std::cout << "TYPE OF TARGET: " << dft_to_string(type_target_output) << std::endl;
+    std::cout << "feeder who eaten " << identifier << "(" << SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier) << ")" << std::endl; 
+
+    std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
+    if(!feeder_who_eaten.has_value()){
+        throw std::runtime_error("'"+identifier+"' was never declarated before");
+    }
+
+    std::optional<std::any> output_who_eaten = SymbolTable::getInstance().lookupOutput(SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier), function_output_id);
+    if(!output_who_eaten.has_value()){
+        throw std::runtime_error("'"+function_output_id+"' was never defined before");
+    }
+
+    functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value(), suffixes);
+
+    std::cout << "bordel ce type: " << ast_builder_detail::type_name(output_who_eaten.value().type()) << std::endl;
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not logical bool" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical int" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical float" << std::endl;
+    }
+
+    try{
+        if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
+            
+            auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(variable_expression, output.get());
+            node_arena.push_back(feeder_block);
+            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+            // return collect_cast;
+
+            switch(type_target_output){
+                case dataflow_type::INT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::FLOAT:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+                case dataflow_type::BOOL:{
+                    collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
+                    return collect_cast;
+                }
+            }
+        }
+    }catch(const std::bad_any_cast& e){
+        std::cout << "not physical bool" << std::endl;
+    }
+        
+
+    throw std::runtime_error("Unsupported type or kind");
 }
 
 std::any ASTBuilder::visitSRegularExpression(ChipsParser::SRegularExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method SRegularExpressionContext");
+    return visit(ctx->expr());
 }
 
 std::any ASTBuilder::visitCollective_operation(ChipsParser::Collective_operationContext *ctx)
@@ -1355,11 +2712,42 @@ std::any ASTBuilder::visitCollective_operation(ChipsParser::Collective_operation
 
 std::any ASTBuilder::visitCollectiveVariableDeclaration(ChipsParser::CollectiveVariableDeclarationContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveVariableDeclarationContext");
+
+    std::cout << "visit collective statement declaration" << std::endl;
+
+    dataflow_type type = std::any_cast<dataflow_type>(visit(ctx->cdf_full_declaration()->df_type()));
+    std::string var = ctx->cdf_full_declaration()->IDENTIFIER()->getText();
+    std::any assign;
+
+    if(ctx->cdf_full_declaration()->c_expr()){
+        assign = visit(ctx->cdf_full_declaration()->c_expr());
+    }
+
+    auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>>(visit(ctx->cdf_full_declaration()->suffixes()));
+
+    switch(type){
+        case dataflow_type::INT:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::INT>(dims, var, assign);
+        case dataflow_type::FLOAT:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::FLOAT>(dims, var, assign);
+        case dataflow_type::BOOL:
+            return handle_statement_declaration<expression_env::COLLECTIVE, dataflow_type::BOOL>(dims, var, assign);
+        default:
+            throw std::runtime_error("unknown type for variable declaration");
+    }
 }
 
 std::any ASTBuilder::visitCollectiveAssignment(ChipsParser::CollectiveAssignmentContext *ctx)
 {
+    std::cout << "visit collective assignment" << std::endl;
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+    std::any suffixes = visit(ctx->c_suffixes());
+
+    std::any assign = visit(ctx->c_expr());
+
+    return handle_statement_assignment<expression_env::COLLECTIVE, statement_env::COLLECTIVE>(identifier, suffixes, assign, false);
+
     throw std::runtime_error("Unimplemented visit method CollectiveAssignmentContext");
 }
 
@@ -1375,12 +2763,14 @@ std::any ASTBuilder::visitCollectiveLoopStatement(ChipsParser::CollectiveLoopSta
 
 std::any ASTBuilder::visitCollectiveIfElseStatement(ChipsParser::CollectiveIfElseStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveIfElseStatementContext");
+    std::cout << "visit statement if else" << std::endl;
+    return visit(ctx->c_if_else_statement());
 }
 
 std::any ASTBuilder::visitCollectiveIfStatement(ChipsParser::CollectiveIfStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveIfStatementContext");
+    std::cout << "visit statement collective if" << std::endl;
+    return visit(ctx->c_if_statement());
 }
 
 std::any ASTBuilder::visitNamed_output(ChipsParser::Named_outputContext *ctx)
@@ -1570,13 +2960,13 @@ std::any ASTBuilder::visitPLUS(ChipsParser::PLUSContext *ctx)
 {
     // std::cout << "visitPLUS()" << std::endl;
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
-        visit(ctx->expr1()), visit(ctx->expr0()), "PLUS");
+        visit(ctx->expr01()), visit(ctx->expr0()), "PLUS");
 }
 
 std::any ASTBuilder::visitSUB(ChipsParser::SUBContext *ctx)
 {
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::SubBuilder>(
-        visit(ctx->expr1()), visit(ctx->expr0()), "SUB");
+        visit(ctx->expr01()), visit(ctx->expr0()), "SUB");
 }
 
 std::any ASTBuilder::visitNegate(ChipsParser::NegateContext *ctx)
@@ -1605,13 +2995,6 @@ std::any ASTBuilder::visitMOD(ChipsParser::MODContext *ctx)
     if (left_prim && right_prim)
     {
         return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::PRIMITIVE>::build(left_prim, right_prim);
-    }
-
-    auto left_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr2()));
-    auto right_collect = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(visit(ctx->expr1()));
-    if (left_collect && right_collect)
-    {
-        return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::COLLECTIVE>::build(left_collect, right_collect);
     }
 
     auto left_system = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(visit(ctx->expr2()));
@@ -1844,7 +3227,10 @@ int_rvalue_expression_variant<expenv> ASTBuilder::make_int_rvalue_variant_from_n
         return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::INT, expenv> *>(ptr))
         return p;
-
+    if (auto p = dynamic_cast<input*>(ptr))
+        return p;
+    if (auto p = dynamic_cast<stop*>(ptr))
+        return p;
     throw std::runtime_error("Unsupported type in make_int_rvalue_variant_from_node");
 }
 
@@ -1891,6 +3277,10 @@ bool_rvalue_expression_variant<expenv> ASTBuilder::make_bool_rvalue_variant_from
     if (auto p = dynamic_cast<direct<dataflow_type::BOOL, expenv> *>(ptr))
         return p;
     if (auto p = dynamic_cast<variable_expression<dataflow_type::BOOL, expenv> *>(ptr))
+        return p;
+    if (auto p = dynamic_cast<input*>(ptr))
+        return p;
+    if (auto p = dynamic_cast<stop*>(ptr))
         return p;
 
     throw std::runtime_error("Unsupported type in make_bool_rvalue_variant_from_node");
@@ -1980,6 +3370,13 @@ rvalue_variant<expenv> ASTBuilder::make_variant_from_node(
         return p;
     if (auto p = dynamic_cast<not_operator<expenv> *>(ptr))
         return p;
+    if constexpr (expenv == expression_env::COLLECTIVE)
+    {
+        if (auto p = dynamic_cast<input *>(ptr))
+            return static_cast<rvalue<dft, expenv> *>(p);
+        if (auto p = dynamic_cast<stop *>(ptr))
+            return static_cast<rvalue<dft, expenv> *>(p);
+    }
 
     throw std::runtime_error("Unsupported type in make_variant_from_node");
 }
@@ -2046,6 +3443,10 @@ std::any ASTBuilder::visitPassExpr0(ChipsParser::PassExpr0Context *ctx)
     return visit(ctx->expr0());
 }
 
+std::any ASTBuilder::visitPassExpr01(ChipsParser::PassExpr01Context* ctx){
+    return visit(ctx->expr01());
+}
+
 std::any ASTBuilder::visitPassExpr1(ChipsParser::PassExpr1Context *ctx)
 {
     return visit(ctx->expr1());
@@ -2054,4 +3455,55 @@ std::any ASTBuilder::visitPassExpr1(ChipsParser::PassExpr1Context *ctx)
 std::any ASTBuilder::visitPassExpr2(ChipsParser::PassExpr2Context *ctx)
 {
     return visit(ctx->expr2());
+}
+
+bool ASTBuilder::is_function_parameter(std::any& value){
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&value))
+            return true;
+        if(auto* p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&value))
+            return true;    
+        
+        return false;
+}
+
+channel_eater ASTBuilder::make_channel_eater(std::any& variable, std::any& parameter_who_eat, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
+    auto eating_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(parameter_who_eat);
+
+    if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_eater eat(var_expr.get(), eating_channel.get());
+        return eat;
+    }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_eater eat(var_expr.get(), eating_channel.get());
+        return eat;
+    }
+    throw std::runtime_error("Channel eater can't be of type logical");
+}
+
+channel_feeder ASTBuilder::make_channel_feeder(std::any& variable, std::any& channel_who_feed, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
+    auto feeding_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(channel_who_feed);
+
+    if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_feeder feed(var_expr.get(), feeding_channel.get());
+        return feed;
+    }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_feeder feed(var_expr.get(), feeding_channel.get());
+        return feed;
+    }
+    throw std::runtime_error("Channel eater can't be of type logical");
 }

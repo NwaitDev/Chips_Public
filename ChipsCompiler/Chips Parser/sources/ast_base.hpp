@@ -49,6 +49,8 @@ namespace chips
         virtual void visit(program_node& node) = 0;
         virtual void visit(preamble_section_node& node) = 0;
         virtual void visit(system_section_node& node) = 0;
+        virtual void visit(logical_definition& node) = 0;
+        virtual void visit(physical_definition& node) = 0;
 
         // template<expression_env expenv>
         // void visit(array<expenv>& node);
@@ -113,16 +115,20 @@ namespace chips
         // virtual void visit(channeled_output& node) = 0;
 
         // virtual void visit(definition& node) = 0;
-        // virtual void visit(with_section& node) = 0;
-        // virtual void visit(init_section& node) = 0;
-        // virtual void visit(then_section& node) = 0;
+        virtual void visit(with_section& node) = 0;
+
+        // Virtual templates are not supported in C++. Use a template front-end
+        // that forwards to virtual non-template hooks specialized by enum values.
+        // template<dataflow_kind dfk, dataflow_type dft>
+        // void visit(function_parameter<dfk, dft>& node)
+        virtual void visit(init_section& node) = 0;
+        virtual void visit(then_section& node) = 0;
         // virtual void visit(collectiveops_section& node) = 0;
         // virtual void visit(accumulator_definition& node) = 0;
         // virtual void visit(node_definition& node) = 0;
         // virtual void visit(object_definition& node) = 0;
         // virtual void visit(function_definition& node) = 0;
-        // virtual void visit(logical_definition& node) = 0;
-        // virtual void visit(physical_definition& node) = 0;
+        
         // virtual void visit(implementation_defintion& node) = 0;
         // virtual void visit(collective_function_definition& node) = 0;
 

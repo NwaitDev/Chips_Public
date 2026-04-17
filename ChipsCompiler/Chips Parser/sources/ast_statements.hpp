@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ast_variables.hpp"
+#include "ast_system_specific.hpp"
 
 namespace chips
 {
@@ -34,7 +35,7 @@ namespace chips
 
         dataflow_declaration() = default;
 
-        dataflow_declaration(std::string name) : m_variable(dataflow_primitive_variable<dft>(name)) {};
+        dataflow_declaration(std::string name) : m_variable(typename SttEnvToVariableKind<dft, stenv>::type(name)) {};
 
         dataflow_declaration(df_variable_type variable)
             : m_variable(variable) {}
@@ -204,11 +205,25 @@ namespace chips
     template <block_type bt>
     class block_declaration : public statement<statement_env::SYSTEM, recurring_statement::DECLARATION>
     {
+        public:
         using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
         using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
 
         block_definition_t *m_defintion;
         block_variable_t m_variable;
+
+        block_declaration(){}
+        block_declaration(std::string name) : m_variable(block_variable_t(name)){}
+
+        block_declaration(block_definition_t* definition,
+                          block_variable_t variable)
+            : m_defintion(definition), m_variable(variable){}
+
+        void set_variable(block_variable_t var) { m_variable = var; }
+        block_variable_t get_variable() { return m_variable; }
+
+        block_definition_t* get_definition(){ return m_defintion; }
+
         void hello() {}
     };
 
@@ -239,9 +254,21 @@ namespace chips
         // need to perform check on connectivity
         // (only connect channels 1-to-1, never 1-to-many or many-to-one)
 
+        public:
         channel_eater *m_eater;
         channel_feeder *m_feeder;
-        void hello();
+
+        channel_plugging(){}
+        channel_plugging(channel_eater* eat, channel_feeder* feed)
+            : m_eater(eat), m_feeder(feed){}
+
+        void set_eater(channel_eater* eat) { m_eater = eat; }
+        channel_eater* get_eater() { return m_eater; }
+
+        void set_feeder(channel_feeder* feed) { m_feeder = feed; }
+        channel_feeder* get_feeder() { return m_feeder; }
+
+        void hello(){}
     };
 
     /**
@@ -256,8 +283,13 @@ namespace chips
     template <dataflow_kind dfk, dataflow_type dft>
     class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dfk, dft>
     {
+        public:
         eater<dfk, dft> m_eater;
-        feeder<dfk, dft> m_feeder;
+        feeder<dfk, dft>* m_feeder = nullptr;
+
+        feeding_statement(eater<dfk, dft> eat, feeder<dfk, dft>* feed)
+            : m_eater(eat), m_feeder(feed){}
+
         void hello() {}
     };
 
@@ -270,9 +302,15 @@ namespace chips
      */
     class linking_statement : public system_statement<recurring_statement::LINKING>
     {
+        public:
         linkable *m_linked_component;
         support *m_support_node;
-        void hello();
+
+        linking_statement(){}
+        linking_statement(linkable* linked_component, support* support_node)
+            : m_linked_component(linked_component), m_support_node(support_node){}
+
+        void hello(){};
     };
 
     /**
