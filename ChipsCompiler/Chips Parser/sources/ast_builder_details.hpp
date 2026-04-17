@@ -20,6 +20,19 @@ using namespace chips;
 namespace ast_builder_detail
 {
 
+    inline std::vector<std::shared_ptr<void>>& extracted_statement_arena(){
+        static std::vector<std::shared_ptr<void>> arena;
+        return arena;
+    }
+
+    template<typename T>
+    T* keep_extracted_statement_alive(const T& statement){
+        auto owned = std::make_shared<T>(statement);
+        auto* raw = owned.get();
+        extracted_statement_arena().push_back(owned);
+        return raw;
+    }
+
     /**
      * Nom de type lisible pour les messages d'erreur
      */
@@ -61,7 +74,7 @@ namespace ast_builder_detail
             // "if else" derives from "if" statement
             if_else_statement<sttenv> new_ast_stt =
                 std::any_cast<if_else_statement<sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -72,7 +85,7 @@ namespace ast_builder_detail
         {
             if_statement<sttenv> new_ast_stt =
                 std::any_cast<if_statement<sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -83,7 +96,7 @@ namespace ast_builder_detail
         {
             foreach_statement<sttenv, dataflow_type::INT> new_ast_stt =
                 std::any_cast<foreach_statement<sttenv, dataflow_type::INT>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -94,7 +107,7 @@ namespace ast_builder_detail
         {
             foreach_statement<sttenv, dataflow_type::FLOAT> new_ast_stt =
                 std::any_cast<foreach_statement<sttenv, dataflow_type::FLOAT>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -105,7 +118,7 @@ namespace ast_builder_detail
         {
             foreach_statement<sttenv, dataflow_type::BOOL> new_ast_stt =
                 std::any_cast<foreach_statement<sttenv, dataflow_type::BOOL>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -116,7 +129,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::INT, sttenv> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::INT, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -127,7 +140,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::FLOAT, sttenv> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::FLOAT, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -138,7 +151,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::BOOL, sttenv> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::BOOL, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -149,7 +162,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::INT, sttenv> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::INT, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -159,7 +172,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::FLOAT, sttenv> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::FLOAT, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -169,7 +182,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::BOOL, sttenv> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::BOOL, sttenv>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -178,56 +191,56 @@ namespace ast_builder_detail
         if constexpr(sttenv == statement_env::SYSTEM){
             try{
                 auto new_ast_stt = std::any_cast<linking_statement>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a linking statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical int statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical float statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical bool statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical int statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical float statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical bool statement" << std::endl;
             }
 
             try{
                 auto new_ast_stt = std::any_cast<channel_plugging>(statement);
-                return &new_ast_stt;
+                return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a channel plugging statement" << std::endl;
             }

@@ -66,6 +66,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<primitive_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -83,6 +87,10 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<statement_env::DEFINITION>::type stt){
             m_statements.push_back(stt);
         }
+
+        std::vector<primitive_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();// override {std::cout<<"hello"<<std::endl;}
     };
 

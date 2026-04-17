@@ -54,7 +54,7 @@ namespace ast_builder_detail
             // "if else" derives from "if" statement
             if_else_statement<statement_env::NODE> new_ast_stt =
                 std::any_cast<if_else_statement<statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -65,7 +65,7 @@ namespace ast_builder_detail
         {
             if_statement<statement_env::NODE> new_ast_stt =
                 std::any_cast<if_statement<statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -76,7 +76,7 @@ namespace ast_builder_detail
         {
             foreach_statement<statement_env::NODE, dataflow_type::INT> new_ast_stt =
                 std::any_cast<foreach_statement<statement_env::NODE, dataflow_type::INT>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -87,7 +87,7 @@ namespace ast_builder_detail
         {
             foreach_statement<statement_env::NODE, dataflow_type::FLOAT> new_ast_stt =
                 std::any_cast<foreach_statement<statement_env::NODE, dataflow_type::FLOAT>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -98,7 +98,7 @@ namespace ast_builder_detail
         {
             foreach_statement<statement_env::NODE, dataflow_type::BOOL> new_ast_stt =
                 std::any_cast<foreach_statement<statement_env::NODE, dataflow_type::BOOL>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -109,7 +109,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::INT, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -120,7 +120,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::FLOAT, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -131,7 +131,7 @@ namespace ast_builder_detail
         {
             dataflow_declaration<dataflow_type::BOOL, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -142,7 +142,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::INT, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::INT, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -152,7 +152,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::FLOAT, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {
@@ -162,7 +162,7 @@ namespace ast_builder_detail
         {
             dataflow_assignment<dataflow_type::BOOL, statement_env::NODE> new_ast_stt =
                 std::any_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::NODE>>(statement);
-            return &new_ast_stt;
+            return keep_extracted_statement_alive(new_ast_stt);
         }
         catch (const std::bad_any_cast &e)
         {

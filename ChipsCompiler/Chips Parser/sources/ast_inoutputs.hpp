@@ -30,6 +30,10 @@ namespace chips {
 
         const std::string& get_name() const { return m_name; }
         std::string& get_name() { return m_name; }
+
+        std::optional<rvalue<dft,expression_env::PRIMITIVE>>& get_default_value() { return m_default_value; }
+
+        void accept(visitor& v) { v.visit(*this); }
         
         void hello(){
             std::cout << "FUNCTION PARAMETER" << std::endl;

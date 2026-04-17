@@ -1178,7 +1178,7 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
     if constexpr(ENV == expression_env::PRIMITIVE){
         if (auto sptr = std::any_cast<std::shared_ptr<dataflow_primitive_variable<DT>>>(&var))
         {
-            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << std::endl;
+            std::cout << "FIRST ANY CAST " << ast_builder_detail::type_name(std::any{sptr}.type()) << sptr->get()->get_name() << std::endl;
             if (*sptr)
                 return std::make_shared<variable_expression<DT, ENV>>(sptr->get(), dims);
         }
@@ -1186,8 +1186,9 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
         if (auto raw_ptr = std::any_cast<dataflow_primitive_variable<DT>>(&var))
         {
             std::cout << "SECOND ANY CAST" << std::endl;
-            auto non_const_ptr = const_cast<dataflow_primitive_variable<DT>*>(raw_ptr);
-            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+            auto owned_var = std::make_shared<dataflow_primitive_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
         }
     }else if constexpr(ENV == expression_env::COLLECTIVE){
         if (auto sptr = std::any_cast<std::shared_ptr<dataflow_collective_variable<DT>>>(&var))
@@ -1200,8 +1201,9 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
         if (auto raw_ptr = std::any_cast<dataflow_collective_variable<DT>>(&var))
         {
             std::cout << "SECOND ANY CAST" << std::endl;
-            auto non_const_ptr = const_cast<dataflow_collective_variable<DT>*>(raw_ptr);
-            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+            auto owned_var = std::make_shared<dataflow_collective_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
         }
     }else if constexpr(ENV == expression_env::SYSTEM){
         std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
@@ -1211,8 +1213,9 @@ std::any ASTBuilder::tryCastVar(const std::any &var, const Dims &dims)
         }
 
         if(auto raw_ptr = std::any_cast<dataflow_system_variable<DT>>(&var)){
-            auto non_const_ptr = const_cast<dataflow_system_variable<DT>*>(raw_ptr);
-            return std::make_shared<variable_expression<DT, ENV>>(non_const_ptr, dims);
+            auto owned_var = std::make_shared<dataflow_system_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_expression<DT, ENV>>(owned_var.get(), dims);
         }
     }else{
         throw std::runtime_error("Unsupported environment: "+expenv_to_string(ENV));
@@ -1235,8 +1238,9 @@ std::any ASTBuilder::tryCastVarContextual(const std::any &var, const Dims &dims)
 
         if (auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var))
         {
-            auto non_const_ptr = const_cast<contextual_variable<DT> *>(raw_ptr);
-            return std::make_shared<variable_contextual_expression<DT, ENV>>(non_const_ptr, dims);
+            auto owned_var = std::make_shared<contextual_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
+            return std::make_shared<variable_contextual_expression<DT, ENV>>(owned_var.get(), dims);
         }
     }else if constexpr(ENV == expression_env::COLLECTIVE){
         std::cout << ast_builder_detail::type_name(var.type()) << std::endl;
@@ -1246,9 +1250,10 @@ std::any ASTBuilder::tryCastVarContextual(const std::any &var, const Dims &dims)
                     reinterpret_cast<variable<ENV>*>(sptr->get()), dims);
         }
         if(auto raw_ptr = std::any_cast<contextual_variable<DT>>(&var)){
-            auto non_const_ptr = const_cast<contextual_variable<DT>*>(raw_ptr);
+            auto owned_var = std::make_shared<contextual_variable<DT>>(*raw_ptr);
+            node_arena.push_back(std::static_pointer_cast<ast_node>(owned_var));
             return std::make_shared<variable_contextual_expression<DT,ENV>>(
-                reinterpret_cast<variable<ENV>*>(non_const_ptr), dims);
+                reinterpret_cast<variable<ENV>*>(owned_var.get()), dims);
         }
     }else{
         throw std::runtime_error("JA");
@@ -3473,12 +3478,14 @@ channel_eater ASTBuilder::make_channel_eater(std::any& variable, std::any& param
     auto eating_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(parameter_who_eat);
 
     if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
-        system_variable_block_expression<block_type::PHYSICAL> variable_expression(block.get(), dims);
-        channel_eater eat(&variable_expression, eating_channel.get());
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_eater eat(var_expr.get(), eating_channel.get());
         return eat;
     }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
-        system_variable_block_expression<block_type::OBJECT> variable_expression(block.get(), dims);
-        channel_eater eat(&variable_expression, eating_channel.get());
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_eater eat(var_expr.get(), eating_channel.get());
         return eat;
     }
     throw std::runtime_error("Channel eater can't be of type logical");
@@ -3488,12 +3495,14 @@ channel_feeder ASTBuilder::make_channel_feeder(std::any& variable, std::any& cha
     auto feeding_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(channel_who_feed);
 
     if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
-        system_variable_block_expression<block_type::PHYSICAL> variable_expression(block.get(), dims);
-        channel_feeder feed(&variable_expression, feeding_channel.get());
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_feeder feed(var_expr.get(), feeding_channel.get());
         return feed;
     }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
-        system_variable_block_expression<block_type::OBJECT> variable_expression(block.get(), dims);
-        channel_feeder feed(&variable_expression, feeding_channel.get());
+        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+        node_arena.push_back(var_expr);  // Garde l'objet vivant
+        channel_feeder feed(var_expr.get(), feeding_channel.get());
         return feed;
     }
     throw std::runtime_error("Channel eater can't be of type logical");

@@ -30,6 +30,7 @@ namespace chips
     class rvalue : public virtual ast_node
     {
     public:
+        void accept(visitor& v) { v.visit(*this); }
         inline void hello() { std::cout << "I am interpreted as an rvalue" << std::endl; }
     };
 
@@ -55,7 +56,7 @@ namespace chips
     public:
         direct(value_type value) : m_value(value) {};
 
-        inline value_type get_value() { return m_value; }
+        inline value_type& get_value() { return m_value; }
 
         inline void accept(visitor &v) { v.visit(*this); }
 
@@ -101,6 +102,9 @@ namespace chips
 
         function(std::string name, std::vector<rvalue_variant<expenv>> param)
             : m_name(name), m_parameters(param){}
+
+        std::string& get_name() { return m_name; }
+        std::vector<rvalue_variant<expenv>>& get_parameters() { return m_parameters; }
 
         inline void accept(visitor &v) { v.visit(*this); }
         inline void hello() {};
@@ -620,6 +624,7 @@ namespace chips
             : m_variable(variable) {}
 
         variable<expenv> *get_variable() { return m_variable; }
+        std::vector<int_rvalue_expression_variant<expenv>> get_index() { return m_index; }
 
         void accept(visitor &v) { v.visit(*this); }
         inline void hello()
