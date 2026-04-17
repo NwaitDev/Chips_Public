@@ -2,7 +2,6 @@ grammar Chips;
 
 program 
     : preamble* system? EOF
-    | (statement)* EOF
     ;
 
 system
