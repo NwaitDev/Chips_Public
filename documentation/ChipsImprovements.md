@@ -1,24 +1,64 @@
 # Additional Chips Features
 
-## size :
-    ```c
-    int size(<sth>[] iterable);
-    ```
-    size operator to measure the size of an iterable
+## size operations on arrays
 
-## resize:
-    ```c
-    <sth>[] size(<sth>[] iterable);
-    ```
-    change the quantity of information an iterable can hold. Copies or crop the initial data
+size operator to measure the size of an iterable
+```c
+int size(<sth>[] iterable);
+```
 
-## struct :
-    to more easily pass parameters between components
+change the quantity of information an array can hold. Copies or crop the initial data
+```c
+<sth>[] size(<sth>[] iterable);
+```
+
+
+## user defined data structures
+
+To more easily pass parameters between components 
+
+```c
+struct dated_msg{
+    int[msg_size] data;
+    int time;
+}
+
+struct http_request{
+    int ip_src;
+    int authentication_token;
+    int request_id;
+    int request_type;
+}
+```
+
+Specify inheritable datastructures/implementable datastructures interfaces:
+Templated datastructures ? (maybe too greedy for the current version)
+```c
+struct vector<typename type, int dimensions>{
+    type[dimensions] value;
+};
+
+struct VectorSpace<typename T extends vector,typename scalar>{
+    T ZERO;
+    T plus(T,T);
+    T times(T, scalar)
+};
+
+struct Ring<type>{
+    type ZERO;
+    type ONE;
+    type plus(type,type);
+    type opposite(type);
+    type times(type, type);
+    type inverse(type);
+}
+```
 
 
 ## some probably very useful collective primitives
 
 All of the following collective primitive definitions assume there is only one producing/consuming function per node of the comunication tree.
+In the case of multiple functional blocks in a same node, they should be abstracted away using other collective primitives to fallback on the case of a single function per node.
 
 ### some defaultly available spread collective primitive
 
@@ -116,14 +156,14 @@ concatenate among <node type>
 ```
 
 ```c
-collect (<DataStructure> acc = <DataStructure>.ZERO)
-VECTORSPACE among <node type>
+collect (<typename T> acc = <RingOver<T>>.ZERO)
+RingAggregate among <node type>
 {
-    <DataStructure> next_acc = <DataStructure>.ZERO;
+    T next_acc = <RingOver<T>>.ZERO;
     for chan in channels {
-        next_acc = <DataStructure>.plus(next_acc, chan.acc);
+        next_acc = <RingOver<T>>.plus(next_acc, chan.acc);
     }
-    next_acc = <DataStructure>.plus(next_acc, input);
+    next_acc = <RingOver<T>>.plus(next_acc, input);
 } ->@(next_acc)
 -> default(next_acc)
 ```
@@ -223,7 +263,7 @@ object CatomSetSet with {
     if(shape == TOWER){
         // represent the process that
         // builds the TOWER by moving 
-        // CatomSets on top of eachothers
+        // CatomSets on top of each others
     }
 } receipe ToLine {
     // other kind of procedure to realize
