@@ -38,7 +38,7 @@ void ChipsToXmiVisitor::visit(direct<dft, expenv>& node){
     }else if constexpr(dft == dataflow_type::BOOL){
         if(node.get_value()){
             out() << repeat("\t", nbTab) << "\n";
-            writeAttribute("value", std::to_string(node.get_value()));
+            writeAttribute("value", "true");
         }
     }
     out() << "/>\n";
@@ -48,6 +48,7 @@ template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(variable_expression<dft,expenv>& node){
 
     std::string name = node.get_variable()->get_name();
+    std::cerr << "NAME VAIRABLE " << name << std::endl;
     std::string path = get_ast_path_by_name(name);
 
     std::string type = (dynamic_cast<variable_contextual_expression<dft,expenv>*>(&node)) ? "contextual_"+dft_to_string(dft)+"_expression" :
@@ -79,7 +80,9 @@ void ChipsToXmiVisitor::visit(minus<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(uminus_operator<dft, expenv>& node){
-    out() << "<!-- UMINUS -->\n";
+    std::cerr << "[DEBUG Visitor] visit(uminus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    direct<dft,expenv> zero(0);
+    handle_binary_expression(&zero, node.get_rhs(), "minus");
 }
 
 template<dataflow_type dft, expression_env expenv>
@@ -182,21 +185,20 @@ void ChipsToXmiVisitor::visit(and_operator<expenv>& node){
 template<expression_env expenv>
 void ChipsToXmiVisitor::visit(not_operator<expenv>& node){
     std::cerr << "[DEBUG Visitor] visit(not_operator<" << expenv_to_string(expenv) << std::endl;
-    writeAttribute("            xsi:type", get_op_prefix(expenv)+"bool:not");
+
+    writeAttribute("xsi:type", get_op_prefix(expenv)+"bool:not");
     out() << ">\n";
 
     auto operand = node.get_lhs();
 
-    out() << "              <operand\n";
+    out() << repeat("\t", nbTab) << "<operand\n" << repeat("\t", nbTab);
 
     if(operand){
         binary_boolean_visit(*operand);
     }
 
-    if(dynamic_cast<direct<dataflow_type::BOOL,expenv>*>(operand)){
-        out() << "/>\n";
-    }else{
-        out() << "              </operand>\n";
+    if(!only_one_child(*operand)){
+        out() << repeat("\t", nbTab) << "</operand>\n";
     }
 }
 
@@ -227,60 +229,12 @@ void ChipsToXmiVisitor::visit(rvalue<dft, expenv>& node){
     }else{
         binary_boolean_visit(node);
     }
-    
-    // if constexpr(dft != dataflow_type::BOOL){
-    //     arithmetic_visit(node);
-    // }else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::INT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<gt<expenv, dataflow_type::FLOAT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::INT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<leq<expenv, dataflow_type::FLOAT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::INT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<geq<expenv, dataflow_type::FLOAT>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<eq<dataflow_type::INT, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<eq<dataflow_type::FLOAT, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<eq<dataflow_type::BOOL, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<neq<dataflow_type::INT, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<neq<dataflow_type::FLOAT, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<neq<dataflow_type::BOOL, expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<or_operator<expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<and_operator<expenv>*>(&node)){
-    //     visit(*p);
-    // }else if(auto* p = dynamic_cast<not_operator<expenv>*>(&node)){
-    //     visit(*p);
-    // }
 
     nbTab--; nbTab--;
 
     if(!only_one_child(node)){
         out() << repeat("\t", nbTab) << "</rvalue>\n";
-    }
-    // else if(auto* p = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
-    //     // visit(*p);
-    //     out() << "/>\n";
-    //     nbTab--; nbTab--;
-    // }else{
-    //     nbTab--;
-    //     out() << repeat("\t", --nbTab) << "</rvalue>\n";
-    // }
-
-    
+    }    
 }
 
 void ChipsToXmiVisitor::visit(ast_node& node){
@@ -470,15 +424,56 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
         }
     }
 
-    auto with = node.get_with_section();
-    if(!with.get_statements().empty()){
-        push_ast_path("/@with");
-        out() << repeat("\t", nbTab) << "<with>\n";
-        nbTab++;
-        with.accept(*this);
-        nbTab--;
-        out() << repeat("\t", nbTab) << "</with>\n";
-        pop_ast_path("/@with");
+    auto sensors = node.get_sensors();
+
+    if(!sensors.empty()){
+        sensor_index = 0;
+        for(auto& sensor : sensors){
+            std::visit([this, &sensor_index](auto* sen){
+                out() << repeat("\t", nbTab) << "<sensor\n";
+                
+                nbTab++;
+
+                std::string sensor_name = sen->get_name();
+                dataflow_type sensor_type = get_dataflow_type(sen);
+                std::string dft = dft_to_string(sensor_type);
+
+                std::string sensor_base_path = get_ast_path() + "/@sensor." + std::to_string(sensor_index);
+                std::string sensor_path = sensor_base_path + "/@declaration/@variable";
+
+                push_ast_path(sensor_path);
+                register_variable(sensor_name, sensor_path, "physical_parameter:"+dft);
+
+                nbTab++;
+                out() << repeat("\t", nbTab);
+                writeAttribute("xsi:type", "chips.parameters.physical:"+dft+"_physical_parameter");
+                out() << "\n" << repeat("\t", nbTab);
+                writeAttribute("name", sensor_name);
+                out() << ">\n";
+                nbTab--;
+
+                out() << repeat("\t", nbTab) << "<declaration>\n";
+                push_ast_path("/@declaration");
+                nbTab++;
+                out() << repeat("\t", nbTab) << "<variable\n";
+                nbTab++;
+                out() << repeat("\t", nbTab);
+                writeAttribute("name", sensor_name);
+                out() << "/>\n";
+                pop_ast_path("/@declaration");
+                nbTab--;
+                nbTab--;
+                out() << repeat("\t", nbTab) << "</declaration>\n";
+
+
+                std::cerr << "[DEBUG] Balise <parameters> terminée pour '" << sensor_name << "'" << std::endl;
+                pop_ast_path(sensor_path);
+                dumpSymbolTable();
+                param_index++;
+                nbTab--;
+                out() << repeat("\t", nbTab) << "</sensor>\n";
+            }, sensor);
+        }
     }
 
     auto parameters = node.get_parameters();
@@ -547,6 +542,19 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
         }
     }
 
+    auto with = node.get_with_section();
+    if(!with.get_statements().empty()){
+        push_ast_path("/@with");
+        out() << repeat("\t", nbTab) << "<with>\n";
+        nbTab++;
+        with.accept(*this);
+        nbTab--;
+        out() << repeat("\t", nbTab) << "</with>\n";
+        pop_ast_path("/@with");
+    }else{
+        out() << repeat("\t", nbTab) << "<with/>\n";
+    }
+
     auto init = node.get_init_section();
     if(!init.get_statements().empty()){
         push_ast_path("/@init");
@@ -556,6 +564,8 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
         nbTab--;
         out() << repeat("\t", nbTab) << "</init>\n";
         pop_ast_path("/@init");
+    }else{
+        out() << repeat("\t", nbTab) << "<init/>\n";
     }
 
     auto then = node.get_then_section();
@@ -567,6 +577,121 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
         nbTab--;
         out() << repeat("\t", nbTab) << "</then>\n";
         pop_ast_path("/@then");
+    }else{
+        out() << repeat("\t", nbTab) << "<then/>\n";
+    }
+
+    auto actuators = node.get_actuators();
+    if(!actuators.empty()){
+        int actuator_index = 0;
+        for(auto& actuator : actuators){
+            std::visit([this, &actuator_index](auto* act){
+                out() << repeat("\t", nbTab) << "<actuator\n";
+
+                nbTab++;
+
+                std::string actuator_name = act->get_name();
+                dataflow_type actuator_type = get_dataflow_type(act);
+                std::string dft = dft_to_string(actuator_type);
+
+                std::string actuator_path = get_ast_path() + "/@actuator." + std::to_string(actuator_index);
+
+                push_ast_path(actuator_path);
+                register_variable(actuator_name, actuator_path, "actuator_output:"+dft);
+
+                nbTab++;
+                out() << repeat("\t", nbTab);
+                writeAttribute("xsi:type","chips.outputs.physical:"+dft+"_output");
+                out() << "\n" << repeat("\t", nbTab);
+                writeAttribute("name",actuator_name);
+                out() << ">\n";
+                nbTab--;
+
+                out() << repeat("\t", nbTab) << "<expression\n";
+
+                for(auto expression : act->get_expressions()){
+                    std::visit([&](auto expr) {
+                        using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
+
+                        if constexpr (std::is_same_v<ExprT, rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>>) {
+                            binary_boolean_visit(*expr);
+                        } else if constexpr(std::is_same_v<ExprT, rvalue<dataflow_type::INT, expression_env::PRIMITIVE>> || 
+                                            std::is_same_v<ExprT, rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>){
+                            arithmetic_visit(*expr);
+                        }else{
+                            out() << ast_builder_detail::type_name(std::any{expr}.type()) << "\n";
+                        }
+                    }, expression);
+                    break;
+                }
+
+                pop_ast_path(actuator_path);
+                out() << repeat("\t", nbTab) << "</actuator>\n";
+            }, actuator);
+        }
+    }
+
+    auto outputs = node.get_outputs();
+    if(!outputs.empty()){
+        handle_outputs(outputs);
+    }    
+}
+
+void ChipsToXmiVisitor::handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator){
+    int output_index = 0;
+    std::string name_balise = (is_actuator ? "actuator" : "outputs");
+    for(auto& output : outputs){
+        std::visit([&](auto* outp){
+            out() << repeat("\t", nbTab) << "<" << name_balise <<"\n";
+
+            nbTab++;
+
+            std::string output_name = outp->get_name();
+            dataflow_type output_type = get_dataflow_type(outp);
+            std::string dft = dft_to_string(output_type);
+
+            std::string output_path = get_ast_path() + "/@"+ name_balise +"." + std::to_string(output_index);
+
+            push_ast_path(output_path);
+            register_variable(output_name, output_path, "output:"+dft);
+
+            nbTab++;
+            out() << repeat("\t", nbTab);
+            if(is_actuator){
+                writeAttribute("xsi:type","chips.outputs.physical:"+dft+"_output");
+            }else{
+                writeAttribute("xsi:type","chips.outputs.logical:"+dft+"_output");
+            }
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("name",output_name);
+            out() << ">\n";
+            nbTab--;
+
+            out() << repeat("\t", nbTab) << "<expression\n";
+
+            for(auto expression : outp->get_expressions()){
+                std::visit([&](auto expr) {
+                    // if(!expr){
+                    //     report_semantic_error("Null function output expression for '" + output_name + "'");
+                    //     return;
+                    // }
+
+                    using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
+
+                    if constexpr (std::is_same_v<ExprT, rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>>) {
+                        std::cerr << "OUTPUT BOOL EXPR" << std::endl;
+                        binary_boolean_visit(*expr);
+                    } else {
+                        std::cerr << "OUTPUT ARITH" << std::endl;
+                        arithmetic_visit(*expr);
+                    }
+                }, expression);
+                break;
+            }
+
+            pop_ast_path(output_path);
+            out() << repeat("\t", nbTab) << "</" << name_balise << ">\n";
+        }, output);
     }
 }
 
@@ -619,7 +744,7 @@ void ChipsToXmiVisitor::handle_binary_expression(rvalue<dft,expenv>* left, rvalu
         arithmetic_visit(*left);
     }
 
-    if(!only_one_child(*left)){
+    if(left && !only_one_child(*left)){
         out() << repeat("\t", nbTab) << "</left_operand>\n";
     }
 
@@ -632,7 +757,7 @@ void ChipsToXmiVisitor::handle_binary_expression(rvalue<dft,expenv>* left, rvalu
         arithmetic_visit(*right);
     } 
 
-    if(!only_one_child(*right)){
+    if(right && !only_one_child(*right)){
         out() << repeat("\t", nbTab) << "</right_operand>\n";
     }
 }
@@ -653,7 +778,7 @@ void ChipsToXmiVisitor::handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<d
         binary_boolean_visit(*left);
     }
 
-    if(!only_one_child(*left)){
+    if(left && !only_one_child(*left)){
         out() << repeat("\t", nbTab) << "</left_operand>\n";
     }
 
@@ -664,7 +789,7 @@ void ChipsToXmiVisitor::handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<d
         binary_boolean_visit(*right);
     }
 
-    if(!only_one_child(*right)){
+    if(right && !only_one_child(*right)){
         out() << repeat("\t", nbTab) << "</right_operand>\n";
     }
 }
@@ -702,7 +827,7 @@ void ChipsToXmiVisitor::visit(with_section& node){
             out() << repeat("\t", nbTab);
             writeAttribute("xsi:type", type);
             out() << "\n" << repeat("\t", nbTab);
-            writeAttribute("name", name+"_"+toLower(m_current_definition));
+            writeAttribute("name", name);
             out() << "\n" << repeat("\t", nbTab);
             writeAttribute("type_identifier", type_id);
             out() << "/>\n";
@@ -799,6 +924,146 @@ void ChipsToXmiVisitor::handle_statement_assignment(dataflow_assignment<dft, ste
     node.get_rhs()->accept(*this);
 }
 
+template<expression_env expenv>
+void ChipsToXmiVisitor::handle_condition(bool_rvalue_expression_variant<expenv>& node){
+    out() << ">\n" << repeat("\t", nbTab) << "<condition\n" << repeat("\t", nbTab);
+
+    bool only_one_child = false;
+
+    std::visit([&](auto* value){
+        if(auto* v = dynamic_cast<stop*>(value)){
+            out() << "<!-- STOP -->\n";
+        }else if(auto* v = dynamic_cast<input*>(value)){
+            out() << "<!-- INPUT -->\n";
+        }else if(auto* v = dynamic_cast<gt<expenv,dataflow_type::INT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<gt<expenv,dataflow_type::FLOAT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<lt<expenv,dataflow_type::INT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<lt<expenv,dataflow_type::FLOAT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<geq<expenv,dataflow_type::INT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<geq<expenv,dataflow_type::FLOAT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<leq<expenv,dataflow_type::INT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<leq<expenv,dataflow_type::FLOAT>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<eq<dataflow_type::INT,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<eq<dataflow_type::FLOAT,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<eq<dataflow_type::BOOL,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<neq<dataflow_type::INT,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<neq<dataflow_type::FLOAT,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<neq<dataflow_type::BOOL,expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<or_operator<expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<and_operator<expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<not_operator<expenv>*>(value)){
+            visit(*v);
+        }else if(auto* v = dynamic_cast<direct<dataflow_type::BOOL,expenv>*>(value)){
+            visit(*v);
+            only_one_child = true;
+        }else if(auto* v = dynamic_cast<variable_expression<dataflow_type::BOOL,expenv>*>(value)){
+            visit(*v);
+            only_one_child = true;
+        }else{
+            out() << "<-- ERROR CONDITION -->\n";
+        }
+    }, node);
+
+    if(!only_one_child){
+        out() << "</condition>\n";
+    }
+}
+
+template<statement_env stenv>
+void ChipsToXmiVisitor::handle_statement(typename SttEnvToSttVariant<stenv>::type& stt){
+    std::visit([&](auto* ptr) {
+        if (auto* if_else = dynamic_cast<if_else_statement<stenv>*>(ptr)) {
+            handle_statement_if_else(*if_else);
+        } else if (auto* if_simple = dynamic_cast<if_statement<stenv>*>(ptr)) {
+            handle_statement_if(*if_simple);
+        } else if (auto* decl_int = dynamic_cast<dataflow_declaration<dataflow_type::INT, stenv>*>(ptr)) {
+            handle_statement_declaration(*decl_int);
+        } else if (auto* decl_float = dynamic_cast<dataflow_declaration<dataflow_type::FLOAT, stenv>*>(ptr)) {
+            handle_statement_declaration(*decl_float);
+        } else if (auto* decl_bool = dynamic_cast<dataflow_declaration<dataflow_type::BOOL, stenv>*>(ptr)) {
+            handle_statement_declaration(*decl_bool);
+        } else if (auto* assign_int = dynamic_cast<dataflow_assignment<dataflow_type::INT, stenv>*>(ptr)) {
+            handle_statement_assignment(*assign_int);
+        } else if (auto* assign_float = dynamic_cast<dataflow_assignment<dataflow_type::FLOAT, stenv>*>(ptr)) {
+            handle_statement_assignment(*assign_float);
+        } else if (auto* assign_bool = dynamic_cast<dataflow_assignment<dataflow_type::BOOL, stenv>*>(ptr)) {
+            handle_statement_assignment(*assign_bool);
+        } else {
+            out() << "[WARNING] if statement type not handled\n";
+        }
+    }, stt);
+}
+
+template<statement_env stenv>
+void ChipsToXmiVisitor::handle_section_if(if_section<stenv>& node){
+    out() << "<if_section>\n";
+
+    for(auto stt : node.get_statements()){
+        out() << repeat("\t", nbTab) << "<if_statements\n";
+
+        handle_statement<stenv>(stt);
+
+        out() << repeat("\t", nbTab) << "</if_statements>\n";
+    }
+
+    out() << "</if_section>\n";
+}
+
+template<statement_env stenv>
+void ChipsToXmiVisitor::handle_section_else(else_section<stenv>& node){
+    out() << repeat("\t", nbTab) << "<else_section>\n";
+
+    for(auto stt : node.get_statements()){
+        out() << repeat("\t", nbTab) << "<else_statements\n";
+
+        handle_statement<stenv>(stt);
+
+        out() << repeat("\t", nbTab) << "</else_statements>\n";
+    }
+
+    out() << repeat("\t", nbTab) << "</else_section>\n";
+}
+
+template<statement_env stenv>
+void ChipsToXmiVisitor::handle_statement_if(if_statement<stenv>& node){
+    writeAttribute("xsi:type",statement_type("if"));
+
+    auto if_condition = node.get_condition();
+    auto if_sect = node.get_if_section();
+
+    handle_condition(if_condition);
+    handle_section_if(if_sect);
+}
+
+template<statement_env stenv>
+void ChipsToXmiVisitor::handle_statement_if_else(if_else_statement<stenv>& node){
+    writeAttribute("xsi:type",statement_type("if_else"));
+    
+    auto if_condition = node.get_condition();
+    auto if_sect = node.get_if_section();
+    auto else_sect = node.get_else_section();
+
+    handle_condition(if_condition);
+    handle_section_if(if_sect);
+    handle_section_else(else_sect);
+}
+
 void ChipsToXmiVisitor::visit(init_section& node){
 
     auto statements = node.get_statements();
@@ -811,27 +1076,7 @@ void ChipsToXmiVisitor::visit(init_section& node){
         std::cerr << "[XMI DEBUG] init_section statement variant index=" << statement.index() << std::endl;
         out() << repeat("\t", nbTab) << "<statements\n";
         nbTab++;
-        if(auto* decl = std::get_if<primitive_statement<recurring_statement::DECLARATION>*>(&statement)){
-            auto node_decl = *decl;
-            if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }else if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }else if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }
-        }else if(auto* assign = std::get_if<primitive_statement<recurring_statement::ASSIGNMENT>*>(&statement)){
-            auto node_assign = *assign;
-            if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else{
-                std::cerr << "[XMI WARNING] ASSIGNMENT variant selected, but concrete assignment type could not be identified" << std::endl;
-            }
-        }
+        handle_statement<statement_env::DEFINITION>(statement);
         nbTab--;
         pop_ast_path(segment);
         out() << repeat("\t", nbTab) << "</statements>\n";
@@ -851,29 +1096,9 @@ void ChipsToXmiVisitor::visit(then_section& node){
         std::cerr << "[XMI DEBUG] then_section statement variant index=" << statement.index() << std::endl;
         out() << repeat("\t", nbTab) << "<statements\n";
         nbTab++;
-        if(auto* decl = std::get_if<primitive_statement<recurring_statement::DECLARATION>*>(&statement)){
-            auto node_decl = *decl;
-            if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::INT, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }else if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }else if(auto node = dynamic_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::DEFINITION>*>(node_decl)){
-                handle_statement_declaration(*node);
-            }
-        }else if(auto* assign = std::get_if<primitive_statement<recurring_statement::ASSIGNMENT>*>(&statement)){
-            auto node_assign = *assign;
-            if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::FLOAT, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else if(auto node = dynamic_cast<dataflow_assignment<dataflow_type::BOOL, statement_env::DEFINITION>*>(node_assign)){
-                handle_statement_assignment(*node);
-            }else{
-                std::cerr << "[XMI WARNING] ASSIGNMENT variant selected, but concrete assignment type could not be identified" << std::endl;
-            }
-        }else{
-            out() << "<!-- PROBLEME -->\n";
-        }
+
+        handle_statement<statement_env::DEFINITION>(statement);
+
         nbTab--;
         pop_ast_path(segment);
         out() << repeat("\t", nbTab) << "</statements>\n";

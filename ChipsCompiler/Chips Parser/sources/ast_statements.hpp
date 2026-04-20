@@ -102,6 +102,9 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
             m_if_statements.push_back(stt);
         }
+
+        std::vector<statement_type>& get_statements() { return m_if_statements; }
+
         void hello() {}
     };
 
@@ -121,6 +124,9 @@ namespace chips
         inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
             m_else_statements.push_back(stt);
         }
+
+        std::vector<statement_type>& get_statements() { return m_else_statements; }
+
         void hello() {}
     };
 
@@ -136,6 +142,10 @@ namespace chips
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         bool_rvalue_expression_variant<expr_env> m_condition;
         if_section<stenv> m_if_section;
+
+        bool_rvalue_expression_variant<expr_env>& get_condition(){ return m_condition; }
+        if_section<stenv>& get_if_section() { return m_if_section; }
+
         void hello() {}
     };
 
@@ -150,6 +160,9 @@ namespace chips
         public:
         else_section<stenv> m_else_section;
         if_else_statement(){};
+
+        else_section<stenv>& get_else_section() { return m_else_section; }
+
         void hello() {}
     };
 

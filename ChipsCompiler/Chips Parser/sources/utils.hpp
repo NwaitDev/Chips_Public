@@ -34,6 +34,16 @@ namespace chips {
     constexpr dataflow_type get_dataflow_type(const function_parameter<K, T>& /* */) noexcept{
         return T;
     }
+
+    template<dataflow_kind K, dataflow_type T>
+    constexpr dataflow_type get_dataflow_type(const function_output<K, T>* /* */) noexcept{
+        return T;
+    }
+
+    template<dataflow_kind K, dataflow_type T>
+    constexpr dataflow_type get_dataflow_type(const function_output<K, T>& /* */) noexcept{
+        return T;
+    }
 }
 
 #endif

@@ -253,6 +253,7 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
         if (auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp))
         {
+            node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
             auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
             node_arena.push_back(out);
@@ -263,6 +264,7 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
         }
         else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
         {
+            node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
             auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
             node_arena.push_back(out);
@@ -273,6 +275,7 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
         }
         else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
         {
+            node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
             auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(
                 make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
             node_arena.push_back(out);
@@ -380,6 +383,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
 
             if (auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>(
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
@@ -390,6 +394,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
@@ -400,6 +405,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(
                     make_function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
@@ -422,6 +428,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
 
             if (auto expr = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>(
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>(identifier, expr));
                 node_arena.push_back(out);
@@ -432,6 +439,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(identifier, expr));
                 node_arena.push_back(out);
@@ -442,6 +450,7 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
             }
             else if (auto expr = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::PRIMITIVE>(exp))
             {
+                node_arena.push_back(std::static_pointer_cast<ast_node>(expr));
                 auto out = std::make_shared<function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(
                     make_function_output<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(identifier, expr));
                 node_arena.push_back(out);
@@ -1737,7 +1746,10 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
 
     // TODO: regarder les scopes avec SymbolTable
 
-    visit(ctx->if_statement());
+    std::any if_stt = visit(ctx->if_statement());
+    if_else.m_if_section  = std::any_cast<if_statement<statement_env::DEFINITION>>(if_stt).m_if_section;
+    if_else.m_condition   = std::any_cast<if_statement<statement_env::DEFINITION>>(if_stt).m_condition;
+
 
     SymbolTable::getInstance().enterScope();
     SymbolTable::getInstance().dump();

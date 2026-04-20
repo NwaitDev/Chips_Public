@@ -76,9 +76,13 @@ namespace chips {
         // Note to the model to model transformations developer:
         // Chips 1.1 metamodel didn't cope with multiple 
         // expressions outputs though the grammar allows it... Here, we allow it too
-        std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions;
+        std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions = {};
         function_output(std::string name,rvalue<dft,expression_env::PRIMITIVE>* expr) : m_name(name){ m_expressions.push_back(expr);};
         inline void add_expression(rvalue_variant<expression_env::PRIMITIVE> exp) { m_expressions.push_back(exp);} 
+        
+        std::string& get_name() { return m_name; }
+        std::vector<rvalue_variant<expression_env::PRIMITIVE>>& get_expressions() { return m_expressions; }
+        
         void hello(){};
     };
     

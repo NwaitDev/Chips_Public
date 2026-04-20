@@ -33,6 +33,13 @@ namespace ast_builder_detail
         return raw;
     }
 
+    template<statement_env sttenv, typename T>
+    statement_variant make_recurring_statement_variant(T* concrete)
+    {
+        using recurring_variant = typename SttEnvToSttVariant<sttenv>::type;
+        return statement_variant{recurring_variant{concrete}};
+    }
+
     /**
      * Nom de type lisible pour les messages d'erreur
      */
@@ -65,16 +72,31 @@ namespace ast_builder_detail
     statement_variant try_extract_recurring_statement(std::any statement);
 
     template<statement_env sttenv>
-    statement_variant try_extract_recurring_statement(std::any statement){
-        std::cout << "BEGINNING TRY EXTRACT RECCURING STATEMENT TEMPLATE " << type_name(statement.type()) << std::endl;
+    statement_variant try_extract_recurring_statement(std::any stt){
+        std::cout << "BEGINNING TRY EXTRACT RECCURING STATEMENT TEMPLATE " << type_name(stt.type()) << std::endl;
 
         try
         {
-            // must try this one before the if statement because
-            // "if else" derives from "if" statement
+            // // must try this one before the if statement because
+            // // "if else" derives from "if" statement
+            // if_else_statement<sttenv> new_ast_stt =
+            //     std::any_cast<if_else_statement<sttenv>>(stt);
+            // statement<sttenv, recurring_statement::IF>* concrete = keep_extracted_statement_alive(new_ast_stt);    
+            // return make_recurring_statement_variant<sttenv>(concrete);
+
             if_else_statement<sttenv> new_ast_stt =
-                std::any_cast<if_else_statement<sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<if_else_statement<sttenv>>(stt);
+
+            // Allouer et stocker dans l'arena manuellement
+            auto owned = std::make_shared<if_else_statement<sttenv>>(new_ast_stt);
+            extracted_statement_arena().push_back(owned);
+
+            // Upcast explicite vers la base IF avant de construire le variant
+            // → force l'index 0 (IF) dans SttEnvToSttVariant, pas ASSIGNMENT
+            statement<sttenv, recurring_statement::IF>* base_ptr = owned.get();
+
+            using sttvarianttype = typename SttEnvToSttVariant<sttenv>::type;
+            return statement_variant{ sttvarianttype{ base_ptr } };
         }
         catch (const std::bad_any_cast &e)
         {
@@ -84,8 +106,8 @@ namespace ast_builder_detail
         try
         {
             if_statement<sttenv> new_ast_stt =
-                std::any_cast<if_statement<sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<if_statement<sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -95,8 +117,8 @@ namespace ast_builder_detail
         try
         {
             foreach_statement<sttenv, dataflow_type::INT> new_ast_stt =
-                std::any_cast<foreach_statement<sttenv, dataflow_type::INT>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<foreach_statement<sttenv, dataflow_type::INT>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -106,8 +128,8 @@ namespace ast_builder_detail
         try
         {
             foreach_statement<sttenv, dataflow_type::FLOAT> new_ast_stt =
-                std::any_cast<foreach_statement<sttenv, dataflow_type::FLOAT>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<foreach_statement<sttenv, dataflow_type::FLOAT>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -117,8 +139,8 @@ namespace ast_builder_detail
         try
         {
             foreach_statement<sttenv, dataflow_type::BOOL> new_ast_stt =
-                std::any_cast<foreach_statement<sttenv, dataflow_type::BOOL>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<foreach_statement<sttenv, dataflow_type::BOOL>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -128,8 +150,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_declaration<dataflow_type::INT, sttenv> new_ast_stt =
-                std::any_cast<dataflow_declaration<dataflow_type::INT, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_declaration<dataflow_type::INT, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -139,8 +161,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_declaration<dataflow_type::FLOAT, sttenv> new_ast_stt =
-                std::any_cast<dataflow_declaration<dataflow_type::FLOAT, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_declaration<dataflow_type::FLOAT, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -150,8 +172,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_declaration<dataflow_type::BOOL, sttenv> new_ast_stt =
-                std::any_cast<dataflow_declaration<dataflow_type::BOOL, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_declaration<dataflow_type::BOOL, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -161,8 +183,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_assignment<dataflow_type::INT, sttenv> new_ast_stt =
-                std::any_cast<dataflow_assignment<dataflow_type::INT, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_assignment<dataflow_type::INT, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -171,8 +193,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_assignment<dataflow_type::FLOAT, sttenv> new_ast_stt =
-                std::any_cast<dataflow_assignment<dataflow_type::FLOAT, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_assignment<dataflow_type::FLOAT, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -181,8 +203,8 @@ namespace ast_builder_detail
         try
         {
             dataflow_assignment<dataflow_type::BOOL, sttenv> new_ast_stt =
-                std::any_cast<dataflow_assignment<dataflow_type::BOOL, sttenv>>(statement);
-            return keep_extracted_statement_alive(new_ast_stt);
+                std::any_cast<dataflow_assignment<dataflow_type::BOOL, sttenv>>(stt);
+            return make_recurring_statement_variant<sttenv>(keep_extracted_statement_alive(new_ast_stt));
         }
         catch (const std::bad_any_cast &e)
         {
@@ -190,63 +212,63 @@ namespace ast_builder_detail
         }
         if constexpr(sttenv == statement_env::SYSTEM){
             try{
-                auto new_ast_stt = std::any_cast<linking_statement>(statement);
+                auto new_ast_stt = std::any_cast<linking_statement>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a linking statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical int statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical float statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding logical bool statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical int statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical float statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(statement);
+                auto new_ast_stt = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a feeding physical bool statement" << std::endl;
             }
 
             try{
-                auto new_ast_stt = std::any_cast<channel_plugging>(statement);
+                auto new_ast_stt = std::any_cast<channel_plugging>(stt);
                 return keep_extracted_statement_alive(new_ast_stt);
             }catch(const std::bad_any_cast& e){
                 std::cout << "not a channel plugging statement" << std::endl;
             }
         }
 
-        throw std::runtime_error("failed to extract definition recurring statement "+type_name(statement.type())+" HERREEEEE");
+        throw std::runtime_error("failed to extract definition recurring statement "+type_name(stt.type())+" HERREEEEE");
     }
 
     // ── try_extract ───────────────────────────────────────────────────────────

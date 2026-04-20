@@ -412,6 +412,26 @@ class ChipsToXmiVisitor : public visitor{
         template<node_element ne>
         void handle_node_element_declaration(node_element_declaration<ne>& node);
 
+        template<expression_env expenv>
+        void handle_condition(bool_rvalue_expression_variant<expenv>& node);
+
+        template<statement_env stenv>
+        void handle_statement(typename SttEnvToSttVariant<stenv>::type& statement);
+
+        template<statement_env stenv>
+        void handle_section_if(if_section<stenv>& node);
+
+        template<statement_env stenv>
+        void handle_section_else(else_section<stenv>& node);
+
+        template<statement_env stenv>
+        void handle_statement_if(if_statement<stenv>& node);
+
+        template<statement_env stenv>
+        void handle_statement_if_else(if_else_statement<stenv>& node);
+
+        void handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator = false);
+
         template<dataflow_type dft, expression_env expenv>
         void handle_binary_expression(rvalue<dft, expenv>* left, rvalue<dft,expenv>* right, const std::string& type);
 
@@ -452,6 +472,7 @@ class ChipsToXmiVisitor : public visitor{
 
         expression_env current_env;
         int param_index = 0;
+        int sensor_index = 0;
         int nbTab = 1;
 };
 
