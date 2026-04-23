@@ -70,6 +70,9 @@ class ChipsToXmiVisitor : public visitor{
         template<dataflow_type dft, expression_env expenv>
         void visit(function<dft,expenv>& node);
 
+        void visit(input& node);
+        void visit(stop& node);
+
         void visit(ast_node& node) override;
 
         // ── FIX BUG 5 : 34 méthodes virtuelles pures manquantes ──────────────
@@ -85,21 +88,23 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(system_variable& node) override           { out() << "<!-- system_variable -->\n"; }
         // void visit(implements_statement& node) override      { out() << "<!-- implements_statement -->\n"; }
         // void visit(channel_plugging& node) override          { out() << "<!-- channel_plugging -->\n"; }
-        // void visit(linking_statement& node) override         { out() << "<!-- linking_statement -->\n"; }
-        // void visit(default_output& node) override            { out() << "<!-- default_output -->\n"; }
-        // void visit(target_output& node) override             { out() << "<!-- target_output -->\n"; }
+        void visit(linking_statement& node);// override         { out() << "<!-- linking_statement -->\n"; }
+        void visit(default_output& node);// override            { out() << "<!-- default_output -->\n"; }
+        void visit(target_output& node);// override             { out() << "<!-- target_output -->\n"; }
         // void visit(channeled_output& node) override          { out() << "<!-- channeled_output -->\n"; }
         // void visit(definition& node) override                { out() << "<!-- definition -->\n"; }
         void visit(with_section& node);// override              { out() << "<!-- with_section -->\n"; }
         void visit(init_section& node);// override              { out() << "<!-- init_section -->\n"; }
         void visit(then_section& node);// override              { out() << "<!-- then_section -->\n"; }
-        // void visit(collectiveops_section& node) override     { out() << "<!-- collectiveops_section -->\n"; }
-        // void visit(accumulator_definition& node) override    { out() << "<!-- accumulator_definition -->\n"; }
+        void visit(collectiveops_section& node);// override     { out() << "<!-- collectiveops_section -->\n"; }
+        void visit(accumulator_definition& node);// override    { out() << "<!-- accumulator_definition -->\n"; }
         // void visit(node_definition& node) override           { out() << "<!-- node_definition -->\n"; }
         // void visit(object_definition& node) override         { out() << "<!-- object_definition -->\n"; }
         // void visit(function_definition& node) override       { out() << "<!-- function_definition -->\n"; }
         void visit(logical_definition& node);// override        { out() << "<!-- logical_definition -->\n"; }
         void visit(physical_definition& node);// override       { out() << "<!-- physical_definition -->\n"; }
+        void visit(object_definition& node);
+        void visit(collective_function_definition& node);
         // void visit(implementation_defintion& node) override  { out() << "<!-- implementation_defintion -->\n"; }
         // void visit(collective_function_definition& node) override { out() << "<!-- collective_function_definition -->\n"; }
         // void visit(system_iterable& node) override           { out() << "<!-- system_iterable -->\n"; }
@@ -111,6 +116,29 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(channel_eater& node) override             { out() << "<!-- channel_eater -->\n"; }
         // void visit(channel_feeder& node) override            { out() << "<!-- channel_feeder -->\n"; }
         // ── FIN stubs ─────────────────────────────────────────────────────────
+
+        template<dataflow_kind dfk, dataflow_type dft>
+        void handle_feeding_statement(feeding_statement<dfk, dft>& node);
+
+        template<dataflow_kind dfk, dataflow_type dft>
+        void visit(eater<dfk,dft>& node);
+
+        template<dataflow_kind dfk, dataflow_type dft>
+        void visit(feeder<dfk, dft>& node);
+
+        template<dataflow_kind dfk, dataflow_type dft>
+        void visit(feeder_block_expression<dfk, dft>& node);
+
+        template<dataflow_kind dfk, dataflow_type dft>
+        void visit(collective_cast<dfk, dft>& node);
+
+        void visit(std::vector<physical_parameter_variant>& node);
+        void visit(std::vector<function_parameter_variant>& node);
+
+        template<expression_env expenv>
+        void visit(std::vector<int_rvalue_expression_variant<expenv>>& node);
+
+        void visit(std::vector<channeled_output>& node);
 
     private:
         enum class StatementFamily {
@@ -249,11 +277,20 @@ class ChipsToXmiVisitor : public visitor{
             }else if(auto* func = dynamic_cast<function<dft,expenv>*>(&node)){
                 std::cerr << "rvalue is func" << std::endl;
                 visit(*func);
+            }else if(auto* in = dynamic_cast<input*>(&node)){
+                std::cerr << "rvalue is input" << std::endl;
+                visit(*in);
+            }else if(auto* st = dynamic_cast<stop*>(&node)){
+                std::cerr << "rvalue is stop" << std::endl;
+                visit(*st);
+            }else{
+                std::cerr << "ERROR RVALUE IS NOTHING UP THERE: " << typeid(node).name() << std::endl;
             }
         }
 
         template<dataflow_type dft, expression_env expenv>
         void binary_boolean_visit(rvalue<dft,expenv>& node){
+            std::cout << "binary" << std::endl;
             if(auto* p = dynamic_cast<lt<expenv, dataflow_type::INT>*>(&node)){
                 visit(*p);
             }else if(auto* p = dynamic_cast<lt<expenv, dataflow_type::FLOAT>*>(&node)){
@@ -379,6 +416,14 @@ class ChipsToXmiVisitor : public visitor{
             else if(auto* p = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
                 visit(*p);
             }
+
+            else if(auto* p = dynamic_cast<input*>(&node)){
+                visit(*p);
+            }else if(auto* p = dynamic_cast<stop*>(&node)){
+                visit(*p);
+            }
+
+            std::cerr << "NOTHING UP THERE" << std::endl;
         }
 
         std::string repeat(const std::string&  s, int n){
@@ -402,6 +447,9 @@ class ChipsToXmiVisitor : public visitor{
                         [](unsigned char c){ return std::tolower(c); });
             return result;
         }
+
+        template<block_type bt>
+        void handle_statement_declaration(block_declaration<bt>& node);
 
         template<dataflow_type dft, statement_env stenv>
         void handle_statement_declaration(dataflow_declaration<dft, stenv>& node);
@@ -430,6 +478,9 @@ class ChipsToXmiVisitor : public visitor{
         template<statement_env stenv>
         void handle_statement_if_else(if_else_statement<stenv>& node);
 
+        template<statement_env stenv, dataflow_type dft>
+        void handle_foreach(foreach_statement<stenv, dft>& node);
+
         void handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator = false);
 
         template<dataflow_type dft, expression_env expenv>
@@ -440,10 +491,17 @@ class ChipsToXmiVisitor : public visitor{
 
         template<dataflow_type dft, expression_env expenv>
         bool only_one_child(rvalue<dft,expenv>& node){
-            if(dynamic_cast<direct<dft,expenv>*>(&node) || dynamic_cast<function<dft,expenv>*>(&node) ||
-               dynamic_cast<variable_expression<dft,expenv>*>(&node) || dynamic_cast<variable_contextual_expression<dft,expenv>*>(&node)){
+            if(dynamic_cast<direct<dft,expenv>*>(&node) ||  dynamic_cast<input*>(&node) || dynamic_cast<stop*>(&node) ||
+               dynamic_cast<variable_contextual_expression<dft,expenv>*>(&node)){
                 std::cerr << "ONLY ONE CHILD" << std::endl;
                 return true;
+            }
+            if(auto* var = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
+                // out() << "TAILLE DE VAR: " << var->get_index().size() << "\n";
+                return var->get_index().empty();
+            }
+            if(auto* func = dynamic_cast<function<dft,expenv>*>(&node)){
+                return func->get_parameters().empty();
             }
             std::cerr << "NOT ONLY ONE CHILD" << std::endl;
             return false;
@@ -471,6 +529,7 @@ class ChipsToXmiVisitor : public visitor{
         int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
 
         expression_env current_env;
+        int def_index = 0;
         int param_index = 0;
         int sensor_index = 0;
         int nbTab = 1;

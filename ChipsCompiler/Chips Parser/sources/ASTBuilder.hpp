@@ -6,6 +6,7 @@
 #include "utils.hpp"
 
 #include <any>
+#include <deque>
 #include <stdexcept>
 #include <typeinfo>
 
@@ -22,6 +23,28 @@ private:
     // intermédiaires (decl, var, left) dont d'autres nœuds gardent
     // des raw pointers. À vider explicitement si besoin de reset.
     std::vector<std::shared_ptr<ast_node>> node_arena;
+
+    // Arène de valeurs non-ast_node (std::variant, statements, etc.)
+    // nécessaires quand on doit conserver des pointeurs vers des objets
+    // construits localement dans le builder.
+    std::deque<std::any> value_arena;
+
+    template<typename T>
+    T* keep_value_alive(T value){
+        value_arena.emplace_back(std::move(value));
+        return std::any_cast<T>(&value_arena.back());
+    }
+
+    template<typename T>
+    T* keep_any_object_alive(std::any& value){
+        if(auto* obj = std::any_cast<T>(&value)){
+            return keep_value_alive(*obj);
+        }
+        if(auto* ptr = std::any_cast<T*>(&value)){
+            return *ptr;
+        }
+        return nullptr;
+    }
 
 public:
     std::any visitProgram(ChipsParser::ProgramContext *ctx);
@@ -449,6 +472,7 @@ public:
 
         if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
             fname.compare("max") == 0 || fname.compare("min") == 0){
+            std::cout << "MAKE FUNCTION MINMAX exprs size: " << exprs.size() << std::endl;
             std::vector<rvalue_variant<expenv>> parameters;
             for (auto expr : exprs){
                 std::any val = visit(expr);
@@ -461,8 +485,8 @@ public:
                 }
                 node_arena.push_back(node);
                 parameters.push_back(make_variant_from_node(node));
-                return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
             }
+            return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
         }
 
         if (fname.compare("is_fresh") == 0){
@@ -499,8 +523,8 @@ public:
                 }
                 node_arena.push_back(node);
                 parameters.push_back(make_variant_from_node(node));
-                return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
             }
+            return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
         }
 
         if (fname.compare("is_fresh") == 0)
@@ -622,6 +646,14 @@ public:
         throw std::runtime_error("Unsupported environment");
     }
 
+    // Helper to store a definition by value and return a pointer to it
+    // This keeps the object alive in value_arena
+    template<typename DefType>
+    DefType* store_definition(DefType def) {
+        value_arena.push_back(std::make_shared<DefType>(def));
+        return std::any_cast<std::shared_ptr<DefType>&>(value_arena.back()).get();
+    }
+
     template<block_type bt>
     std::any handle_statement_declaration(
         std::string type,
@@ -636,6 +668,7 @@ public:
             auto decl = std::make_shared<block_declaration<block_type::PHYSICAL>>(identifier);
             auto var = std::make_shared<block_variable<block_type::PHYSICAL>>(identifier, decl.get(), suffixes);
             decl->set_variable(*var);
+            decl->set_definition(store_definition(def));
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
@@ -649,6 +682,7 @@ public:
             auto decl = std::make_shared<block_declaration<block_type::LOGICAL>>(identifier);
             auto var = std::make_shared<block_variable<block_type::LOGICAL>>(identifier, decl.get(), suffixes);
             decl->set_variable(*var);
+            decl->set_definition(store_definition(def));
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
@@ -662,6 +696,7 @@ public:
             auto decl = std::make_shared<block_declaration<block_type::OBJECT>>(identifier);
             auto var = std::make_shared<block_variable<block_type::OBJECT>>(identifier, decl.get(), suffixes);
             decl->set_variable(*var);
+            decl->set_definition(store_definition(def));
             node_arena.push_back(decl);
             node_arena.push_back(var);
 
@@ -745,10 +780,10 @@ public:
             auto linkable_var = std::any_cast<std::shared_ptr<block_variable<lk>>>(linkable_any);
             auto support_var = std::any_cast<std::shared_ptr<block_variable<st>>>(support_any);
 
-            system_variable_block_expression<lk> linkable(linkable_var.get(), dims_link);
-            system_variable_block_expression<st> support(support_var.get(), dims_sup);
+            auto* linkable = keep_value_alive(system_variable_block_expression<lk>(linkable_var.get(), dims_link));
+            auto* support = keep_value_alive(system_variable_block_expression<st>(support_var.get(), dims_sup));
 
-            linking_statement linking(&linkable, &support);
+            linking_statement linking(linkable, support);
             return linking;
         }
     }

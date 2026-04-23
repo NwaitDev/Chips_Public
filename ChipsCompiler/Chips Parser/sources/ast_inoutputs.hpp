@@ -19,11 +19,12 @@ namespace chips {
     class function_parameter : public ast_node
     {
     public:
-        std::optional<rvalue<dft,expression_env::PRIMITIVE>> m_default_value;
+        // std::optional<rvalue<dft,expression_env::PRIMITIVE>> m_default_value;
+        std::optional<rvalue_variant<expression_env::PRIMITIVE>> m_default_value;
         dataflow_declaration<dft,statement_env::DEFINITION> m_declaration;
         std::string m_name;
 
-        function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration, std::optional<rvalue<dft,expression_env::PRIMITIVE>> default_value)
+        function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration, std::optional<rvalue_variant<expression_env::PRIMITIVE>> default_value)
         : m_name(name), m_declaration(declaration), m_default_value(default_value){};
         function_parameter(std::string name, dataflow_declaration<dft,statement_env::DEFINITION> declaration)
         : m_name(name), m_declaration(declaration), m_default_value(std::nullopt){};
@@ -31,7 +32,9 @@ namespace chips {
         const std::string& get_name() const { return m_name; }
         std::string& get_name() { return m_name; }
 
-        std::optional<rvalue<dft,expression_env::PRIMITIVE>>& get_default_value() { return m_default_value; }
+        std::optional<rvalue_variant<expression_env::PRIMITIVE>>& get_default_value() { return m_default_value; }
+
+        dataflow_declaration<dft,statement_env::DEFINITION>& get_declaration() { return m_declaration; }
 
         void accept(visitor& v) { v.visit(*this); }
         
@@ -50,15 +53,19 @@ namespace chips {
     class collective_parameter : public ast_node
     {
         public:
-        rvalue<dft,expression_env::COLLECTIVE> m_default_value;
+        rvalue<dft,expression_env::COLLECTIVE>* m_default_value;
         dataflow_declaration<dft,statement_env::COLLECTIVE> m_declaration;
         std::string m_name;
 
         collective_parameter(
             std::string name, 
             dataflow_declaration<dft, statement_env::COLLECTIVE> declaration,
-            rvalue<dft, expression_env::COLLECTIVE> default_value)
+            rvalue<dft, expression_env::COLLECTIVE>* default_value)
             : m_name(name), m_declaration(declaration), m_default_value(default_value){}
+
+        rvalue<dft,expression_env::COLLECTIVE>& get_default_value() { return *m_default_value; }
+        dataflow_declaration<dft,statement_env::COLLECTIVE>& get_declaration() { return m_declaration; }
+        std::string& get_name() { return m_name; }
 
         void hello(){};
     };
@@ -111,6 +118,9 @@ namespace chips {
                          std::vector<rvalue_variant<expression_env::COLLECTIVE>> accumulator_exprs)
             : m_channel(channel), m_accumulator_expressions(accumulator_exprs){}
 
+        node_element_declaration<node_element::CHANNEL>* get_channel() { return m_channel; }
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>> get_expressions() { return m_accumulator_expressions; }
+
         void hello();
     };
 
@@ -127,6 +137,9 @@ namespace chips {
         default_output(std::vector<rvalue_variant<expression_env::COLLECTIVE>> accumulator_exprs)
             : m_accumulator_expressions(accumulator_exprs){}
 
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>> get_expressions() { return m_accumulator_expressions; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
     
@@ -147,6 +160,9 @@ namespace chips {
         target_output(std::vector<rvalue_variant<expression_env::COLLECTIVE>> expressions)
             : m_expressions(expressions){}
 
+        std::vector<rvalue_variant<expression_env::COLLECTIVE>>& get_expressions() { return m_expressions; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 

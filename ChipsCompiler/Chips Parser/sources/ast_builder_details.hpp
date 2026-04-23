@@ -290,7 +290,7 @@ namespace ast_builder_detail
             // std::cout << "DFT != BOOL -> true" << std::endl;
             if (auto *p = std::any_cast<std::shared_ptr<direct<DFT, EXPENV>>>(&a))
             {
-                // std::cout << "direct" << std::endl;
+                std::cout << "direct" << std::endl;
                 return std::static_pointer_cast<rvalue<DFT, EXPENV>>(*p);
             }
             if (auto *p = std::any_cast<std::shared_ptr<plus<DFT, EXPENV>>>(&a))

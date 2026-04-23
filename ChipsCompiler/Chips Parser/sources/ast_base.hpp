@@ -51,6 +51,11 @@ namespace chips
         virtual void visit(system_section_node& node) = 0;
         virtual void visit(logical_definition& node) = 0;
         virtual void visit(physical_definition& node) = 0;
+        virtual void visit(object_definition& node) = 0;
+        virtual void visit(collective_function_definition& node) = 0;
+
+        virtual void visit(input& node) = 0;
+        virtual void visit(stop& node) = 0;
 
         // template<expression_env expenv>
         // void visit(array<expenv>& node);
@@ -95,7 +100,7 @@ namespace chips
         // virtual void visit(channel_plugging& node) = 0;
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(feeding_statement<dfk, dft>& node);
-        // virtual void visit(linking_statement& node) = 0;
+        virtual void visit(linking_statement& node) = 0;
         // template<node_element ne>
         // void visit(aliasing_statement<ne>& node);
         // template<node_element ne>
@@ -110,8 +115,8 @@ namespace chips
         // void visit(function_output<dfk, dft>& node);
         // template<collective_output_kind cok>
         // void visit(collective_output<cok>& node);
-        // virtual void visit(default_output& node) = 0;
-        // virtual void visit(target_output& node) = 0;
+        virtual void visit(default_output& node) = 0;
+        virtual void visit(target_output& node) = 0;
         // virtual void visit(channeled_output& node) = 0;
 
         // virtual void visit(definition& node) = 0;
@@ -123,8 +128,8 @@ namespace chips
         // void visit(function_parameter<dfk, dft>& node)
         virtual void visit(init_section& node) = 0;
         virtual void visit(then_section& node) = 0;
-        // virtual void visit(collectiveops_section& node) = 0;
-        // virtual void visit(accumulator_definition& node) = 0;
+        virtual void visit(collectiveops_section& node) = 0;
+        virtual void visit(accumulator_definition& node) = 0;
         // virtual void visit(node_definition& node) = 0;
         // virtual void visit(object_definition& node) = 0;
         // virtual void visit(function_definition& node) = 0;

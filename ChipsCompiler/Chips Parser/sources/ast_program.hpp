@@ -41,7 +41,7 @@ namespace chips
             m_system_statements.push_back(obj);
         }
 
-        std::vector<system_statement_variant> get_statements();
+        std::vector<system_statement_variant>& get_statements();
 
         void accept(visitor& v) { v.visit(*this); }
         void hello();

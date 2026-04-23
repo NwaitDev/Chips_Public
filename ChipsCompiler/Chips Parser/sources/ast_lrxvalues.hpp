@@ -38,6 +38,7 @@ namespace chips
     template<dataflow_type dft>
     class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL, dft>{
         public:
+            void accept(visitor& v) { v.visit(*this); }
             inline void hello() { std::cout << "I am interpreted as a system rvalue" << std::endl; }
     };
 
@@ -624,7 +625,7 @@ namespace chips
             : m_variable(variable) {}
 
         variable<expenv> *get_variable() { return m_variable; }
-        std::vector<int_rvalue_expression_variant<expenv>> get_index() { return m_index; }
+        std::vector<int_rvalue_expression_variant<expenv>>& get_index() { return m_index; }
 
         void accept(visitor &v) { v.visit(*this); }
         inline void hello()
@@ -655,6 +656,7 @@ namespace chips
 
         public:
             
+            void accept(visitor& v) { v.visit(*this); }
             inline void hello(){}
     };
 
@@ -666,6 +668,7 @@ namespace chips
 
         public:
             
+            void accept(visitor& v) { v.visit(*this); }
             inline void hello(){}
     };
 }

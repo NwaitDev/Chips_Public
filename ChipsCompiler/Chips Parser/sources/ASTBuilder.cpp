@@ -79,6 +79,8 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
 
     std::cout << "nb preamble in total: " << prgm.get_preamble().get_definitions().size() << std::endl;
 
+    if(ctx->system() == nullptr) return prgm;
+
     std::cout << "nb statements in system section root level: "
               << ctx->system()->s_statement().size() << std::endl;
 
@@ -90,31 +92,31 @@ std::any ASTBuilder::visitProgram(ChipsParser::ProgramContext *ctx)
     if (POTENTIAL *stuff = dynamic_cast<POTENTIAL *>(ssc); stuff != nullptr)               \
     {                                                                                      \
         std::any res = visit(stuff);                                                       \
-        if(auto* block = std::any_cast<block_declaration<block_type::PHYSICAL>>(&res)){\
+        if(auto* block = keep_any_object_alive<block_declaration<block_type::PHYSICAL>>(res)){\
             prgm.get_system().add_statement(block); \
-        }else if(auto* block = std::any_cast<block_declaration<block_type::LOGICAL>>(&res)){\
+        }else if(auto* block = keep_any_object_alive<block_declaration<block_type::LOGICAL>>(res)){\
             prgm.get_system().add_statement(block);\
-        }else if(auto* block = std::any_cast<block_declaration<block_type::OBJECT>>(&res)){\
+        }else if(auto* block = keep_any_object_alive<block_declaration<block_type::OBJECT>>(res)){\
             prgm.get_system().add_statement(block);\
-        }else if(auto* linking = std::any_cast<linking_statement>(&res)){\
+        }else if(auto* linking = keep_any_object_alive<linking_statement>(res)){\
             prgm.get_system().add_statement(linking);\
-        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::INT>>(&res)){\
+        }else if(auto* sloop = keep_any_object_alive<foreach_statement<statement_env::SYSTEM, dataflow_type::INT>>(res)){\
             prgm.get_system().add_statement(sloop);\
-        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::FLOAT>>(&res)){\
+        }else if(auto* sloop = keep_any_object_alive<foreach_statement<statement_env::SYSTEM, dataflow_type::FLOAT>>(res)){\
             prgm.get_system().add_statement(sloop);\
-        }else if(auto* sloop = std::any_cast<foreach_statement<statement_env::SYSTEM, dataflow_type::BOOL>>(&res)){\
+        }else if(auto* sloop = keep_any_object_alive<foreach_statement<statement_env::SYSTEM, dataflow_type::BOOL>>(res)){\
             prgm.get_system().add_statement(sloop);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>>(res)){\
             prgm.get_system().add_statement(feeding);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(res)){\
             prgm.get_system().add_statement(feeding);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(res)){\
             prgm.get_system().add_statement(feeding);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>>(res)){\
             prgm.get_system().add_statement(feeding);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(res)){\
             prgm.get_system().add_statement(feeding);\
-        }else if(auto* feeding = std::any_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&res)){\
+        }else if(auto* feeding = keep_any_object_alive<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(res)){\
             prgm.get_system().add_statement(feeding);\
         }else{\
             throw std::runtime_error(ERRMSG);\
@@ -215,13 +217,29 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
 
         dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff->df_type()));
         std::string identifier = stuff->IDENTIFIER()->getText();
+        std::optional<std::any> expr;
+        if(stuff->expr()) expr = visit(stuff->expr());
+        auto param_dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(visit(stuff->suffixes()));
 
 #define TRY_ADD_PARAM(DFK, DFT)                                                                  \
     if (dft == DFT)                                                                              \
     {                                                                                            \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(identifier);            \
-        declaration.get_variable().set_declaration(&declaration);                                \
-        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(identifier, declaration); \
+        auto declared_var = declaration.get_variable();                                           \
+        declared_var.set_declaration(&declaration);                                               \
+        declared_var.set_dimensions(param_dims);                                                  \
+        declaration.set_variable(declared_var);                                                   \
+        std::shared_ptr<function_parameter<DFK,DFT>> new_ast_param;\
+        if(expr.has_value()){\
+            auto exp = ast_builder_detail::try_extract<DFT,expression_env::PRIMITIVE>(expr.value());\
+            if(!exp){\
+                throw std::runtime_error("Invalid default value type for parameter '" + identifier + "'");\
+            }\
+            node_arena.push_back(std::static_pointer_cast<ast_node>(exp));\
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(identifier, declaration, make_variant_from_node(exp));\
+        }else{\
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(identifier, declaration);\
+        }\
         node_arena.push_back(new_ast_param);                                                     \
         if (!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())) \
         {                                                                                        \
@@ -320,13 +338,31 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::SensorParameterTypeContext *stuff = dynamic_cast<ChipsParser::SensorParameterTypeContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
         {
             dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+            std::optional<std::any> expr;
+            if(parameter->expr()){
+                expr = visit(parameter->expr());
+            }
+            auto param_dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(visit(stuff->suffixes()));
 
 #define TRY_ADD_SENSOR(DFK, DFT)                                                             \
     if (dft == DFT)                                                                          \
     {                                                                                        \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);             \
-        declaration.get_variable().set_declaration(&declaration);                            \
-        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        auto declared_var = declaration.get_variable();                                       \
+        declared_var.set_declaration(&declaration);                                           \
+        declared_var.set_dimensions(param_dims);                                              \
+        declaration.set_variable(declared_var);                                               \
+        std::shared_ptr<function_parameter<DFK,DFT>> new_ast_param;                         \
+        if(expr.has_value()){                                                                \
+            auto exp = ast_builder_detail::try_extract<DFT,expression_env::PRIMITIVE>(expr.value());\
+            if(!exp){                                                                        \
+                throw std::runtime_error("Invalid default value type for sensor parameter '" + pname + "'");\
+            }                                                                                \
+            node_arena.push_back(std::static_pointer_cast<ast_node>(exp));                  \
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration, make_variant_from_node(exp));\
+        }else{                                                                               \
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration);\
+        }                                                                                    \
         node_arena.push_back(new_ast_param);                                                  \
         SymbolTable::getInstance().declareSensorVariable(pname, declaration.get_variable()); \
         SymbolTable::getInstance().declareFunctionParameter(fname_current, pname, *new_ast_param);\
@@ -343,13 +379,33 @@ std::any ASTBuilder::visitPhysicalDefinition(ChipsParser::PhysicalDefinitionCont
         if (ChipsParser::FunctionParameterTypeContext *stuff = dynamic_cast<ChipsParser::FunctionParameterTypeContext *>(parameter->pdf_parameter_type()); stuff != nullptr)
         {
             dataflow_type dft = std::any_cast<dataflow_type>(visit(stuff));
+            std::optional<std::any> expr;
+            if(parameter->expr()){
+                std::cout << "DEFAULT VALUE" << std::endl;
+                expr = visit(parameter->expr());
+            } 
+            auto param_dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(visit(stuff->suffixes()));
+            
 
 #define TRY_ADD_PARAM(DFK, DFT)                                                        \
     if (dft == DFT)                                                                    \
     {                                                                                  \
         dataflow_declaration<DFT, statement_env::DEFINITION> declaration(pname);       \
-        declaration.get_variable().set_declaration(&declaration);                      \
-        auto new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration); \
+        auto declared_var = declaration.get_variable();                                 \
+        declared_var.set_declaration(&declaration);                                     \
+        declared_var.set_dimensions(param_dims);                                        \
+        declaration.set_variable(declared_var);                                         \
+        std::shared_ptr<function_parameter<DFK,DFT>> new_ast_param;\
+        if(expr.has_value()){\
+            auto exp = ast_builder_detail::try_extract<DFT,expression_env::PRIMITIVE>(expr.value());\
+            if(!exp){\
+                throw std::runtime_error("Invalid default value type for parameter '" + pname + "'");\
+            }\
+            node_arena.push_back(std::static_pointer_cast<ast_node>(exp));\
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration, make_variant_from_node(exp));\
+        }else{\
+            new_ast_param = std::make_shared<function_parameter<DFK, DFT>>(pname, declaration);\
+        }\
         node_arena.push_back(new_ast_param);                                           \
         params.push_back(new_ast_param.get());                                         \
         SymbolTable::getInstance().declareVariable(pname, declaration.get_variable()); \
@@ -507,11 +563,23 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
     }
 
     node_definition* node_support = nullptr;
+    std::shared_ptr<ast_node> owned_support;
 
     if(auto* node = std::any_cast<physical_definition>(&support.value())){
-        node_support = node->get_node_definition();
+        owned_support = std::make_shared<physical_definition>(*node);
     }else if(auto* node = std::any_cast<object_definition>(&support.value())){
-        node_support = node->get_node_definition();
+        owned_support = std::make_shared<object_definition>(*node);
+    }
+
+    if(!owned_support){
+        throw std::runtime_error("Collective function support '" + among + "' must be a physical or object definition");
+    }
+
+    node_arena.push_back(owned_support);
+    node_support = dynamic_cast<node_definition*>(owned_support.get());
+
+    if(!node_support){
+        throw std::runtime_error("Failed to resolve a stable support node for collective function '" + fname + "'");
     }
 
     std::cout << "AVANT DECL CONTEXT SUPPORT" << std::endl;
@@ -552,13 +620,21 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
         std::string pname = param->IDENTIFIER()->getText();
         dataflow_type dft = std::any_cast<dataflow_type>(visit(param->df_type()));
         std::any c_expr = visit(param->c_expr());
+        auto param_dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>>(visit(param->suffixes()));
 
 #define TRY_ADD_COLLECTIVE_PARAM(DFT) \
         if(dft == DFT){ \
             auto expr = ast_builder_detail::try_extract<DFT,expression_env::COLLECTIVE>(c_expr);\
+            if(!expr){ \
+                throw std::runtime_error("Invalid default value type for collective parameter '" + pname + "'"); \
+            } \
             dataflow_declaration<DFT, statement_env::COLLECTIVE> declaration(pname); \
-            declaration.get_variable().set_declaration(&declaration); \
-            auto new_ast_param = std::make_shared<collective_parameter<DFT>>(pname, declaration, *expr); \
+            auto declared_var = declaration.get_variable(); \
+            declared_var.set_declaration(&declaration); \
+            declared_var.set_dimensions(param_dims); \
+            declaration.set_variable(declared_var); \
+            node_arena.push_back(std::static_pointer_cast<ast_node>(expr)); \
+            auto new_ast_param = std::make_shared<collective_parameter<DFT>>(pname, declaration, expr.get()); \
             node_arena.push_back(new_ast_param); \
             params.push_back(new_ast_param.get()); \
             if(!SymbolTable::getInstance().declareVariable(pname, declaration.get_variable())){ \
@@ -634,10 +710,13 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
         std::any exp = visit(expr);
 
         if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+            node_arena.push_back(std::static_pointer_cast<ast_node>(node));
             target_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
         }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+            node_arena.push_back(std::static_pointer_cast<ast_node>(node));
             target_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
         }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+            node_arena.push_back(std::static_pointer_cast<ast_node>(node));
             target_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
         }
 
@@ -656,10 +735,13 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
                 std::any exp = visit(expr);
 
                 if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     default_output_exprs.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
                 }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     default_output_exprs.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
                 }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     default_output_exprs.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
                 }
 
@@ -673,10 +755,13 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
                 std::any exp = visit(expr);
 
                 if(auto node = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     exprs_output.push_back(make_variant_from_node<dataflow_type::INT, expression_env::COLLECTIVE>(node));
                 }else if(auto node = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     exprs_output.push_back(make_variant_from_node<dataflow_type::FLOAT, expression_env::COLLECTIVE>(node));
                 }else if(auto node = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(exp)){
+                    node_arena.push_back(std::static_pointer_cast<ast_node>(node));
                     exprs_output.push_back(make_variant_from_node<dataflow_type::BOOL, expression_env::COLLECTIVE>(node));
                 }
             }
@@ -2160,78 +2245,81 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
         std::cout << "type s_expr: " << ast_builder_detail::type_name(s_expr.type()) << std::endl;
         
         functional_block_variant variable_expression = make_functional_block_from_any(variable.value(), suffixes);
-        if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+        if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(parameter_who_eat.value())){
             eater<dataflow_kind::LOGICAL, dataflow_type::INT> eat(variable_expression, parameter);
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(s_expr)){
                 if(feed){
+                    value_arena.emplace_back(feed);
                     feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT> feeding_stt(eat, feed.get());
                     return feeding_stt;
                 }
             }
 
-        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+        }else if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(parameter_who_eat.value())){
             eater<dataflow_kind::LOGICAL, dataflow_type::FLOAT> eat(variable_expression, parameter);
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(s_expr)){
                 if(feed){
+                    value_arena.emplace_back(feed);
                     feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT> feeding_stt(eat, feed.get());
                     return feeding_stt;
                 }
             }
-        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+        }else if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(parameter_who_eat.value())){
             eater<dataflow_kind::LOGICAL, dataflow_type::BOOL> eat(variable_expression, parameter);
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(s_expr)){
                 feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(s_expr)){
                 if(feed){
+                    value_arena.emplace_back(feed);
                     feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL> feeding_stt(eat, feed.get());
                     return feeding_stt;
                 }
             }
-        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&(parameter_who_eat.value()))){
+        }else if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(parameter_who_eat.value())){
             eater<dataflow_kind::PHYSICAL, dataflow_type::INT> eat(variable_expression, parameter);
             
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(s_expr)){
                 std::runtime_error("Expression can't be the feeder of a feeding statement where eater is a physical parameter");
             }
-        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&(parameter_who_eat.value()))){
+        }else if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(parameter_who_eat.value())){
             eater<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> eat(variable_expression, parameter);
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(s_expr)){
                 std::runtime_error("Expression can't be the feeder of a feeding statement where eater is a physical parameter");
             }
-        }else if(auto* parameter = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&(parameter_who_eat.value()))){
+        }else if(auto* parameter = keep_any_object_alive<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(parameter_who_eat.value())){
             eater<dataflow_kind::PHYSICAL, dataflow_type::BOOL> eat(variable_expression, parameter);
-            if(auto* feed = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&s_expr)){
+            if(auto* feed = keep_any_object_alive<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
                 return feeding_stt;
-            }else if(auto* feed = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&s_expr)){
+            }else if(auto* feed = keep_any_object_alive<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(s_expr)){
                 feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL> feeding_stt(eat, feed);
                 return feeding_stt;
             }else if(auto feed = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(s_expr)){
@@ -2243,7 +2331,7 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
         
         std::cout << "type channel who eat: " << ast_builder_detail::type_name(std::any{eating_channel}.type()) << std::endl;
 
-        channel_eater eat = make_channel_eater(variable.value(), parameter_who_eat.value(), suffixes);
+        channel_eater* eat = keep_value_alive(make_channel_eater(variable.value(), parameter_who_eat.value(), suffixes));
 
 
         if(auto* expr = dynamic_cast<ChipsParser::SBlockOutputExpressionContext*>(ctx->s_expr())){
@@ -2267,9 +2355,9 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
                 throw std::runtime_error("'"+channel_feeder_id+"' was never defined before");
             }
 
-            channel_feeder feed = make_channel_feeder(variable_feeder_opt.value(), channel_who_feed.value(), suffixes_feeder);
+            channel_feeder* feed = keep_value_alive(make_channel_feeder(variable_feeder_opt.value(), channel_who_feed.value(), suffixes_feeder));
 
-            channel_plugging plugging(&eat, &feed);
+            channel_plugging plugging(eat, feed);
             return plugging;
         }else if(auto* expr = dynamic_cast<ChipsParser::SCollectiveCastExpressionContext*>(ctx->s_expr())){
             throw std::runtime_error("Le feeder du channel plugging est un SCollective cast");
@@ -3198,6 +3286,9 @@ template <dataflow_type dft, expression_env expenv>
 primitive_iterable_variant<expenv> ASTBuilder::make_primitive_iterable_variant_from_node(
     const std::shared_ptr<rvalue<dft, expenv>> &node)
 {
+    // Keep the owning handle alive in the builder so raw pointers returned
+    // below remain valid for later XMI traversal.
+    value_arena.emplace_back(node);
 
     auto ptr = node.get();
 
@@ -3208,7 +3299,7 @@ primitive_iterable_variant<expenv> ASTBuilder::make_primitive_iterable_variant_f
     if (auto p = dynamic_cast<function<dataflow_type::BOOL, expenv> *>(ptr))
         return p;
     rvalue_variant<expenv> rval = make_variant_from_node(node);
-    return &rval;
+    return keep_value_alive(std::move(rval));
 
     throw std::runtime_error("Unsopported type in make_primitive_iterable_variant_from_node");
 }

@@ -73,7 +73,7 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
 void ChipsToXmiWriter::xmi_footer()
 {
     std::cerr << "[DEBUG Writer] xmi_footer() appelé" << std::endl;
-    m_out << "</chips:program>\n";
+    m_out << "</chips:program>";
 }
 
 void ChipsToXmiWriter::copy_namespaces_from(ChipsToXmiWriter& other)

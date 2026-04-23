@@ -23,7 +23,7 @@ namespace chips {
 
         array() = default;
 
-        inline std::vector<int_rvalue_expression_variant<expenv>> get_dimensions() { return m_dimensions; }
+        inline std::vector<int_rvalue_expression_variant<expenv>>& get_dimensions() { return m_dimensions; }
 
         inline void set_dimensions(std::vector<int_rvalue_expression_variant<expenv>> dims){
             m_dimensions.assign(dims.begin(),dims.end());

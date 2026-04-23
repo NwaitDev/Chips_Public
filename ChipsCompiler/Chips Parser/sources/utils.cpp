@@ -21,6 +21,23 @@ namespace chips
         return "unknown";
     }
 
+    std::string bt_to_string(block_type bt){
+        switch(bt){
+            case block_type::LOGICAL: return "logical";
+            case block_type::PHYSICAL: return "physical";
+            case block_type::OBJECT: return "object";
+        }
+        return "unknown";
+    }
+
+    std::string dfk_to_string(dataflow_kind dfk){
+        switch(dfk){
+            case dataflow_kind::LOGICAL: return "logical";
+            case dataflow_kind::PHYSICAL: return "physical";
+        }
+        return "unknown";
+    }
+
     dataflow_type ne_to_dft(node_element ne){
         switch(ne){
             case node_element::CONTEXTUAL_BOOL: return dataflow_type::BOOL;
@@ -45,6 +62,11 @@ namespace chips
     template<> std::string expenv_to_string<expression_env::PRIMITIVE>(){return "primitive";}
     template<> std::string expenv_to_string<expression_env::COLLECTIVE>(){return "collective";}
     template<> std::string expenv_to_string<expression_env::SYSTEM>(){return "system";}
+    template<> std::string bt_to_string<block_type::LOGICAL>(){return "logical";}
+    template<> std::string bt_to_string<block_type::PHYSICAL>(){return "physical";}
+    template<> std::string bt_to_string<block_type::OBJECT>(){return "object";}
+    template<> std::string dfk_to_string<dataflow_kind::LOGICAL>(){return "logical";}
+    template<> std::string dfk_to_string<dataflow_kind::PHYSICAL>(){return "physical";}
 
     template<> dataflow_type ne_to_dft<node_element::CONTEXTUAL_INT>(){return dataflow_type::INT;}
     template<> dataflow_type ne_to_dft<node_element::CONTEXTUAL_FLOAT>(){return dataflow_type::FLOAT;}

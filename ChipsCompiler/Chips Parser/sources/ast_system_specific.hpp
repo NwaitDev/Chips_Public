@@ -14,7 +14,10 @@ namespace chips {
      * can be eaten by another component in system section
      */
     template<dataflow_kind dfk, dataflow_type dft>
-    class feeder : public virtual ast_node{};
+    class feeder : public virtual ast_node{
+        public:
+        virtual ~feeder() = default;
+    };
 
     /**
      * Interface
@@ -41,14 +44,20 @@ namespace chips {
      * Node of the AST that represents something that
      * can be linked to another Chips Node
      */
-    class linkable{};
+    class linkable{
+        public:
+        virtual ~linkable() = default;
+    };
 
     /**
      * Interface
      * Node of the AST that represents something that
      * can support another Chips Object
      */
-    class support{};
+    class support{
+        public:
+        virtual ~support() = default;
+    };
 
     /**
      * Interface
@@ -110,6 +119,8 @@ namespace chips {
             std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
             : m_variable(var), m_index(index){}
 
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>& get_index() { return m_index; }
+
         void hello(){}
     };
 
@@ -128,6 +139,8 @@ namespace chips {
             block_variable_type* var,
             std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
             : m_variable(var), m_index(index){}
+
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>& get_index() { return m_index; }
 
         void hello(){}
     };
@@ -149,6 +162,9 @@ namespace chips {
             std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
             : m_variable(var), m_index(index){}
 
+        block_variable_type* get_variable() { return m_variable; }
+        std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>& get_index() { return m_index; }
+
         void hello(){}
     };
 
@@ -167,6 +183,9 @@ namespace chips {
 
         eater(functional_block_variant variable, function_parameter<dfk,dft>* parameter)
             : m_variable_expression(variable), m_parameter(parameter){}
+
+        functional_block_variant& get_functional_block() { return m_variable_expression; }
+        function_parameter<dfk,dft>* get_parameter() { return m_parameter;}
 
         inline void hello(){}
     }; 

@@ -111,6 +111,8 @@ namespace chips
         }
 
         std::vector<collective_statement_variant>& get_statements() { return m_statements; }
+
+        void accept(visitor& v) { v.visit(*this); }
     };
 
     /**
@@ -129,6 +131,9 @@ namespace chips
         accumulator_definition(std::vector<collective_parameter_variant> accumulator)
             : m_accumulator(accumulator){}
 
+        std::vector<collective_parameter_variant>& get_accumulators() { return m_accumulator; }
+        
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 
@@ -161,6 +166,8 @@ namespace chips
 
         object_definition(std::string identifier, with_section with)
             : definition(identifier), node_definition(identifier, with){}
+
+        void accept(visitor& v) { v.visit(*this); }
 
         void hello();
     };
@@ -274,6 +281,15 @@ namespace chips
               m_support_object(support), m_operations(operations), m_target_output(target), 
               m_default_output(default_output), m_channeled_outputs(channeled_output){}
 
+        collective_function_type& get_type() { return m_collective_function_type; }
+        accumulator_definition& get_accumulator() { return m_accumulator; }
+        node_definition* get_node_definition() { return m_support_object; }
+        collectiveops_section& get_operations() { return m_operations; }
+        target_output& get_target_output() { return m_target_output; }
+        default_output& get_default_output() { return m_default_output; }
+        std::vector<channeled_output>& get_channeled_outputs() { return m_channeled_outputs; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello();
     };
 

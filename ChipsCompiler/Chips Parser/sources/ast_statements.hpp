@@ -191,6 +191,10 @@ namespace chips
 
         inline void add_statement(statement_type stt){ m_statements.push_back(stt); }
 
+        dataflow_declaration<dft, stenv>& get_iterator() { return m_iterator; }
+        primitive_iterable_variant<expenv>& get_iterable() { return m_iterable_expr; }
+        std::vector<statement_type>& get_statements() { return m_statements; }
+
         void hello() {}
     };
 
@@ -233,6 +237,7 @@ namespace chips
             : m_defintion(definition), m_variable(variable){}
 
         void set_variable(block_variable_t var) { m_variable = var; }
+        void set_definition(block_definition_t* def) { m_defintion = def; }
         block_variable_t get_variable() { return m_variable; }
 
         block_definition_t* get_definition(){ return m_defintion; }
@@ -303,6 +308,9 @@ namespace chips
         feeding_statement(eater<dfk, dft> eat, feeder<dfk, dft>* feed)
             : m_eater(eat), m_feeder(feed){}
 
+        eater<dfk, dft>& get_eater() { return m_eater; }
+        feeder<dfk, dft>* get_feeder() { return m_feeder; }
+
         void hello() {}
     };
 
@@ -323,6 +331,10 @@ namespace chips
         linking_statement(linkable* linked_component, support* support_node)
             : m_linked_component(linked_component), m_support_node(support_node){}
 
+        linkable* get_linkable() { return m_linked_component; }
+        support* get_support() { return m_support_node; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello(){};
     };
 
