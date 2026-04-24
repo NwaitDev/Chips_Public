@@ -12,6 +12,7 @@
 #include <string>
 #include <cctype>
 #include <algorithm>
+#include <unordered_map>
 
 #include <typeinfo>
 #include <cxxabi.h>
@@ -87,7 +88,7 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(collective_variable& node) override       { out() << "<!-- collective_variable -->\n"; }
         // void visit(system_variable& node) override           { out() << "<!-- system_variable -->\n"; }
         // void visit(implements_statement& node) override      { out() << "<!-- implements_statement -->\n"; }
-        // void visit(channel_plugging& node) override          { out() << "<!-- channel_plugging -->\n"; }
+        void visit(channel_plugging& node);// override          { out() << "<!-- channel_plugging -->\n"; }
         void visit(linking_statement& node);// override         { out() << "<!-- linking_statement -->\n"; }
         void visit(default_output& node);// override            { out() << "<!-- default_output -->\n"; }
         void visit(target_output& node);// override             { out() << "<!-- target_output -->\n"; }
@@ -113,8 +114,8 @@ class ChipsToXmiVisitor : public visitor{
         // void visit(interface& node) override                 { out() << "<!-- interface -->\n"; }
         // void visit(implementer& node) override               { out() << "<!-- implementer -->\n"; }
         // void visit(node_variable_expression& node) override  { out() << "<!-- node_variable_expression -->\n"; }
-        // void visit(channel_eater& node) override             { out() << "<!-- channel_eater -->\n"; }
-        // void visit(channel_feeder& node) override            { out() << "<!-- channel_feeder -->\n"; }
+        void visit(channel_eater& node);// override             { out() << "<!-- channel_eater -->\n"; }
+        void visit(channel_feeder& node);// override            { out() << "<!-- channel_feeder -->\n"; }
         // ── FIN stubs ─────────────────────────────────────────────────────────
 
         template<dataflow_kind dfk, dataflow_type dft>
@@ -153,8 +154,11 @@ class ChipsToXmiVisitor : public visitor{
         // Structure pour stocker les informations de symbole
         struct SymbolInfo {
             std::string path;        // Chemin XMI
-            std::string type;        // Type: "channel", "contextual", "variable", "object", "physical", "logical", "sensor"
-            
+            std::string type;        // Type: "channel", "contextual", "variable", "block"
+                                     //       "object", "physical", "logical", "sensor",
+                                     //       "iterator", "physical_parameter:"+dft, "logical_parameter:"+dft 
+                                     //       "collective_parameter:"+dft, "actuator_output:"+dft,
+                                     //       "output:"+dft
             SymbolInfo() = default;
             SymbolInfo(const std::string& p, const std::string& t = "unknown") 
                 : path(p), type(t) {}
@@ -178,12 +182,118 @@ class ChipsToXmiVisitor : public visitor{
         std::string get_ast_path() const { return m_current_ast_path; }
         std::string get_ast_path_by_name(const std::string &name);
         SymbolInfo get_symbol_info(const std::string &name);
+
+        void enterScopes(){
+            scopes.emplace_back();
+        }
+
+        void exitScope(){
+            if(scopes.empty()){
+                throw std::runtime_error("No scope to exit");
+            }
+            scopes.pop_back();
+        }
+
+        void register_output(const std::string& fname, const std::string& output, const std::string& path){
+            for(const auto& [k1, v1] : function_outputs){
+                for(const auto& [k2, v2] : v1){
+                    if(fname == k1 && output == k2){
+                        report_semantic_error("Duplicate function output declaration: " + output);
+                    }
+                }
+            }
+            function_outputs[fname][output] = path;
+        }
+
+        void register_channel(const std::string& fname, const std::string& channel, const std::string& path){
+            for(const auto& [k1, v1] : function_channels){
+                for(const auto& [k2, v2] : v1){
+                    if(fname == k1 && channel == k2){
+                        report_semantic_error("Duplicate function output declaration: " + channel);
+                    }
+                }
+            }
+            function_channels[fname][channel] = path;
+        }
+
+        void register_parameter(const std::string& fname, const std::string& parameter, const std::string& path){
+            for(const auto& [k1, v1] : function_parameters){
+                for(const auto& [k2, v2] : v1){
+                    if(fname == k1 && parameter == k2){
+                        report_semantic_error("Duplicate paramter declaration: " + parameter);
+                    }
+                }
+            }
+            function_parameters[fname][parameter] = path;
+        }
+
+        std::string get_ast_path_by_name_output(const std::string& fname, const std::string& output){
+            for(auto it = function_outputs.cbegin(); it != function_outputs.cend(); it++){
+                if(it->first == fname){
+                    auto second = it->second;
+                    for(auto it2 = second.cbegin(); it2 != second.cend(); it2++){
+                        if(it2->first == output){
+                            return it2->second;
+                        }
+                    }
+                }
+            }
+            std::cerr << ">>>>>>>>>[WARNING] output '" << output << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            report_semantic_error("Undefined output: " + output);
+            return output;
+        }
+
+        std::string get_ast_path_by_name_channel(const std::string& fname, const std::string& channel){
+            for(auto it = function_channels.cbegin(); it != function_channels.cend(); it++){
+                if(it->first == fname){
+                    auto second = it->second;
+                    for(auto it2 = second.cbegin(); it2 != second.cend(); it2++){
+                        if(it2->first == channel){
+                            return it2->second;
+                        }
+                    }
+                }
+            }
+            std::cerr << ">>>>>>>>>[WARNING] channel '" << channel << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            report_semantic_error("Undefined channel: " + channel);
+            return channel;
+        }
+
+        std::string get_type_of_declarated_block(const std::string& variable){
+            std::cerr << "type of " << variable << " " << declarated_block_system[variable] << std::endl;
+            return declarated_block_system[variable];
+        }
+
+        std::string get_ast_path_by_name_parameter(const std::string& fname, const std::string& parameter){
+            for(auto it = function_parameters.cbegin(); it != function_parameters.cend(); it++){
+                if(it->first == fname){
+                    auto second = it->second;
+                    for(auto it2 = second.cbegin(); it2 != second.cend(); it2++){
+                        if(it2->first == parameter){
+                            return it2->second.substr(0, it2->second.length() - 23);
+                        }
+                    }
+                }
+            }
+            std::cerr << ">>>>>>>>>[WARNING] Paramètre '" << parameter << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            report_semantic_error("Undefined parameter: " + parameter);
+            return parameter;
+        }
+
         void register_variable(const std::string &name, const std::string &path, const std::string &type = "variable") {
             auto existing = m_symbol_table.find(name);
             if (existing != m_symbol_table.end()) {
                 report_semantic_error("Duplicate variable declaration: " + name);
             }
             m_symbol_table[name] = SymbolInfo(path, type);
+        }
+
+        void register_block(const std::string& type, const std::string& variable){
+            auto existing = declarated_block_system.find(variable);
+            if (existing != declarated_block_system.end()) {
+                report_semantic_error("Duplicate block declaration: " + variable);
+            }
+            declarated_block_system[variable] = type;
         }
         
         // Track a definition (called when visiting definition nodes)
@@ -512,6 +622,24 @@ class ChipsToXmiVisitor : public visitor{
             for(const auto& [k, v] : m_symbol_table){
                 std::cout << k << " (path: " << v.path << ", type:" << v.type << std::endl;
             }
+            std::cout << "========PARAMETRE==========" << std::endl;
+            for(const auto& [k1, v1] : function_parameters){
+                for(const auto& [k2, v2] : v1){
+                    std::cout << "fonction: " << k1 << " " << k2 << " " << v2 << std::endl; 
+                }
+            }
+            std::cout << "========OUTPUTS==========" << std::endl;
+            for(const auto& [k1, v1] : function_outputs){
+                for(const auto& [k2, v2] : v1){
+                    std::cout << "fonction: " << k1 << " " << k2 << " " << v2 << std::endl; 
+                }
+            }
+            std::cout << "========CHANNELS==========" << std::endl;
+            for(const auto& [k1, v1] : function_channels){
+                for(const auto& [k2, v2] : v1){
+                    std::cout << "fonction: " << k1 << " " << k2 << " " << v2 << std::endl; 
+                }
+            }
             std::cout << "==============" << std::endl;
         }
 
@@ -519,6 +647,14 @@ class ChipsToXmiVisitor : public visitor{
         ChipsToXmiWriter &m_writer;
         std::ostream &m_out;
         std::string m_current_ast_path;
+
+        std::vector<std::unordered_map<std::string, SymbolInfo>> scopes = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_outputs = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_parameters = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_channels = {};
+        std::unordered_map<std::string, std::string> declarated_block_system = {};
+
+
         std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
         std::map<std::string, DefinitionInfo> m_definitions_table;  // nom -> info définition
         std::string m_current_definition;  // Nom de la définition actuellement visitée
@@ -529,6 +665,7 @@ class ChipsToXmiVisitor : public visitor{
         int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
 
         expression_env current_env;
+        std::string current_fname;
         int def_index = 0;
         int param_index = 0;
         int sensor_index = 0;

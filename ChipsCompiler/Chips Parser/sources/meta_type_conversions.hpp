@@ -381,6 +381,14 @@ namespace chips {
         using type = bool_rvalue_expression_variant<expenv>;
     };
 
+    using feeder_variant = std::variant<
+            feeder<dataflow_kind::LOGICAL, dataflow_type::INT>*,
+            feeder<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*,
+            feeder<dataflow_kind::LOGICAL, dataflow_type::BOOL>*,
+            feeder<dataflow_kind::PHYSICAL, dataflow_type::INT>*,
+            feeder<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*,
+            feeder<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*
+        >;
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////

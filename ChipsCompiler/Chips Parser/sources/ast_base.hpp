@@ -97,7 +97,7 @@ namespace chips
         // template<block_type bt>
         // void visit(block_declaration<bt>& node);
         // virtual void visit(implements_statement& node) = 0;
-        // virtual void visit(channel_plugging& node) = 0;
+        virtual void visit(channel_plugging& node) = 0;
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(feeding_statement<dfk, dft>& node);
         virtual void visit(linking_statement& node) = 0;
@@ -234,8 +234,8 @@ namespace chips
         // void visit(eater<dfk, dft>& node);
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(feeder_block_expression<dfk, dft>& node);
-        // virtual void visit(channel_eater& node) = 0;
-        // virtual void visit(channel_feeder& node) = 0;
+        virtual void visit(channel_eater& node) = 0;
+        virtual void visit(channel_feeder& node) = 0;
         // template<dataflow_kind dfk, dataflow_type dft>
         // void visit(collective_cast<dfk, dft>& node);
     };

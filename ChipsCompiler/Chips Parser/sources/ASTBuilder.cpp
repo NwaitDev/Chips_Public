@@ -1554,7 +1554,9 @@ std::any ASTBuilder::visitCFLOAT(ChipsParser::CFLOATContext *ctx)
 std::any ASTBuilder::visitCBOOL(ChipsParser::CBOOLContext *ctx)
 {
     std::cout << "visit CBOOL" << std::endl;
-    return std::make_shared<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>>(std::stoll(ctx->BOOL()->getText()));
+    std::string text = ctx->BOOL()->getText();
+    bool value = (text == "true");
+    return std::make_shared<direct<dataflow_type::BOOL, expression_env::COLLECTIVE>>(value);
 }
 
 std::any ASTBuilder::visitINPUT(ChipsParser::INPUTContext *ctx)
@@ -2334,7 +2336,11 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
         channel_eater* eat = keep_value_alive(make_channel_eater(variable.value(), parameter_who_eat.value(), suffixes));
 
 
+        std::cout << "ALED" << std::endl;
+
         if(auto* expr = dynamic_cast<ChipsParser::SBlockOutputExpressionContext*>(ctx->s_expr())){
+
+            std::cout << "before any case suffixes" << std::endl;
 
             std::string variable_feeder_id = expr->block()->IDENTIFIER()->getText();
             auto suffixes_feeder = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(expr->block()->suffixes()));
@@ -2350,12 +2356,16 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
                 throw std::runtime_error("'"+identifier+"' was never declarated before");
             }
 
+            std::cout << "before make channel feeder" << std::endl;
+
             std::optional<std::any> channel_who_feed = SymbolTable::getInstance().lookupOutput(std::any_cast<std::string>(type_feeder.value()), channel_feeder_id);
             if(!channel_who_feed.has_value()){
                 throw std::runtime_error("'"+channel_feeder_id+"' was never defined before");
             }
 
             channel_feeder* feed = keep_value_alive(make_channel_feeder(variable_feeder_opt.value(), channel_who_feed.value(), suffixes_feeder));
+
+            std::cout << "beofre return plugging" << std::endl;
 
             channel_plugging plugging(eat, feed);
             return plugging;
@@ -3580,16 +3590,24 @@ bool ASTBuilder::is_function_parameter(std::any& value){
 channel_eater ASTBuilder::make_channel_eater(std::any& variable, std::any& parameter_who_eat, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
     auto eating_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(parameter_who_eat);
 
-    if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
-        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
-        node_arena.push_back(var_expr);  // Garde l'objet vivant
-        channel_eater eat(var_expr.get(), eating_channel.get());
-        return eat;
-    }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
-        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
-        node_arena.push_back(var_expr);  // Garde l'objet vivant
-        channel_eater eat(var_expr.get(), eating_channel.get());
-        return eat;
+    try{
+        if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
+            auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+            node_arena.push_back(var_expr);  // Garde l'objet vivant
+            channel_eater eat(var_expr.get(), eating_channel.get());
+            return eat;
+        }
+    }catch(const std::bad_any_cast& /**/){}
+
+    try{
+        if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
+            auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+            node_arena.push_back(var_expr);  // Garde l'objet vivant
+            channel_eater eat(var_expr.get(), eating_channel.get());
+            return eat;
+        }
+    }catch(const std::bad_any_cast /**/){
+
     }
     throw std::runtime_error("Channel eater can't be of type logical");
 }
@@ -3597,16 +3615,23 @@ channel_eater ASTBuilder::make_channel_eater(std::any& variable, std::any& param
 channel_feeder ASTBuilder::make_channel_feeder(std::any& variable, std::any& channel_who_feed, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
     auto feeding_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(channel_who_feed);
 
-    if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
-        auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
-        node_arena.push_back(var_expr);  // Garde l'objet vivant
-        channel_feeder feed(var_expr.get(), feeding_channel.get());
-        return feed;
-    }else if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
-        auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
-        node_arena.push_back(var_expr);  // Garde l'objet vivant
-        channel_feeder feed(var_expr.get(), feeding_channel.get());
-        return feed;
-    }
+    try{
+        if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
+            auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), dims);
+            node_arena.push_back(var_expr);  // Garde l'objet vivant
+            channel_feeder feed(var_expr.get(), feeding_channel.get());
+            return feed;
+        }
+    }catch(const std::bad_any_cast& /**/){}
+
+    try{
+        if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
+            auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), dims);
+            node_arena.push_back(var_expr);  // Garde l'objet vivant
+            channel_feeder feed(var_expr.get(), feeding_channel.get());
+            return feed;
+        }
+    }catch(const std::bad_any_cast& /**/){}
+
     throw std::runtime_error("Channel eater can't be of type logical");
 }

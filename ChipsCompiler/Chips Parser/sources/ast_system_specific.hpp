@@ -140,6 +140,7 @@ namespace chips {
             std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index)
             : m_variable(var), m_index(index){}
 
+        block_variable_type* get_variable() { return m_variable; }
         std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>& get_index() { return m_index; }
 
         void hello(){}
@@ -215,6 +216,9 @@ namespace chips {
             m_output = output;
         }
 
+        functional_block_variant& get_functional_block() { return m_variable_expression; }
+        function_output<dfk,dft>* get_output() { return m_output; }
+
         inline void hello(){}
     };
 
@@ -233,6 +237,10 @@ namespace chips {
         channel_eater(node_variable_expression* node, node_element_declaration<node_element::CHANNEL>* eating_channel)
             : m_node(node), m_eating_channel(eating_channel){}
 
+        node_variable_expression* get_node() { return m_node; }
+        node_element_declaration<node_element::CHANNEL>* get_eating_channel() { return m_eating_channel; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello() {std::cout<<"hello"<<std::endl;}
     };
 
@@ -251,6 +259,10 @@ namespace chips {
                        node_element_declaration<node_element::CHANNEL>* feeding_channel)
             : m_node(node), m_feeding_channel(feeding_channel){}
 
+        node_variable_expression* get_node() { return m_node; }
+        node_element_declaration<node_element::CHANNEL>* get_feeding_channel() { return m_feeding_channel; }
+
+        void accept(visitor& v) { v.visit(*this); }
         void hello() override {std::cout<<"hello"<<std::endl;}
     };
 
@@ -263,12 +275,6 @@ namespace chips {
     class collective_cast : public feeder<dfk,dft> {
         public:
         collective_function_definition* variable_expression;
-        using feeder_variant = std::variant<
-            feeder<dfk, dataflow_type::INT>*,
-            feeder<dfk, dataflow_type::FLOAT>*,
-            feeder<dfk, dataflow_type::BOOL>*
-        >;
-
         feeder_variant m_feeder;
 
         explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::INT>& feed)
@@ -280,13 +286,10 @@ namespace chips {
         explicit collective_cast(collective_function_definition* variable, feeder<dfk, dataflow_type::BOOL>& feed)
             : variable_expression(variable), m_feeder(&feed){}
 
-        template<dataflow_type feeder_dft>
-        feeder<dfk, feeder_dft>* get_feeder_as(){
-            if(auto* casted = std::get_if<feeder<dfk, feeder_dft>*>(&m_feeder)){
-                return *casted;
-            }
-            return nullptr;
-        }
+        collective_function_definition* get_collective_function() { return variable_expression; }
+
+        feeder_variant& get_feeder_variant() { return m_feeder; }
+        const feeder_variant& get_feeder_variant() const { return m_feeder; }
 
         void hello(){}
     };

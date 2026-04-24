@@ -286,6 +286,7 @@ namespace chips
         void set_feeder(channel_feeder* feed) { m_feeder = feed; }
         channel_feeder* get_feeder() { return m_feeder; }
 
+        void accept(visitor& v) { v.visit(*this); }
         void hello(){}
     };
 

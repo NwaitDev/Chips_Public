@@ -423,13 +423,27 @@ void ChipsToXmiVisitor::visit(system_section_node& node){
         }else if(auto* implements = std::get_if<system_statement<recurring_statement::IMPLEMENTS>*>(&stt)){
             out() << "<!-- TODO IMP-->\n";
         }else if(auto* feeding = std::get_if<system_statement<recurring_statement::FEEDING>*>(&stt)){
-            out() << "<!-- TODO FEED-->\n";
+            if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }else if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }else if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }else if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }else if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }else if(auto* f = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(*feeding)){
+                handle_feeding_statement(*f);
+            }
         }else if(auto* link = std::get_if<system_statement<recurring_statement::LINKING>*>(&stt)){
             if(auto* l = dynamic_cast<linking_statement*>(*link)){
                 (*l).accept(*this);
             }
         }else if(auto* plug = std::get_if<system_statement<recurring_statement::PLUGGING>*>(&stt)){
-            out() << "<!-- TODO PLUG-->\n";
+            if(auto* p = dynamic_cast<channel_plugging*>(*plug)){
+                p->accept(*this);
+            }
         }else if(auto* assign = std::get_if<system_statement<recurring_statement::ASSIGNMENT>*>(&stt)){
             if(auto* assign_int = dynamic_cast<dataflow_assignment<dataflow_type::INT, statement_env::SYSTEM>*>(*assign)){
                 handle_statement_assignment(*assign_int);
@@ -490,6 +504,7 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
     // Enregistrer la définition physique dans la table des symboles
     // Le chemin est : //@preamble/@definitions.X (déterminé par le contexte d'appel)
     register_variable(node.get_name(), get_ast_path(), "physical");
+    current_fname = node.get_name();
 
     // Extract the definition index from the current path (e.g., "//@preamble/@definitions.0" -> 0)
     std::string path = get_ast_path();
@@ -573,6 +588,8 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
 
                 std::string actuator_path = get_ast_path() + "/@actuator." + std::to_string(actuator_index);
 
+                register_output(current_fname, actuator_name, actuator_path);
+
                 push_ast_path(actuator_path);
 
                 nbTab++;
@@ -611,10 +628,6 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
             }, actuator);
             
         }
-
-        for(std::vector<std::string> output : outputs_to_register){
-            register_variable(output[0], output[1], output[2]);
-        }
     }
 
     auto outputs = node.get_outputs();
@@ -640,6 +653,8 @@ void ChipsToXmiVisitor::handle_outputs(std::vector<function_output_variant>& out
             std::string dft = dft_to_string(output_type);
 
             std::string output_path = get_ast_path() + "/@"+ name_balise +"." + std::to_string(output_index++);
+
+            register_output(current_fname, output_name, output_path);
 
             push_ast_path(output_path);
 
@@ -685,10 +700,6 @@ void ChipsToXmiVisitor::handle_outputs(std::vector<function_output_variant>& out
         }, output);
 
         
-    }
-
-    for(std::vector<std::string> output : outputs_to_register){
-        register_variable(output[0], output[1], output[2]);
     }
 }
 
@@ -812,6 +823,7 @@ void ChipsToXmiVisitor::visit(with_section& node){
             // Enregistrer le channel dans la table des symboles
             // Le chemin du channel est juste get_ast_path() car on est déjà dans /@with/@statements.X
             register_variable(name, get_ast_path(), "channel");
+            register_channel(current_fname, name, get_ast_path());
 
             // Also register in the current definition if we're in one
             if (!m_current_definition.empty()) {
@@ -867,6 +879,7 @@ void ChipsToXmiVisitor::handle_statement_declaration(block_declaration<bt>& node
     push_ast_path(segment);
     std::string declarated_var_path = get_ast_path();
     register_variable(variable_name, declarated_var_path);
+    register_block(definition_name, variable_name);
 
     out() << repeat("\t", nbTab++) << "<variable\n" << repeat("\t", nbTab);
     writeAttribute("name", variable_name);
@@ -1142,6 +1155,8 @@ void ChipsToXmiVisitor::handle_statement(typename SttEnvToSttVariant<stenv>::typ
                 handle_feeding_statement(*feeding_float_p);
             }else if(auto* feeding_bool_p = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(ptr)){
                 handle_feeding_statement(*feeding_bool_p);
+            }else if(auto* plugging = dynamic_cast<channel_plugging*>(ptr)){
+                (*plugging).accept(*this);
             } else {
                 out() << "[WARNING] system statement type not handled\n";
             }
@@ -1173,8 +1188,15 @@ void ChipsToXmiVisitor::visit(eater<dfk,dft>& node){
     std::string block_path;
     std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dimensions;
 
+    std::visit([&](auto* block){
+        block_name = block->get_name();
+        block_path = get_ast_path_by_name(block_name);
+        dimensions = block->get_dimensions();
+    }, functional_block);
+
     std::string param_name = parameter->get_name();
-    std::string param_path = get_ast_path_by_name(param_name);
+    std::string param_path = get_ast_path_by_name_parameter(get_type_of_declarated_block(block_name), param_name);
+    // std::string param_path = get_ast_path_by_name(param_name);
 
     out() << ">\n" << repeat("\t", nbTab) << "<eater\n";
 
@@ -1182,11 +1204,7 @@ void ChipsToXmiVisitor::visit(eater<dfk,dft>& node){
     writeAttribute("parameter", param_path);
     out() << ">\n" << repeat("\t", nbTab) << "<variable_expression\n" << repeat("\t", nbTab);
 
-    std::visit([&](auto* block){
-        param_name = block->get_name();
-        block_path = get_ast_path_by_name(param_name);
-        dimensions = block->get_dimensions();
-    }, functional_block);
+    
     
     writeAttribute("variable", block_path);
     
@@ -1231,21 +1249,122 @@ void ChipsToXmiVisitor::visit(feeder<dfk, dft>& node){
     out() << repeat("\t", nbTab) << "<feeder\n";
     if(auto* cast = dynamic_cast<collective_cast<dfk, dft>*>(&node)){
         visit(*cast);
+        out() << repeat("\t", nbTab) << "</feeder>\n";
     }else if(auto* block = dynamic_cast<feeder_block_expression<dfk, dft>*>(&node)){
         visit(*block);
+        out() << repeat("\t", nbTab) << "</feeder>\n";
+    }else if(auto* expr = dynamic_cast<rvalue<dft,expression_env::SYSTEM>*>(&node)){
+        if constexpr(dft == dataflow_type::BOOL){
+            binary_boolean_visit(*expr);
+        }else{
+            arithmetic_visit(*expr);
+        }
+
+        if(!only_one_child(*expr)){
+            out() << repeat("\t", nbTab) << "</feeder>\n";
+        }
     }
-    out() << repeat("\t", nbTab) << "</feeder>\n";
+    
 }
 
 template<dataflow_kind dfk, dataflow_type dft>
-void ChipsToXmiVisitor::visit(feeder_block_expression<dfk, dft>& node){}
+void ChipsToXmiVisitor::visit(feeder_block_expression<dfk, dft>& node){
+
+    functional_block_variant& functional_block = node.get_functional_block();
+    function_output<dfk,dft>* output = node.get_output();
+
+    std::string type = dft_to_string<dft>();
+
+    std::string output_name = output->get_name();
+    
+    // std::string output_path = get_ast_path_by_name(output_name);
+
+    std::string block_name;
+    std::string block_path;
+    std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dimensions;
+
+    std::visit([&](auto* block){
+        block_name = block->get_name();
+        block_path = get_ast_path_by_name(block_name);
+        dimensions = block->get_dimensions();
+    }, functional_block);
+
+    std::string output_path = get_ast_path_by_name_output(get_type_of_declarated_block(block_name), output_name);
+
+    writeAttribute("xsi:type", "chips.systemspecific.expressions.feeder:"+dft_to_string<dft>()+"_"+dfk_to_string<dfk>()+"_output");
+    out() << "\n" << repeat("\t", nbTab);
+    writeAttribute("output", output_path);
+
+    out() << ">\n" << repeat("\t", nbTab) << "<variable_expression\n" << repeat("\t", nbTab);
+
+    writeAttribute("variable", block_path);
+    
+
+    if(!dimensions.empty()){
+        out() << ">\n";
+        for(auto inde : dimensions){
+            out() << "<index\n";
+
+            std::visit([&](auto i){
+
+                using index_t = std::remove_pointer_t<std::decay_t<decltype(i)>>;
+
+                if(!i){
+                    out() << "<!-- TODO INDEX -->\n";
+                    return;
+                }
+
+                if constexpr(std::is_same_v<index_t, input> || std::is_same_v<index_t, stop>){
+                    // visit(*i);
+                    (*i).accept(*this);
+                }else{
+                    arithmetic_visit(*i);
+
+                    if(!only_one_child(*i)){
+                        out() << "</index>\n";
+                    }
+                }
+
+            }, inde);
+        }
+        out() << "</variable_expression>\n";
+    }else{
+        out() << "/>\n";
+    }
+
+}
 
 template<dataflow_kind dfk, dataflow_type dft>
 void ChipsToXmiVisitor::visit(collective_cast<dfk, dft>& node){
+
+    std::string collective_name = node.get_collective_function()->get_name();
+    std::string collective_path = get_ast_path_by_name(collective_name);
+    feeder_variant& feeder_var = node.get_feeder_variant();
+
+    
+
     writeAttribute("xsi:type","chips.systemspecific.expressions.feeder:"+dfk_to_string<dfk>()+"_collective_cast");
     out() << "\n";
-    writeAttribute("collective_function", "");
-    out() << ">\n";
+    writeAttribute("collective_function", collective_path);
+    out() << ">\n" << repeat("\t", nbTab) << "<"+dfk_to_string<dfk>()+"_feeder_expression\n" << repeat("\t", nbTab);
+
+    std::visit([&](auto* feed){
+        if(auto* block = dynamic_cast<feeder_block_expression<dfk, dataflow_type::INT>*>(feed)){
+            visit(*block);
+        }else if(auto* expr = dynamic_cast<rvalue<dataflow_type::INT,expression_env::SYSTEM>*>(feed)){
+            arithmetic_visit(*expr);
+        }else if(auto* block = dynamic_cast<feeder_block_expression<dfk, dataflow_type::BOOL>*>(feed)){
+            visit(*block);
+        }else if(auto* expr = dynamic_cast<rvalue<dataflow_type::BOOL,expression_env::SYSTEM>*>(feed)){
+            binary_boolean_visit(*expr);
+        }else if(auto* block = dynamic_cast<feeder_block_expression<dfk, dataflow_type::FLOAT>*>(feed)){
+            visit(*block);
+        }else if(auto* expr = dynamic_cast<rvalue<dataflow_type::FLOAT,expression_env::SYSTEM>*>(feed)){
+            arithmetic_visit(*expr);
+        }
+    }, feeder_var);
+
+    out() << "</"+dfk_to_string<dfk>()+"_feeder_expression>\n";
 }
 
 template<statement_env stenv>
@@ -1456,7 +1575,8 @@ void ChipsToXmiVisitor::visit(std::vector<physical_parameter_variant>& node){
             std::string sensor_path = sensor_base_path + "/@declaration/@variable";
 
             push_ast_path(sensor_path);
-            register_variable(sensor_name, sensor_path, "physical_parameter:"+dft);
+            register_variable(sensor_name, sensor_path, "physical_parameter_"+dft);
+            register_parameter(current_fname, sensor_name, sensor_path);
 
             nbTab++;
             out() << repeat("\t", nbTab);
@@ -1604,7 +1724,8 @@ void ChipsToXmiVisitor::visit(std::vector<function_parameter_variant>& node){
 
                 std::cerr << "[DEBUG] Génération balise <parameters> pour '" << param_name << "'" << std::endl;
                 push_ast_path(param_path);
-                register_variable(param_name, param_path, "logical_parameter:" + dft);
+                register_variable(param_name, param_path,"logical_parameter_"+dft);
+                register_parameter(current_fname, param_name, param_path);
 
                 nbTab++;
                 out() << repeat("\t", nbTab);
@@ -1683,7 +1804,7 @@ void ChipsToXmiVisitor::visit(logical_definition& node){
     current_env = expression_env::PRIMITIVE;
 
     register_variable(node.get_name(), get_ast_path(), "logical");
-
+    current_fname = node.get_name();
     // int def_index = 0;
     std::string path = get_ast_path();
     // size_t pos = path.rfind("@definitions.");
@@ -1747,6 +1868,7 @@ void ChipsToXmiVisitor::visit(logical_definition& node){
 
 void ChipsToXmiVisitor::visit(object_definition& node){
     current_env = expression_env::PRIMITIVE;
+    current_fname = node.get_name();
     // Enregistrer la définition physique dans la table des symboles
     // Le chemin est : //@preamble/@definitions.X (déterminé par le contexte d'appel)
     register_variable(node.get_name(), get_ast_path(), "object");
@@ -1785,7 +1907,7 @@ void ChipsToXmiVisitor::visit(object_definition& node){
 
 void ChipsToXmiVisitor::visit(collective_function_definition& node){
     current_env = expression_env::COLLECTIVE;
-
+    current_fname = node.get_name();
     // Enregistrer la définition physique dans la table des symboles
     // Le chemin est : //@preamble/@definitions.X (déterminé par le contexte d'appel)
     register_variable(node.get_name(), get_ast_path(), "collective");
@@ -1855,6 +1977,155 @@ void ChipsToXmiVisitor::visit(collective_function_definition& node){
     if(!channeled_outputs.empty()){
         visit(channeled_outputs);
     }
+}
+
+void ChipsToXmiVisitor::visit(channel_plugging& node){
+
+    channel_eater* eat = node.get_eater();
+    channel_feeder* feed = node.get_feeder();
+
+    writeAttribute("xsi:type","chips.statements.system:channel_plugging");
+    out() << ">\n" << repeat("\t", nbTab);
+
+    eat->accept(*this);
+    feed->accept(*this);
+}
+
+void ChipsToXmiVisitor::visit(channel_eater& node){
+
+    node_variable_expression* variable_expression = node.get_node();
+    node_element_declaration<node_element::CHANNEL>* eating = node.get_eating_channel();
+
+    
+
+    block_type variable_expression_type;
+    std::string variable_expression_name;
+    std::string variable_expression_path;
+    std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index;
+
+    if(auto* physical = dynamic_cast<system_variable_block_expression<block_type::PHYSICAL>*>(variable_expression)){
+        variable_expression_type = block_type::PHYSICAL;
+        variable_expression_name = physical->get_variable()->get_name();
+        variable_expression_path = get_ast_path_by_name(variable_expression_name);
+        index = physical->get_index();
+    }else if(auto* object = dynamic_cast<system_variable_block_expression<block_type::OBJECT>*>(variable_expression)){
+        variable_expression_type = block_type::OBJECT;
+        variable_expression_name = object->get_variable()->get_name();
+        variable_expression_path = get_ast_path_by_name(variable_expression_name);
+        index = object->get_index();
+    }
+
+    std::string eating_name = eating->get_name();
+    // std::string eating_path = get_ast_path_by_name(eating_name);
+    std::string eating_path = get_ast_path_by_name_channel(get_type_of_declarated_block(variable_expression_name), eating_name);
+
+    out() << "<eater\n" << repeat("\t", nbTab);
+    writeAttribute("eating_channel", eating_path);
+    out() << ">\n" << repeat("\t", nbTab) << "<node\n" << repeat("\t", nbTab);
+    writeAttribute("xsi:type", "chips.systemspecific.expressions:"+bt_to_string(variable_expression_type)+"_variable_expression");
+    out() << "\n" << repeat("\t", nbTab);
+    writeAttribute("variable", variable_expression_path);
+
+    if(!index.empty()){
+        out() << ">\n";
+        for(auto inde : index){
+            out() << "<index\n";
+
+            std::visit([&](auto i){
+
+                using index_t = std::remove_pointer_t<std::decay_t<decltype(i)>>;
+
+                if(!i){
+                    out() << "<!-- TODO INDEX -->\n";
+                    return;
+                }
+
+                if constexpr(std::is_same_v<index_t, input> || std::is_same_v<index_t, stop>){
+                    // visit(*i);
+                    (*i).accept(*this);
+                }else{
+                    arithmetic_visit(*i);
+
+                    if(!only_one_child(*i)){
+                        out() << "</index>\n";
+                    }
+                }
+
+            }, inde);
+        }
+        out() << "</node>\n";
+    }else{
+        out() << "/>\n";
+    }
+    out() << "</eater>\n";
+}
+
+void ChipsToXmiVisitor::visit(channel_feeder& node){
+
+
+    node_variable_expression* variable_expression = node.get_node();
+    node_element_declaration<node_element::CHANNEL>* feeding = node.get_feeding_channel();
+
+    block_type variable_expression_type;
+    std::string variable_expression_name;
+    std::string variable_expression_path;
+    std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> index;
+
+    if(auto* physical = dynamic_cast<system_variable_block_expression<block_type::PHYSICAL>*>(variable_expression)){
+        variable_expression_type = block_type::PHYSICAL;
+        variable_expression_name = physical->get_variable()->get_name();
+        variable_expression_path = get_ast_path_by_name(variable_expression_name);
+        index = physical->get_index();
+    }else if(auto* object = dynamic_cast<system_variable_block_expression<block_type::OBJECT>*>(variable_expression)){
+        variable_expression_type = block_type::OBJECT;
+        variable_expression_name = object->get_variable()->get_name();
+        variable_expression_path = get_ast_path_by_name(variable_expression_name);
+        index = object->get_index();
+    }
+
+    std::string feeding_name = feeding->get_name();
+    // std::string feeding_path = get_ast_path_by_name(feeding_name);
+    std::string feeding_path = get_ast_path_by_name_channel(get_type_of_declarated_block(variable_expression_name), feeding_name);
+
+    out() << "<feeder\n" << repeat("\t", nbTab);
+    writeAttribute("feeding_channel", feeding_path);
+    out() << ">\n" << repeat("\t", nbTab) << "<node\n" << repeat("\t", nbTab);
+    writeAttribute("xsi:type", "chips.systemspecific.expressions:"+bt_to_string(variable_expression_type)+"_variable_expression");
+    out() << "\n" << repeat("\t", nbTab);
+    writeAttribute("variable", variable_expression_path);
+
+    if(!index.empty()){
+        out() << ">\n";
+        for(auto inde : index){
+            out() << "<index\n";
+
+            std::visit([&](auto i){
+
+                using index_t = std::remove_pointer_t<std::decay_t<decltype(i)>>;
+
+                if(!i){
+                    out() << "<!-- TODO INDEX -->\n";
+                    return;
+                }
+
+                if constexpr(std::is_same_v<index_t, input> || std::is_same_v<index_t, stop>){
+                    // visit(*i);
+                    (*i).accept(*this);
+                }else{
+                    arithmetic_visit(*i);
+
+                    if(!only_one_child(*i)){
+                        out() << "</index>\n";
+                    }
+                }
+
+            }, inde);
+        }
+        out() << "</node>\n";
+    }else{
+        out() << "/>\n";
+    }
+    out() << "</feeder>\n";
 }
 
 void ChipsToXmiVisitor::visit(linking_statement& node){
@@ -2077,7 +2348,8 @@ void ChipsToXmiVisitor::visit(accumulator_definition& node){
             std::string accumulator_path = accumulator_base_path + "/@declaration/@variable";
 
             push_ast_path(accumulator_path);
-            register_variable(pname, accumulator_path, "collective_parameter:"+dft);
+            register_variable(pname, accumulator_path, "collective_parameter_"+dft);
+            register_parameter(current_fname, pname, accumulator_path);
 
             nbTab++;
             out() << repeat("\t", nbTab);
@@ -2096,8 +2368,6 @@ void ChipsToXmiVisitor::visit(accumulator_definition& node){
 
             if(!only_one_child(default_value)){
                 out() << "</default_value>\n";
-            }else{
-                out() << "\n";
             }
 
             out() << repeat("\t", --nbTab) << "<declaration>\n" << repeat("\t", nbTab++) 
@@ -2278,6 +2548,7 @@ std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
     }
 
     std::cerr << ">>>>>>>>>[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
-    report_semantic_error("Undefined variable: " + name);
-    return name; // Fallback: retourner juste le nom
+    // report_semantic_error("Undefined variable: " + name);
+    // return name; // Fallback: retourner juste le nom
+    return get_ast_path_by_name_parameter(current_fname, name);
 }
