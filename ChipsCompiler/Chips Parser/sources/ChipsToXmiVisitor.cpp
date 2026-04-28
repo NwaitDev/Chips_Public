@@ -1802,19 +1802,10 @@ void ChipsToXmiVisitor::visit(std::vector<function_parameter_variant>& node){
 
 void ChipsToXmiVisitor::visit(logical_definition& node){
     current_env = expression_env::PRIMITIVE;
+    current_fname = node.get_name();
 
     register_variable(node.get_name(), get_ast_path(), "logical");
-    current_fname = node.get_name();
-    // int def_index = 0;
     std::string path = get_ast_path();
-    // size_t pos = path.rfind("@definitions.");
-    // if(pos != std::string::npos){
-    //     try{
-    //         def_index = std::stoi(path.substr(pos + 13));
-    //     }catch(...){
-    //         def_index = 0;
-    //     }
-    // }
 
     register_definition(node.get_name(), "logical", get_ast_path(), def_index);
     m_current_definition = node.get_name();

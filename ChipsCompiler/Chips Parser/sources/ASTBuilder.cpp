@@ -254,7 +254,6 @@ std::any ASTBuilder::visitLogicalDefintion(ChipsParser::LogicalDefintionContext 
         TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::FLOAT)
         TRY_ADD_PARAM(dataflow_kind::LOGICAL, dataflow_type::BOOL)
 #undef TRY_ADD_PARAM
-        // params.push_back(std::any_cast<function_parameter_variant>(visit(stuff)));
     }
     std::cout << "end push param" << std::endl;
     init_section init = std::any_cast<init_section>(visitInit_section(lfd->init_section()));
@@ -589,24 +588,20 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
         if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_INT>*>(&stt)){
             auto contex = *n;
-            // std::cout << "name " << contex->get_name() << std::endl;
             SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
             std::cout << "ctx int " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
         }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_FLOAT>*>(&stt)){
             auto contex = *n;
-            // std::cout << contex->get_name() << std::endl;
             SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
             std::cout << "ctx float " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
         }else if(auto n = std::get_if<node_element_declaration<node_element::CONTEXTUAL_BOOL>*>(&stt)){
             auto contex = *n;
-            // std::cout << contex->get_name() << std::endl;
             SymbolTable::getInstance().declareContextualVariable(contex->get_name(), contex->get_variable());
             std::cout << "ctx bool " << ast_builder_detail::type_name(std::any{n}.type()) << std::endl;
         }else if(auto n = std::get_if<node_element_declaration<node_element::CHANNEL>*>(&stt)){
             auto contex = *n;
             SymbolTable::getInstance().declareChannel(contex->get_name(), contex);
         }
-        // throw std::runtime_error("not a contextual variable in with section of "+among);
     }
 
     
@@ -781,8 +776,6 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
             if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, stuff->IDENTIFIER()->getText(), channel_output)){
                 throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was already declarated before");
             }
-
-            // throw std::runtime_error("IMPLEMENTER POUR LES CHANNELS");
         }
     }
 
@@ -966,7 +959,6 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
     else
     {
         variable = SymbolTable::getInstance().lookupVariable(identifier);
-        // TODO: demander à Anna si un sensor peut etre un lvalue
     }
 
     if (!variable.has_value())
@@ -975,15 +967,6 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
     }
     auto dims = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>>>(suffixes);
     auto var = (!is_contextual) ? tryAllTypes<expression_env::PRIMITIVE>(identifier, variable.value(), dims) : tryAllTypesContextual<expression_env::PRIMITIVE>(identifier, variable.value(), dims);
-
-    std::cout << "Type var (handle assign) " << identifier << ": " << ast_builder_detail::type_name(var.type()) << std::endl;
-    // try{
-    //     auto exp = std::any_cast<dataflow_primitive_variable<dataflow_type::INT>>(variable.value());
-    //     std::cout << "TYPE VALUE: " << ast_builder_detail::type_name(std::any{exp.get_declaration()}.type()) << std::endl;
-    // }catch(const std::bad_any_cast& e){
-    //     std::cout << "UP " << identifier << std::endl;
-    //     std::cout << e.what() << std::endl;
-    // }
 
     if (auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(assign))
     {
@@ -997,8 +980,6 @@ std::any ASTBuilder::handle_statement_assignment(std::string identifier, std::an
                 dataflow_assignment<dataflow_type::INT, statement_env::DEFINITION> assignment(left.get(), right.get());
                 return assignment;
             }
-            // auto var_ptr = std::any_cast<std::shared_ptr<contextual_variable<dataflow_type::INT>>>(var);
-            // auto left = std::make_shared<variable_contextual_expression<dataflow_type::INT, expression_env::PRIMITIVE>>(var_ptr.get(), dims);
             auto left = std::any_cast<std::shared_ptr<variable_contextual_expression<dataflow_type::INT, expression_env::PRIMITIVE>>>(var);
             node_arena.push_back(left);
             node_arena.push_back(right);
@@ -1684,7 +1665,6 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
 {
     std::cout << "visit loop statement" << std::endl;
 
-    // TODO bien faire le Scope avec SymbolTable
     SymbolTable::getInstance().enterScope();
     SymbolTable::getInstance().dump();
 
@@ -1774,10 +1754,6 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
         throw std::runtime_error("Unknown kind of type for foreach statement");
     }
 
-    // for(ChipsParser::StatementContext* stt : ctx->statement()){
-    //     std::cout << "TODO statement loop" << std::endl;
-    // }
-
     throw std::runtime_error("Error in method Loop_statementContext");
 }
 
@@ -1796,8 +1772,6 @@ std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext 
     std::string identifier = ctx->IDENTIFIER()->getText();
 
     std::cout << "ENter new Scope foreach " << identifier << std::endl;
-
-    // throw std::runtime_error("ICI");
 
     std::any suffixable_expr = visit(ctx->s_suffixable_expr());
     dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::SYSTEM>(suffixable_expr);
@@ -1830,8 +1804,6 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
     std::cout << "visit if else statement" << std::endl;
 
     if_else_statement<statement_env::DEFINITION> if_else;
-
-    // TODO: regarder les scopes avec SymbolTable
 
     std::any if_stt = visit(ctx->if_statement());
     if_else.m_if_section  = std::any_cast<if_statement<statement_env::DEFINITION>>(if_stt).m_if_section;
@@ -1892,7 +1864,6 @@ std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContex
     SymbolTable::getInstance().exitScope();
 
     return if_else;
-    // throw std::runtime_error("Unimplemented visit method If_else_statementContext");
 }
 
 std::any ASTBuilder::visitS_if_else_statement(ChipsParser::S_if_else_statementContext *ctx)
@@ -2158,8 +2129,6 @@ std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementCo
     std::any assign = visit(ctx->expr());
 
     return handle_statement_assignment(identifier, suffixes, assign, true);
-
-    // throw std::runtime_error("Unimplemented visit method StatementContextualAssignmentContext");
 }
 
 std::any ASTBuilder::visitStatementLoop(ChipsParser::StatementLoopContext *ctx)
@@ -2171,14 +2140,12 @@ std::any ASTBuilder::visitStatementIfElse(ChipsParser::StatementIfElseContext *c
 {
     std::cout << "visit statement if else" << std::endl;
     return visit(ctx->if_else_statement());
-    // throw std::runtime_error("Unimplemented visit method StatementIfElseContext");
 }
 
 std::any ASTBuilder::visitStatementIf(ChipsParser::StatementIfContext *ctx)
 {
     std::cout << "visit statement if" << std::endl;
     return visit(ctx->if_statement());
-    // throw std::runtime_error("Unimplemented visit method StatementIfContext");
 }
 
 std::any ASTBuilder::visitObjectDeclaration(ChipsParser::ObjectDeclarationContext *ctx)
@@ -2574,8 +2541,6 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
         
 
     throw std::runtime_error("Unsupported type or kind");
-
-    // throw std::runtime_error("Unimplemented visit method SBlockOutputExpressionContext");
 }
 
 functional_block_variant ASTBuilder::make_functional_block_from_any(std::any& node, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims){
@@ -2652,8 +2617,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -2679,8 +2642,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -2705,8 +2666,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::BOOL>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -2731,8 +2690,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::INT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -2757,8 +2714,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -2784,8 +2739,6 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
             
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(variable_expression, output.get());
             node_arena.push_back(feeder_block);
-            // collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL> collect_cast(collective_func_def.get(), *feeder_block);
-            // return collect_cast;
 
             switch(type_target_output){
                 case dataflow_type::INT:{
@@ -3068,7 +3021,6 @@ std::any ASTBuilder::visitOR(ChipsParser::ORContext *ctx)
 
 std::any ASTBuilder::visitPLUS(ChipsParser::PLUSContext *ctx)
 {
-    // std::cout << "visitPLUS()" << std::endl;
     return ast_builder_detail::dispatch_numeric_binary<ast_builder_detail::PlusBuilder>(
         visit(ctx->expr01()), visit(ctx->expr0()), "PLUS");
 }
@@ -3182,7 +3134,6 @@ std::any ASTBuilder::visitParens(ChipsParser::ParensContext *ctx)
 
 std::any ASTBuilder::visitCastAs(ChipsParser::CastAsContext *ctx)
 {
-    // std::cout << "visitCastAs()" << std::endl;
     return visit(ctx->cast());
 }
 
@@ -3259,8 +3210,6 @@ std::any ASTBuilder::handle_cast(dataflow_type target, std::any operand_any)
 
 std::any ASTBuilder::visitCast(ChipsParser::CastContext *ctx)
 {
-    // std::cout << "visitCast()" << std::endl;
-
     // Type
     dataflow_type target = std::any_cast<dataflow_type>(visit(ctx->df_type()));
 

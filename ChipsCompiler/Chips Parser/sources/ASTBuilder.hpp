@@ -83,20 +83,78 @@ public:
 
     std::any visitChannelDeclaration(ChipsParser::ChannelDeclarationContext *ctx);
 
+    /**
+     * @brief Fonction qui permet de récuperer une variable_expression à partir d'un 
+     *        std::shared_ptr<dataflow_ENV_variable<DT>> ou dataflow_ENV_variable<DT> 
+     *        où DT et ENV sont le dataflow_type et expression_env du template 
+     * 
+     * @param var  Variable qui contient le dataflow_ENV_variable dans un std::any
+     * @param dims Représente l'index du tableau
+     * 
+     * @return std::shared_ptr<variable_expression<DT, ENV>>
+     */
     template <dataflow_type DT, expression_env ENV, typename Dims>
     std::any tryCastVar(const std::any &var, const Dims &dims);
 
+    /**
+     * @brief Fonction qui permet de récuperer une variable_contextual_expression à partir d'un 
+     *        std::shared_ptr<contextual_variable<DT>> ou contextual_variable<DT> 
+     *        où DT et ENV sont le dataflow_type et expression_env du template 
+     * 
+     * @param var  Variable qui contient le dataflow_ENV_variable dans un std::any
+     * @param dims Représente l'index du tableau
+     * 
+     * @return std::shared_ptr<variable_contextual_expression<DT, ENV>>
+     */
     template <dataflow_type DT, expression_env ENV, typename Dims>
     std::any tryCastVarContextual(const std::any &var, const Dims &dims);
 
+    /**
+     * @brief Essaye de cast une variable avec tout les types possibles
+     * 
+     * @param var_name Nom de la variable
+     * @param var      Valeur de la variable sous forme de std::any
+     * @param dims     Représente l'index de la variable
+     * 
+     * @return Valeur de la fonction tryCastVar
+     */
     template <expression_env ENV, typename Dims>
     std::any tryAllTypes(const std::string &var_name, const std::any &var, const Dims &dims);
 
+    /**
+     * @brief Essaye de cast une variable contextuelle avec tout les types possibles
+     * 
+     * @param var_name Nom de la variable
+     * @param var      Valeur de la variable sous forme de std::any
+     * @param dims     Représente l'index de la variable
+     * 
+     * @return Valeur de la fonction tryCastVarContextual
+     */
     template <expression_env ENV, typename Dims>
     std::any tryAllTypesContextual(const std::string &var_name, const std::any &var, const Dims &dims);
 
+    /**
+     * @brief Permet de créer un dataflow_assignment<DT,ENV> où DT et ENV sont le dataflow_type et expression_env
+     * 
+     * @param identifier Nom de la variable a affecté
+     * @param suffixes   Index du tableau de la variable
+     * @param assign     Expression d'affectation
+     * @param is_contextual Booléen pour savoir si l'affectation pour une variable contextuelle
+     * 
+     * @return dataflow_assignment<DT, ENV>
+     */
     std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual);
 
+    /**
+     * @brief Permet de créer un dataflow_assignment<DT,ENV> où DT et ENV sont le dataflow_type et expression_env
+     * 
+     * @param identifier Nom de la variable a affecté
+     * @param suffixes   Index du tableau de la variable
+     * @param assign     Expression d'affectation
+     * @param is_contextual Booléen pour savoir si l'affectation pour une variable contextuelle
+     * 
+     * @return dataflow_assignment<DT, ENV>
+     */
     template<expression_env expenv, statement_env stenv>
     std::any handle_statement_assignment(std::string identifier, std::any suffixes, std::any assign, bool is_contextual){
         std::cout << "handle_statement_assignment " << expenv_to_string(expenv) << std::endl;
@@ -174,6 +232,14 @@ public:
         throw std::runtime_error("error");
     }
 
+    /**
+     * @brief Permet de créer un node_element_declaration<NE> où NE est un node_element
+     * 
+     * @param type Dataflow_type de la déclaration
+     * @param suffixes Taille du tableau
+     * @param identifier Nom de la variable
+     * @param assign Expression d'affectation
+     */
     std::any handle_statement_declaration_contextual(dataflow_type type, std::any suffixes, std::string identifier, std::any assign);
 
     std::any visitContextualDeclaration(ChipsParser::ContextualDeclarationContext *ctx);
@@ -183,20 +249,6 @@ public:
     std::any visitInit_section(ChipsParser::Init_sectionContext *ctx);
 
     std::any visitThen_section(ChipsParser::Then_sectionContext *ctx);
-
-    template <dataflow_type dft, statement_env sttenv>
-    std::any make_variable_expression(dataflow_assignment<dft, sttenv> &node)
-    {
-        std::cout << "make variable expression assign" << std::endl;
-        return std::any{};
-    }
-
-    template <dataflow_type dft, statement_env sttenv>
-    std::any make_variable_expression(dataflow_declaration<dft, sttenv> &node)
-    {
-        std::cout << "make variable expression decl" << std::endl;
-        return std::any{};
-    }
 
     std::any visitVar(ChipsParser::VarContext *ctx);
 
@@ -278,6 +330,14 @@ public:
 
     std::any visitLoop_in(ChipsParser::Loop_inContext *ctx);
 
+    /**
+     * @brief Permet d'ajouter les statements à un foreach_statement
+     * 
+     * @param node Le foreach_statement
+     * @param statement Le tableau contenant tous les instructions à l'intérieur du foreach
+     * 
+     * @return le paramètre node avec les instructions d'ajouter
+     */
     template <dataflow_type dft, statement_env stenv>
     std::any make_statement_foreach(foreach_statement<stenv, dft> &node, std::vector<ChipsParser::StatementContext *> statement)
     {
@@ -328,6 +388,14 @@ public:
         return node;
     }
 
+    /**
+     * @brief Permet d'ajouter les statements à un foreach_statement
+     * 
+     * @param node Le foreach_statement
+     * @param statement Le tableau contenant tous les instructions à l'intérieur du foreach
+     * 
+     * @return le paramètre node avec les instructions d'ajouter
+     */
     template <dataflow_type dft, statement_env stenv>
     std::any make_statement_foreach(foreach_statement<stenv, dft> &node, std::vector<ChipsParser::S_statementContext *> statement)
     {
@@ -462,6 +530,22 @@ public:
 
     std::any visitCdf_full_declaration(ChipsParser::Cdf_full_declarationContext *ctx);
 
+    /**
+     * @brief Permet de créer un function<DT, ENV> où DT et ENV sont le dataflow_type et expression_env
+     *        Fonctions prises en compte :
+     *          - int random()
+     *          - int range(n)
+     *          - int[] zeros(n)
+     *          - int[] ones(n)
+     *          - int max(m,n)
+     *          - int min(m,n)
+     *          - bool is_fresh()
+     * 
+     * @param fname Nom de la fonction
+     * @param exprs Tableau des paramètres de la fonction
+     * 
+     * @return function<DT,ENV>
+     */
     template<expression_env expenv>
     std::any make_function(const std::string& fname, std::vector<ChipsParser::C_exprContext*> exprs){
         std::cout << "make function symbol: " << fname << std::endl;
@@ -497,6 +581,22 @@ public:
         throw std::runtime_error("could not recognize the function" + fname);
     };
 
+    /**
+     * @brief Permet de créer un function<DT, ENV> où DT et ENV sont le dataflow_type et expression_env
+     *        Fonctions prises en compte :
+     *          - int random()
+     *          - int range(n)
+     *          - int[] zeros(n)
+     *          - int[] ones(n)
+     *          - int max(m,n)
+     *          - int min(m,n)
+     *          - bool is_fresh()
+     * 
+     * @param fname Nom de la fonction
+     * @param exprs Tableau des paramètres de la fonction
+     * 
+     * @return function<DT,ENV>
+     */
     template<expression_env expenv>
     std::any make_function(const std::string &fname, std::vector<ChipsParser::ExprContext *> exprs)
     {
@@ -589,26 +689,48 @@ public:
 
     std::any visitBoolType(ChipsParser::BoolTypeContext * /*ctx*/);
 
+    /**
+     * @brief Transforme un std::shared_ptr<rvalue<DT,ENV>> en un primitive_iterable_variant<ENV>
+     */
     template <dataflow_type dft, expression_env expenv>
     primitive_iterable_variant<expenv> make_primitive_iterable_variant_from_node(
         const std::shared_ptr<rvalue<dft, expenv>> &node);
 
+    /**
+     * @brief Transforme un std::shared_ptr<rvalue<INT,ENV>> en un int_rvalue_expression_variant<ENV>
+     */
     template <expression_env expenv>
     int_rvalue_expression_variant<expenv> make_int_rvalue_variant_from_node(
         const std::shared_ptr<rvalue<dataflow_type::INT, expenv>> &node);
 
+    /**
+     * @brief Transforme un std::shared_ptr<rvalue<BOOL,ENV>> en un bool_rvalue_expression_variant<ENV>
+     */
     template <expression_env expenv>
     bool_rvalue_expression_variant<expenv> make_bool_rvalue_variant_from_node(
         const std::shared_ptr<rvalue<dataflow_type::BOOL, expenv>> &node);
 
+    /**
+     * @brief Transforme un std::shared_ptr<rvalue<DT,ENV>> en un rvalue_variant<ENV>
+     */
     template <dataflow_type dft, expression_env expenv>
     rvalue_variant<expenv> make_variant_from_node(
         const std::shared_ptr<rvalue<dft, expenv>> &node);
 
+    /**
+     * @brief Permet de récupérer un functional_block_variant à partir d'un std::shared_ptr<block_variable<BT>> ou 
+     *        block_variable<BT> en affectant son index aussi
+     * 
+     * @param node Variable représentant le block_variable
+     * @param dims Index du tableau
+     */
     functional_block_variant make_functional_block_from_any(std::any& node, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
 
     std::any visitSuffixes(ChipsParser::SuffixesContext *ctx);
 
+    /**
+     * @brief Permet de récupérer les dimensions d'un tableau à partir d'un suffixes
+     */
     template <expression_env expenv>
     std::vector<int_rvalue_expression_variant<expenv>> extract_dimensions(ChipsParser::SuffixesContext *ctx)
     {
@@ -628,6 +750,9 @@ public:
         return dims;
     }
 
+    /**
+     * @brief Permet de récupérer les dimensions d'un tableau collectif à partir d'un suffixes
+     */
     std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> extract_dimensions_collective(ChipsParser::C_suffixesContext *ctx);
 
     template<dataflow_type dft, expression_env expenv>
@@ -654,6 +779,13 @@ public:
         return std::any_cast<std::shared_ptr<DefType>&>(value_arena.back()).get();
     }
 
+    /**
+     * @brief Permet de créer un block_declaration<BT> où BT est un block_type
+     * 
+     * @param type Type de la variable declarée
+     * @param suffixes Taille du tableau
+     * @param identifier Nom de la variable
+     */
     template<block_type bt>
     std::any handle_statement_declaration(
         std::string type,
@@ -706,18 +838,15 @@ public:
             return *decl;
         }
         throw std::runtime_error("Unsupported block type");
-            
-
-        //     std::cout << "handle_statement_declaration " << identifier << std::endl;
-        // auto decl = std::make_shared<typename DataflowVariableDeclarationAliasType<expenv, dft>::type>(
-        //     typename DataflowVariableAliasType<expenv, dft>::type(identifier));
-        // auto var = std::make_shared<typename DataflowVariableAliasType<expenv, dft>::type>(
-        //     identifier, decl.get(), suffixes);
-        // decl->set_variable(*var);
-        // node_arena.push_back(decl);
-        // node_arena.push_back(var);
         }
 
+    /**
+     * @brief Permet de créer un dataflow_declaration ou un std::pair{dataflow_declaration, dataflow_assignment}
+     * 
+     * @param suffixes Taille du tableau
+     * @param identifier Nom de la variable
+     * @param assign Expression d'affectation
+     */
     template <expression_env expenv, dataflow_type dft>
     std::any handle_statement_declaration(
         std::vector<int_rvalue_expression_variant<expenv>> suffixes,
@@ -771,6 +900,9 @@ public:
      * FUNCTION HELPERS TO MAKE CLASSES
      */
 
+    /**
+     * @brief Permet de créer linking_statement
+     */
     template<block_type lk, block_type st, typename Dims_link, typename Dims_sup>
     linking_statement make_linking_statement(std::any linkable_any, Dims_link dims_link, 
                                              std::any support_any, Dims_sup dims_sup){
@@ -788,6 +920,12 @@ public:
         }
     }
 
+    /**
+     * @brief Permet de créer un function_output<DFK,DFT> où DFK et DFT sont le dataflow_kind et dataflow_type
+     * 
+     * @param identifier Nom de la fonction
+     * @param expr Expression retouner par la fonction
+     */
     template <dataflow_kind dfk, dataflow_type dft>
     function_output<dfk, dft> make_function_output(const std::string &identifier, std::shared_ptr<rvalue<dft, expression_env::PRIMITIVE>> &expr)
     {
@@ -798,6 +936,13 @@ public:
         return final_output;
     }
 
+    /**
+     * @brief Permet de récupérer un variable_expression ou variable_contextual_expression
+     * 
+     * @param l_identifier Nom de la variable
+     * @param suffixes Index du tableau
+     * @param is_contextual Booléen pour savoir si on doit récuperer un contextuel ou non
+     */
     std::any handle_var(std::string l_identifier, std::any suffixes, bool is_contextual);
 
     template <statement_env stenv>
@@ -841,14 +986,34 @@ public:
         }
     }
 
+    /**
+     * @brief Permet de savoir la valeur est un function_parameter
+     */
     bool is_function_parameter(std::any& value);
 
+    /**
+     * @brief Permet de créer un channel_eater
+     * 
+     * @param variable Représente un block_variable
+     * @param parameter_who_eat Représente un node_element_declaration<CHANNEL>
+     * @param dims Index du tableau
+     */
     channel_eater make_channel_eater(std::any& variable, std::any& parameter_who_eat, 
                                      std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
 
+    /**
+     * @brief Permet de créer un channel_feeder
+     * 
+     * @param variable Représente un block_variable
+     * @param parameter_who_eat Représente un node_element_declaration<CHANNEL>
+     * @param dims Index du tableau
+     */
     channel_feeder make_channel_feeder(std::any& variable, std::any& channel_who_feed,
                                      std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
 
+    /**
+     * @brief Permet de récupérer le dataflow_type en fonction d'un objet qui à un dataflow_type en template
+     */
     template<expression_env expenv>
     dataflow_type get_type_of_output(std::any& value){
         std::cout << "get_type_of_output: " << ast_builder_detail::type_name(value.type()) << std::endl;
@@ -872,9 +1037,6 @@ public:
         }
         throw std::runtime_error("The value is not a default or target output");
     };
-
-    // template<dataflow_kind dfk, dataflow_type dft, expression_env expenv>
-    // collective_cast<dfk, dft
 };
 
 #endif

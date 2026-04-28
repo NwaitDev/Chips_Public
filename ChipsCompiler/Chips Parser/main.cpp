@@ -60,13 +60,6 @@ void parse(std::istream& input, std::string filename) {
     program_node* rootPtr = std::any_cast<program_node>(&result);
 
     if(rootPtr){
-        // int status;
-        // const std::type_info& ti = typeid(*rootPtr);
-        // char* realname = abi::__cxa_demangle(ti.name(), 0, 0, &status);
-        // std::cout << "Type dynamique de rootPtr : " << (realname ? realname : ti.name()) << std::endl;
-        // free(realname);
-
-        // rootPtr->hello();
         SymbolTable::getInstance().dump();
 
         rootPtr->accept(visitor);
@@ -83,10 +76,7 @@ void parse(std::istream& input, std::string filename) {
 
         std::cout << "XMI généré: " << output << std::endl;
 
-    }else{
-        std::cout << "no" << std::endl;
     }
-    // }
 }
 
 // ── Point d'entrée ────────────────────────────────────────────
