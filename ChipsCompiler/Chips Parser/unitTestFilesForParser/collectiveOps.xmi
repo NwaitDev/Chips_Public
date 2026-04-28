@@ -190,10 +190,10 @@
                 <accumulator
                     xsi:type="chips.parameters.collective:int_collective_parameter">
                     <default_value
-                        xsi:type="chips.rvalues.collective:input_kw" />
+                        xsi:type="chips.rvalues.collective:input_kw"/>
                     <declaration>
                         <variable
-                            name="msg" />
+                            name="msg"/>
                     </declaration>
                 </accumulator>
             </accumulator>
@@ -301,21 +301,21 @@
             xsi:type="chips.statements.system:logical_declaration"
             def="//@preamble/@definitions.0">
             <variable
-                name="componentOne" />
+                name="componentOne"/>
         </system>
         <system
             xsi:type="chips.statements.system:int_declaration">
             <variable
-                name="nbSubComponents" />
+                name="nbSubComponents"/>
         </system>
         <system
             xsi:type="chips.statements.system:int_assignment">
             <lvalue
                 xsi:type="chips.xvalues.system:int_variable_expression"
-                variable="//@system/@system.1/@variable" />
+                variable="//@system/@system.1/@variable"/>
             <rvalue
                 xsi:type="chips.rvalues.system:direct_int"
-                value="3" />
+                value="3"/>
         </system>
         <system
             xsi:type="chips.statements.system:logical_declaration"
@@ -324,7 +324,7 @@
                 name="componentTwo">
                 <dimensions
                     xsi:type="chips.xvalues.system:int_variable_expression"
-                    variable="//@system/@system.1/@variable" />
+                    variable="//@system/@system.1/@variable"/>
             </variable>
         </system>
         <system
@@ -334,43 +334,31 @@
                 name="placeholders">
                 <dimensions
                     xsi:type="chips.xvalues.system:int_variable_expression"
-                    variable="//@system/@system.1/@variable" />
+                    variable="//@system/@system.1/@variable"/>
             </variable>
         </system>
         <system
             xsi:type="chips.statements.system:link">
             <linked_component
                 xsi:type="chips.systemspecific.expressions:logical_variable_expression"
-                variable="//@system/@system.0/@variable">
-                <index
-                    xsi:type="chips.rvalues.system:direct_int" />
-            </linked_component>
+                variable="//@system/@system.0/@variable"/>
             <support_node
                 xsi:type="chips.systemspecific.expressions:object_variable_expression"
                 variable="//@system/@system.4/@variable">
                 <index
-                    xsi:type="chips.rvalues.system:direct_int" />
+                    xsi:type="chips.rvalues.system:direct_int"/>
             </support_node>
-        </system>
-        <system
-            xsi:type="chips.statements.system:int_declaration">
-            <variable
-                name="range">
-                <dimensions
-                    xsi:type="chips.xvalues.system:int_variable_expression"
-                    variable="//@system/@system.1/@variable" />
-            </variable>
         </system>
         <system
             xsi:type="chips.statements.system:foreach">
             <iterator
                 xsi:type="chips.statements.system:int_declaration">
                 <variable
-                    name="i" />
+                    name="i"/>
             </iterator>
             <iterable_expr
                 xsi:type="chips.xvalues.system:int_variable_expression"
-                variable="//@system/@system.6/@variable" />
+                variable="//@system/@system.1/@variable"/>
             <statements
                 xsi:type="chips.statements.system:link">
                 <linked_component
@@ -378,14 +366,14 @@
                     variable="//@system/@system.3/@variable">
                     <index
                         xsi:type="chips.xvalues.system:int_variable_expression"
-                        variable="//@system/@system.7/@iterator/@variable" />
+                        variable="//@system/@system.6/@iterator/@variable"/>
                 </linked_component>
                 <support_node
                     xsi:type="chips.systemspecific.expressions:object_variable_expression"
                     variable="//@system/@system.4/@variable">
                     <index
                         xsi:type="chips.xvalues.system:int_variable_expression"
-                        variable="//@system/@system.7/@iterator/@variable" />
+                        variable="//@system/@system.6/@iterator/@variable"/>
                 </support_node>
             </statements>
             <statements
@@ -396,17 +384,17 @@
                         variable="//@system/@system.3/@variable">
                         <index
                             xsi:type="chips.xvalues.system:int_variable_expression"
-                            variable="//@system/@system.7/@iterator/@variable" />
+                            variable="//@system/@system.6/@iterator/@variable"/>
                     </variable_expression>
                 </eater>
                 <feeder
                     xsi:type="chips.rvalues.dataflow.operators.int:plus">
                     <left_operand
                         xsi:type="chips.xvalues.system:int_variable_expression"
-                        variable="//@system/@system.7/@iterator/@variable" />
+                        variable="//@system/@system.6/@iterator/@variable"/>
                     <right_operand
                         xsi:type="chips.rvalues.system:direct_int"
-                        value="1" />
+                        value="1"/>
                 </feeder>
             </statements>
             <statements
@@ -417,7 +405,7 @@
                         variable="//@system/@system.3/@variable">
                         <index
                             xsi:type="chips.xvalues.system:int_variable_expression"
-                            variable="//@system/@system.7/@iterator/@variable" />
+                            variable="//@system/@system.6/@iterator/@variable"/>
                     </variable_expression>
                 </eater>
                 <feeder
@@ -427,7 +415,7 @@
                         xsi:type="chips.systemspecific.expressions.feeder:int_logical_output"
                         output="//@preamble/@definitions.0/@outputs.0">
                         <variable_expression
-                            variable="//@system/@system.0/@variable" />
+                            variable="//@system/@system.0/@variable"/>
                     </logical_feeder_expression>
                 </feeder>
             </statements>
@@ -437,9 +425,9 @@
                     xsi:type="chips.rvalues.dataflow.operators.bool:gt_int">
                     <left_operand
                         xsi:type="chips.xvalues.system:int_variable_expression"
-                        variable="//@system/@system.7/@iterator/@variable" />
+                        variable="//@system/@system.6/@iterator/@variable"/>
                     <right_operand
-                        xsi:type="chips.rvalues.system:direct_int" />
+                        xsi:type="chips.rvalues.system:direct_int"/>
                 </condition>
                 <if_section>
                     <if_statements
@@ -451,7 +439,7 @@
                                 variable="//@system/@system.4/@variable">
                                 <index
                                     xsi:type="chips.xvalues.system:int_variable_expression"
-                                    variable="//@system/@system.7/@iterator/@variable" />
+                                    variable="//@system/@system.6/@iterator/@variable"/>
                             </node>
                         </eater>
                         <feeder
@@ -463,10 +451,10 @@
                                     xsi:type="chips.rvalues.dataflow.operators.int:minus">
                                     <left_operand
                                         xsi:type="chips.xvalues.system:int_variable_expression"
-                                        variable="//@system/@system.7/@iterator/@variable" />
+                                        variable="//@system/@system.6/@iterator/@variable"/>
                                     <right_operand
                                         xsi:type="chips.rvalues.system:direct_int"
-                                        value="1" />
+                                        value="1"/>
                                 </index>
                             </node>
                         </feeder>
@@ -482,10 +470,10 @@
                                     xsi:type="chips.rvalues.dataflow.operators.int:minus">
                                     <left_operand
                                         xsi:type="chips.xvalues.system:int_variable_expression"
-                                        variable="//@system/@system.7/@iterator/@variable" />
+                                        variable="//@system/@system.6/@iterator/@variable"/>
                                     <right_operand
                                         xsi:type="chips.rvalues.system:direct_int"
-                                        value="1" />
+                                        value="1"/>
                                 </index>
                             </node>
                         </eater>
@@ -496,7 +484,7 @@
                                 variable="//@system/@system.4/@variable">
                                 <index
                                     xsi:type="chips.xvalues.system:int_variable_expression"
-                                    variable="//@system/@system.7/@iterator/@variable" />
+                                    variable="//@system/@system.6/@iterator/@variable"/>
                             </node>
                         </feeder>
                     </if_statements>

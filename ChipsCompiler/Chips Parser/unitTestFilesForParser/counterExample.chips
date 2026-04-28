@@ -22,7 +22,7 @@ implementation abstractObjectByCounter : AbstractObject by PhysicalCounter {
 }
 
 
-physical ButtonPusher () -> actuator push(true)
+physical ButtonPusher () with {} init{} then {} -> actuator push(true)
 
 system {
     PhysicalCounter pc;

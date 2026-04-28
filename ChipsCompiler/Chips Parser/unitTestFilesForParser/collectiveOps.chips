@@ -65,8 +65,8 @@ system {
     // Really needs improvement on this part
     // currently assuming the following array
     // will contain {0, 1, 2} 
-    int [nbSubComponents] range; // need for a range function like in python
-    for i in range {
+    //int [nbSubComponents] range; // need for a range function like in python
+    for i in range(nbSubComponents) {
 
         // setting the virtual position of the function
         link componentTwo[i] to placeholders[i];
@@ -75,7 +75,7 @@ system {
         componentTwo[i].coef(i+1);
 
         
-        componentTwo[i].activation((trueAsLongAsPositive) componentOne.toBeSpread);
+        componentTwo[i].activation((TrueAsLongAsPositive) componentOne.toBeSpread);
         
         // plugging the channels together
         if (i > 0){
