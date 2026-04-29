@@ -1,6 +1,0 @@
-pure function() -> ()
-
-SYSTEM {
-    function();
-    function();
-}
