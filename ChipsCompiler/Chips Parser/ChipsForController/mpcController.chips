@@ -1,0 +1,24 @@
+logical MPCController(float a, float b, int N, float u_min, float u_max, float y_safe_min, float y_safe_max) init {
+
+    float _a = a;
+    float _b = b;
+    int _horizon;
+    float _weight_error;
+    float _weight_effort;
+    float _u_min = u_min;
+    float _u_max = u_max;
+    float _y_safe_min = y_safe_min;
+    float _y_safe_max = y_safe_max;
+    float _prev_u;
+
+    if(N < 1){
+        _horizon = 1;
+    }else{
+        _horizon = N;
+    }
+
+}then{
+    
+
+
+}
