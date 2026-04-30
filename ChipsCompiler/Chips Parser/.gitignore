@@ -1,5 +1,4 @@
 build/
 generated/
 .antlr/
-*.chips
 debug.log
