@@ -775,6 +775,10 @@
         eSuperTypes="#//rvalues/system_rvalue #//systemspecific/float_logical_feeder"/>
     <eClassifiers xsi:type="ecore:EClass" name="system_bool_rvalue" abstract="true"
         eSuperTypes="#//rvalues/system_rvalue #//systemspecific/bool_logical_feeder"/>
+    <eClassifiers xsi:type="ecore:EClass" name="channeled_expression" abstract="true">
+      <eStructuralFeatures xsi:type="ecore:EReference" name="channel" lowerBound="1"
+          eType="#//statements/node/channel_declaration"/>
+    </eClassifiers>
     <eSubpackages name="primitive" nsURI="http://chips/rvalues/primitive" nsPrefix="chips.rvalues.primitive">
       <eClassifiers xsi:type="ecore:EClass" name="direct_int" eSuperTypes="#//rvalues/primitive_int_rvalue">
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
@@ -1183,6 +1187,18 @@
             eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="parameters" upperBound="-1"
             eType="#//rvalues/collective_rvalue" containment="true"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="int_channeled_expression" eSuperTypes="#//rvalues/channeled_expression #//rvalues/collective_int_rvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="accu_parameter" lowerBound="1"
+            eType="#//variables/collective/int"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="float_channeled_expression" eSuperTypes="#//rvalues/channeled_expression #//rvalues/collective_float_rvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="accu_parameter" lowerBound="1"
+            eType="#//variables/collective/float"/>
+      </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="bool_channeled_expression" eSuperTypes="#//rvalues/channeled_expression #//rvalues/collective_bool_rvalue">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="accu_parameter" lowerBound="1"
+            eType="#//variables/collective/bool"/>
       </eClassifiers>
       <eSubpackages name="operators" nsURI="http://chips/rvalues/collective/operators"
           nsPrefix="chips.rvalues.collective.operators">

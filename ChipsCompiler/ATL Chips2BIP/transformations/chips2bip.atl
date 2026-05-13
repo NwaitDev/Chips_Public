@@ -18,6 +18,9 @@ helper context Integer def : toString: String =
 		endif
 	endif;
 
+helper context String  def : typeToInt : Integer =
+	thisModule.primitiveTypes->indexOf(self);
+
 helper context chips!logical_parameter  def : typeToInt : Integer =
 	Sequence{
 		chips!int_logical_parameter,
@@ -121,6 +124,97 @@ helper context chips!primitive_declaration  def : extractTypeAsString : String =
 		endif
 	endif;
 
+helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
+	if self.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_bool_expression") then
+		Set{Tuple{ type='bool', name=self.variable.name, suffix='_ctx', exported=true}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::leq_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::geq_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::lt_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::gt_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::neq_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::eq_int") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::leq_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::geq_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::lt_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::gt_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::neq_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::eq_float") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::not") then
+		self.operand->uses_contextuals()
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::or") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::and") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::neq_bool") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::eq_bool") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_int_expression") then
+		Set{Tuple{ type='int', name=self.variable.name, suffix='_ctx', exported=true}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::minus") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::plus") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mult") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::div") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mod") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::cast_as_int") then
+		self.numeric->uses_contextuals()
+	else if self.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_float_expression") then
+		Set{Tuple{ type='float', name=self.variable.name, suffix='_ctx', exported=true}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::minus") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::plus") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::mult") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::div") then
+		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::cast_as_float") then
+		self.numeric->uses_contextuals()
+	else 
+		Set{}
+	endif endif endif endif endif endif	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif;
+
+
+helper context chips!primitive_statement def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
+	if self.oclIsTypeOf(chips!"chips::statements::primitive::int_assignment")
+	or self.oclIsTypeOf(chips!"chips::statements::primitive::float_assignment")
+	or self.oclIsTypeOf(chips!"chips::statements::primitive::bool_assignment") then
+		Set{self.lvalue->uses_contextuals()}
+		->union(self.rvalue->uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::statements::primitive::if_else") then
+		self.condition->uses_contextuals()
+		->union(self.if_section.if_statements->uses_contextuals()->asSet())
+		->union(self.else_section.else_statements->uses_contextuals()->asSet())
+	else if self.oclIsTypeOf(chips!"chips::statements::primitive::if") then
+		self.condition->uses_contextuals()
+		->union(self.if_section.if_statements->uses_contextuals()->asSet())
+	else if self.oclIsTypeOf(chips!"chips::statements::primitive::foreach") then
+		self.iterable_expr->uses_contextuals()
+		->union(self.statements->uses_contextuals()->asSet())
+	else 
+		Set{}
+	endif endif endif endif;
+
+helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Sequence(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
+	self->collect(stt | stt->uses_contextuals()->asSequence())->asSequence();
+
 
 helper def: allDataTypeNames : Set(String) =
     chips!function_definition.allInstances()
@@ -153,12 +247,17 @@ helper def: allPortTypes : Set(bip!PortType) =
 			))
 			->collect(outputlist | outputlist->collect(o | o.typeToInt))
 		)
+		->union(
+			Sequence{
+				chips!function_definition.allInstances()
+				->collect(fd | fd."then".statements->uses_contextuals())
+				->flatten()
+				->collect(tuple | tuple.type.toIntType)
+			}
+		)
 		->collect(list_of_type_as_int | list_of_type_as_int->collect(intType | intType.toStringType)->sortedBy(s | s))
 		->asSet()
 		->collect(typeStringsOrderedSequence | thisModule.TypeStringsOrderedSequenceAsPortType(typeStringsOrderedSequence));
-
-
-
 
 
 unique lazy rule MakeChipsDataType {
@@ -272,105 +371,73 @@ unique lazy rule MakeChipsBuffer{
 		
 }
 
-rule LogicalParameter2AtomIntenalDataDeclaration{
-	from param : chips!logical_parameter
-	
-	to aidd : bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(param.extractTypeAsString),
-		name <- param.name + '_in',
-		const <- false,
-		exported <- true
-	)
-}
+helper context chips!logical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_out',
+		exported = true
+	};
 
-rule LogicalOutput2AtomIntenalDataDeclaration{
-	from output : chips!logical_output
-	
-	to aidd : bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(output.extractTypeAsString),
-		name <- output.name + '_out',
-		const <- false,
-		exported <- true
-	)
-}
+helper context chips!logical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_in',
+		exported = true
+	};
 
-rule PhysicalParameter2AtomIntenalDataDeclaration{
-	from param : chips!physical_parameter
-	
-	to aidd : bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(param.extractTypeAsString),
-		name <- param.name + '_in',
-		const <- false,
-		exported <- true
-	)
-}
 
-rule PhysicalOutput2AtomIntenalDataDeclaration{
-	from output : chips!physical_output
-	
-	to aidd : bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(output.extractTypeAsString),
-		name <- output.name + '_out',
-		const <- false,
-		exported <- true
-	)
-}
+helper context chips!physical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_out',
+		exported = true
+	};
 
-lazy rule PrimitiveDecl2AtomInternalDataDeclaration {
-	from primdecl : chips!primitive_declaration
+helper context chips!physical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_in',
+		exported = true
+	};
+
+helper context chips!primitive_declaration def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.variable.name,
+		suffix = '_inner',
+		exported = false
+	};
+	
+
+unique lazy rule Tuple2AtomInternalDataDeclaration {
+	from 
+		tuple : TupleType(type: String, name:String, suffix:String, exported:Boolean), 
+		fd:chips!function_definition -- to make the rule unique
 	
 	to aidd: bip!AtomInternalDataDeclaration(
-			dataType <- thisModule.MakeChipsDataType(primdecl.extractTypeAsString),
-			name <- primdecl.variable.name + '_inner',
+			dataType <- thisModule.MakeChipsDataType(tuple.type),
+			name <- tuple.name + tuple.suffix,
 			const <- false,
-			exported <- false
+			exported <- tuple.exported
 		)
 }
 
 -- Lazy rule to create each DataDeclarationReferenceDataParameter
-lazy rule MakeRcvDataParam {
+lazy rule MakePortDataParam {
 	from
 		pdpd : Sequence(bip!PortDataParameterDeclaration),
-		dataname: String,
 		biptype: Integer,
 		portparamid: Integer,
-		allinputs: Sequence(bip!AtomInternalDataDeclaration)
+		alldecls: Sequence(bip!AtomInternalDataDeclaration)
 
 	to dataparam : bip!DataDeclarationReferenceDataParameter(
+		dataDeclarationReference <- alldecls->get(portparamid),
 		parameterDeclaration <- pdpd->get(portparamid),
-		type <- thisModule.MakeChipsDataType(biptype),
-		dataDeclarationReference <- allinputs->any(input| input.name = dataname)
-	)
-}
-
-
-lazy rule MakeSndDataParam {
-	from
-		pdpd : Sequence(bip!PortDataParameterDeclaration),
-		dataname: String,
-		biptype: Integer,
-		portparamid: Integer,
-		allinputs: Sequence(bip!AtomInternalDataDeclaration)
-
-	to dataparam : bip!DataDeclarationReferenceDataParameter(
-		parameterDeclaration <- pdpd->get(portparamid),
-		type <- thisModule.MakeChipsDataType(biptype),
-		dataDeclarationReference <- allinputs->any(input| input.name = dataname)
-	)
-}
-
-lazy rule MakeCtxDataParam {
-	from
-		pdpd : Sequence(bip!PortDataParameterDeclaration),
-		dataname: String,
-		biptype: Integer,
-		portparamid: Integer,
-		allinputs: Sequence(bip!AtomInternalDataDeclaration)
-
-	to dataparam : bip!DataDeclarationReferenceDataParameter(
-		parameterDeclaration <- pdpd->get(portparamid),
-		type <- thisModule.MakeChipsDataType(biptype),
-		dataDeclarationReference <- allinputs->any(input| input.name = dataname)
+		type <- thisModule.MakeChipsDataType(biptype)
 	)
 }
 
@@ -386,15 +453,19 @@ unique lazy rule PortTypeSync {
 	)
 }
 
+helper def : orderedTypeSeqAsPdpdList(type_ordered_sequence : Sequence(String)) : Sequence(bip!PortDataParameterDeclaration) =
+	type_ordered_sequence
+	->iterate( typename ; tuples : Sequence(TupleType(stype:String , iindex : Integer)) = Sequence{Tuple{stype='',iindex=0}}
+		| tuples.append(Tuple{stype = typename, iindex = tuples->last().iindex+1})
+	)
+	->select(t | t.iindex > 0) -- removes the first element
+	->collect( tuple | thisModule.TupleAsPortDataParameterDeclaration(tuple,type_ordered_sequence));
+
 unique lazy rule TypeStringsOrderedSequenceAsPortType {
-	from type_ordered_sequence : Sequence(String)
+	from 
+		type_ordered_sequence : Sequence(String)
 	using{
-		pdpd : Sequence(bip!PortDataParameterDeclaration) = type_ordered_sequence
-			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
-				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
-			)
-			->select(e | e > 0) -- removes the first element
-			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,type_ordered_sequence));
+		pdpd : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(type_ordered_sequence);
 	}
 	to pt : bip!PortType(
 		name <- type_ordered_sequence->iterate(tname ; accu : String = '' | accu+tname)+'_port_t',
@@ -402,166 +473,234 @@ unique lazy rule TypeStringsOrderedSequenceAsPortType {
 	)
 }
 
-unique lazy rule TypeNameAsPortDataParameterDeclaration {
+unique lazy rule TupleAsPortDataParameterDeclaration {
 	from 
-		encodedDecl: Integer,
-		typesOrderedSequence: Sequence(String) -- specify the typesOrderedSequence to allow duplication of parameter declarations when not used in the same port type
-	using {
-		typeAsInt : Integer = 1 + (encodedDecl mod thisModule.nbPrimitiveTypes);
-		declIndex : Integer = encodedDecl div thisModule.nbPrimitiveTypes;
-	}
-	to pdpd: bip!PortDataParameterDeclaration(
-		name <- 'v'+declIndex.toString,
-		dataType <- thisModule.MakeChipsDataType(typeAsInt.toStringType)
+		t : TupleType(stype:String, iindex:Integer),
+		-- specify the typesOrderedSequence to allow duplication of parameter declarations when declaring different port type
+ 		typesOrderedSequence: Sequence(String)
+	to 
+		pdpd: bip!PortDataParameterDeclaration(
+			name <- 'v'+t.iindex.toString,
+			dataType <- thisModule.MakeChipsDataType(t.stype)
+		)
+}
+
+lazy rule MakeState{
+	from name:String
+	to state:bip!State(
+		name <- name
 	)
 }
 
-helper context chips!primitive_bool_rvalue def: uses_contextuals() : Set(TupleType(vtype:String, vname:String)) =
-	if self.oclIsTypeOf(chips!contextual_bool_expression) then
-		Tuple{ vtype='bool', vname=self.rvalue.variable.name}
-	else if self.oclIsTypeOf(chips!leq_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!geq_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!lt_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!gt_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!neq_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!eq_int) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!leq_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!geq_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!lt_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!gt_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!neq_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!eq_float) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"not") then
-		self.operand->uses_contextuals()
-	else if self.oclIsTypeOf(chips!"or") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"and") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!neq_bool) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!eq_bool) then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else 
-		Set{}
-	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif; 
+lazy rule MakePort{
+	from
+		name:String,
+		pt:bip!PortType,
+		alltypenames: Sequence(String),
+		vdecls: Sequence(bip!AtomInternalDataDeclaration),
+		pdpdecls:Sequence(bip!PortDataParameterDeclaration),
+		ctx: Boolean
 
-helper context chips!primitive_int_rvalue def : uses_contextuals() :Set(TupleType(vtype:String, vname:String)) =
-	if self.oclIsTypeOf(chips!contextual_int_expression) then
-		Tuple{ vtype='int', vname=self.rvalue.variable.name}
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::minus") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::plus") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mult") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::div") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mod") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::cast_as_int") then
-		self.numeric->uses_contextuals()
-	else 
-		Set{}
-	endif endif endif endif endif endif endif;
+	to port : bip!AtomInternalPortDeclaration(
+		portType <- pt,
+		name <- name,
+		dataParameters <- alltypenames->iterate(
+			tname ; 
+			tuples : 
+			Sequence(
+				TupleType(
+					biptype : Integer,
+					portparamid : Integer
+				)
+			) = Sequence{Tuple{biptype = 0, portparamid = -1}} |
+			tuples.append(
+				Tuple{
+					biptype = tname.toIntType,
+					portparamid = tuples.last().portparamid + 1
+				}
+			)
+		)
+		->select(t | t.portparamid >= 0)
+		->collect(t | thisModule.MakePortDataParam(pdpdecls, t.biptype, t.portparamid, vdecls))
+	)
+}
 
-helper context chips!primitive_float_rvalue def : uses_contextuals() :Set(TupleType(vtype:String, vname:String)) =
-	if self.oclIsTypeOf(chips!contextual_float_expression) then
-		Tuple{ vtype='float', vname=self.rvalue.variable.name}
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::minus") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::plus") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::mult") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::div") then
-		self.left_operand->uses_contextuals()->union(self.right_operand->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::float::cast_as_float") then
-		self.numeric->uses_contextuals()
-	else 
-		Set{}
-	endif endif endif endif endif endif;
+lazy rule MakeTransition{
+	from 
+		source : bip!State,
+		target : bip!State,
+		port : bip!AtomInternalPortDeclaration,
+		guardedby : OclAny
 
-helper context chips!primitive_statement def : uses_contextuals() : Set(TupleType(vtype:String, vname:String)) =
-	if self.oclIsTypeOf(chips!int_assignment) or self.oclIsTypeOf(chips!float_assignment) or self.oclIsTypeOf(chips!bool_assignment) then
-		self.lvalue->uses_contextuals()
-		->union(self.rvalue->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::statements::primitive::else_if") then
-		self.condition->uses_contextuals()
-		->union(self.if_section->uses_contextuals())
-		->union(self.else_section->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::statements::primitive::if") then
-		self.condition->uses_contextuals()
-		->union(self.if_section->uses_contextuals())
-	else if self.oclIsTypeOf(chips!"chips::statements::primitive::foreach") then
-		self.iterable_expr->uses_contextuals()
-		->union(self.statements->uses_contextuals())
-	else 
-		Set{}
-	endif endif endif endif;
+	to 
+		trans : bip!Transition(
+			sources <- Sequence{source},
+			destinations <- Sequence{target},
+			triggerPort <- port,
+			guard <- guardedby
+		)
+}
 
-helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Sequence(TupleType(vtype:String, vname:String)) =
-	self
-	->select(stt | stt.oclIsTypeOf(chips!int_assignment));
+lazy rule MakeTrivialGuard{
+	from b:Boolean
+	to g:bip!DirectBooleanExpression(
+		value <- b
+	)
+}
+
+
+
+helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequence(bip!AtomInternalPortDeclaration)) : Sequence(bip!Transition) =
+
+	if (stateslist->size()=6) then 
+		Sequence{ -- contextual case
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to rcv / add guard
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to snd / add guard
+			thisModule.MakeTransition(stateslist->get(1),stateslist->get(4),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to readctx
+			thisModule.MakeTransition(stateslist->get(4),stateslist->get(2),portslist->get(4),thisModule.MakeTrivialGuard(true)), -- readctx to then
+			thisModule.MakeTransition(stateslist->get(2),stateslist->get(5),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to writectx
+			thisModule.MakeTransition(stateslist->get(5),stateslist->get(3),portslist->get(5),thisModule.MakeTrivialGuard(true)), -- writectx to snd
+			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
+		}
+	else
+		Sequence{ -- regular case
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to rcv
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to snd
+			thisModule.MakeTransition(stateslist->get(1),stateslist->get(2),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to then
+			thisModule.MakeTransition(stateslist->get(2),stateslist->get(3),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to snd
+			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
+		}
+	endif;
+
+lazy rule MakeAtomExportPortDeclaration{
+	from 
+		pt:bip!PortType,
+		name: String,
+		pr: bip!AtomInternalPortDeclaration -- port reference
+
+	to aepd : bip!AtomExportPortDeclaration(
+		portType <-pt,
+		name <-'writectx',
+		portDeclarationReferences <- Sequence{pr}
+	)
+}
 
 rule FunctionDefinition2AtomType {
     from chipsfunction: chips!function_definition
 	
 	using {
-		allparamsdecl : Sequence(OclAny) = chipsfunction.parameters->union(
+
+		-- retrieving the list of data that should be declared in the bip component
+		-- sorting with names of the types to put in the ports to avoid generation of equivalent port types
+		-- e.g. port(int, float) and port(float,int)
+		---------------------------------------------------------------------------
+		allparamsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
+			chipsfunction.parameters->union(
 				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
 					chipsfunction.sensor
 				else
 					Sequence{}
-				endif 
-			);
-    	aidd_input : Sequence(bip!AtomIntenalDataDeclaration) = allparamsdecl;
-		rcv_type_ordered_sequence : Sequence(String) = allparamsdecl->collect(param | param.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->sortedBy(s | s);
-		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = rcv_type_ordered_sequence
-			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
-				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
-			)
-			->select(e | e > 0) -- removes the first element
-			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,rcv_type_ordered_sequence));
-		rcv_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(rcv_type_ordered_sequence);
-
-		alloutputsdecl : Sequence(OclAny) = chipsfunction.outputs->union(
+				endif
+			)->collect(param | param.toTuple)->sortedBy(t | t.type);
+		
+		alloutputsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
+			chipsfunction.outputs->union(
 				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
 					chipsfunction.actuator
 				else
 					Sequence{}
 				endif 
-			);
-    	aidd_output : Sequence(bip!AtomIntenalDataDeclaration) = alloutputsdecl;
-		snd_type_ordered_sequence : Sequence(String) = alloutputsdecl->collect(out | out.typeToInt)->collect(typeAsInt | typeAsInt.toStringType)->sortedBy(s | s);
-		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = snd_type_ordered_sequence
-			->iterate( typename ; encodedDecls : Sequence(Integer) = Sequence{0} -- need to linearize the two data needed (because I didn't remember I could use TupleType)
-				| encodedDecls.append((typename.toIntType - 1) + ((encodedDecls.last() div thisModule.nbPrimitiveTypes) + 1) * thisModule.nbPrimitiveTypes )
-			)
-			->select(e | e > 0) -- removes the first element
-			->collect( encodedDeclaration | thisModule.TypeNameAsPortDataParameterDeclaration(encodedDeclaration,snd_type_ordered_sequence));
-		snd_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(snd_type_ordered_sequence);
+			)->sortedBy(o | o.extractTypeAsString)->collect(output | output.toTuple);
+		
+		contextual_used : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) =
+			chipsfunction."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
+
+		-- Sorted param types
+		----------------------------
+		spt_input : Sequence(String) = allparamsdecltuples->collect(e | e.type);
+		spt_output : Sequence(String) = alloutputsdecltuples->collect(e | e.type);
+		spt_ctx : Sequence(String) = contextual_used->collect(e | e.type);
 
 
+		-- Defining the number of states for the petri net
+		--------------------------------------------------
+		all_states : Sequence(bip!State) = Sequence{
+			thisModule.MakeState('INIT'),
+			thisModule.MakeState('RECEIVE'),
+			thisModule.MakeState('THEN'),
+			thisModule.MakeState('SEND')
+		}->union(
+			if (contextual_used->size()>0) then 
+				Sequence{
+					thisModule.MakeState('READCTX'),
+					thisModule.MakeState('WRITECTX')
+				}
+			else
+				Sequence{}
+			endif
+
+		);
+
+		-- generating bip data declarations
+		-----------------------------------
+		aidd_ctx : Sequence(bip!AtomInternalDataDeclaration) = contextual_used->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
+    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = allparamsdecltuples->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
+		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = alloutputsdecltuples->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-			->collect(primdecl | thisModule.PrimitiveDecl2AtomInternalDataDeclaration(primdecl));
+			->collect(primdecl | primdecl.toTuple)
+			->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
 
-		contextual_used : Sequence(TupleType(vtype: String, vname:String )) = 
-			chipsfunction.then_section.statements->uses_contextuals()
-			->sortedBy(item | item.vtype);
+
+		-- generating port parameter declarations
+		-----------------------------------------
+		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_input);
+
+		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_output);
+		
+		pdpd_ctx : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_ctx);
+
+
+		-- generating port types
+		------------------------
+		rcv_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(spt_input);
+		snd_porttype : bip!PortType = thisModule.TypeStringsOrderedSequenceAsPortType(spt_output);
+		ctx_porttype : bip!PortType = 
+		if (spt_ctx->size()>0) then
+			thisModule.TypeStringsOrderedSequenceAsPortType(spt_ctx)
+		else
+			OclUndefined
+		endif;
+		
+		-- generating ports
+		all_ports : Sequence(bip!Port) = Sequence{
+			thisModule.MakePort('start', thisModule.PortTypeSync(''),Sequence{}, Sequence{}, Sequence{},false),
+			thisModule.MakePort('then',  thisModule.PortTypeSync(''),Sequence{},	Sequence{}, Sequence{},false),
+			thisModule.MakePort('send', snd_porttype,spt_output, aidd_output, pdpd_outputs, false),
+			thisModule.MakePort('recv', rcv_porttype,spt_input, aidd_input, pdpd_inputs, false)
+		}->union(
+			if (contextual_used->size()>0) then
+				Sequence{
+					thisModule.MakePort('readctx', ctx_porttype,spt_ctx, aidd_ctx, pdpd_ctx, true),
+					thisModule.MakePort('writectx', ctx_porttype, spt_ctx, aidd_ctx, pdpd_ctx, true)
+				}
+			else 
+				Sequence{}
+			endif
+		);
+
+		-- generating list of contextuals to export
+		-------------------------------------------
+		ctx_to_export : Sequence( bip!AtomExportPortDeclaration) = 
+			if contextual_used.isEmpty() then 
+				Sequence{}
+			else 
+				Sequence{
+					thisModule.MakeAtomExportPortDeclaration(ctx_porttype, 'readctx', all_ports->get(4)),
+					thisModule.MakeAtomExportPortDeclaration(ctx_porttype, 'writectx', all_ports->get(5))
+				}
+			endif;
 	}
 
     to componenttype: bip!AtomType(
@@ -572,11 +711,11 @@ rule FunctionDefinition2AtomType {
         exportedPortDeclarations <- Sequence{}, -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
 		dataParameterDeclarations <- Sequence{isSource}, -- only for component type
-        internalPortDeclarations <- Sequence{start_port, calc_port, snd_port, rcv_port}, -- only for atom type
+        internalPortDeclarations <- all_ports, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
         behavior <- pn, -- only for atom type
-        internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner}->flatten(), -- only for atom type
-        exportPortDeclarations <- Sequence{aepd_snd,aepd_rcv}, -- only for atom type
+        internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner, aidd_ctx}->flatten(), -- only for atom type
+        exportPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- only for atom type
         priorities <- Sequence{}, -- only for atom type
         invariants <- Sequence{} -- only for atom type
     ),
@@ -588,57 +727,13 @@ rule FunctionDefinition2AtomType {
 		--const <- true
 	),
 
-	start_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
-		name <- 'start',
-		dataParameters <- Sequence{}
-	),
-
-	calc_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
-		name <- 'then',
-		dataParameters <- Sequence{}
-	),
-
-	getCtx_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.TypeStringsOrderedSequenceAsPortType(
-			contextual_used->collect(typenvar| typenvar.vtype)
-		),
-		name <- 'getCtx',
-		dataParameters <-  contextual_used->iterate(
-			ctx ; 
-			dataparamsAsTuples : 
-			Sequence(
-				TupleType(
-					dataname : String,
-					biptype : Integer,
-					portparamid : Integer
-				)
-			) = Sequence{Tuple{dataname = '', biptype = 0, portparamid = -1}} |
-			dataparamsAsTuples.append(
-				Tuple{
-					dataname = ctx.vname,
-					biptype = ctx.vtype.typeToInt,
-					portparamid = dataparamsAsTuples.last().portparamid +1
-				}
-			)
-		)
-		->select(t | t.portparamid >= 0)
-		->collect(t | thisModule.MakeCtxDataParam(pdpd_outputs, t.dataname, t.biptype, t.portparamid, aidd_output))
-	),
-
-	freeCtx_port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.PortTypeSync(''),
-		name <- 'freeCtx',
-		dataParameters <- Sequence{}
-	),
-
 	aepd_snd : bip!AtomExportPortDeclaration(
 		portType <-snd_porttype,
 		name <-'output',
 		dataParameters <- Sequence{},
 		portDeclarationReferences <- Sequence{}
 	),
+
 	aepd_rcv : bip!AtomExportPortDeclaration(
 		portType <-rcv_porttype,
 		name <-'input',
@@ -646,117 +741,11 @@ rule FunctionDefinition2AtomType {
 		portDeclarationReferences <- Sequence{}
 	),
 
-	snd_port : bip!AtomInternalPortDeclaration(
-		portType <- snd_porttype,
-		name <- 'send',
-		dataParameters <- alloutputsdecl->iterate(
-			output ; 
-			dataparamsAsTuples : 
-			Sequence(
-				TupleType(
-					dataname : String,
-					biptype : Integer,
-					portparamid : Integer
-				)
-			) = Sequence{Tuple{dataname = '', biptype = 0, portparamid = -1}} |
-			dataparamsAsTuples.append(
-				Tuple{
-					dataname = output.name,
-					biptype = output.typeToInt,
-					portparamid = dataparamsAsTuples.last().portparamid +1
-				}
-			)
-		)
-		->select(t | t.portparamid >= 0)
-		->collect(t | thisModule.MakeSndDataParam(pdpd_outputs, t.dataname, t.biptype, t.portparamid, aidd_output))
-	),
-
-	rcv_port : bip!AtomInternalPortDeclaration(
-		portType <- rcv_porttype,
-		name <- 'recv',
-		dataParameters <- allparamsdecl->iterate(
-			param ; 
-			dataparamsAsTuples : 
-			Sequence(
-				TupleType(
-					dataname : String,
-					biptype : Integer,
-					portparamid : Integer
-				)
-			) = Sequence{Tuple{dataname = '', biptype = 0, portparamid = -1}} |
-			dataparamsAsTuples.append(
-				Tuple{
-					dataname = param.name,
-					biptype = param.typeToInt,
-					portparamid = dataparamsAsTuples.last().portparamid +1
-				}
-			)
-		)
-		->select(t | t.portparamid >= 0)
-		->collect(t | thisModule.MakeRcvDataParam(pdpd_inputs, t.dataname, t.biptype, t.portparamid, aidd_input))
-	),
-
 	pn : bip!PetriNet(
-		states <- Sequence{init_state, rcv_state, then_state, snd_state},
-		initStates <- Sequence{init_state},
-		transitions <- Sequence{t_init_to_rcv,t_init_to_snd,t_rcv_to_then,t_then_to_snd,t_snd_to_rcv},
+		states <- all_states,
+		initStates <- Sequence{all_states->at(1)},
+		transitions <- thisModule.MakeTransitions(all_states, all_ports),
 		initialActions <- Sequence{} -- put the call to the init function here
-	),
-
-	t_init_to_rcv : bip!Transition(
-		sources <- Sequence{init_state},
-		destinations <- Sequence{rcv_state},
-		triggerPort <- start_port,
-		guard <- OclUndefined -- include guard on the "isSource" parameter of the component
-	),
-
-	t_init_to_snd : bip!Transition(
-		sources <- Sequence{init_state},
-		destinations <- Sequence{snd_state},
-		triggerPort <- start_port,
-		guard <- OclUndefined -- include guard on the "isSource" parameter of the component
-	),
-
-	t_rcv_to_then : bip!Transition(
-		sources <- Sequence{rcv_state},
-		destinations <- Sequence{then_state},
-		triggerPort <- rcv_port
-	),
-
-	t_then_to_snd : bip!Transition(
-		sources <- Sequence{then_state},
-		destinations <- Sequence{snd_state},
-		triggerPort <- calc_port
-	),
-
-	t_snd_to_rcv : bip!Transition(
-		sources <- Sequence{snd_state},
-		destinations <- Sequence{rcv_state},
-		triggerPort <- snd_port
-	),
-
-	init_state : bip!State(
-		name <- 'INIT'
-	),
-
-	rcv_state : bip!State(
-		name <- 'RECEIVING'
-	),
-
-	snd_state : bip!State(
-		name <- 'SENDING'
-	),
-
-	then_state : bip!State(
-		name <- 'THEN'
-	),
-
-	read_ctx_state : bip!State(
-		name <- 'READ_CTX'
-	),
-
-	write_ctx_state : bip!State(
-		name <- 'WRITE_CTX'
 	)
 }
 

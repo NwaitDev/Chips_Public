@@ -1110,6 +1110,7 @@
         </declaration>
       </parameters>
       <init/>
+      <then/>
     </definitions>
     <definitions
         xsi:type="definitions:logical_definition"
@@ -1130,6 +1131,7 @@
         </declaration>
       </parameters>
       <init/>
+      <then/>
     </definitions>
     <definitions
         xsi:type="definitions:logical_definition"
@@ -1611,7 +1613,7 @@
               xsi:type="chips.rvalues.primitive:direct_bool"/>
         </statements>
         <statements
-            xsi:type="chips.statements.primitive:if_else">
+            xsi:type="chips.statements.primitive:if">
           <condition
               xsi:type="chips.rvalues.primitive.operators.bool:gt_int">
             <left_operand
@@ -2028,7 +2030,7 @@
       </outputs>
       <parameters
           xsi:type="chips.parameters.logical:bool_logical_parameter"
-          name="redirection">
+          name="redirection dp">
         <declaration>
           <variable
               name="redirection"/>
@@ -3260,6 +3262,11 @@
                       xsi:type="chips.rvalues.collective:input_kw"/>
                 </else_statements>
               </else_section>
+            </if_statements>
+            <if_statements
+                xsi:type="chips.statements.collective:int_assignment">
+              <lvalue
+                  xsi:type="chips.xvalues.collective:int_variable_expression"/>
             </if_statements>
           </if_section>
         </statements>
