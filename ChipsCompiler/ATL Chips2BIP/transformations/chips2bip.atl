@@ -13,13 +13,58 @@ helper context Integer def : toString: String =
 	if self < 0 
 	then '-' + (-self).toString
 	else if self < 10
-		then Sequence{'0','1','2','3','4','5','6','7','8','9'}->at(self + 1)
+		then Sequence{'0','1','2','3','4','5','6','7','8','9'}->at(self)
 		else (self div 10).toString + (self mod 10).toString
 		endif
 	endif;
 
 helper context String  def : typeToInt : Integer =
 	thisModule.primitiveTypes->indexOf(self);
+
+helper def: zeros(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{thisModule.zeros(dims->subSequence(0,dims->size()-1))}->union(thisModule.zeros(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'zero', value = 0, type = 'int', dimensions = Sequence{}}}->union(thisModule.zeros(Sequence{dims->last()-1}))
+		endif
+	endif;
+
+helper def: ones(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{thisModule.ones(dims->subSequence(0,dims->size()-1))}->union(thisModule.ones(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'one', value = 1, type = 'int', dimensions = Sequence{}}}->union(thisModule.ones(Sequence{dims->last()-1}))
+		endif
+	endif;
+
+helper def: range(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'range', value = thisModule.range(dims->subSequence(0,dims->size()-1)), type = 'int', dimensions = dims->subSequence(0,dims->size()-1)}}->union(thisModule.range(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			thisModule.range(Sequence{dims->last()-1})->union(Sequence{Tuple{key = 'range', value = dims->last()-1, type = 'int', dimensions = Sequence{}}})
+		endif
+	endif;
 
 helper context chips!logical_parameter  def : typeToInt : Integer =
 	Sequence{
@@ -749,6 +794,187 @@ rule FunctionDefinition2AtomType {
 	)
 }
 
+-- Declaration of components in system context
+----------------------------------------------
+
+helper context chips!"chips::statements::system::physical_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(Tuple{
+		key = self.variable.name,
+		value = self.variable.name,
+		type =  self."def",
+		dimensions = self.variable.dimensions->collect(e | e.evaluate(memory))
+	});
+
+helper context chips!"chips::statements::system::logical_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(Tuple{
+		key = self.variable.name,
+		value = self.variable.name,
+		type =  self."def",
+		dimensions = self.variable.dimensions->collect(e | e.evaluate(memory))
+	});
+
+helper context chips!"chips::statements::system::object_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(Tuple{
+		key = self.variable.name,
+		value = self.variable.name,
+		type =  self."def",
+		dimensions = self.variable.dimensions->collect(e | e.evaluate(memory))
+	});
+
+-- Declarations of primitive variables in system context
+--------------------------------------------------------
+
+helper context chips!"chips::statements::system::int_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(
+		Tuple{
+			key = self.variable.name,
+			value = 0,
+			type='int',
+			dimensions=self.variable.dimensions->collect(e | e.evaluate(memory))
+		}
+	);
+
+helper context chips!"chips::statements::system::float_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(
+		Tuple{
+			key = self.variable.name,
+			value = 0.0,
+			type='float',
+			dimensions=self.variable.dimensions->collect(e | e.evaluate(memory))
+		}
+	);
+
+helper context chips!"chips::statements::system::bool_declaration" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory->including(
+		Tuple{
+			key = self.variable.name,
+			value = false,
+			type='bool',
+			dimensions=self.variable.dimensions->collect(e | e.evaluate(memory))
+		}
+	);
+
+
+-- assignment of primitive variables in system context
+--------------------------------------------------------
+
+helper context chips!"chips::statements::system::int_assignment" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	let oldval : TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)) =  memory->any(e | e.key = self.lvalue.variable.name) in 
+	memory->excluding(oldval)->including(
+		Tuple{
+			key = self.lvalue.variable.name,
+			value = self.rvalue->evaluate(memory),
+			type = oldval.type,
+			dimensions = oldval.dimensions
+		}
+	);
+
+helper context chips!"chips::statements::system::float_assignment" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	let oldval : TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)) =  memory->any(e | e.key = self.lvalue.variable.name) in 
+	memory->excluding(oldval)->including(
+		Tuple{
+			key = self.lvalue.variable.name,
+			value = self.rvalue->evaluate(memory),
+			type = oldval.type,
+			dimensions = oldval.dimensions
+		}
+	);
+
+helper context chips!"chips::statements::system::bool_assignment" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	let oldval : TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)) =  memory->any(e | e.key = self.lvalue.variable.name) in 
+	memory->excluding(oldval)->including(
+		Tuple{
+			key = self.lvalue.variable.name,
+			value = self.rvalue->evaluate(memory),
+			type = oldval.type,
+			dimensions = oldval.dimensions
+		}
+	);
+
+-- linking instructions evaluation in system context
+----------------------------------------------------
+
+helper context chips!link def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	memory; -- currently doing nothing because not a priority to make models runnable
+
+
+-- Foreach interpretation in system section
+-------------------------------------------
+
+helper context chips!"chips::statements::system::foreach" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+	let iterable : Sequence(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = self.iterable_expr.evaluate(memory) in
+	iterable->iterate(
+		iterator ; 
+		m1: Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = memory |
+		self.statements->iterate( 
+			stt ; 
+			m2: Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) 
+				= m1->including(Tuple{key=self.iterator.variable.name, value=iterator.value, type=iterator.type, dimensions=iterator.dimensions}) | 
+			stt.evaluate(m2.debug('\n----------------------memory state------------------------\n'))
+		)->reject(e | (e.key = self.iterator.variable.name) and (e.type = iterator.type))
+	);
+
+
+
+
+-- evaluation of an expression in system context
+--------------------------------------------------------
+helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Integer =
+	self.value;
+
+helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Real =
+	self.value;
+
+helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Boolean =
+	self.value;
+
+helper context chips!"chips::xvalues::system::int_variable_expression" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Integer =
+	memory->any(e | (e.key = self.variable.name) and (e.type = 'int')).value;
+
+helper context chips!"chips::xvalues::system::float_variable_expression" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Real =
+	memory->any(e | (e.key = self.variable.name) and (e.type = 'float')).value;
+
+helper context chips!"chips::xvalues::system::bool_variable_expression" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : Boolean =
+	memory->any(e | (e.key = self.variable.name) and (e.type = 'bool')).value;
+
+helper context chips!"chips::rvalues::system::function" def : evaluate(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : OclAny =
+	if (self.name = 'zeros') then
+		thisModule.zeros(self.parameters->collect(e | e.evaluate(memory)))
+	else 
+		if(self.name = 'ones') then
+			thisModule.ones(self.parameters->collect(e | e.evaluate(memory)))
+		else 
+			if(self.name = 'range') then
+				thisModule.range(self.parameters->collect(e | e.evaluate(memory)))
+			else 
+				Sequence{}
+			endif
+		endif
+	endif;
+
+unique lazy rule MakeCompound{
+	from memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))
+
+	using {
+
+	}
+
+	to compound : bip!CompoundType(
+		name <- 'SYSTEM_COMPOUND', -- only for type  	OK
+        native <- false, -- only for type							OK
+        superTypes <- Sequence{}, -- only for type					OK
+        castableTypes <- Sequence{}, -- only for type				OK
+        exportedPortDeclarations <- Sequence{}, -- only for component type
+        exportedDataDeclarations <- Sequence{}, -- only for component type
+		dataParameterDeclarations <- Sequence{}, -- only for component type
+		componentDeclarations <- Sequence{}, -- only for compound type
+		connectorDeclarations <- Sequence{}, -- only for compound type
+		exportPortDeclarations <- Sequence{}, -- only for compound type
+		exportDataDeclarations <- Sequence{}, -- only for compound type
+		priorities <- Sequence{} -- only for compound type
+	)
+}
+
 rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
@@ -765,13 +991,20 @@ rule Program2BipPackage {
 		pts: Sequence(bip!PortType) = thisModule.allPortTypes->union(base_pts->asSet())->union(Set{thisModule.PortTypeSync('')})->asSequence();
 		base_ats: Sequence(bip!AtomType) = Sequence{thisModule.MakeChipsBuffer('int'),thisModule.MakeChipsBuffer('float'),thisModule.MakeChipsBuffer('bool')};
 		core_ats: Sequence(bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
-		
+
+		compound_def: bip!CompoundType = 
+			thisModule.MakeCompound(
+				chipsprogram.system.system_statements->iterate( 
+					stt ; memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = Set{}
+					| stt.evaluate(memory)
+				)
+			);
 	}
 	to 
 		bippackage: bip!BipPackage(
 			name <- chipsprogram.fileName,
 			atomTypes <- core_ats->union(base_ats),
-			compoundTypes <- Sequence{},
+			compoundTypes <- Sequence{compound_def},
 			connectorTypes <- Sequence{},
 			portTypes <- pts,
 			dataTypes <- dts,
