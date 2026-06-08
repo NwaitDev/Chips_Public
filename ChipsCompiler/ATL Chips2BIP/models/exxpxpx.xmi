@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="ASCII"?>
+  <atomTypes name="AuthenticatorCore" exportedPortDeclarations="recv send">
+    <dataParameterDeclarations dataType="bool" name="isSource"/>
+    <internalPortDeclarations portType="port_t" name="start"/>
+    <internalPortDeclarations portType="port_t" name="calc"/>
+    <internalPortDeclarations portType="portBool_t" name="recv">
+      <dataParameters parameterDeclaration="v0" type="bool" dataDeclarationReference="authProvided"/>
+    </internalPortDeclarations>
+    <internalPortDeclarations portType="portBool_t" name="send">
+      <dataParameters parameterDeclaration="v0" type="bool" dataDeclarationReference="isAuthenticated"/>
+    </internalPortDeclarations>
+    <behavior initStates="INIT">
+      <states name="INIT"/>
+      <states name="RECEIVING"/>
+      <states name="THEN"/>
+      <states name="SENDING"/>
+      <transitions sources="INIT" destinations="RECEIVING" triggerPort="start">
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:UnaryOpExpression" operator="!">
+          <operand xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="isSource"/>
+        </guard>
+      </transitions>
+      <transitions sources="INIT" destinations="SENDING" triggerPort="start">
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="isSource"/>
+      </transitions>
+      <transitions sources="RECEIVING" destinations="THEN" triggerPort="recv"/>
+      <transitions sources="THEN" destinations="SENDING" triggerPort="calc">
+        <actions xsi:type="bip2.ujf.verimag.bip.actionlang:FunctionCallExpression" functionName="AuthenticatorThen">
+          <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="authProvided"/>
+          <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="isAuthenticated"/>
+        </actions>
+      </transitions>
+      <transitions sources="SENDING" destinations="RECEIVING" triggerPort="send"/>
+      <initialActions xsi:type="bip2.ujf.verimag.bip.actionlang:FunctionCallExpression" functionName="AuthenticatorInit">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="authProvided"/>
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="isAuthenticated"/>
+      </initialActions>
+    </behavior>
+    <internalDataDeclarations dataType="bool" name="authProvided"/>
+    <internalDataDeclarations dataType="bool" name="isAuthenticated"/>
+    <exportPortDeclarations portType="portBool_t" name="recv" portDeclarationReferences="recv"/>
+    <exportPortDeclarations portType="portBool_t" name="send" portDeclarationReferences="send"/>
+  </atomTypes>
+
+
+  <compoundTypes name="AuthenticatorRX" exportedPortDeclarations="authProvided to_the_core">
+    <componentDeclarations type="boolRX" name="authProvided"/>
+    <connectorDeclarations type="many2one_Bool_t" name="to_the_core">
+      <portParameters parameterDeclaration="s0">
+        <subPortDeclarationReference forwardPortDeclaration="to_the_core" componentDeclaration="authProvided"/>
+      </portParameters>
+    </connectorDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="authProvided">
+      <portDeclarationReferences forwardPortDeclaration="from_the_outside" componentDeclaration="authProvided"/>
+    </exportPortDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="to_the_core">
+      <portDeclarationReferences forwardPortDeclaration="r0" connectorDeclaration="to_the_core"/>
+    </exportPortDeclarations>
+  </compoundTypes>
+
+
+  <compoundTypes name="AuthenticatorTX" exportedPortDeclarations="isAuthenticated from_the_core">
+    <componentDeclarations type="boolTX" name="isAuthenticated"/>
+    <connectorDeclarations type="one2many_Bool_t" name="from_the_core">
+      <portParameters parameterDeclaration="r0">
+        <subPortDeclarationReference forwardPortDeclaration="from_the_core" componentDeclaration="isAuthenticated"/>
+      </portParameters>
+    </connectorDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="isAuthenticated">
+      <portDeclarationReferences forwardPortDeclaration="to_the_outside" componentDeclaration="isAuthenticated"/>
+    </exportPortDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="from_the_core">
+      <portDeclarationReferences forwardPortDeclaration="s0" connectorDeclaration="from_the_core"/>
+    </exportPortDeclarations>
+  </compoundTypes>
+
+  
+  <compoundTypes name="Authenticator" exportedPortDeclarations="authProvided isAuthenticated">
+    <dataParameterDeclarations dataType="bool" name="isSource"/>
+    <componentDeclarations type="AuthenticatorRX" name="inputParameters"/>
+    <componentDeclarations type="AuthenticatorTX" name="outputParameters"/>
+    <componentDeclarations type="AuthenticatorCore" name="core">
+      <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="isSource"/>
+    </componentDeclarations>
+    <connectorDeclarations type="flowBool_t" name="RX2Core">
+      <portParameters parameterDeclaration="s0">
+        <subPortDeclarationReference forwardPortDeclaration="to_the_core" componentDeclaration="inputParameters"/>
+      </portParameters>
+      <portParameters parameterDeclaration="r0">
+        <subPortDeclarationReference forwardPortDeclaration="recv" componentDeclaration="core"/>
+      </portParameters>
+    </connectorDeclarations>
+    <connectorDeclarations type="flowBool_t" name="Core2TX">
+      <portParameters parameterDeclaration="s0">
+        <subPortDeclarationReference forwardPortDeclaration="send" componentDeclaration="core"/>
+      </portParameters>
+      <portParameters parameterDeclaration="r0">
+        <subPortDeclarationReference forwardPortDeclaration="from_the_core" componentDeclaration="outputParameters"/>
+      </portParameters>
+    </connectorDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="authProvided">
+      <portDeclarationReferences forwardPortDeclaration="authProvided" componentDeclaration="inputParameters"/>
+    </exportPortDeclarations>
+    <exportPortDeclarations portType="portBool_t" name="isAuthenticated">
+      <portDeclarationReferences forwardPortDeclaration="isAuthenticated" componentDeclaration="outputParameters"/>
+    </exportPortDeclarations>
+  </compoundTypes>

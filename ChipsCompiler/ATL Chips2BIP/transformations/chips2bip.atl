@@ -11,7 +11,6 @@ helper def: nbPrimitiveTypes : Integer = thisModule.primitiveTypes.size();
 
 helper context Integer def : toString: String = self.toString();
 
-
 helper context Integer def : toString(memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String =
 	self.toString;
 
@@ -100,6 +99,25 @@ helper context chips!physical_output  def : typeToInt : Integer =
 		chips!"chips::outputs::physical::float_output",
 		chips!"chips::outputs::physical::bool_output"
 	}->indexOf(self.oclType());
+
+
+helper context chips!function_definition def : all_decl_params : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
+	self.parameters->union(
+		if self.oclIsTypeOf(chips!physical_definition) then
+			self.sensor
+		else
+			Sequence{}
+		endif
+	)->collect(param | param.toTuple)->sortedBy(t | t.type);
+
+helper context chips!function_definition def : all_decl_outputs : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
+	self.outputs->union(
+		if self.oclIsTypeOf(chips!physical_definition) then
+			self.actuator
+		else
+			Sequence{}
+		endif 
+	)->sortedBy(o | o.extractTypeAsString)->collect(output | output.toTuple);
 
 helper context String def : toIntType : Integer =
     if thisModule.primitiveTypes->exists(t | (t = self) ) then
@@ -526,12 +544,10 @@ helper context Sequence(String) def : asPortName() : String = self->iterate(tnam
 unique lazy rule TypeStringsOrderedSequenceAsPortType {
 	from 
 		type_ordered_sequence : Sequence(String)
-	using{
-		pdpd : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(type_ordered_sequence);
-	}
+
 	to pt : bip!PortType(
 		name <- type_ordered_sequence->asPortName(),
-		dataParameterDeclarations <-pdpd 
+		dataParameterDeclarations <-thisModule.orderedTypeSeqAsPdpdList(type_ordered_sequence) 
 	)
 }
 
@@ -542,7 +558,7 @@ unique lazy rule TupleAsPortDataParameterDeclaration {
  		typesOrderedSequence: Sequence(String)
 	to 
 		pdpd: bip!PortDataParameterDeclaration(
-			name <- 'v'+t.iindex.toString,
+			name <- 'v'+t.iindex.toString(),
 			dataType <- thisModule.MakeChipsDataType(t.stype)
 		)
 }
@@ -647,42 +663,19 @@ lazy rule MakeAtomExportPortDeclaration{
 	)
 }
 
-lazy rule MakeBufferComponentDeclaration{
-	from typename : String
+rule FunctionDefinition2AtomType {
+	from 
+		chipsfunction: chips!function_definition
 
-	to bufferdeclaration : bip!ComponentDeclaration(
-		type <- thisModule.MakeChipsBuffer(typename),
-		parameters <- Sequence{},
-		name <- typename + '_buffer'
-	)
-}
-
-rule FunctionDefinition2CompoundType {
-	from chipsfunction: chips!function_definition
-	
-	using {
+	using{
 
 		-- retrieving the list of data that should be declared in the bip component
 		-- sorting with names of the types to put in the ports to avoid generation of equivalent port types
 		-- e.g. port(int, float) and port(float,int)
 		---------------------------------------------------------------------------
-		allparamsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
-			chipsfunction.parameters->union(
-				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
-					chipsfunction.sensor
-				else
-					Sequence{}
-				endif
-			)->collect(param | param.toTuple)->sortedBy(t | t.type);
+		allparamsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_params;
 		
-		alloutputsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
-			chipsfunction.outputs->union(
-				if chipsfunction.oclIsTypeOf(chips!physical_definition) then
-					chipsfunction.actuator
-				else
-					Sequence{}
-				endif 
-			)->sortedBy(o | o.extractTypeAsString)->collect(output | output.toTuple);
+		alloutputsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_outputs;
 		
 		contextual_used : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) =
 			chipsfunction."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
@@ -745,22 +738,6 @@ rule FunctionDefinition2CompoundType {
 			OclUndefined
 		endif;
 
-		
-		-- generating list of Required buffers
-		--------------------------------------
-
-		rcv_buffers : Map(String,bip!ComponentDeclaration) = 
-			allparamsdecltuples->iterate(
-				paramTuple ; buffermap : Map(String,bip!ComponentDeclaration) = Map{} |
-				buffermap->including(paramTuple.name, thisModule.MakeBufferComponentDeclaration(paramTuple.type))
-			);
-		send_buffers : Map(String,bip!ComponentDeclaration) = 
-			alloutputsdecltuples->iterate(
-				outputTuple ; buffermap : Map(String,bip!ComponentDeclaration) = Map{} |
-				buffermap->including(outputTuple.name, thisModule.MakeBufferComponentDeclaration(outputTuple.type))
-			);
-		
-
 		-- generating ports
 		-------------------
 		all_ports : Sequence(bip!Port) = Sequence{
@@ -790,31 +767,17 @@ rule FunctionDefinition2CompoundType {
 					thisModule.MakeAtomExportPortDeclaration(ctx_porttype, 'writectx', all_ports->get(5))
 				}
 			endif;
+		
 	}
 
-    to compound_type:bip!CompoundType(
-		componentDeclarations <- 
-			Sequence{core_component_declaration}
-			->union(rcv_buffers->getValues()->asSequence())
-			->union(send_buffers->getValues()->asSequence()),
-		-- need to add the connectors
-		exportPortDeclarations <- Sequence{}--                            PUT SHIT HEEERE                                                        },
-	),
-
-	core_component_declaration: bip!ComponentDeclaration(
-		type <- core_component_type,
-		-- parameters <-  -- put the 'isSource' parameter when I know how to write it
-		name <- 'core'
-	),
-
-	core_component_type: bip!AtomType(
+	to core_component_type: bip!AtomType(
     	name <- chipsfunction.name + '_core', -- only for type  	OK
         native <- false, -- only for type							OK
         superTypes <- Sequence{}, -- only for type					OK
         castableTypes <- Sequence{}, -- only for type				OK
         exportedPortDeclarations <- Sequence{}, -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
-		dataParameterDeclarations <- Sequence{isSource}, -- only for component type
+		dataParameterDeclarations <- Sequence{starts}, -- only for component type
         internalPortDeclarations <- all_ports, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
         behavior <- pn, -- only for atom type
@@ -825,9 +788,9 @@ rule FunctionDefinition2CompoundType {
     ),
 
 
-	isSource : bip!ComponentDataParameterDeclaration(
+	starts : bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeBaseDataType('bool'),
-		name <- 'isSource',
+		name <- 'starts',
 		const <- true
 	),
 
@@ -850,6 +813,453 @@ rule FunctionDefinition2CompoundType {
 		initStates <- Sequence{all_states->at(1)},
 		transitions <- thisModule.MakeTransitions(all_states, all_ports),
 		initialActions <- Sequence{} -- put the call to the init function here
+	)
+}
+
+unique lazy rule MakeBufferComponentDeclaration{
+	from typename : String, dataname:String, fname:String
+
+	to bufferdeclaration : bip!ComponentDeclaration(
+		type <- thisModule.MakeChipsBuffer(typename),
+		parameters <- Sequence{},
+		name <- dataname
+	)
+}
+
+lazy rule MakeConnectorDataDeclaration{
+	from tuple:TupleType(type:String, iindex:Integer)
+
+
+	to cdd:bip!ConnectorDataDeclaration(
+		dataType <- thisModule.MakeBaseDataType(tuple.type),
+		name <- 'v'+tuple.iindex.toString()
+		-- value<-
+		-- const<-false
+	)
+}
+
+lazy rule MakeDataDeclarationReferenceDataParameter {
+	from type:String, datadecl:bip!ConnectorDataDeclaration
+
+	to ddrdp:bip!DataDeclarationReferenceDataParameter(
+		dataDeclarationReference<-datadecl,
+		type<-thisModule.MakeBaseDataType(type),
+		parameterDeclaration <- datadecl
+	)
+}
+
+lazy rule MakeConnectorExportedPortDeclaration{
+	from 
+		indexed_types:Sequence(TupleType(type:String,iindex:Integer)),
+		many2one:Boolean, 
+		datadecls:Sequence(bip!ConnectorDataDeclaration)
+	
+	to b:bip!ConnectorExportedPortDeclaration(
+		portType <-thisModule.TypeStringsOrderedSequenceAsPortType(indexed_types->collect(tuple | tuple.type)),
+		name <- if many2one then 'r' else 's' endif +'0',
+		dataParameters <- indexed_types->collect(tuple | thisModule.MakeDataDeclarationReferenceDataParameter(tuple.type,datadecls->get(tuple.iindex))) 
+	)
+}
+
+lazy rule MakeAssignmentSubDataOperand{
+	from port: bip!ConnectorPortParameterDeclaration, datadecl: bip!PortDataParameterDeclaration
+
+	to rhs: bip!SubDataDeclarationReferenceExpression(
+		subDataDeclarationRef<-subddr
+	),
+
+	subddr:bip!SubDataDeclarationReference(
+		forwardDataDeclaration <- datadecl,
+		portDeclaration <- port
+	)
+}
+
+lazy rule MakeAssignmentDataOperand{
+	from datadecl:bip!ConnectorDataDeclaration,stype:String
+
+	to dddre:bip!DirectDataDeclarationReferenceExpression(
+		--type<-thisModule.MakeBaseDataType(stype),
+		dataDeclaration<-datadecl
+	)
+}
+
+lazy rule MakeAssignment{
+	from 
+		asslhs:bip!Expression,
+		assrhs:bip!Expression
+	
+	to
+		assignment:bip!AssignmentExpression(
+			lhs<-asslhs,
+			rhs<-assrhs
+		)
+}
+
+unique lazy rule MakeMany2OneConnectorType{
+	from ordered_types : Sequence(String)
+
+	using{
+		indexed_types:Sequence(TupleType(type:String,iindex:Integer)) = ordered_types->iterate(
+			typeString ; 
+			accu : Sequence(TupleType(type:String,iindex:Integer)) = Sequence{Tuple{type='',iindex=-1}}|
+			accu->append(Tuple{type=typeString, iindex = accu->last().iindex+1})
+		)->select(t | t.iindex >=0);
+
+		datadecls:Sequence(bip!ConnectorDataDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorDataDeclaration(t));
+
+		downports : Sequence(bip!ConnectorPortParameterDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorPortParameterDeclaration(t,true));
+
+		upinteraction : Sequence(bip!Expression) = 
+			thisModule.range(Sequence{datadecls->size()})
+			->collect(n | 
+				thisModule.MakeAssignment(
+					thisModule.MakeAssignmentDataOperand(
+						datadecls->get(n.value),
+						ordered_types->get(n.value)
+					),
+					thisModule.MakeAssignmentSubDataOperand(
+						downports->get(n.value),
+						thisModule.TupleAsPortDataParameterDeclaration(
+							Tuple{stype=ordered_types->get(n.value), iindex=n.value},
+							ordered_types
+						)
+					)
+				)
+			);
+	}
+
+	to one : bip!ConnectorType(
+		name<-ordered_types->iterate( iter ; accu_name : String = 'many2one_'| accu_name+iter )+'_t',
+		exportedPortDeclaration <- thisModule.MakeConnectorExportedPortDeclaration(indexed_types, true,datadecls),
+		dataDeclarations <- datadecls,
+		interactions<-Sequence{interaction},
+		--interactionDefinition
+		ports <- downports
+	),
+
+	interaction:bip!ConnectorInteractionAction(
+		onPorts<- downports, --(ConnectorPortParameterDeclaration)
+		up <- upinteraction, --(Expression)
+		down <- Sequence{} , --(Expression)
+		guard <- thisModule.MakeTrivialGuard(true)-- (ValuedExpression)
+	)
+}
+
+
+
+lazy rule MakeConnectorPortParameterDeclaration{
+	from t:TupleType(type:String,iindex:Integer), many2one:Boolean
+
+	to cppd: bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.TypeStringsOrderedSequenceAsPortType(Sequence{t.type}),
+		name<- if many2one then 's' else 'r' endif +t.iindex.toString()
+	)
+}
+
+
+unique lazy rule MakeOne2ManyConnectorType{
+	from 
+		indexed_types : Sequence(TupleType(type:String,iindex:Integer)),
+		downports : Sequence(bip!ConnectorPortParameterDeclaration),
+		epdecl : bip!ConnectorExportedPortDeclaration,
+		datadecls : Sequence(bip!ConnectorDataDeclaration)
+	using{
+
+		ordered_types:Sequence(String) = indexed_types->collect(t | t.type);
+
+		downinteraction : Sequence(bip!Expression) = 
+			thisModule.range(Sequence{datadecls->size()})
+			->collect(n | 
+				thisModule.MakeAssignment(
+					thisModule.MakeAssignmentSubDataOperand(
+						downports->get(n.value),
+						thisModule.TupleAsPortDataParameterDeclaration(
+							Tuple{stype=ordered_types->get(n.value), iindex=n.value},
+							ordered_types
+						)
+					),
+					thisModule.MakeAssignmentDataOperand(
+						datadecls->get(n.value),
+						ordered_types->get(n.value)
+					)
+				)
+			);
+	}
+
+	to many : bip!ConnectorType(
+		name<-ordered_types->iterate( iter ; accu_name : String = 'one2many_'| accu_name+iter )+'_t',
+		exportedPortDeclaration <- epdecl,
+		dataDeclarations <- datadecls,
+		interactions<-Sequence{interaction},
+		--interactionDefinition
+		ports <- downports
+	),
+
+	interaction:bip!ConnectorInteractionAction(
+		onPorts<- downports, --(ConnectorPortParameterDeclaration)
+		--up <- , --(Expression)
+		down <- downinteraction , --(Expression)
+		guard <- thisModule.MakeTrivialGuard(true)-- (ValuedExpression)
+	)
+}
+
+lazy rule MakePortDeclarationsReferenceParameter {
+	from 
+		tuple:TupleType(type: String, suffix:String, iindex:Integer,fname:String),
+		ordered_types:Sequence(String),
+		decls:Sequence(TupleType(name:String,component:bip!ComponentDeclaration)),
+		fwd_port_decl : bip!PortDeclaration
+	
+	using{
+		port_decl :TupleType(type:String, iindex:Integer) = 
+			thisModule.MakeConnectorPortParameterDeclaration(Tuple{type=tuple.type, iindex = tuple.iindex},tuple.suffix='_in');
+	}
+
+	to theport: bip!PortDeclarationReferenceParameter(
+		parameterDeclaration <- port_decl,
+		subPortDeclarationReference <- spdr
+	),
+
+	spdr: bip!SubPortDeclarationReference(
+		forwardPortDeclaration <- fwd_port_decl,-- to code when export port declaration done 
+		componentDeclaration <- decls->at(tuple.iindex+1).component
+	)
+}
+
+helper context Sequence(TupleType(type: String, suffix:String, name:String, iindex:Integer,fname:String)) 
+	def : asPortDeclRefParamSequence(decls:Sequence(TupleType(name:String,component:bip!ComponentDeclaration)),forwardPortDecl:bip!PortDeclaration) 
+		: Sequence(bip!PortDeclarationReferenceParameter) =
+		let sorted_types:Sequence(String) = self->collect(t|t.type) in
+		self->collect(tuple | thisModule.MakePortDeclarationsReferenceParameter(tuple, sorted_types, decls,forwardPortDecl));
+
+
+lazy rule MakeOne2ManyConnectorDeclaration{
+	from fname:String,
+	one: Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)),
+	components: Sequence(TupleType(name:String,component:bip!ComponentDeclaration))
+
+	using{
+		datatupleseq : Sequence(TupleType(type: String, suffix:String, iindex:Integer,fname:String)) = 
+			one->iterate(
+				tuple ; 
+				accuTupleSequence:TupleType(type:String,suffix:String,iindex:Integer, fname:String) = Sequence{Tuple{type = '', suffix = '', name ='', iindex = -1, fname=fname}}
+				| accuTupleSequence->append(Tuple{type = tuple.type, suffix = tuple.suffix, iindex = accuTupleSequence->last().iindex+1, fname=fname})
+			)->select(t | t.iindex >=0);
+		
+
+		ordered_types : Sequence(String) = one->sortedBy(t | t.type)->collect(t | t.type);
+
+		indexed_types:Sequence(TupleType(type:String,iindex:Integer)) = ordered_types->iterate(
+			typeString ; 
+			accu : Sequence(TupleType(type:String,iindex:Integer)) = Sequence{Tuple{type='',iindex=-1}}|
+			accu->append(Tuple{type=typeString, iindex = accu->last().iindex+1})
+		)->select(t | t.iindex >=0);
+
+		downports : Sequence(bip!ConnectorPortParameterDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorPortParameterDeclaration(t,false));
+
+		datadecls:Sequence(bip!ConnectorDataDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorDataDeclaration(t));
+
+		epdecl :bip!ConnectorExportedPortDeclaration = thisModule.MakeConnectorExportedPortDeclaration(indexed_types, false, datadecls);
+
+		connector_type : bip!ConnectorType = thisModule.MakeOne2ManyConnectorType(indexed_types, downports, epdecl, datadecls);
+
+		fwd_decl : bip!PortDeclaration = epdecl; --something that is called from_th_core
+	}
+
+	to many: bip!ConnectorDeclaration(
+		type <- connector_type,
+		portParameters<- datatupleseq->asPortDeclRefParamSequence(components,fwd_decl),
+		name <- 'from_the_core'
+	)
+}
+
+unique lazy rule MakeInputParametersCompoundType{
+	from
+		fname:String,
+		subComponentDeclarations: Sequence(TupleType(name:String, component:bip!ComponentDeclaration)),
+		parameter_list:Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean))
+
+	using{
+		sorted_many : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) =
+			parameter_list->sortedBy(t | t.type);
+
+		datatupleseq : Sequence(TupleType(type: String, suffix:String, iindex:Integer,fname:String)) =
+			sorted_many->iterate(
+				tuple ;
+				accuTupleSequence:TupleType(type:String, suffix:String, name:String,iindex:Integer) = Sequence{Tuple{type = '', suffix = '', name ='', iindex = -1, fname=fname}} 
+				| accuTupleSequence->append(Tuple{type = tuple.type, suffix = tuple.suffix, name = tuple.name, iindex = accuTupleSequence->last().iindex+1, fname=fname})
+			)->select(t | t.iindex >=0);
+
+		ordered_types : Sequence(String) = sorted_many->sortedBy(t | t.type)->collect(t | t.type);
+
+		indexed_types:Sequence(TupleType(type:String,iindex:Integer)) = ordered_types->iterate(
+			typeString ; 
+			accu : Sequence(TupleType(type:String,iindex:Integer)) = Sequence{Tuple{type='',iindex=-1}}|
+			accu->append(Tuple{type=typeString, iindex = accu->last().iindex+1})
+		)->select(t | t.iindex >=0);
+
+		downports : Sequence(bip!ConnectorPortParameterDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorPortParameterDeclaration(t,true));
+
+		datadecls:Sequence(bip!ConnectorDataDeclaration) = indexed_types->collect(t | thisModule.MakeConnectorDataDeclaration(t));
+
+		epdecl :bip!ConnectorExportedPortDeclaration = thisModule.MakeConnectorExportedPortDeclaration(indexed_types, true, datadecls);
+
+		connector_type : bip!ConnectorType = thisModule.MakeMany2OneConnectorType(parameter_list->sortedBy(t | t.type)->collect(t | t.type));
+
+		fwd_port_decl : bip!PortDeclaration = epdecl;
+	}
+
+	to ip_compound:bip!CompoundType(
+		name <- fname+'RX',
+		dataParameterDeclarations <- Sequence{},
+		componentDeclarations <- subComponentDeclarations->collect(t| t.component),
+		connectorDeclarations <- Sequence{one},
+		exportPortDeclarations <- Sequence{cepd} -- Forward declaration of the connector
+	),
+
+	cepd : bip!CompoundExportPortDeclaration(
+		portDeclarationReferences <- Sequence{spdr}-- of type SubPortDeclarationReference
+	),
+
+	spdr : bip!SubPortDeclarationReference(
+		forwardPortDeclaration <- fwd_port_decl,
+		connectorDeclaration <- one
+	),
+
+	one: bip!ConnectorDeclaration(
+		type <- connector_type,
+		portParameters <- datatupleseq->asPortDeclRefParamSequence(subComponentDeclarations, fwd_port_decl),
+		name <- 'to_the_core'
+	)
+
+}
+
+unique lazy rule MakeOutputParametersCompoundType{
+	from
+		fname:String,
+		subComponentDeclarations: Sequence(TupleType(name:String, component:bip!ComponentDeclaration)),
+		parameter_list:Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean))
+
+	using{
+		--exportportdeclarations : bip!CompoundExportPortDeclaration = ;
+	}
+
+	to ip_compound:bip!CompoundType(
+		name <- fname+'TX',
+		dataParameterDeclarations <- Sequence{},
+		componentDeclarations <- subComponentDeclarations->collect(tuple | tuple.component),
+		connectorDeclarations <- Sequence{thisModule.MakeOne2ManyConnectorDeclaration(fname,parameter_list,subComponentDeclarations)},
+		exportPortDeclarations <- Sequence{}
+	)
+}
+
+lazy rule MakeCompoundExportPortDeclaration{
+	from 
+		parameter:TupleType(type: String, name:String, suffix:String, exported:Boolean),
+		subcomponent:bip!ComponentDeclaration
+
+	to cepd:bip!CompoundExportPortDeclaration(
+
+	),
+
+	pdr:bip!SubPortDeclarationReference(
+		componentDeclaration <- subcomponent
+	)
+}
+
+unique lazy rule MakeInputBufferCompoundType{
+	from 
+		fname:String,
+		subComponentDeclaration: bip!ComponentDeclaration,
+		parameter:TupleType(type: String, name:String, suffix:String, exported:Boolean)
+	
+	to ip_compound:bip!CompoundType(
+		name <- parameter.name+'RX',
+		dataParameterDeclarations <- Sequence{},
+		componentDeclarations <- Sequence{subComponentDeclaration},
+		connectorDeclarations <- Sequence{},
+		exportPortDeclarations <- Sequence{}
+	)
+}
+
+unique lazy rule MakeOutputBufferCompoundType{
+	from 
+		fname:String,
+		subComponentDeclaration: bip!ComponentDeclaration,
+		parameter:TupleType(type: String, name:String, suffix:String, exported:Boolean)
+	
+	to ip_compound:bip!CompoundType(
+		name <- parameter.name+'TX',
+		dataParameterDeclarations <- Sequence{},
+		componentDeclarations <- Sequence{subComponentDeclaration},
+		connectorDeclarations <- Sequence{},
+		exportPortDeclarations <- Sequence{}
+	)
+}
+
+unique lazy rule FunctionDefinition2CompoundType {
+	from 
+		chipsfunction: chips!function_definition
+
+	using {
+
+		rx_name : String = 'input_parameters';
+		tx_name : String = 'output_parameters';
+
+		all_params : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_params;
+		all_outputs : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_outputs;
+
+		param_components_list : Sequence(TupleType(name: String, component:bip!ComponentDeclaration))
+		 = all_params->collect(param | Tuple{name=param.name,component=thisModule.MakeBufferComponentDeclaration(param.type,param.name,chipsfunction.name)});
+
+		output_components_list : Sequence(TupleType(name: String, component:bip!ComponentDeclaration))
+		 = all_outputs->collect(output | Tuple{name=output.name,component=thisModule.MakeBufferComponentDeclaration(output.type,output.name,chipsfunction.name)});
+
+		all_params_types : Sequence(bip!CompoundType) = thisModule.MakeInputBufferCompoundType(chipsfunction.name, param_components_list, all_params);
+		all_outputs_types : Sequence(bip!CompoundType) = thisModule.MakeOutputBufferCompoundType(chipsfunction.name, output_components_list,all_outputs);
+
+		exportedportdecl : Sequence(bip!CompoundExportPortDeclaration) = 
+		all_params->collect(param | thisModule.MakeCompoundExportPortDeclaration(param, rx_name))
+		->union(all_outputs->collect(output | thisModule.MakeCompoundExportPortDeclaration(output, tx_name)));
+	}
+
+    to compound_type:bip!CompoundType(
+		name <- chipsfunction.name,
+		dataParameterDeclarations <- Sequence{start_parameter},
+		componentDeclarations <- 
+			Sequence{core_component_declaration}
+			->append(output_parameters_decl)
+			->append(input_parameters_decl)--,
+		-- need to add the connectors
+		--exportPortDeclarations <- exportedportdecl.debug()
+	),
+
+	core_component_declaration: bip!ComponentDeclaration(
+		type <- chipsfunction,
+		parameters <- Sequence{starts_valued_expression},
+		name <- 'core'
+	),
+
+	input_parameters_decl : bip!ComponentDeclaration(
+		name<-rx_name,
+		parameters<- Sequence{},
+		type<- all_params_types
+	),
+
+	output_parameters_decl : bip!ComponentDeclaration(
+		name<-tx_name,
+		parameters<- Sequence{},
+		type<- all_outputs_types
+	),
+
+	starts_valued_expression: bip!DirectDataDeclarationReferenceExpression (
+		dataDeclaration <- start_parameter
+	),
+
+	start_parameter:  bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBaseDataType('bool'),
+		name <- 'starts',
+		const <- true
 	)
 }
 
@@ -1348,70 +1758,107 @@ rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
 	using {
-		data_types: Map(String,bip!DataType) = 
+		data_types: Sequence(bip!DataType) = 
 			thisModule.allDataTypeNames
 				->iterate(
-					typename ; dtypes : Map(String, bip!DataType) = 
-						Map{
-							('int',thisModule.MakeBaseDataType('int')),
-							('float',thisModule.MakeBaseDataType('float')),
-							('bool',thisModule.MakeBaseDataType('bool'))
+					typename ; dtypes : Sequence(bip!DataType) = 
+						Sequence{
+							thisModule.MakeBaseDataType('int'),
+							thisModule.MakeBaseDataType('float'),
+							thisModule.MakeBaseDataType('bool')
 						} |
-					dtypes->including(typename, thisModule.MakeChipsDataType(typename))
+					dtypes->append(thisModule.MakeChipsDataType(typename))
 				);
 		
-		base_port_types: Map(String,bip!PortType) = 
+		base_port_types: Sequence(bip!PortType) = 
 			Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'}}
 				->iterate(
-					typename ; ptypes : Map(String, bip!PortType) = Map{} |
-					ptypes->including(typename->first(), thisModule.TypeStringsOrderedSequenceAsPortType(typename))
+					typename ; ptypes : Sequence(bip!PortType) = Sequence{} |
+					ptypes->append(thisModule.TypeStringsOrderedSequenceAsPortType(typename))
 				);
 
-		system_specific_port_types: Map(String,bip!PortType) = 
-			thisModule.allUsedPortTypes
+		system_specific_port_types: Sequence(bip!PortType) = 
+			thisModule.allUsedPortTypes->getValues()->asSequence()
 			->union(base_port_types)
-			->including('trigger',thisModule.PortTypeSync(''));
+			->append(thisModule.PortTypeSync(''));
 		
-		buffer_atom_types: Map(String, bip!AtomType) = 
-			Map{
-				('int_buffer',thisModule.MakeChipsBuffer('int')),
-				('float_buffer',thisModule.MakeChipsBuffer('float')),
-				('bool_buffer',thisModule.MakeChipsBuffer('bool'))
+		buffer_atom_types: Sequence(bip!AtomType) = 
+			Sequence{
+				thisModule.MakeChipsBuffer('int'),
+				thisModule.MakeChipsBuffer('float'),
+				thisModule.MakeChipsBuffer('bool')
 			};
 		
+		all_chips_function_defs : Sequence(chips!function_definition) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
+		user_specific_atom_types: Sequence(bip!AtomType) = all_chips_function_defs;
 		
 
-		-- PROBLEM HHHHHEEEEERE ! #TODO
+		functional_blocks_types: Sequence(bip!CompoundType) = 
+			all_chips_function_defs
+			->collect(d | thisModule.FunctionDefinition2CompoundType(d));
+		
+		input_buffer_types: Sequence(bip!CompoundType) = 
+			all_chips_function_defs
+			->collect(d | 
+				thisModule.MakeInputParametersCompoundType(
+					d.name,
+					d.all_decl_params->collect(param | 
+						Tuple{
+							name = param.name, 
+							component = thisModule.MakeBufferComponentDeclaration(param.type,param.name,d.name)
+						}	
+					),
+					d.all_decl_params
+				)
+			);
+		
+		output_buffer_types: Sequence(bip!CompoundType) = 
+			all_chips_function_defs
+			->collect(d | 
+				thisModule.MakeOutputParametersCompoundType(
+					d.name, 
+					d.all_decl_outputs->collect(output |
+						Tuple{
+							name = output.name,
+							component = thisModule.MakeBufferComponentDeclaration(output.type,output.name,d.name)
+						}
+					),
+					d.all_decl_outputs
+				)
+			);
+		
 
-
-		component_types: Map(String, bip!AtomType) = chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
-		-- still need to do the AtomeType to Compound type transformation using the buffers and connectors
+		-- still need to do the AtomType to Compound type transformation using the buffers and connectors
 
 
 		memory: Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
 			chipsprogram.system.system_statements->iterate( 
-				stt ; memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = Set{}
-				| stt.evaluate(memory)
-			).debug('\n----------------------memory state------------------------\n');
+				stt ; mem : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = Set{}
+				| stt.evaluate(mem)
+			);--.debug('\n----------------------memory state------------------------\n');
 		
 
-		all_compounds: Sequence(bip!ComponentDeclaration) = memory->select(t | t.type.oclIsKindOf(chips!function_definition));
+
+		--- Currently here for the overall compilation
+
+		all_compounds_tuples: Sequence(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) = 
+			memory->select(t | t.type.oclIsKindOf(chips!function_definition));
 
 		--all_connectors: Sequence(bip!ConnectorDeclaration) = memory->select(t | t.type.oclIsKindOf(chips!function_definition));
 
-		system_compoud: bip!CompoundType = thisModule.MakeSystemCompound(
-			all_compounds--,all_connectors
-		);
+		-- system_compoud: bip!CompoundType = thisModule.MakeSystemCompound(
+		-- 	all_compounds--,all_connectors
+		-- );
 		
 	}
 	to 
 		bippackage: bip!BipPackage(
 			name <- chipsprogram.fileName,
-			atomTypes <- component_types->union(buffer_atom_types)->getValues(),
-			compoundTypes <- Sequence{system_compoud},
+			atomTypes <- user_specific_atom_types->union(buffer_atom_types),
+			compoundTypes <- functional_blocks_types->union(input_buffer_types)->union(output_buffer_types),--Sequence{system_compoud}->union(component_types),
 			connectorTypes <- Sequence{}, --,
-			portTypes <- system_specific_port_types->getValues(),
-			dataTypes <- data_types->getValues(),
+			portTypes <- system_specific_port_types,
+			dataTypes <- data_types,
 			used_packages <- Sequence{},
 			constData <- Sequence{}, -- what for ? oh wait, yes
 			prototypes <- Sequence{} -- this is for importing functions from cpp backend

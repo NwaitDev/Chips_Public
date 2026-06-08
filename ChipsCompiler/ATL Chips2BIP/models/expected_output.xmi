@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="ASCII"?>
 
-<!-- Approximatly what the compiler should generate  -->
+<!-- Approximatively what the compiler should generate -->
 
-<!-- Some IDs are clashing due to the fact this file  -->
-<!-- is a flattenned version of many files compiled   -->
-<!-- separatly.                                       -->
-<!-- But apart from that, the structure is correct.   -->
+<!-- Some IDs are clashing due to the fact this file   -->
+<!-- is a flattenned version of many files compiled    -->
+<!-- separately.                                       -->
+<!-- But apart from that, the structure is correct.    -->
 
 
 <bip2.ujf.verimag.bip.package:BipPackage 
@@ -34,6 +34,18 @@
       <parameters key="src" value="&quot;base.cpp,ChipsFunctions.cpp,bipio.cpp&quot;"/>
     </value>
   </bipAnnotations>
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="AuthenticatorCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -133,6 +145,19 @@
       <portDeclarationReferences forwardPortDeclaration="isAuthenticated" componentDeclaration="outputParameters"/>
     </exportPortDeclarations>
   </compoundTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="intRX" exportedPortDeclarations="from_the_outside to_the_core">
     <internalPortDeclarations portType="portInt_t" name="from_the_outside">
       <dataParameters parameterDeclaration="v0" type="int" dataDeclarationReference="the_data"/>
@@ -150,6 +175,8 @@
     <exportPortDeclarations portType="portInt_t" name="from_the_outside" portDeclarationReferences="from_the_outside"/>
     <exportPortDeclarations portType="portInt_t" name="to_the_core" portDeclarationReferences="to_the_core"/>
   </atomTypes>
+
+
   <atomTypes name="chips_intRX" exportedPortDeclarations="from_the_outside to_the_core">
     <internalPortDeclarations portType="portChipsInt_t" name="from_the_outside">
       <dataParameters parameterDeclaration="v0" type="chips_int" dataDeclarationReference="the_data"/>
@@ -307,6 +334,18 @@
     <exportPortDeclarations portType="portIntArray_t" name="to_the_outside" portDeclarationReferences="to_the_outside"/>
     <exportPortDeclarations portType="portIntArray_t" name="from_the_core" portDeclarationReferences="from_the_core"/>
   </atomTypes>
+
+
+
+
+
+
+
+
+
+
+
+
   <connectorTypes name="flowBool_t">
     <interactions onPorts="s0 r0">
       <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
@@ -1707,6 +1746,24 @@
     <ports portType="portChipsInt_t" name="r1"/>
     <ports portType="portInt_t" name="r2"/>
   </connectorTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <portTypes name="port_t"/>
   <portTypes name="portFloat_t">
     <dataParameterDeclarations dataType="float" name="v0"/>
@@ -1840,12 +1897,51 @@
     <dataParameterDeclarations dataType="int" name="v2"/>
     <dataParameterDeclarations dataType="bool" name="v3"/>
   </portTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <dataTypes name="intarray"/>
   <dataTypes name="collective_int"/>
   <dataTypes name="collective_float"/>
   <dataTypes name="collective_bool"/>
   <dataTypes name="collective_intarray"/>
   <dataTypes name="chips_int"/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <prototypes xsi:type="bip2.ujf.verimag.bip.package:FunctionCallPrototype" functionName="srand">
     <parameterDeclarations type="int" name=""/>
   </prototypes>
@@ -1944,6 +2040,21 @@
     <parameterDeclarations type="collective_intarray" name=""/>
     <parameterDeclarations type="intarray" name=""/>
   </prototypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <atomTypes name="TestWriter" exportedPortDeclarations="recv">
     <dataParameterDeclarations dataType="string" name="filename"/>
@@ -2490,6 +2601,30 @@
     <parameterDeclarations type="CppInStream" name=""/>
   </prototypes>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="CacheCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations name="start">
@@ -2680,6 +2815,20 @@
       <portDeclarationReferences forwardPortDeclaration="foundInCache" componentDeclaration="outputParameters"/>
     </exportPortDeclarations>
   </compoundTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <prototypes xsi:type="bip2.ujf.verimag.bip.package:FunctionCallPrototype" functionName="UserMachineInit">
     <parameterDeclarations type="chips_int" name=""/>
     <parameterDeclarations type="int" name=""/>
@@ -2975,6 +3124,37 @@
     <parameterDeclarations type="collective_int" name=""/>
     <parameterDeclarations type="chips_int" name=""/>
   </prototypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <connectorTypes name="spreadConnectorResponseToTheRightUserAmongUserMachine">
     <exportedPortDeclaration portType="portCInt_t" name="accumulated">
@@ -3368,6 +3548,26 @@
     <ports portType="portCIntArrayCIntArrayIntArray_t" name="recvd_prev"/>
     <ports portType="portCIntArrayCIntArrayIntArray_t" name="recvd_next"/>
   </connectorTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="ContextualInt" exportedPortDeclarations="giveToken receiveToken justRead">
     <internalPortDeclarations portType="portInt_t" name="giveToken">
       <dataParameters parameterDeclaration="v0" type="int" dataDeclarationReference="variable"/>
@@ -3390,6 +3590,30 @@
     <exportPortDeclarations portType="portInt_t" name="receiveToken" portDeclarationReferences="receiveToken"/>
     <exportPortDeclarations portType="portInt_t" name="justRead" portDeclarationReferences="justRead"/>
   </atomTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <atomTypes name="DataProviderCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
@@ -3616,6 +3840,24 @@
     </exportPortDeclarations>
   </compoundTypes>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="PidControllerCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -3773,6 +4015,24 @@
       <portDeclarationReferences forwardPortDeclaration="knob" componentDeclaration="outputParameters"/>
     </exportPortDeclarations>
   </compoundTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <atomTypes name="RequestLimiterCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
@@ -3961,6 +4221,23 @@
     </exportPortDeclarations>
   </compoundTypes>
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="RequestValidatorCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -4123,6 +4400,25 @@
     </exportPortDeclarations>
   </compoundTypes>
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="ServerMachineCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -4314,6 +4610,27 @@
     </exportPortDeclarations>
   </compoundTypes>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="UserActionInterpreterCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -4469,6 +4786,24 @@
       <portDeclarationReferences forwardPortDeclaration="authProvided" componentDeclaration="outputParameters"/>
     </exportPortDeclarations>
   </compoundTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="UserMachineCore" exportedPortDeclarations="getCtx freeCtx recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -4665,6 +5000,29 @@
     </exportPortDeclarations>
   </compoundTypes>
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="WebPageServiceCore" exportedPortDeclarations="recv send">
     <dataParameterDeclarations dataType="bool" name="isSource"/>
     <internalPortDeclarations portType="port_t" name="start"/>
@@ -4898,6 +5256,22 @@
     <internalDataDeclarations dataType="collective_bool" name="accumulated"/>
     <exportPortDeclarations portType="portCBool_t" name="input" portDeclarationReferences="input"/>
   </atomTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="streamConstantInt" exportedPortDeclarations="output">
     <dataParameterDeclarations dataType="int" name="cst"/>
     <internalPortDeclarations portType="portInt_t" name="output">
@@ -5160,6 +5534,19 @@
     <internalDataDeclarations dataType="bool" name="is_constant"/>
     <exportPortDeclarations portType="portCIntCIntInt_t" name="output" portDeclarationReferences="output"/>
   </atomTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
   <atomTypes name="aggregatingDataProviderOutputPlaceholder" exportedPortDeclarations="output">
     <internalPortDeclarations portType="portCIntArrayCIntArrayIntArray_t" name="output">
       <dataParameters parameterDeclaration="v0" type="collective_intarray" dataDeclarationReference="prev_output_data"/>
@@ -5250,6 +5637,22 @@
     <internalDataDeclarations dataType="bool" name="is_constant"/>
     <exportPortDeclarations portType="portCIntArrayCIntArrayIntArray_t" name="output" portDeclarationReferences="output"/>
   </atomTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <compoundTypes name="SystemCompound">
     <componentDeclarations name="umachine0">
       <type xsi:type="bip2.ujf.verimag.bip.types:CompoundType" href="output/UserMachine.xmi#UserMachine"/>
@@ -7759,13 +8162,32 @@
       </portParameters>
     </connectorDeclarations>
   </compoundTypes>
+
+
+
+
+
+
+
+
+
+
+
+
+
   <dataTypes name="bool" native="true"/>
   <dataTypes name="int" native="true"/>
   <dataTypes name="float" native="true" castableTypes="int"/>
   <dataTypes name="string" native="true"/>
+
+
+
+
   <used_packages href="output/UserMachine.xmi#/"/>
   <used_packages href="output/UserActionInterpreter.xmi#/"/>
   <used_packages href="output/WebPageService.xmi#/"/>
+
+  
   <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
     <parameterDeclarations type="int" name="" const="true"/>
     <parameterDeclarations type="int" name="" const="true"/>
@@ -7982,7 +8404,7 @@
     <parameterDeclarations type="float" name="" const="true"/>
     <parameterDeclarations type="int" name="" const="true"/>
   </prototypes>
-  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="%">
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototypeDataDeclaration" returnType="float" native="true" operator="%">
     <parameterDeclarations type="int" name="" const="true"/>
     <parameterDeclarations type="float" name="" const="true"/>
   </prototypes>
