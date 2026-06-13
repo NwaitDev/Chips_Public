@@ -5,6 +5,14 @@ module chips2bip;
 
 create OUT: bip from IN: chips;
 
+------------------ 
+------------------ This section is OK. 
+------------------ Not everything is perfect, but it does the job.
+------------------ Refactoring it would be a pain in the *** for 
+------------------ an equivalent result. Don't bother.
+
+
+
 helper def: primitiveTypes : Sequence(String) = Sequence{'int','float','bool'};
 
 helper def: nbPrimitiveTypes : Integer = thisModule.primitiveTypes.size();
@@ -27,50 +35,9 @@ helper context Sequence(OclAny) def : toString(memory : Set(TupleType(key:String
 helper context String  def : typeToInt : Integer =
 	thisModule.primitiveTypes->indexOf(self);
 
-helper def: zeros(dims : Sequence(Integer)) : Sequence(OclAny) = 
-	if (dims->size() > 1 ) then
-		if (dims->last()=0 ) then 
-			Sequence{}
-		else
-			Sequence{thisModule.zeros(dims->subSequence(0,dims->size()-1))}->union(thisModule.zeros(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
-		endif
-	else
-		if (dims->isEmpty() or dims->last()=0 ) then 
-			Sequence{}
-		else
-			Sequence{Tuple{key = 'zero', value = 0, type = 'int', dimensions = Sequence{}}}->union(thisModule.zeros(Sequence{dims->last()-1}))
-		endif
-	endif;
 
-helper def: ones(dims : Sequence(Integer)) : Sequence(OclAny) = 
-	if (dims->size() > 1 ) then
-		if (dims->last()=0 ) then 
-			Sequence{}
-		else
-			Sequence{thisModule.ones(dims->subSequence(0,dims->size()-1))}->union(thisModule.ones(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
-		endif
-	else
-		if (dims->isEmpty() or dims->last()=0 ) then 
-			Sequence{}
-		else
-			Sequence{Tuple{key = 'one', value = 1, type = 'int', dimensions = Sequence{}}}->union(thisModule.ones(Sequence{dims->last()-1}))
-		endif
-	endif;
+--------- Be careful, in the Chips Metamodel, inputs are called parameters and outputs are called outputs.
 
-helper def: range(dims : Sequence(Integer)) : Sequence(OclAny) = 
-	if (dims->size() > 1 ) then
-		if (dims->last()=0 ) then 
-			Sequence{}
-		else
-			Sequence{Tuple{key = 'range', value = thisModule.range(dims->subSequence(0,dims->size()-1)), type = 'int', dimensions = dims->subSequence(0,dims->size()-1)}}->union(thisModule.range(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
-		endif
-	else
-		if (dims->isEmpty() or dims->last()=0 ) then 
-			Sequence{}
-		else
-			thisModule.range(Sequence{dims->last()-1})->union(Sequence{Tuple{key = 'range', value = dims->last()-1, type = 'int', dimensions = Sequence{}}})
-		endif
-	endif;
 
 helper context chips!logical_parameter  def : typeToInt : Integer =
 	Sequence{
@@ -99,6 +66,48 @@ helper context chips!physical_output  def : typeToInt : Integer =
 		chips!"chips::outputs::physical::float_output",
 		chips!"chips::outputs::physical::bool_output"
 	}->indexOf(self.oclType());
+
+
+helper context chips!logical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_out',
+		exported = true
+	};
+
+helper context chips!logical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_in',
+		exported = true
+	};
+
+
+helper context chips!physical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_out',
+		exported = true
+	};
+
+helper context chips!physical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.name,
+		suffix = '_in',
+		exported = true
+	};
+
+helper context chips!primitive_declaration def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
+	Tuple{
+		type = self.extractTypeAsString,
+		name = self.variable.name,
+		suffix = '_inner',
+		exported = false
+	};
 
 
 helper context chips!function_definition def : all_decl_params : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = 
@@ -194,6 +203,63 @@ helper context chips!primitive_declaration  def : extractTypeAsString : String =
 		endif
 	endif;
 
+--------------------------------
+--------------------------------
+-------------------------------- Functions to evaluate the Chips code during
+-------------------------------- ATL compilation. 
+-------------------------------- No bug encountered yet so it seems ok.
+--------------------------------
+
+helper def: zeros(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{thisModule.zeros(dims->subSequence(0,dims->size()-1))}->union(thisModule.zeros(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'zero', value = 0, type = 'int', dimensions = Sequence{}}}->union(thisModule.zeros(Sequence{dims->last()-1}))
+		endif
+	endif;
+
+helper def: ones(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{thisModule.ones(dims->subSequence(0,dims->size()-1))}->union(thisModule.ones(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'one', value = 1, type = 'int', dimensions = Sequence{}}}->union(thisModule.ones(Sequence{dims->last()-1}))
+		endif
+	endif;
+
+helper def: range(dims : Sequence(Integer)) : Sequence(OclAny) = 
+	if (dims->size() > 1 ) then
+		if (dims->last()=0 ) then 
+			Sequence{}
+		else
+			Sequence{Tuple{key = 'range', value = thisModule.range(dims->subSequence(0,dims->size()-1)), type = 'int', dimensions = dims->subSequence(0,dims->size()-1)}}->union(thisModule.range(dims->subSequence(0,dims->size()-1).append(dims->last()-1)))
+		endif
+	else
+		if (dims->isEmpty() or dims->last()=0 ) then 
+			Sequence{}
+		else
+			thisModule.range(Sequence{dims->last()-1})->union(Sequence{Tuple{key = 'range', value = dims->last()-1, type = 'int', dimensions = Sequence{}}})
+		endif
+	endif;
+
+
+---------------
+--------------- WHY IS THERE NO SWITCH IN ATL?
+--------------- (helpers to detect which chips functions use contextual data)
+
 helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
 	if self.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_bool_expression") then
 		Set{Tuple{ type='bool', name=self.variable.name, suffix='_ctx', exported=true}}
@@ -259,7 +325,8 @@ helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(t
 		self.numeric->uses_contextuals()
 	else 
 		Set{}
-	endif endif endif endif endif endif	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif;
+	endif endif endif endif endif endif	endif endif endif endif endif endif endif endif endif 
+	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif;
 
 
 helper context chips!primitive_statement def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
@@ -337,6 +404,13 @@ helper def: allUsedPortTypes : Map(String, bip!PortType) =
 		);
 
 
+
+--------------------------
+--------------------------
+-------------------------- Need to differentiate Chips data types 
+-------------------------- from bip primitive data types.
+--------------------------
+
 unique lazy rule MakeChipsDataType {
 	from datatype : String
 	
@@ -362,7 +436,10 @@ unique lazy rule MakeBaseDataType {
 }
 
 lazy rule MakeBufferPetriNet {
-	from seq  : Sequence(bip!AtomInternalPortDeclaration)
+	from seq  : TupleType(
+		aipd_in:bip!AtomInternalPortDeclaration,
+		aipd_out:bip!AtomInternalPortDeclaration
+	)
 
 	to pn : bip!PetriNet(
 		states <- Sequence{rcv_state, snd_state},
@@ -373,13 +450,13 @@ lazy rule MakeBufferPetriNet {
 	t_rcv_to_snd : bip!Transition(
 		sources <- Sequence{rcv_state},
 		destinations <- Sequence{snd_state},
-		triggerPort <- seq->at(1)
+		triggerPort <- seq.aipd_in
 	),
 
 	t_snd_to_rcv : bip!Transition(
 		sources <- Sequence{snd_state},
 		destinations <- Sequence{rcv_state},
-		triggerPort <- seq->at(2)
+		triggerPort <- seq.aipd_out
 		-- actions <- Add the tick clock for chips variables 
 	),
 
@@ -392,29 +469,26 @@ lazy rule MakeBufferPetriNet {
 	)
 }
 
-helper def: MakeScope(scopename:String,input:Boolean,output:Boolean,inner:Boolean,contextual:Boolean) : String = 
-	scopename+
-	if input then 
-		':input'
-	else 
-		if output then 
-			':output'
-		else 
-			if inner then 
-				':inner'
-			else 
-				if contextual then 
-					':ctx'
-				else 
-					':undefined'
-				endif
-			endif
-		endif
-	endif;
-		
+-------------- This is from where hardcore refactoring happen(ed)
+--------------
+
+helper def : makeCoreScope(src_element : chips!function_definition) : String = src_element.name + ':core_atom';
+helper def : makeInputCoreScope(src_element : chips!function_definition) : String = src_element.name + ':input_core_atom';
+helper def : makeOutputCoreScope(src_element : chips!function_definition) : String = src_element.name + ':output_core_atom';
+helper def : makeInnerCoreScope(src_element : chips!function_definition) : String = src_element.name + ':inner_core_atom';
+helper def : makeContextualCoreScope(src_element : chips!function_definition) : String = src_element.name + ':contextual_core_atom';
+helper def : makeInputMultitypesBufferScope(src_element : chips!function_definition) : String = src_element.name + ':input_buffer';
+helper def : makeOutputMultitypesBufferScope(src_element : chips!function_definition) : String = src_element.name + ':output_buffer';
+helper def : makeMonotypeBufferScope(type:String) : String = type + ':monotype_buffer';
 
 unique lazy rule MakeAIDD{
-	from datatype :String, dataname:String, scope:String
+	from 
+		datatype :String, 
+		dataname:String,
+		scope:String
+		-- using the componentType as the 
+		-- anchor to avoid duplicating elements
+		-- when using unique lazy rules
 
 	to aidd : bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(datatype),
@@ -426,134 +500,126 @@ unique lazy rule MakeAIDD{
 
 unique lazy rule MakeDDRDP{
 	from 
-		datatype: String,
-		aidd:bip!AtomInternalDataDeclaration,
-		iindex:Integer,
+		datatype :String, 
+		dataname:String,
+		iindex:Integer, 
 		scope:String
+		-- using the componentType as the 
+		-- anchor to avoid duplicating elements
+		-- when using unique lazy rules
 
 	to 
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
-			dataDeclarationReference <- aidd,
+			dataDeclarationReference <- thisModule.MakeAIDD(datatype,dataname,scope),
 			parameterDeclaration <- pdpd,
 			type <- thisModule.MakeChipsDataType(datatype)
 		),
 
-		pdpd: bip!PortDataParameterDeclaration(
+		-- Not using the function that generates port data parameter declarations because 
+		-- it'd take a long time to refactor
+		pdpd: bip!PortDataParameterDeclaration( 
 			name <- 'v'+iindex.toString(),
 			dataType <- thisModule.MakeChipsDataType(datatype)
 		)
 }
 
+unique lazy rule MakeAIPD{
+	from
+		portname:String,
+		alldatatypes: Sequence(String),
+		alldatanames: Sequence(String),
+		scope:String
+	
+	to port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.MakePortType(alldatatypes),
+		name <- portname,
+		dataParameters <- alldatatypes->merge(alldatanames)->iterate(
+			newtuple ; 
+			accu : Sequence(TupleType(datatype:String, dataname:String, iindex:Integer)) = 
+				Sequence{Tuple{datatype=OclUndefined,dataname=OclUndefined,iindex=-1}}|
+			accu->append(Tuple{datatype=newtuple.first, dataname=newtuple.second, iindex = accu->last().iindex+1})
+		)->select(t | t.iindex >=0)
+		->collect(t | 
+			thisModule.MakeDDRDP(
+				t.datatype,
+				t.dataname,
+				t.iindex,
+				scope
+			)
+		)
+	)
+}
+
 unique lazy rule MakeAEPD{
 	from 
-		datatype:Sequence(String), 
-		name:String,
+		portname:String,
+		alldatatypes: Sequence(String),
+		alldatanames: Sequence(String),
 		scope:String
 
 	to 	aepd: bip!AtomExportPortDeclaration(
-			portType <- thisModule.MakePortType(datatype),
+			portType <- thisModule.MakePortType(alldatatypes),
 			name <-name,
-			dataParameters <- datatype->iterate(
-				typeString ; 
-				accu : Sequence(TupleType(type:String,iindex:Integer)) = Sequence{Tuple{type='',iindex=-1}}|
-				accu->append(Tuple{type=typeString, iindex = accu->last().iindex+1})
-			)->select(t | t.iindex >=0)
-			->collect(t | thisModule.MakeDDRDP(t.type,thisModule.MakeAIDD(t.type,'v'+t.iindex.toString(),scope),t.iindex,scope)),
-			portDeclarationReferences <- Sequence{thisModule.MakeAIPD(name,datatype,scope)}
+			portDeclarationReferences <- Sequence{thisModule.MakeAIPD(name,alldatatypes,alldatanames,scope)}
 		)
 }
 
-unique lazy rule MakeChipsBufferType{
+unique lazy rule MakeChipsBufferSingletonType{
 	from 
 		datatype: String,
 		scope:String
 
 	using{
-		stuff : TupleType(
-			datatype:String,
-			aidd: bip!AtomInternalDataDeclaration, 
-			ddrdp: bip!DataDeclarationReferenceDataParameter, 
-			aipd_in: bip!AtomInternalPortDeclaration,
-			aipd_out: bip!AtomInternalPortDeclaration,
-			aepd_in: bip!AtomExportPortDeclaration, 
-			aepd_out: bip!AtomExportPortDeclaration 
-		) = datatype.fromTypeToBufferRequiredData(scope);
+		dataname : String = self+'_data';
 	}
 	
 	to 
 		buffer: bip!AtomType(
-			name <- stuff.datatype + '_buffer_t', -- only for type
+			name <- buffer_data.datatype + '_buffer_t', -- only for type
 	        native <- false, -- only for type
 	        superTypes <- Sequence{}, -- only for type
 	        castableTypes <- Sequence{}, -- only for type
-	        exportedPortDeclarations <- Sequence{stuff.aepd_in, stuff.aepd_out}, -- only for component type
-	        exportedDataDeclarations <- Sequence{stuff.aidd}, -- only for component type
+	        exportedPortDeclarations <- Sequence{
+				thisModule.MakeAEPD('exported_input',Sequence{datatype},Sequence{dataname},scope),
+				thisModule.MakeAEPD('exported_output',Sequence{datatype},Sequence{dataname},scope)
+			}, -- only for component type
+	        exportedDataDeclarations <- Sequence{thisModule.MakeAIDD(datatype,dataname,scope)}, -- only for component type
 	        dataParameterDeclarations <- Sequence{}, -- only for component type
-	        internalPortDeclarations <- Sequence{stuff.aipd_in, stuff.aipd_out, stuff.aepd_in, stuff.aepd_out}, -- only for atom type
-	        behavior <- thisModule.MakeBufferPetriNet(Sequence{stuff.aipd_in,stuff.aipd_out}), -- only for atom type
-	        internalDataDeclarations <- Sequence{stuff.aidd}, -- only for atom type
-	        exportPortDeclarations <- Sequence{stuff.aepd_in, stuff.aepd_out}, -- only for atom type
+	        internalPortDeclarations <- Sequence{
+				thisModule.MakeAIPD('input',Sequence{datatype},Sequence{dataname},scope),
+				thisModule.MakeAIPD('output',Sequence{datatype},Sequence{dataname},scope)
+			}, -- only for atom type
+	        behavior <- thisModule.MakeBufferPetriNet(
+				Tuple{
+					aipd_in = thisModule.MakeAIPD('input',Sequence{datatype},Sequence{dataname},scope),
+					aipd_out = thisModule.MakeAIPD('output',Sequence{datatype},Sequence{dataname},scope)
+				}
+			), -- only for atom type
+	        internalDataDeclarations <- Sequence{
+				thisModule.MakeAIDD(datatype,dataname,scope)
+			}, -- only for atom type
+	        exportPortDeclarations <- Sequence{
+				thisModule.MakeAEPD('exported_input',Sequence{datatype},Sequence{dataname},scope),
+				thisModule.MakeAEPD('exported_output',Sequence{datatype},Sequence{dataname},scope)
+			}, -- only for atom type
 	        priorities <- Sequence{}, -- only for atom type
 	        invariants <- Sequence{} -- only for atom type
 		)
 }
 
-helper context chips!logical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
-	Tuple{
-		type = self.extractTypeAsString,
-		name = self.name,
-		suffix = '_out',
-		exported = true
-	};
-
-helper context chips!logical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
-	Tuple{
-		type = self.extractTypeAsString,
-		name = self.name,
-		suffix = '_in',
-		exported = true
-	};
-
-
-helper context chips!physical_output def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
-	Tuple{
-		type = self.extractTypeAsString,
-		name = self.name,
-		suffix = '_out',
-		exported = true
-	};
-
-helper context chips!physical_parameter def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
-	Tuple{
-		type = self.extractTypeAsString,
-		name = self.name,
-		suffix = '_in',
-		exported = true
-	};
-
-helper context chips!primitive_declaration def : toTuple : TupleType(type: String, name:String, suffix:String, exported:Boolean) =
-	Tuple{
-		type = self.extractTypeAsString,
-		name = self.variable.name,
-		suffix = '_inner',
-		exported = false
-	};
-	
-
-unique lazy rule Tuple2AtomInternalDataDeclaration {
+unique lazy rule TupleAsPortDataParameterDeclaration {
 	from 
-		tuple : TupleType(type: String, name:String, suffix:String, exported:Boolean), 
-		fd:chips!function_definition -- to make the rule unique
-	
-	to aidd: bip!AtomInternalDataDeclaration(
-			dataType <- thisModule.MakeChipsDataType(tuple.type),
-			name <- tuple.name + tuple.suffix,
-			const <- false,
-			exported <- tuple.exported
+		t : TupleType(stype:String, iindex:Integer),
+		-- specify the typesOrderedSequence to allow duplication of parameter declarations when declaring different port type
+ 		typesOrderedSequence: Sequence(String)
+	to 
+		pdpd: bip!PortDataParameterDeclaration(
+			name <- 'v'+t.iindex.toString(),
+			dataType <- thisModule.MakeChipsDataType(t.stype)
 		)
 }
 
-helper def : orderedTypeSeqAsPdpdList(type_ordered_sequence : Sequence(String)) : Sequence(bip!PortDataParameterDeclaration) =
+helper def : MakePortDataParamDeclSequence(type_ordered_sequence : Sequence(String)) : Sequence(bip!PortDataParameterDeclaration) =
 	type_ordered_sequence
 	->iterate( datatype ; tuples : Sequence(TupleType(stype:String , iindex : Integer)) = Sequence{Tuple{stype='',iindex=0}}
 		| tuples.append(Tuple{stype = datatype, iindex = tuples->last().iindex+1})
@@ -578,21 +644,14 @@ unique lazy rule MakePortType {
 		native <- false,
 		superTypes <- Sequence{},
 		castableTypes <- Sequence{},
-		dataParameterDeclarations <-thisModule.orderedTypeSeqAsPdpdList(type_ordered_sequence) 
+		dataParameterDeclarations <-thisModule.MakePortDataParamDeclSequence(type_ordered_sequence) 
 	)
 }
 
-unique lazy rule TupleAsPortDataParameterDeclaration {
-	from 
-		t : TupleType(stype:String, iindex:Integer),
-		-- specify the typesOrderedSequence to allow duplication of parameter declarations when declaring different port type
- 		typesOrderedSequence: Sequence(String)
-	to 
-		pdpd: bip!PortDataParameterDeclaration(
-			name <- 'v'+t.iindex.toString(),
-			dataType <- thisModule.MakeChipsDataType(t.stype)
-		)
-}
+------------
+------------ All of the above should be ok
+------------
+------------
 
 lazy rule MakeState{
 	from name:String
@@ -611,22 +670,7 @@ helper context Sequence(OclAny) def :merge(other:Sequence(OclAny)) : Sequence(Tu
 		OclUndefined 
 	endif;
 
-unique lazy rule MakeAIPD{
-	from
-		name:String,
-		alldatatypes: Sequence(String),
-		scope:String
-	
-	to port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.MakePortType(alldatatypes),
-		name <- name,
-		dataParameters <- alldatatypes->iterate(
-			typeString ; 
-			accu : Sequence(TupleType(type:String,iindex:Integer)) = Sequence{Tuple{type='',iindex=-1}}|
-			accu->append(Tuple{type=typeString, iindex = accu->last().iindex+1})
-		)->select(t | t.iindex >=0)->collect(t | thisModule.MakeDDRDP(t.type,thisModule.MakeAIDD(t.type,name,scope),t.iindex,scope))
-	)
-}
+
 
 lazy rule MakeTransition{
 	from 
@@ -686,17 +730,17 @@ rule FunctionDefinition2AtomType {
 		-- sorting with names of the types to put in the ports to avoid generation of equivalent port types
 		-- e.g. port(int, float) and port(float,int)
 		---------------------------------------------------------------------------
-		allparamsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_params;
+		all_inputs : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_params;
 		
-		alloutputsdecltuples : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_outputs;
+		all_outputs : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) = chipsfunction.all_decl_outputs;
 		
 		contextual_used : Sequence(TupleType(type: String, name:String, suffix:String, exported:Boolean)) =
 			chipsfunction."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
 
 		-- Sorted param types
 		----------------------------
-		spt_input : Sequence(String) = allparamsdecltuples->collect(e | e.type);
-		spt_output : Sequence(String) = alloutputsdecltuples->collect(e | e.type);
+		spt_input : Sequence(String) = all_inputs->collect(e | e.type);
+		spt_output : Sequence(String) = all_outputs->collect(e | e.type);
 		spt_ctx : Sequence(String) = contextual_used->collect(e | e.type);
 
 
@@ -721,23 +765,23 @@ rule FunctionDefinition2AtomType {
 
 		-- generating bip data declarations
 		-----------------------------------
-		aidd_ctx : Sequence(bip!AtomInternalDataDeclaration) = contextual_used->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
-    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = allparamsdecltuples->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
-		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = alloutputsdecltuples->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
+		aidd_ctx : Sequence(bip!AtomInternalDataDeclaration) = contextual_used->collect(e | thisModule.MakeAIDD(e.type, e.name, thisModule.makeContextualCoreScope(chipsfunction)));
+    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = all_inputs->collect(e | thisModule.MakeAIDD(e.type, e.name, thisModule.makeInputCoreScope(chipsfunction)));
+		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = all_outputs->collect(e | thisModule.MakeAIDD(e.type, e.name, thisModule.makeOutputCoreScope(chipsfunction)));
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
 			->collect(primdecl | primdecl.toTuple)
-			->collect(e | thisModule.Tuple2AtomInternalDataDeclaration(e, chipsfunction));
+			->collect(e | thisModule.MakeAIDD(e.type, e.name, thisModule.makeInnerCoreScope(chipsfunction)));
 
 
 		-- generating port parameter declarations
 		-----------------------------------------
-		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_input);
+		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.MakePortDataParamDeclSequence(spt_input);
 
-		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_output);
+		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = thisModule.MakePortDataParamDeclSequence(spt_output);
 		
-		pdpd_ctx : Sequence(bip!PortDataParameterDeclaration) = thisModule.orderedTypeSeqAsPdpdList(spt_ctx);
+		pdpd_ctx : Sequence(bip!PortDataParameterDeclaration) = thisModule.MakePortDataParamDeclSequence(spt_ctx);
 
 
 		-- generating ports
@@ -1161,25 +1205,6 @@ lazy rule MakeCompoundSubConnExportPortDeclaration{
 		portDeclarationReferences <- Sequence{portdecl}
 	)
 }
-
-helper context String def : fromTypeToBufferRequiredData(scope:String)
-: TupleType(
-	datatype:String,
-	aidd: bip!AtomInternalDataDeclaration, 
-	ddrdp: bip!DataDeclarationReferenceDataParameter, 
-	aipd_in: bip!AtomInternalPortDeclaration,
-	aipd_out: bip!AtomInternalPortDeclaration,
-	aepd_in: bip!AtomExportPortDeclaration,
-	aepd_out: bip!AtomExportPortDeclaration 
-) = Tuple{
-		datatype=self,
-		aidd = thisModule.MakeAIDD(self,self+'_data',scope), 
-		ddrdp = thisModule.MakeDDRDP(self,self,thisModule.MakeAIDD(self,self+'_data',scope),scope), 
-		aipd_in = thisModule.MakeAIPD(self+'_input', Sequence{self}, scope),
-		aipd_out = thisModule.MakeAIPD(self+'_output',Sequence{self},scope),
-		aepd_in = thisModule.MakeAEPD(Sequence{self}, 'input', scope),
-		aepd_out = thisModule.MakeAEPD(Sequence{self}, 'output', scope)
-	};
 
 lazy rule MakeConnectorDeclaration{
 	from 
