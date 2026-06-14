@@ -7,7 +7,7 @@ emftvm.class: emftvm.java
 	javac -cp "lib/*" emftvm.java
 
 run:
-	./emftvm.sh metamodels/chips1.1.ecore metamodels/BIP.ecore models/TeaStoreVariation.xmi transformations/chips2bip.atl models/output.xmi 2> debug.txt
+	./emftvm.sh metamodels/chips1.1.ecore metamodels/BIP.ecore models/TeaStoreVariation.xmi transformations/chips2bip.atl models/output.xmi #2> debug.txt
 
 clean: 
 	rm *.class transformations/*.emftvm

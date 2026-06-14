@@ -6,7 +6,15 @@ module chips2bip;
 
 create OUT: bip from IN: chips;
 
+helper context Sequence(OclAny) def : toString(memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String =
+	if (self->size()<=0) then
+		''
+	else
+		self->subSequence(1,self->size()-1)->toString(memory)+'_'+self->last()->evaluate(memory)->toString(memory)
+	endif;
 
+helper context Integer def : toString(memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String =
+	self.toString();
 
 helper context Sequence(OclAny) def : augmentWithIindex() : Sequence(TupleType(data:OclAny, iindex:Integer)) =
 	thisModule.range(Sequence{self->size()})->collect(x | Tuple{data=self->get(x.value), iindex=x.value});
@@ -367,7 +375,7 @@ lazy rule MakePortDataParameterDeclaration {
 	to 
 		pdpd: bip!PortDataParameterDeclaration(
 			name <- 'v'+iindex.toString(),
-			dataType <- thisModule.MakeChipsDataType(ttype)
+			dataType <- thisModule.MakeChipsDataType(type)
 		)
 }
 
@@ -466,7 +474,7 @@ rule FunctionDefinition2CoreAtomType {
 			thisModule.MakeState('THEN'),
 			thisModule.MakeState('SEND')
 		}->union(
-			if (contextual_used->size()>0) then 
+			if (all_contextuals->size()>0) then 
 				Sequence{
 					thisModule.MakeState('READCTX'),
 					thisModule.MakeState('WRITECTX')
@@ -505,7 +513,7 @@ rule FunctionDefinition2CoreAtomType {
 			OclUndefined, --TODO (send port AIPD) 
 			OclUndefined  --TODO (recv port AIPPD)
 		}->union(
-			if (contextual_used->size()>0) then
+			if (all_contextuals->size()>0) then
 				Sequence{
 					OclUndefined, --TODO (read_ctx AIPD) 
 					OclUndefined  --TODO (write_ctx AIPD)
@@ -525,7 +533,7 @@ rule FunctionDefinition2CoreAtomType {
 		-- generating list of contextuals to export
 		-------------------------------------------
 		ctx_to_export : Sequence(bip!AtomExportPortDeclaration) = 
-			if contextual_used.isEmpty() then 
+			if all_contextuals.isEmpty() then 
 				Sequence{}
 			else 
 				Sequence{
@@ -541,14 +549,14 @@ rule FunctionDefinition2CoreAtomType {
         native <- false, -- only for type							OK
         superTypes <- Sequence{}, -- only for type					OK
         castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- only for component type
+        exportedPortDeclarations <- Sequence{},--Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- only for component type
         exportedDataDeclarations <- Sequence{}, -- only for component type
 		dataParameterDeclarations <- Sequence{starts}, -- only for component type
-        internalPortDeclarations <- all_aipdecl, -- only for atom type
+        internalPortDeclarations <- Sequence{},--all_aipdecl, -- only for atom type
         externalPortDeclarations <- Sequence{}, -- only for atom type
         behavior <- pn, -- only for atom type
-        internalDataDeclarations <- Sequence{aidd_input,aidd_output,aidd_inner, aidd_ctx}->flatten(), -- only for atom type
-        exportPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export) -- only for atom type
+        internalDataDeclarations <- Sequence{},--Sequence{aidd_input,aidd_output,aidd_inner, aidd_ctx}->flatten(), -- only for atom type
+        exportPortDeclarations <-Sequence{}-- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export) -- only for atom type
     ),
 
 
@@ -561,7 +569,7 @@ rule FunctionDefinition2CoreAtomType {
 	pn : bip!PetriNet(
 		states <- all_states,
 		initStates <- Sequence{all_states->at(1)},
-		transitions <- thisModule.MakeTransitions(all_states, all_aipdecl),
+		transitions <- Sequence{},--thisModule.MakeTransitions(all_states, all_aipdecl),
 		initialActions <- Sequence{} -- put the call to the init function here
 	)
 }
@@ -912,8 +920,8 @@ unique lazy rule FunctionDefinition2CompoundType {
 		dataParameterDeclarations <- Sequence{thisModule.MakeStartParameter(thisModule.makeCoreScope(chipsfunction))},
 		componentDeclarations <- 
 			Sequence{core_component_declaration}
-			->append(input_buffer)
-			->append(output_buffer),
+			->append(input_buffer_declaration)
+			->append(output_buffer_declaration),
 		connectorDeclarations<- Sequence{flow_input_to_core}--,
 		--exportPortDeclarations <- exportedportdecl
 	)
@@ -1129,7 +1137,7 @@ rule Program2BipPackage {
 	}
 	to 
 		bippackage: bip!BipPackage(
-			name <- chipsprogram.fileName,
+			name <- chipsprogram.fileName
 			-- atomTypes <- user_specific_atom_types
 			-- 	->union(all_monotype_buffer_atom_types),
 			-- compoundTypes <- functional_blocks_types
@@ -1499,10 +1507,10 @@ helper context chips!logical_bool_eater def: getName(memory:Set(TupleType(key:St
 	+'_'+self.parameter.name;
 
 helper context chips!"chips::rvalues::system::direct_int" def : getName(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String = 
-	self.value.toString;
+	self.value.toString();
 
 helper context Integer def : getName(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String = 
-	self.toString;
+	self.toString();
 
 helper context Real def : getName(memory:Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String = 
 	self.toString();
