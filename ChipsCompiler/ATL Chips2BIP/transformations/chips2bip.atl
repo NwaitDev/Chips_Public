@@ -395,13 +395,18 @@ unique lazy rule MakePortType {
 	from 
 		type_ordered_sequence : Sequence(String)
 
+	using{
+		portDataParamDeclSequence : Sequence(bip!PortDataParameterDeclaration) =
+			type_ordered_sequence->augmentWithIindex()
+			->collect( tuple | thisModule.MakePortDataParameterDeclaration(tuple.data,tuple.iindex));
+	}
+
 	to pt : bip!PortType(
 		name <- type_ordered_sequence->asPortName(),
 		native <- false,
 		superTypes <- Sequence{},
 		castableTypes <- Sequence{},
-		dataParameterDeclarations <-
-			thisModule.MakePortDataParamDeclSequence(type_ordered_sequence) 
+		dataParameterDeclarations <- portDataParamDeclSequence
 	)
 }
 
@@ -599,7 +604,7 @@ unique lazy rule FunctionDefinition2CoreAtomType {
 
 		-- generating ports (order matters)
 		-----------------------------------
-		all_aipdecl : Sequence(bip!Port) = Sequence{
+		all_aipdecl : Sequence(bip!AtomInternalPortDeclaration) = Sequence{
 			thisModule.MakeAtomInternalPortDeclaration('start',Sequence{},Sequence{}), -- (start port AIPD) 
 			thisModule.MakeAtomInternalPortDeclaration('then',Sequence{},Sequence{}), -- (then port AIPD),
 			output_aipd, -- (send port AIPD) 
@@ -652,10 +657,10 @@ unique lazy rule FunctionDefinition2CoreAtomType {
         exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- MAYBE IT IS AIPD that should be used
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{starts},
-        internalPortDeclarations <- all_aipdecl,
+        internalPortDeclarations <- all_aipdecl->append(output_aipd),
         externalPortDeclarations <- Sequence{},
         behavior <- pn,
-        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output), 
+        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output),
         exportPortDeclarations <-Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export)
     ),
 
@@ -1183,19 +1188,19 @@ rule Program2BipPackage {
 		
 
 
-		-- system_specific_input_port_types: Sequence(bip!PortType) = 
-		-- 	all_chips_function_defs->collect(
-		-- 		the_def | thisModule.MakePortType(
-		-- 			the_def.all_inputs->collect(t | t.type)
-		-- 		)
-		-- 	);
+		system_specific_input_port_types: Sequence(bip!PortType) = 
+			all_chips_function_defs->collect(
+				the_def | thisModule.MakePortType(
+					the_def.all_inputs->collect(t | t.type)
+				)
+			);
 		
-		-- system_specific_output_port_types: Sequence(bip!PortType) = 
-		-- 	all_chips_function_defs->collect(
-		-- 		the_def | thisModule.MakePortType(
-		-- 			the_def.all_outputs->collect(t | t.type)
-		-- 		)
-		-- 	);
+		system_specific_output_port_types: Sequence(bip!PortType) = 
+			all_chips_function_defs->collect(
+				the_def | thisModule.MakePortType(
+					the_def.all_outputs->collect(t | t.type)
+				)
+			);
 
 		core_atom_types: Sequence(bip!AtomType) = all_chips_function_defs->collect(d |  thisModule.FunctionDefinition2CoreAtomType(d));
 
@@ -1249,17 +1254,17 @@ rule Program2BipPackage {
 	to 
 		bippackage: bip!BipPackage(
 			name <- chipsprogram.fileName,
-			atomTypes <- core_atom_types,
-				-- ->union(all_monotype_buffer_atom_types)
-				-- ->union(constants_atom_types),
+			atomTypes <- core_atom_types
+				->union(all_monotype_buffer_atom_types)
+				->union(constants_atom_types),
 			-- compoundTypes <- functional_blocks_types
 			-- 	->union(functional_input_buffer_types)
 			-- 	->union(functional_output_buffer_types)
 			-- 	->union(Sequence{system_compoud}),
 			-- connectorTypes <- Sequence{},
-			portTypes <- base_port_types,
-				-- ->union(system_specific_input_port_types)
-				-- ->union(system_specific_output_port_types),
+			portTypes <- base_port_types
+				->union(system_specific_input_port_types)
+				->union(system_specific_output_port_types),
 			dataTypes <- data_types
 			-- used_packages <- Sequence{},
 			-- constData <- Sequence{}, -- what for ? oh wait, yes
