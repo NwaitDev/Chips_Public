@@ -178,6 +178,19 @@
           <rvalue
               xsi:type="chips.rvalues.primitive:direct_int"/>
         </statements>
+        <statements
+            xsi:type="chips.statements.primitive:int_declaration">
+          <variable
+              name="lastRequest"/>
+        </statements>
+        <statements
+            xsi:type="chips.statements.primitive:int_assignment">
+          <lvalue
+              xsi:type="chips.xvalues.primitive:int_variable_expression"
+              variable="//@preamble/@definitions.0/@init/@statements.14/@variable"/>
+          <rvalue
+              xsi:type="chips.rvalues.primitive:direct_int"/>
+        </statements>
       </init>
       <then>
         <statements
@@ -383,6 +396,15 @@
                       </rvalue>
                     </if_statements>
                   </if_section>
+                </if_statements>
+                <if_statements
+                    xsi:type="chips.statements.primitive:int_assignment">
+                  <lvalue
+                      xsi:type="chips.xvalues.primitive:int_variable_expression"
+                      variable="//@preamble/@definitions.0/@init/@statements.14/@variable"/>
+                  <rvalue
+                      xsi:type="chips.xvalues.primitive:int_variable_expression"
+                      variable="//@preamble/@definitions.0/@init/@statements.12/@variable"/>
                 </if_statements>
                 <if_statements
                     xsi:type="chips.statements.primitive:bool_assignment">

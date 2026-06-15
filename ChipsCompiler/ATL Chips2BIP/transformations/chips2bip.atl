@@ -30,23 +30,25 @@ helper context Sequence(OclAny) def :merge(other:Sequence(OclAny)) : Sequence(Tu
 		OclUndefined 
 	endif;
 
-helper context chips!function_definition def : all_inputs : Sequence(TupleType(type: String, name:String, suffix:String)) = 
+helper context chips!function_definition def : all_inputs : Sequence(TupleType(type: String, name:String)) = 
 	self.parameters->union(
 		if self.oclIsTypeOf(chips!physical_definition) then
 			self.sensor
 		else
 			Sequence{}
 		endif
-	)->collect(param | param.toTuple)->sortedBy(t | t.type);
+	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(t | t.type);
 
-helper context chips!function_definition def : all_outputs : Sequence(TupleType(type: String, name:String, suffix:String)) = 
+helper context chips!function_definition def : all_outputs : Sequence(TupleType(type: String, name:String)) = 
 	self.outputs->union(
 		if self.oclIsTypeOf(chips!physical_definition) then
 			self.actuator
 		else
 			Sequence{}
 		endif 
-	)->sortedBy(o | o.extract_type)->collect(output | output.toTuple);
+	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(o | o.type);
+
+
 helper context chips!logical_parameter  def : extract_type : String =
 	if self.oclIsTypeOf(chips!int_logical_parameter)
 	then 'int'
@@ -107,6 +109,7 @@ helper context chips!primitive_declaration  def : extract_type : String =
 		endif
 	endif;
 
+helper context chips!primitive_declaration def : name : String = self.variable.name;
 
 helper def: zeros(dims : Sequence(Integer)) : Sequence(OclAny) = 
 	if (dims->size() > 1 ) then
@@ -156,7 +159,7 @@ helper def: range(dims : Sequence(Integer)) : Sequence(OclAny) =
 --------------- WHY IS THERE NO SWITCH IN ATL?
 --------------- (helpers to detect which chips functions use contextual data)
 
-helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String)) =
+helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(type:String, name:String)) =
 	if self.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_bool_expression") then
 		Set{Tuple{ type='bool', name=self.variable.name, suffix='ctx'}}
 	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::bool::leq_int") then
@@ -225,7 +228,7 @@ helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(t
 	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif;
 
 
-helper context chips!primitive_statement def : uses_contextuals() : Set(TupleType(type:String, name:String, suffix:String)) =
+helper context chips!primitive_statement def : uses_contextuals() : Set(TupleType(type:String, name:String)) =
 	if self.oclIsTypeOf(chips!"chips::statements::primitive::int_assignment")
 	or self.oclIsTypeOf(chips!"chips::statements::primitive::float_assignment")
 	or self.oclIsTypeOf(chips!"chips::statements::primitive::bool_assignment") then
@@ -245,12 +248,14 @@ helper context chips!primitive_statement def : uses_contextuals() : Set(TupleTyp
 		Set{}
 	endif endif endif endif;
 
-helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Sequence(TupleType(type:String, name:String, suffix:String, exported:Boolean)) =
+helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Sequence(TupleType(type:String, name:String, exported:Boolean)) =
 	self->collect(stt | stt->uses_contextuals()->asSequence())->asSequence();
 
 
-helper context chips!function_definition def : all_contextuals : Sequence(TupleType(name:String, type:String, suffix:String)) =
+helper context chips!function_definition def : all_contextuals : Sequence(TupleType(name:String, type:String)) =
 self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
+
+
 unique lazy rule MakeChipsDataType {
 	from datatype : String
 	
@@ -339,32 +344,34 @@ lazy rule MakeBufferPetriNet {
 
 unique lazy rule MakeChipsBufferSingletonType{
 	from 
-		datatype: String
+		type: String
 	
 	using{
-		dataname : String = datatype+'_data';
-		aipd_in:bip!AtomInternalPortDeclaration = OclUndefined;--TODO;
-		aipd_out:bip!AtomInternalPortDeclaration = OclUndefined; --TODO;
-		aidd:bip!AtomInternalDataDeclaration = OclUndefined; --TODO
-		aepd_in: bip!AtomExportPortDeclaration = OclUndefined; --TODO
-		aepd_out: bip!AtomExportPortDeclaration = OclUndefined; --TODO
+		dataname : String = type+'_data';
 
+		aidd:bip!AtomInternalDataDeclaration = 
+			thisModule.MakeAtomInternalDataDeclaration(type, dataname);
+		aipd_in:bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('input', Sequence{type}, Sequence{aidd});
+		aipd_out:bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('output', Sequence{type}, Sequence{aidd});
+		aepd_in:bip!AtomExportPortDeclaration = 
+			thisModule.MakeAtomExportPortDeclaration('exported_input',Sequence{type},Sequence{aipd_in});
+		aepd_out:bip!AtomExportPortDeclaration = 
+			thisModule.MakeAtomExportPortDeclaration('exported_output',Sequence{type},Sequence{aipd_out});
 	}
 	
 	to 
 		buffer: bip!AtomType(
-			name <- datatype + '_buffer_t', -- only for type
-	        native <- false, -- only for type
-	        superTypes <- Sequence{}, -- only for type
-	        castableTypes <- Sequence{}, -- only for type
+			name <- type + '_buffer_t',
+	        native <- false,
 			-- what is the relation between 'exportedPortDeclarations' and 'exportPortDeclarations' attributes?
 	        exportedPortDeclarations <- Sequence{aepd_in,aepd_out},
-	        exportedDataDeclarations <- Sequence{aepd_in,aepd_out}, 
 	        dataParameterDeclarations <- Sequence{}, -- should stay empty for this type
-	        internalPortDeclarations <- Sequence{aipd_in,aipd_out}, -- only for atom type
-	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out), -- only for atom type
-	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
-	        exportPortDeclarations <- Sequence{aepd_in,aepd_out} -- only for atom type
+	        internalPortDeclarations <- Sequence{aipd_in,aipd_out},
+	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out),
+	        internalDataDeclarations <- Sequence{aidd},
+	        exportPortDeclarations <- Sequence{aepd_in,aepd_out}
 		)
 }
 
@@ -379,6 +386,11 @@ lazy rule MakePortDataParameterDeclaration {
 		)
 }
 
+
+helper def : MakePortDataParamDeclSequence(type_ordered_sequence : Sequence(String)) : Sequence(bip!PortDataParameterDeclaration) =
+	type_ordered_sequence->augmentWithIindex()
+	->collect( tuple | thisModule.MakePortDataParameterDeclaration(tuple.data,tuple.iindex));
+
 unique lazy rule MakePortType {
 	from 
 		type_ordered_sequence : Sequence(String)
@@ -388,7 +400,8 @@ unique lazy rule MakePortType {
 		native <- false,
 		superTypes <- Sequence{},
 		castableTypes <- Sequence{},
-		dataParameterDeclarations <-thisModule.MakePortDataParamDeclSequence(type_ordered_sequence) 
+		dataParameterDeclarations <-
+			thisModule.MakePortDataParamDeclSequence(type_ordered_sequence) 
 	)
 }
 
@@ -448,8 +461,75 @@ helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequen
 		}
 	endif;
 
+lazy rule MakeAtomInternalDataDeclaration{
+	from
+		type : String,
+		name : String
 
-rule FunctionDefinition2CoreAtomType {
+	to datadecl:bip!AtomInternalDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(type),
+		name <-name
+	)
+}
+
+lazy rule MakeAtomDataDeclarationReferenceDataParameter{
+	from 
+		iindex : Integer,
+		type : String,
+		datadecl: bip!AtomInternalDataDeclaration
+
+	to 
+		ddrdp: bip!DataDeclarationReferenceDataParameter(
+			dataDeclarationReference <- datadecl,
+			parameterDeclaration <- thisModule.MakeAtomPortDataParamDecl(iindex,type),
+			type <- thisModule.MakeChipsDataType(type)
+		)
+}
+
+lazy rule MakeAtomPortDataParamDecl{
+	from 
+		iindex : Integer,
+		type : String
+
+	to 
+		pdpd: bip!PortDataParameterDeclaration( 
+			name <- 'v'+iindex.toString(),
+			dataType <- thisModule.MakeChipsDataType(type)
+		)
+}
+
+lazy rule MakeAtomInternalPortDeclaration{
+	from
+		portname:String,
+		alldatatypes: Sequence(String),
+		all_dataparameters:Sequence(bip!PortDataParameterDeclaration)
+	
+	to port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.MakePortType(alldatatypes),
+		name <- portname,
+		dataParameters <- all_dataparameters
+	)
+}
+
+helper def : MakeAtomPortDataParamDeclSequence(types : Sequence(String),aidds : Sequence(bip!AtomInternalDataDeclaration))
+: Sequence(bip!PortDataParameterDeclaration) =
+	types->merge(aidds)->augmentWithIindex()
+	->collect(t | thisModule.MakeAtomDataDeclarationReferenceDataParameter(t.iindex, t.data.first, t.data.second));
+
+lazy rule MakeAtomExportPortDeclaration{
+	from 
+		portname:String,
+		alldatatypes: Sequence(String),
+		aipds: Sequence(bip!AtomInternalPortDeclaration)
+
+	to 	aepd: bip!AtomExportPortDeclaration(
+			portType <- thisModule.MakePortType(alldatatypes),
+			name <-portname,
+			portDeclarationReferences <- aipds
+		)
+}
+
+unique lazy rule FunctionDefinition2CoreAtomType {
 	from 
 		chipsfunction: chips!function_definition
 
@@ -459,11 +539,11 @@ rule FunctionDefinition2CoreAtomType {
 		-- sorting with names of the types to put in the ports to avoid generation of equivalent port types
 		-- e.g. port(int, float) and port(float,int)
 		---------------------------------------------------------------------------
-		all_inputs : Sequence(TupleType(type: String, name:String, suffix:String)) = chipsfunction.all_inputs;
+		all_inputs : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_inputs;
 		
-		all_outputs : Sequence(TupleType(type: String, name:String, suffix:String)) = chipsfunction.all_outputs;
+		all_outputs : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_outputs;
 		
-		all_contextuals : Sequence(TupleType(type: String, name:String, suffix:String)) = chipsfunction.all_contextuals;
+		all_contextuals : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_contextuals;
 
 
 		-- Defining the states for the petri net (order matters)
@@ -487,36 +567,48 @@ rule FunctionDefinition2CoreAtomType {
 
 		-- generating bip data declarations
 		-----------------------------------
-		aidd_ctx : Sequence(bip!AtomInternalDataDeclaration) =  OclUndefined; --TODO 
-    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) =  OclUndefined; --TODO 
-		aidd_output : Sequence(bip!AtomInternalDataDeclaration) =  OclUndefined; --TODO 
+		aidd_ctx : Sequence(bip!AtomInternalDataDeclaration) =  all_contextuals->collect(t | thisModule.MakeAtomInternalDataDeclaration(t.type,t.name)); 
+    	aidd_input : Sequence(bip!AtomInternalDataDeclaration) =  all_inputs->collect(t | thisModule.MakeAtomInternalDataDeclaration(t.type,t.name)); 
+		aidd_output : Sequence(bip!AtomInternalDataDeclaration) =  all_outputs->collect(t | thisModule.MakeAtomInternalDataDeclaration(t.type,t.name)); 
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-			->collect(stt |  OclUndefined); --TODO 
+			->collect(stt |  thisModule.MakeAtomInternalDataDeclaration(stt.extract_type,stt.name)); 
 
 
 		-- generating port parameter declarations
 		-----------------------------------------
-		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = OclUndefined; --TODO 
+		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = 
+			thisModule.MakeAtomPortDataParamDeclSequence(all_inputs->collect(t | t.type),aidd_input);
 
-		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = OclUndefined; --TODO 
+		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = 
+			thisModule.MakeAtomPortDataParamDeclSequence(all_outputs->collect(t | t.type), aidd_output);
 		
-		pdpd_ctx : Sequence(bip!PortDataParameterDeclaration) = OclUndefined; --TODO 
+		pdpd_ctx : Sequence(bip!PortDataParameterDeclaration) = 
+			thisModule.MakeAtomPortDataParamDeclSequence(all_contextuals->collect(t|t.type),aidd_ctx);
 
+
+		input_aipd : bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('recv',all_inputs->collect(t | t.type),pdpd_inputs);
+		output_aipd : bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('send',all_outputs->collect(t | t.type),pdpd_outputs);
+		read_ctx_aipd : bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('read_ctx',all_contextuals->collect(t | t.type),pdpd_ctx);
+		write_ctx_aipd : bip!AtomInternalPortDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('write_ctx',all_contextuals->collect(t | t.type),pdpd_ctx);
 
 		-- generating ports (order matters)
 		-----------------------------------
 		all_aipdecl : Sequence(bip!Port) = Sequence{
-			OclUndefined, --TODO (start port AIPD) 
-			OclUndefined, --TODO (then port AIPD),
-			OclUndefined, --TODO (send port AIPD) 
-			OclUndefined  --TODO (recv port AIPPD)
+			thisModule.MakeAtomInternalPortDeclaration('start',Sequence{},Sequence{}), -- (start port AIPD) 
+			thisModule.MakeAtomInternalPortDeclaration('then',Sequence{},Sequence{}), -- (then port AIPD),
+			output_aipd, -- (send port AIPD) 
+			input_aipd  -- (recv port AIPPD)
 		}->union(
 			if (all_contextuals->size()>0) then
 				Sequence{
-					OclUndefined, --TODO (read_ctx AIPD) 
-					OclUndefined  --TODO (write_ctx AIPD)
+					read_ctx_aipd, 
+					write_ctx_aipd 
 				}
 			else 
 				Sequence{}
@@ -527,8 +619,17 @@ rule FunctionDefinition2CoreAtomType {
 		-- generating atom exported port declarations
 		---------------------------------------------
 
-		aepd_snd : bip!AtomExportPortDeclaration =  OclUndefined; --TODO
-		aepd_rcv : bip!AtomExportPortDeclaration =  OclUndefined; --TODO
+		aepd_snd : bip!AtomExportPortDeclaration =
+			thisModule.MakeAtomExportPortDeclaration('exported_outputs', all_inputs->collect(t | t.type), Sequence{output_aipd});
+		aepd_rcv : bip!AtomExportPortDeclaration =
+			thisModule.MakeAtomExportPortDeclaration('exported_intputs', all_inputs->collect(t | t.type), Sequence{input_aipd});
+
+		read_ctx_aepd : bip!AtomExportPortDeclaration =
+			thisModule.MakeAtomExportPortDeclaration('exported_read_ctx', all_contextuals->collect(t | t.type), Sequence{read_ctx_aipd});
+
+		write_ctx_aepd : bip!AtomExportPortDeclaration =
+			thisModule.MakeAtomExportPortDeclaration('exported_write_ctx', all_contextuals->collect(t | t.type), Sequence{write_ctx_aipd});
+
 
 		-- generating list of contextuals to export
 		-------------------------------------------
@@ -537,26 +638,25 @@ rule FunctionDefinition2CoreAtomType {
 				Sequence{}
 			else 
 				Sequence{
-					OclUndefined, --TODO (read_ctx AEPD) 
-					OclUndefined  --TODO (write_ctx AEPD)
+					read_ctx_aepd, --TODO (read_ctx AEPD) 
+					write_ctx_aepd  --TODO (write_ctx AEPD)
 				}
 			endif;
-		
 	}
 
 	to core_component_type: bip!AtomType(
-    	name <- chipsfunction.name + '_core', -- only for type  	OK
-        native <- false, -- only for type							OK
-        superTypes <- Sequence{}, -- only for type					OK
-        castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{},--Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- only for component type
-        exportedDataDeclarations <- Sequence{}, -- only for component type
-		dataParameterDeclarations <- Sequence{starts}, -- only for component type
-        internalPortDeclarations <- Sequence{},--all_aipdecl, -- only for atom type
-        externalPortDeclarations <- Sequence{}, -- only for atom type
-        behavior <- pn, -- only for atom type
-        internalDataDeclarations <- Sequence{},--Sequence{aidd_input,aidd_output,aidd_inner, aidd_ctx}->flatten(), -- only for atom type
-        exportPortDeclarations <-Sequence{}-- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export) -- only for atom type
+    	name <- chipsfunction.name + '_core',
+        native <- false,
+        superTypes <- Sequence{},
+        castableTypes <- Sequence{},
+        exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- MAYBE IT IS AIPD that should be used
+        exportedDataDeclarations <- Sequence{},
+		dataParameterDeclarations <- Sequence{starts},
+        internalPortDeclarations <- all_aipdecl,
+        externalPortDeclarations <- Sequence{},
+        behavior <- pn,
+        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output), 
+        exportPortDeclarations <-Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export)
     ),
 
 
@@ -569,7 +669,7 @@ rule FunctionDefinition2CoreAtomType {
 	pn : bip!PetriNet(
 		states <- all_states,
 		initStates <- Sequence{all_states->at(1)},
-		transitions <- Sequence{},--thisModule.MakeTransitions(all_states, all_aipdecl),
+		transitions <- thisModule.MakeTransitions(all_states, all_aipdecl),
 		initialActions <- Sequence{} -- put the call to the init function here
 	)
 }
@@ -998,18 +1098,18 @@ unique lazy rule MakeSystemCompoundType{
 		--all_connectors: Sequence(bip!connectorDeclaration)
 
 	to compound : bip!CompoundType(
-		name <- 'SYSTEM_COMPOUND', -- only for type  	OK
-        native <- false, -- only for type							OK
-        superTypes <- Sequence{}, -- only for type					OK
-        castableTypes <- Sequence{}, -- only for type				OK
-        exportedPortDeclarations <- Sequence{}, -- only for component type
-        exportedDataDeclarations <- Sequence{}, -- only for component type
-		dataParameterDeclarations <- Sequence{}, -- only for component type
-		componentDeclarations <- all_compounds, -- only for compound type
-		connectorDeclarations <- Sequence{}, -- only for compound type
-		exportPortDeclarations <- Sequence{}, -- only for compound type
-		exportDataDeclarations <- Sequence{}, -- only for compound type
-		priorities <- Sequence{} -- only for compound type
+		name <- 'SYSTEM_COMPOUND',
+        native <- false,
+        superTypes <- Sequence{},
+        castableTypes <- Sequence{},
+        exportedPortDeclarations <- Sequence{},
+        exportedDataDeclarations <- Sequence{},
+		dataParameterDeclarations <- Sequence{},
+		componentDeclarations <- all_compounds,
+		connectorDeclarations <- Sequence{},
+		exportPortDeclarations <- Sequence{},
+		exportDataDeclarations <- Sequence{},
+		priorities <- Sequence{}
 	)
 }
 
@@ -1019,24 +1119,28 @@ unique lazy rule MakeConstantAtomType{
 
 	using {
 		dataname : String = type+'_value';
-		aidd:bip!AtomInternalDataDeclaration = OclUndefined; --TODO
-		aipd_out:bip!AtomInternalDataDeclaration = OclUndefined; --TODO
-		aepd_out:bip!AtomExportPortDeclaration = OclUndefined; --TODO
+		aidd:bip!AtomInternalDataDeclaration = 
+			thisModule.MakeAtomInternalDataDeclaration(type, dataname);
+		aipd_out:bip!AtomInternalDataDeclaration = 
+			thisModule.MakeAtomInternalPortDeclaration('output', Sequence{type}, Sequence{aidd});
+		aepd_out:bip!AtomExportPortDeclaration = 
+			thisModule.MakeAtomExportPortDeclaration('exported_output',Sequence{type},Sequence{aipd_out});
+		
 	}
 
 	to 
 		cst:bip!AtomType(
-			name <- type + '_constant_t', -- only for type
-	        native <- false, -- only for type
-	        superTypes <- Sequence{}, -- only for type
-	        castableTypes <- Sequence{}, -- only for type
-	        exportedPortDeclarations <- Sequence{}, -- only for component type
-	        exportedDataDeclarations <- Sequence{aidd}, -- only for component type
-	        dataParameterDeclarations <- Sequence{thisModule.MakePortDataParameterDeclaration('data',type)}, -- only for component type
-	        internalPortDeclarations <- Sequence{aipd_out}, -- only for atom type
-	        behavior <- thisModule.MakeConstantPetriNet(aipd_out), -- only for atom type
-	        internalDataDeclarations <- Sequence{aidd}, -- only for atom type
-	        exportPortDeclarations <- Sequence{aepd_out} -- only for atom type
+			name <- type + '_constant_t',
+	        native <- false,
+	        superTypes <- Sequence{},
+	        castableTypes <- Sequence{},
+	        exportedPortDeclarations <- Sequence{},
+	        exportedDataDeclarations <- Sequence{}, --Sequence{aidd},
+	        dataParameterDeclarations <- Sequence{}, --Sequence{thisModule.MakePortDataParameterDeclaration('data',type)},
+	        internalPortDeclarations <- Sequence{}, --Sequence{aipd_out},
+	        behavior <- thisModule.MakeConstantPetriNet(aipd_out),
+	        internalDataDeclarations <- Sequence{}, --Sequence{aidd},
+	        exportPortDeclarations <- Sequence{} --Sequence{aepd_out}
 		)
 }
 
@@ -1061,38 +1165,49 @@ rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
 	using {
-		-- data_types: Sequence(bip!DataType) = 
-		-- 	thisModule.allDataTypeNames
-		-- 		->iterate(
-		-- 			datatype ; dtypes : Sequence(bip!DataType) = 
-		-- 				Sequence{
-		-- 					thisModule.MakeBaseDataType('int'),
-		-- 					thisModule.MakeBaseDataType('float'),
-		-- 					thisModule.MakeBaseDataType('bool')
-		-- 				} |
-		-- 			dtypes->append(thisModule.MakeChipsDataType(datatype))
-		-- 		);
+
+		data_types: Sequence(bip!DataType) = 
+			Sequence{'int','float','bool'}->collect(t | thisModule.MakeChipsDataType(t))
+			->union(Sequence{thisModule.MakeBackendDataType('bool')}); -- only needed to decide which fsm starts
 		
-		-- base_port_types: Sequence(bip!PortType) = 
-		-- 	Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'}}
-		-- 		->iterate(
-		-- 			datatype ; ptypes : Sequence(bip!PortType) = Sequence{} |
-		-- 			ptypes->append(thisModule.MakePortType(datatype))
-		-- 		);
 
-		-- system_specific_port_types: Sequence(bip!PortType) = 
-		-- 	thisModule.allUsedPortTypes->getValues()->asSequence()
-		-- 	->union(base_port_types)
-		-- 	->append(thisModule.MakePortType(Sequence{}));
 
-		-- all_chips_function_defs : Sequence(chips!function_definition) = 
-		-- 	chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
+		base_port_types: Sequence(bip!PortType) = 
+			Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'},Sequence{}}
+				->collect( t | thisModule.MakePortType(t));
+
+
+
+		all_chips_function_defs : Sequence(chips!function_definition) = 
+			chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition));
 		
-		-- user_specific_atom_types: Sequence(bip!AtomType) = all_chips_function_defs;
 
-		-- all_monotype_buffer_atom_types : Sequence(bip!AtomType) =
-		-- 	Sequence{'int','float', 'bool'}
-		-- 	->collect(t|thisModule.MakeChipsBufferSingletonType(t));
+
+		-- system_specific_input_port_types: Sequence(bip!PortType) = 
+		-- 	all_chips_function_defs->collect(
+		-- 		the_def | thisModule.MakePortType(
+		-- 			the_def.all_inputs->collect(t | t.type)
+		-- 		)
+		-- 	);
+		
+		-- system_specific_output_port_types: Sequence(bip!PortType) = 
+		-- 	all_chips_function_defs->collect(
+		-- 		the_def | thisModule.MakePortType(
+		-- 			the_def.all_outputs->collect(t | t.type)
+		-- 		)
+		-- 	);
+
+		core_atom_types: Sequence(bip!AtomType) = all_chips_function_defs->collect(d |  thisModule.FunctionDefinition2CoreAtomType(d));
+
+		all_monotype_buffer_atom_types : Sequence(bip!AtomType) =
+			Sequence{'int','float', 'bool'}
+			->collect(t|thisModule.MakeChipsBufferSingletonType(t));
+		
+		constants_atom_types: Sequence(bip!AtomType) = 
+			Sequence{'int','float', 'bool'}
+			->collect(t|thisModule.MakeConstantAtomType(t));
+
+
 
 		-- functional_blocks_types: Sequence(bip!CompoundType) = 
 		-- 	all_chips_function_defs
@@ -1105,10 +1220,6 @@ rule Program2BipPackage {
 		-- functional_output_buffer_types : Sequence(bip!CompoundType) =
 		-- 	all_chips_function_defs
 		-- 	->collect(d | d.extractOutputBufferCompoundType())->flatten();
-
-		-- constants_atom_types: Sequence(bip!AtomType) = 
-		-- 	Sequence{'int','float', 'bool'}
-		-- 	->collect(t|thisModule.MakeConstantAtomType(t));
 
 		memory: Set(TupleType(key:String, value:OclAny, type:OclAny, dimensions:Sequence(Integer))) = 
 			chipsprogram.system.system_statements->iterate( 
@@ -1137,16 +1248,19 @@ rule Program2BipPackage {
 	}
 	to 
 		bippackage: bip!BipPackage(
-			name <- chipsprogram.fileName
-			-- atomTypes <- user_specific_atom_types
-			-- 	->union(all_monotype_buffer_atom_types),
+			name <- chipsprogram.fileName,
+			atomTypes <- core_atom_types,
+				-- ->union(all_monotype_buffer_atom_types)
+				-- ->union(constants_atom_types),
 			-- compoundTypes <- functional_blocks_types
 			-- 	->union(functional_input_buffer_types)
 			-- 	->union(functional_output_buffer_types)
 			-- 	->union(Sequence{system_compoud}),
 			-- connectorTypes <- Sequence{},
-			-- portTypes <- base_port_types->union(system_specific_port_types),
-			-- dataTypes <- data_types,
+			portTypes <- base_port_types,
+				-- ->union(system_specific_input_port_types)
+				-- ->union(system_specific_output_port_types),
+			dataTypes <- data_types
 			-- used_packages <- Sequence{},
 			-- constData <- Sequence{}, -- what for ? oh wait, yes
 			-- prototypes <- Sequence{} -- for importing functions from cpp backend
