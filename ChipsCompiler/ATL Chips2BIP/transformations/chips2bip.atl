@@ -1413,6 +1413,38 @@ lazy rule MakeIntegerConstantDeclaration{
 
 }
 
+lazy rule MakeFloatConstantDeclaration{
+	from 
+		float : Real
+
+	to cst_component_decl: bip!ComponentDeclaration(
+		type <- thisModule.MakeConstantAtomType('float'),
+		parameters <- Sequence{valued_expression},
+		name <- 'core'
+	),
+	
+	valued_expression: bip!DirectDataDeclarationReferenceExpression (
+		--dataDeclaration <- OclUndefined -- TODO
+	)
+
+}
+
+lazy rule MakeBoolegerConstantDeclaration{
+	from 
+		bool : Boolean
+
+	to cst_component_decl: bip!ComponentDeclaration(
+		type <- thisModule.MakeConstantAtomType('bool'),
+		parameters <- Sequence{valued_expression},
+		name <- 'core'
+	),
+	
+	valued_expression: bip!DirectDataDeclarationReferenceExpression (
+		--dataDeclaration <- OclUndefined -- TODO
+	)
+
+}
+
 rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
