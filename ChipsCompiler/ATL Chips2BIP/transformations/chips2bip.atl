@@ -468,7 +468,7 @@ unique lazy rule MakeCoreAtomInternalDataDeclaration{
 	)
 }
 
-lazy rule MakeAtomDataDeclarationReferenceDataParameter{
+unique lazy rule MakeAtomDataDeclarationReferenceDataParameter{
 	from 
 		iindex : Integer,
 		type : String,
@@ -477,8 +477,13 @@ lazy rule MakeAtomDataDeclarationReferenceDataParameter{
 	to 
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
 			dataDeclarationReference <- datadecl,
-			parameterDeclaration <- thisModule.MakeAtomPortDataParamDecl(iindex,type),
+			parameterDeclaration <- pdpd,
 			type <- thisModule.MakeChipsDataType(type)
+		),
+
+		pdpd: bip!PortDataParameterDeclaration( 
+			name <- 'v'+iindex.toString(),
+			dataType <- thisModule.MakeChipsDataType(type)
 		)
 }
 
@@ -492,34 +497,13 @@ unique lazy rule MakeCoreAtomDataDeclarationReferenceDataParameter{
 	to 
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
 			dataDeclarationReference <- datadecl,
-			parameterDeclaration <- thisModule.MakeAtomPortDataParamDecl(iindex,type),
+			parameterDeclaration <- pdpd,
 			type <- thisModule.MakeChipsDataType(type)
-		)
-}
-
-lazy rule MakeAtomPortDataParamDecl{
-	from 
-		iindex : Integer,
-		type : String
-
-	to 
+		),
 		pdpd: bip!PortDataParameterDeclaration( 
 			name <- 'v'+iindex.toString(),
 			dataType <- thisModule.MakeChipsDataType(type)
 		)
-}
-
-lazy rule MakeAtomInternalPortDeclaration{
-	from
-		portname:String,
-		alldatatypes: Sequence(String),
-		all_dataparameters:Sequence(bip!PortDataParameterDeclaration)
-	
-	to port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.MakePortType(alldatatypes),
-		name <- portname+'_aipd',
-		dataParameters <- all_dataparameters
-	)
 }
 
 unique lazy rule MakeCoreAtomInternalPortDeclaration{
@@ -552,20 +536,6 @@ helper def : MakeCoreAtomPortDataParamDeclSequence(
 : Sequence(bip!PortDataParameterDeclaration) =
 	types->merge(aidds)->augmentWithIindex()
 	->collect(t | thisModule.MakeCoreAtomDataDeclarationReferenceDataParameter(t.iindex, t.data.first, t.data.second, fdef));
-
-
-lazy rule MakeAtomExportPortDeclaration{
-	from 
-		portname:String,
-		alldatatypes: Sequence(String),
-		aipds: Sequence(bip!AtomInternalPortDeclaration)
-
-	to 	aepd: bip!AtomExportPortDeclaration(
-			portType <- thisModule.MakePortType(alldatatypes),
-			name <-portname+'_aepd',
-			portDeclarationReferences <- aipds
-		)
-}
 
 unique lazy rule MakeCoreAtomExportPortDeclaration{
 	from 
@@ -1708,13 +1678,6 @@ unique lazy rule MakeConstantAtomType{
 
 	using {
 		dataname : String = type+'_value';
-		aidd:bip!AtomInternalDataDeclaration = 
-			thisModule.MakeAtomInternalDataDeclaration(type, dataname);
-		aipd_out:bip!AtomInternalDataDeclaration = 
-			thisModule.MakeAtomInternalPortDeclaration('output', Sequence{type}, Sequence{aidd});
-		aepd_out:bip!AtomExportPortDeclaration = 
-			thisModule.MakeAtomExportPortDeclaration('output',Sequence{type},Sequence{aipd_out});
-		
 	}
 
 	to 
@@ -1723,14 +1686,31 @@ unique lazy rule MakeConstantAtomType{
 	        native <- false,
 	        superTypes <- Sequence{},
 	        castableTypes <- Sequence{},
-	        exportedPortDeclarations <- Sequence{aepd_out},
+	        exportedPortDeclarations <- Sequence{aepd},
 	        exportedDataDeclarations <- Sequence{}, 
 	        dataParameterDeclarations <- Sequence{},
-	        internalPortDeclarations <- Sequence{aipd_out},
-	        behavior <- thisModule.MakeConstantPetriNet(aipd_out),
-	        internalDataDeclarations <- Sequence{aidd},
-	        exportPortDeclarations <- Sequence{aepd_out}
-		)
+	        internalPortDeclarations <- Sequence{port},
+	        behavior <- thisModule.MakeConstantPetriNet(port),
+	        internalDataDeclarations <- Sequence{datadecl},
+	        exportPortDeclarations <- Sequence{aepd}
+		),
+
+	aepd: bip!AtomExportPortDeclaration(
+		portType <- thisModule.MakePortType(Sequence{type}),
+		name <-'output'+'_aepd',
+		portDeclarationReferences <- Sequence{port}
+	),
+
+	port : bip!AtomInternalPortDeclaration(
+		portType <- thisModule.MakePortType(Sequence{type}),
+		name <- 'output'+'_aipd',
+		dataParameters <- Sequence{thisModule.MakeAtomDataDeclarationReferenceDataParameter(0,type, datadecl)}
+	),
+
+	datadecl:bip!AtomInternalDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(type),
+		name <-dataname+'_aidd'
+	)
 }
 
 helper context OclAny def : makeUniqueConstantName() : String = 
