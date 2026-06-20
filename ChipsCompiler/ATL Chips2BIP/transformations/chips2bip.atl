@@ -6,6 +6,11 @@ module chips2bip;
 
 create OUT: bip from IN: chips;
 
+helper def : id : Integer = 0;
+
+helper context String def : protect() : String = 
+	self.replaceAll('_','__');
+
 helper def : inputCategory : String = 'input';
 helper def : outputCategory : String = 'output';
 helper def : innerCategory : String = 'inner';
@@ -268,7 +273,7 @@ self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->so
 
 unique lazy rule MakeChipsDataType {
 	from type : String
-	
+
 	to chipsdatatype : bip!DataType(
 		name <- 'chips_'+type,
 		native <- false,
@@ -446,7 +451,7 @@ lazy rule MakeAtomInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(type),
-		name <-name
+		name <-name.protect()+'_aidd'
 	)
 }
 
@@ -459,7 +464,7 @@ unique lazy rule MakeCoreAtomInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(type),
-		name <-name
+		name <-name.protect()+'_aidd'
 	)
 }
 
@@ -512,7 +517,7 @@ lazy rule MakeAtomInternalPortDeclaration{
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(alldatatypes),
-		name <- portname,
+		name <- portname+'_aipd',
 		dataParameters <- all_dataparameters
 	)
 }
@@ -526,7 +531,7 @@ unique lazy rule MakeCoreAtomInternalPortDeclaration{
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(alldatatypes),
-		name <- portname,
+		name <- portname+'_aipd',
 		dataParameters <- all_dataparameters
 	)
 }
@@ -557,7 +562,31 @@ lazy rule MakeAtomExportPortDeclaration{
 
 	to 	aepd: bip!AtomExportPortDeclaration(
 			portType <- thisModule.MakePortType(alldatatypes),
-			name <-portname,
+			name <-portname+'_aepd',
+			portDeclarationReferences <- aipds
+		)
+}
+
+unique lazy rule MakeCoreAtomExportPortDeclaration{
+	from 
+		portname:String,
+		alldatatypes: Sequence(String),
+		all_dataparameters:Sequence(bip!PortDataParameterDeclaration),
+		fdef:chips!function_definition
+	
+	using{
+		aipds: Sequence(bip!AtomInternalPortDeclaration) = 
+			Sequence{thisModule.MakeCoreAtomInternalPortDeclaration(
+				portname,
+				alldatatypes,
+				all_dataparameters,
+				fdef
+			)};
+	}
+		
+	to 	aepd: bip!AtomExportPortDeclaration(
+			portType <- thisModule.MakePortType(alldatatypes),
+			name <-portname+'_aepd',
 			portDeclarationReferences <- aipds
 		)
 }
@@ -568,9 +597,9 @@ lazy rule MakeCompoundExportPortDeclaration{
 		alldatatypes: Sequence(String),
 		spdr: Sequence(bip!SubPortDeclarationReference)
 
-	to 	aepd: bip!CompoundExportPortDeclaration(
+	to 	cepd: bip!CompoundExportPortDeclaration(
 			portType <- thisModule.MakePortType(alldatatypes),
-			name <-portname,
+			name <-portname+'_cepd',
 			dataParameters <- Sequence{},
 			portDeclarationReferences <- spdr
 		)
@@ -690,15 +719,15 @@ unique lazy rule MakeCoreAtomType {
 		---------------------------------------------
 
 		aepd_snd : bip!AtomExportPortDeclaration =
-			thisModule.MakeAtomExportPortDeclaration('exported_outputs', all_inputs->collect(t | t.type), Sequence{output_aipd});
+			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
 		aepd_rcv : bip!AtomExportPortDeclaration =
-			thisModule.MakeAtomExportPortDeclaration('exported_intputs', all_inputs->collect(t | t.type), Sequence{input_aipd});
+			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
 
 		read_ctx_aepd : bip!AtomExportPortDeclaration =
-			thisModule.MakeAtomExportPortDeclaration('exported_read_ctx', all_contextuals->collect(t | t.type), Sequence{read_ctx_aipd});
+			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.readctxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 
 		write_ctx_aepd : bip!AtomExportPortDeclaration =
-			thisModule.MakeAtomExportPortDeclaration('exported_write_ctx', all_contextuals->collect(t | t.type), Sequence{write_ctx_aipd});
+			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.writectxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 
 
 		-- generating list of contextuals to export
@@ -719,7 +748,7 @@ unique lazy rule MakeCoreAtomType {
         native <- false,
         superTypes <- Sequence{},
         castableTypes <- Sequence{},
-        exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export), -- MAYBE IT IS AIPD that should be used
+        exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export),
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{starts},
         internalPortDeclarations <- all_aipdecl->append(output_aipd),
@@ -755,16 +784,6 @@ unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 	)
 }
 
-unique lazy rule MakeMonotypeBufferTypePortDataParamDecl{
-	from
-		type : String
-
-	to 
-		pdpd: bip!PortDataParameterDeclaration( 
-			name <- 'v0',
-			dataType <- thisModule.MakeChipsDataType(type)
-		)
-}
 
 unique lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
 	from
@@ -774,8 +793,16 @@ unique lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
 		name <- if isinput then 'in' else 'out' endif,
-		dataParameters <- Sequence{thisModule.MakeMonotypeBufferTypePortDataParamDecl(type)}
+		dataParameters <- Sequence{
+			thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+				0,
+				type,
+				thisModule.MakeMonotypeBufferTypeInternalDataDeclaration(type)
+			)
+		}
 	)
+
+	
 }
 
 unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
@@ -785,7 +812,7 @@ unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
 
 	to 	aepd: bip!AtomExportPortDeclaration(
 			portType <- thisModule.MakePortType(Sequence{type}),
-			name <-if isinput then 'ein' else 'eout' endif,
+			name <-if isinput then 'exp_in' else 'exp_out' endif,
 			portDeclarationReferences <- Sequence{thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,isinput)}
 		)
 }
@@ -831,7 +858,7 @@ lazy rule MakeMonoTypeBufferComponentDeclaration{
 	to bufferdeclaration : bip!ComponentDeclaration(
 		type <- thisModule.MakeMonotypeBufferType(type),
 		parameters <- Sequence{},
-		name <- dataname
+		name <- dataname.protect()+'_bd'
 	)
 }
 
@@ -904,9 +931,8 @@ unique lazy rule MakeMany2OnePortDeclarationReferenceParameter{
 
 	to cppd: bip!ConnectorPortParameterDeclaration(
 		portType <- thisModule.MakePortType(Sequence{ordered_types->get(iindex)}),
-		name<-'s'+iindex.toString()
+		name<-'s'+iindex.toString()+'_pdrp'
 	)
-	
 }
 
 unique lazy rule MakeMany2OneExportedPortDeclaration{
@@ -916,7 +942,7 @@ unique lazy rule MakeMany2OneExportedPortDeclaration{
 	
 	to b:bip!ConnectorExportedPortDeclaration(
 		portType <-thisModule.MakePortType(indexed_types->collect(tuple | tuple.type)),
-		name <- 'r0',
+		name <- 'r_exported_port',
 		dataParameters <- indexed_types
 			->collect(tuple | 
 				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
@@ -990,11 +1016,11 @@ unique lazy rule MakeMany2OneConnectorType{
 
 	to one : bip!ConnectorType(
 		name<-ordered_types->iterate( iter ; accu_name : String = 'many2one_'| accu_name+iter )+'_t',
+		ports <- downports,
 		exportedPortDeclaration <- thisModule.MakeMany2OneExportedPortDeclaration(indexed_types, datadecls),
 		dataDeclarations <- datadecls,
 		interactions<-Sequence{interaction},
-		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(downports),
-		ports <- downports
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(downports)
 	),
 
 	interaction:bip!ConnectorInteractionAction(
@@ -1025,7 +1051,7 @@ unique lazy rule MakeOne2ManyPortDeclarationReferenceParameter{
 
 	to cppd: bip!ConnectorPortParameterDeclaration(
 		portType <- thisModule.MakePortType(Sequence{ordered_types->get(iindex)}),
-		name<-'r'+iindex.toString()
+		name<-'r'+iindex.toString()+'_pdrp'
 	)
 }
 
@@ -1036,7 +1062,7 @@ unique lazy rule MakeOne2ManyExportedPortDeclaration{
 	
 	to b:bip!ConnectorExportedPortDeclaration(
 		portType <-thisModule.MakePortType(indexed_types->collect(tuple | tuple.type)),
-		name <- 's0',
+		name <- 's_exported_port',
 		dataParameters <- indexed_types
 			->collect(tuple | 
 				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
@@ -1184,7 +1210,7 @@ lazy rule MakeConnectorSubPortDeclarationReference{
 
 lazy rule MakeAtomSubPortDeclarationReference{
 	from 
-		portdecl : bip!AtomInternalPortDeclaration,
+		portdecl : bip!AtomExportPortDeclaration,
 		compdecl : bip!ComponentDeclaration
 
 	to spr:bip!SubPortDeclarationReference(
@@ -1215,7 +1241,7 @@ lazy rule MakeConnectorDeclaration{
 		conn:bip!ConnectorDeclaration(
 			type <- conntype,
 			portParameters <- portparameters,
-			name <- name
+			name <- name.protect()+'_cd'
 		)
 }
 
@@ -1265,7 +1291,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		all_output_ordered_types : Sequence(String) = all_outputs->collect(t|t.type);
 
 		only_parameter : bip!ComponentDataParameterDeclaration = 
-			thisModule.MakeComponentDataParameterDeclaration('compound_starts','bool');
+			thisModule.MakeComponentDataParameterDeclaration('starts','bool',chipsfunction);
 
 		--------------------------------------------
 		--------------------------------------------
@@ -1322,7 +1348,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 					thisModule.MakePortDeclarationReferenceParameter(
 						thisModule.MakeFlowPortDeclarationReferenceParameter(all_input_ordered_types,false),
 						thisModule.MakeAtomSubPortDeclarationReference(
-							thisModule.MakeCoreAtomInternalPortDeclaration(
+							thisModule.MakeCoreAtomExportPortDeclaration(
 								thisModule.recvPortName,
 								all_input_ordered_types,
 								thisModule.MakeCoreAtomPortDataParamDeclSequence(
@@ -1375,7 +1401,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 					thisModule.MakePortDeclarationReferenceParameter(
 						thisModule.MakeFlowPortDeclarationReferenceParameter(all_output_ordered_types,true),
 						thisModule.MakeAtomSubPortDeclarationReference(
-							thisModule.MakeCoreAtomInternalPortDeclaration(
+							thisModule.MakeCoreAtomExportPortDeclaration(
 								thisModule.sendPortName,
 								all_output_ordered_types,
 								thisModule.MakeCoreAtomPortDataParamDeclSequence(
@@ -1398,8 +1424,8 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 	}
 
     to compound_type:bip!CompoundType(
-		name <- chipsfunction.name,
-		-- dataParameterDeclarations <- Sequence{thisModule.MakeStartParameter(thisModule.makeCoreScope(chipsfunction))},
+		name <- chipsfunction.name.protect()+'_compoundtype',
+		dataParameterDeclarations <- Sequence{only_parameter},
 		componentDeclarations <- 
 			Sequence{core_component_declaration}
 			->append(input_buffer_declaration)
@@ -1434,7 +1460,7 @@ unique lazy rule MakeInputBufferType{
 						t.iindex
 					),
 					thisModule.MakeAtomSubPortDeclarationReference(
-						thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(
+						thisModule.MakeMonotypeBufferTypeExportPortDeclaration(
 							t.type,
 							false -- because this connector transmits data FROM the buffer to the core component 
 						),
@@ -1472,7 +1498,7 @@ unique lazy rule MakeInputBufferType{
 					Sequence{t.type},
 					Sequence{
 						thisModule.MakeAtomSubPortDeclarationReference(
-							thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(
+							thisModule.MakeMonotypeBufferTypeExportPortDeclaration(
 								t.type,
 								true -- this is an input, its the port exposed to the rest of the system
 							),
@@ -1517,7 +1543,7 @@ unique lazy rule MakeOutputBufferType{
 						t.iindex
 					),
 					thisModule.MakeAtomSubPortDeclarationReference(
-						thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(
+						thisModule.MakeMonotypeBufferTypeExportPortDeclaration(
 							t.type,
 							true -- because this connector transmits data from the core component TO the buffer 
 						),
@@ -1555,7 +1581,7 @@ unique lazy rule MakeOutputBufferType{
 					Sequence{t.type},
 					Sequence{
 						thisModule.MakeAtomSubPortDeclarationReference(
-							thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(
+							thisModule.MakeMonotypeBufferTypeExportPortDeclaration(
 								t.type,
 								false -- this is NOT an input, its the port exposed to the rest of the system
 							),
@@ -1584,7 +1610,7 @@ lazy rule MakeBufferCompoundDeclaration{
 		type:bip!CompoundType
 
 	to buffer_compound_decl : bip!ComponentDeclaration(
-		name<- name,
+		name<- name+'_buffercompounddecl',
 		parameters<- Sequence{},
 		type <- type
 	)
@@ -1601,17 +1627,17 @@ lazy rule MakeCoreComponentDeclaration {
 	),
 	
 	starts_valued_expression: bip!DirectDataDeclarationReferenceExpression (
-		dataDeclaration <- thisModule.MakeComponentDataParameterDeclaration('start','bool')
+		dataDeclaration <- thisModule.MakeComponentDataParameterDeclaration('starts','bool',chipsfunction)
 	)
 }
 
 
-lazy rule MakeComponentDataParameterDeclaration{
-	from name:String, type:String
+unique lazy rule MakeComponentDataParameterDeclaration{
+	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeChipsDataType(type),
-		name <- name,
+		name <- name+'_componentdataparameterdeclaration',
 		const <- true
 	)
 }
@@ -1624,7 +1650,7 @@ lazy rule MakeCompoundDeclaration{
 		parameters:Sequence(OclAny)
 		
 	to buffer_compound_decl : bip!ComponentDeclaration(
-		name<- name,
+		name<- name+'_compounddecl',
 		parameters<- parameters,
 		type <- thisModule.MakeFunctionalBlockCompoundType(chipsfunction)
 	)
@@ -1687,7 +1713,7 @@ unique lazy rule MakeConstantAtomType{
 		aipd_out:bip!AtomInternalDataDeclaration = 
 			thisModule.MakeAtomInternalPortDeclaration('output', Sequence{type}, Sequence{aidd});
 		aepd_out:bip!AtomExportPortDeclaration = 
-			thisModule.MakeAtomExportPortDeclaration('exported_output',Sequence{type},Sequence{aipd_out});
+			thisModule.MakeAtomExportPortDeclaration('output',Sequence{type},Sequence{aipd_out});
 		
 	}
 
@@ -1699,7 +1725,7 @@ unique lazy rule MakeConstantAtomType{
 	        castableTypes <- Sequence{},
 	        exportedPortDeclarations <- Sequence{aepd_out},
 	        exportedDataDeclarations <- Sequence{}, 
-	        dataParameterDeclarations <- Sequence{}, --Sequence{thisModule.MakePortDataParameterDeclaration('data',type)},
+	        dataParameterDeclarations <- Sequence{},
 	        internalPortDeclarations <- Sequence{aipd_out},
 	        behavior <- thisModule.MakeConstantPetriNet(aipd_out),
 	        internalDataDeclarations <- Sequence{aidd},
@@ -1707,52 +1733,65 @@ unique lazy rule MakeConstantAtomType{
 		)
 }
 
+helper context OclAny def : makeUniqueConstantName() : String = 
+	'cst_'+self.toString()+'__'+thisModule.id.toString()+'__';
+
 unique lazy rule MakeIntegerConstantDeclaration{
 	from 
-		int : Integer, id:Integer
+		int : Integer
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('int'),
-		parameters <- Sequence{valued_expression},
-		name <- 'cst_'+int.toString()+'__'+id.toString()+'__'
+		parameters <- Sequence{valued_expression}
 	),
 	
 	valued_expression: bip!DirectDataDeclarationReferenceExpression (
 		--dataDeclaration <- OclUndefined -- TODO
 	)
+	do {
+		cst_component_decl.name <- int.makeUniqueConstantName();
+		thisModule.id <- thisModule.id+1;
+		cst_component_decl;
+	}
 
 }
 
 unique lazy rule MakeFloatConstantDeclaration{
 	from 
-		float : Real, id:Integer
+		float : Real
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('float'),
-		parameters <- Sequence{valued_expression},
-		name <-  'cst_'+float.toString()+'__'+id.toString()+'__'
+		parameters <- Sequence{valued_expression}
 	),
 	
 	valued_expression: bip!DirectDataDeclarationReferenceExpression (
 		--dataDeclaration <- OclUndefined -- TODO
 	)
-
+	do {
+		cst_component_decl.name <- float.makeUniqueConstantName();
+		thisModule.id <- thisModule.id+1;
+		cst_component_decl;
+	}
 }
 
 unique lazy rule MakeBooleConstantDeclaration{
 	from 
-		bool : Boolean, id:Integer
+		bool : Boolean
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('bool'),
-		parameters <- Sequence{valued_expression},
-		name <-  'cst_'+bool.toString()+'__'+id.toString()+'__'
+		parameters <- Sequence{valued_expression}
 	),
 	
 	valued_expression: bip!DirectDataDeclarationReferenceExpression (
 		--dataDeclaration <- OclUndefined -- TODO
 	)
-
+	do {
+		cst_component_decl.name <- bool.makeUniqueConstantName();
+		thisModule.id <- thisModule.id+1;
+		cst_component_decl;
+	}
 }
 
 rule Program2BipPackage {
@@ -1849,7 +1888,7 @@ rule Program2BipPackage {
 			->collect(elem | elem.value->get(0))
 			->asSequence()
 			->augmentWithIindex()
-			->collect(t | thisModule.MakeIntegerConstantDeclaration(t.data, t.iindex))
+			->collect(t | thisModule.MakeIntegerConstantDeclaration(t.data))
 			->asBag();
 		
 		all_float_constants :  Bag(bip!ComponentDeclaration) =
@@ -1858,7 +1897,7 @@ rule Program2BipPackage {
 			->collect(elem | elem.value->get(0))
 			->asSequence()
 			->augmentWithIindex()
-			->collect(t | thisModule.MakeFloatConstantDeclaration(t.data, t.iindex))
+			->collect(t | thisModule.MakeFloatConstantDeclaration(t.data))
 			->asBag();
 		
 		all_bool_constants :  Bag(bip!ComponentDeclaration) =
@@ -1867,7 +1906,7 @@ rule Program2BipPackage {
 			->collect(elem | elem.value->get(0))
 			->asSequence()
 			->augmentWithIindex()
-			->collect(t | thisModule.MakeBoolConstantDeclaration(t.data, t.iindex))
+			->collect(t | thisModule.MakeBoolConstantDeclaration(t.data))
 			->asBag();
 		
 		all_compounds_decl: Bag(bip!ComponentDeclaration) = 
@@ -1906,7 +1945,7 @@ rule Program2BipPackage {
 	}
 	to 
 		bippackage: bip!BipPackage(
-			name <- chipsprogram.fileName,
+			name <- chipsprogram.fileName.split('\\.')->get(0),
 			atomTypes <- core_atom_types
 				->union(all_monotype_buffer_atom_types)
 				->union(constants_atom_types),
