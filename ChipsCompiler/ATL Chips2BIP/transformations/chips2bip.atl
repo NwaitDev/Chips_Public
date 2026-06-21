@@ -1493,18 +1493,24 @@ unique lazy rule MakeOutputBufferType{
 	from parameters : Sequence(TupleType(type:String,name:String))
 
 	using{
-		monotype_buffers : Sequence(bip!ComponentDeclaration) = 
-			parameters->collect(t | thisModule.MakeMonoTypeBufferComponentDeclaration(t.type,t.name));
+
+		indexed_named_typed_monotype_buffers 
+		: Sequence(TupleType(iindex:Integer, type:String,name:String,buf:bip!ComponentDeclaration)) = 
+			parameters->augmentWithIindex()
+			->collect(t | 
+				Tuple{
+					iindex = t.iindex,
+					type=t.data.type,
+					name=t.data.name,
+					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data.type,t.data.name)
+				}
+			);
 
 		connector_type : bip!ConnectorType =
 			thisModule.MakeOne2ManyConnectorType(parameters->collect(t | t.type));
 		
-		all_outputs : Sequence(TupleType(type:String,iindex:Integer,name:String)) =
-			parameters->augmentWithIindex()
-			->collect(t | Tuple{type=t.data.type,iindex=t.iindex,name=t.data.name});
-
 		output_connector_port_parameters : Sequence(bip!PortDeclarationReferenceParameter) =
-			all_outputs->collect(
+			indexed_named_typed_monotype_buffers->collect(
 				t | thisModule.MakePortDeclarationReferenceParameter(
 					thisModule.dictionary
 						->get('One2ManyConnectorTypes')
@@ -1516,7 +1522,7 @@ unique lazy rule MakeOutputBufferType{
 							->get('MonotypeBufferTypes')
 							->get(t.type)
 							->get('aepd_in'),
-						monotype_buffers->get(t.iindex)
+						t.buf
 					)
 				)
 			);
@@ -1530,7 +1536,7 @@ unique lazy rule MakeOutputBufferType{
 		exported_one : bip!CompoundExportPortDeclaration = 
 			thisModule.MakeCompoundExportPortDeclaration(
 				'one',
-				all_outputs->collect(t|t.type),
+				indexed_named_typed_monotype_buffers->collect(t|t.type),
 				Sequence{
 					thisModule.MakeConnectorSubPortDeclarationReference(
 						thisModule.dictionary
@@ -1542,7 +1548,7 @@ unique lazy rule MakeOutputBufferType{
 				}
 			);
 		exported_monotype_outputs : Sequence(bip!CompoundExportPortDeclaration) =
-			all_outputs->collect(t | 
+			indexed_named_typed_monotype_buffers->collect(t | 
 				thisModule.MakeCompoundExportPortDeclaration(
 					t.name.protect()+'_exout',
 					Sequence{t.type},
@@ -1552,7 +1558,7 @@ unique lazy rule MakeOutputBufferType{
 								->get('MonotypeBufferTypes')
 								->get(t.type)
 								->get('aepd_out'),
-							monotype_buffers->get(t.iindex)
+							t.buf
 						)
 					}
 				)
@@ -1565,7 +1571,7 @@ unique lazy rule MakeOutputBufferType{
         exportedPortDeclarations <- exported_monotype_outputs->append(exported_one), -- export the outer port of the connector
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{},
-		componentDeclarations <- monotype_buffers,
+		componentDeclarations <- indexed_named_typed_monotype_buffers->collect( t | t.buf),
 		connectorDeclarations <- Sequence{output_connector_decl},
 		exportPortDeclarations <- exported_monotype_outputs->append(exported_one)
 	)
