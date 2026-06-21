@@ -879,7 +879,7 @@ unique lazy rule MakeMonotypeBufferType{
 				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
-			->including('MonotypeBufferTypes', thisModule.temp_dic).debug('\t');
+			->including('MonotypeBufferTypes', thisModule.temp_dic);
 		
 		buffer;
 	}
@@ -1313,9 +1313,9 @@ lazy rule MakeConnectorSubPortDeclarationReference{
 	)
 }
 
-lazy rule MakeAtomSubPortDeclarationReference{
+lazy rule MakeComponentSubPortDeclarationReference{
 	from 
-		portdecl : bip!AtomExportPortDeclaration,
+		portdecl : bip!PortDeclaration,
 		compdecl : bip!ComponentDeclaration
 
 	to spr:bip!SubPortDeclarationReference(
@@ -1384,30 +1384,36 @@ unique lazy rule MakeInputBufferType{
 	from parameters : Sequence(TupleType(type:String,name:String))
 
 	using{
-		monotype_buffers : Sequence(bip!ComponentDeclaration) = 
-			parameters->collect(t | thisModule.MakeMonoTypeBufferComponentDeclaration(t.type,t.name));
+		indexed_named_typed_monotype_buffers 
+		: Sequence(TupleType(iindex:Integer, type:String,name:String,buf:bip!ComponentDeclaration)) = 
+			parameters->augmentWithIindex()
+			->collect(t | 
+				Tuple{
+					iindex = t.iindex,
+					type=t.data.type,
+					name=t.data.name,
+					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data.type,t.data.name)
+				}
+			);
 
 		connector_type : bip!ConnectorType =
 			thisModule.MakeMany2OneConnectorType(parameters->collect(t | t.type));
 		
-		all_inputs : Sequence(TupleType(type:String,iindex:Integer,name:String)) =
-			parameters->augmentWithIindex()
-			->collect(t | Tuple{type=t.data.type,iindex=t.iindex,name=t.data.name});
-
+		
 		input_connector_port_parameters : Sequence(bip!PortDeclarationReferenceParameter) =
-			all_inputs->collect(
+			indexed_named_typed_monotype_buffers->collect(
 				t | thisModule.MakePortDeclarationReferenceParameter(
 					thisModule.dictionary
 						->get('Many2OneConnectorTypes')
 						->get(parameters->collect(t | t.type))
 						->get('cppd')
 						->get(t.iindex),
-					thisModule.MakeAtomSubPortDeclarationReference(
-						thisModule.dictionary.debug()
+					thisModule.MakeComponentSubPortDeclarationReference(
+						thisModule.dictionary
 							->get('MonotypeBufferTypes')
 							->get(t.type)
 							->get('aepd_out'),
-						monotype_buffers->get(t.iindex)
+						t.buf
 					)
 				)
 			);
@@ -1421,7 +1427,7 @@ unique lazy rule MakeInputBufferType{
 		exported_one : bip!CompoundExportPortDeclaration = 
 			thisModule.MakeCompoundExportPortDeclaration(
 				'one',
-				all_inputs->collect(t|t.type),
+				indexed_named_typed_monotype_buffers->collect(t|t.type),
 				Sequence{
 					thisModule.MakeConnectorSubPortDeclarationReference(
 						thisModule.dictionary
@@ -1433,17 +1439,17 @@ unique lazy rule MakeInputBufferType{
 				}
 			);
 		exported_monotype_inputs : Sequence(bip!CompoundExportPortDeclaration) =
-			all_inputs->collect(t | 
+			indexed_named_typed_monotype_buffers->collect(t | 
 				thisModule.MakeCompoundExportPortDeclaration(
 					t.name.protect()+'_exin',
 					Sequence{t.type},
 					Sequence{
-						thisModule.MakeAtomSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('MonotypeBufferTypes')
 								->get(t.type)
 								->get('aepd_in'),
-							monotype_buffers->get(t.iindex)
+							t.buf
 						)
 					}
 				)
@@ -1456,7 +1462,7 @@ unique lazy rule MakeInputBufferType{
         exportedPortDeclarations <- exported_monotype_inputs->append(exported_one),
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{},
-		componentDeclarations <- monotype_buffers,
+		componentDeclarations <- indexed_named_typed_monotype_buffers->collect(t|t.buf),
 		connectorDeclarations <- Sequence{input_connector_decl},
 		exportPortDeclarations <- exported_monotype_inputs->append(exported_one)
 	)
@@ -1505,7 +1511,7 @@ unique lazy rule MakeOutputBufferType{
 						->get(parameters->collect(t | t.type))
 						->get('cppd')
 						->get(t.iindex),
-					thisModule.MakeAtomSubPortDeclarationReference(
+					thisModule.MakeComponentSubPortDeclarationReference(
 						thisModule.dictionary
 							->get('MonotypeBufferTypes')
 							->get(t.type)
@@ -1541,7 +1547,7 @@ unique lazy rule MakeOutputBufferType{
 					t.name.protect()+'_exout',
 					Sequence{t.type},
 					Sequence{
-						thisModule.MakeAtomSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('MonotypeBufferTypes')
 								->get(t.type)
@@ -1639,7 +1645,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							->get('FlowConnectorTypes')
 							->get(all_input_ordered_types)
 							->get('s_port'),
-						thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('InputBufferTypes')
 								->get(all_inputs)
@@ -1652,7 +1658,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							->get('FlowConnectorTypes')
 							->get(all_input_ordered_types)
 							->get('r_port'),
-						thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('CoreAtomTypes')
 								->get(chipsfunction)
@@ -1674,12 +1680,12 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							->get('FlowConnectorTypes')
 							->get(all_output_ordered_types)
 							->get('s_port'),
-						thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('CoreAtomTypes')
 								->get(chipsfunction)
 								->get('aepd')
-								->get('ouput'),
+								->get('output'),
 							core_component_declaration
 						)
 					),
@@ -1688,9 +1694,9 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							->get('FlowConnectorTypes')
 							->get(all_input_ordered_types)
 							->get('r_port'),
-						thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
-								->get('OututBufferTypes')
+								->get('OutputBufferTypes')
 								->get(all_outputs)
 								->get('einput'),
 							output_buffer_declaration
