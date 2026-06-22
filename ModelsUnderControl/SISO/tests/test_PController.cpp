@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "../controllers/PController/PController.hpp"
+#include "../../Filters/StatelessFilter/Clamp/ClampFilter.hpp"
 #include "common/ProcessModel.hpp"
 #include "common/CsvLogger.hpp"
 
@@ -7,8 +8,11 @@ int main() {
     const float dt = 0.1f;
     const float simTime = 100.0f;
 
+    std::shared_ptr<ClampFilter> clampFilter = std::make_shared<ClampFilter>(0.0f, 255.0f);
+
     PController controller(0.8f);
     controller.setOutputLimits(0.0f, 255.0f);
+    controller.setOutputFilter(clampFilter);
 
     FirstOrderProcess process(0.8f, 1.0f, dt);
 
@@ -35,11 +39,11 @@ int main() {
         controller.setCurrentValue(measurement);
 
         float u = controller.compute(dt);
-        u = std::clamp(u, 0.0f, 255.0f);
+        // u = std::clamp(u, 0.0f, 255.0f);
 
         float y = process.update(u);
 
-        logger.log(t, target, y, u);
+        logger.log(t, target, y, 0, 0, 0, u);
     }
 
     return 0;
