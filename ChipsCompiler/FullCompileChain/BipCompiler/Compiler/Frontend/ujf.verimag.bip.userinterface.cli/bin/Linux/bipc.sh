@@ -53,5 +53,4 @@ unset IFS
 # configure for native libraries
 export LD_LIBRARY_PATH=${ROOT}/lib:${LD_LIBRARY_PATH}
 
-# java -Dbip.compiler.backends="$BACKENDS" -Dbip.compiler.filters="$FILTERS" -ea -cp $LOCAL_CP ujf.verimag.bip.userinterface.cli.Runner $*
-java -Dbip.compiler.backends="$BACKENDS" -Dbip.compiler.filters="$FILTERS" -ea -cp $LOCAL_CP ujf.verimag.bip.userinterface.cli.XmiRunner $*
+java -Dbip.compiler.backends="$BACKENDS" -Dbip.compiler.filters="$FILTERS" -ea -cp $LOCAL_CP ujf.verimag.bip.userinterface.cli.Runner $*

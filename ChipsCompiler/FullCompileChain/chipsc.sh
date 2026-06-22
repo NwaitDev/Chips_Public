@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+
+# chipsc.sh — CLI frontend for the CHIPS compiler
+
+# thank you Claude.ai for the skeleton of this script
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+usage() {
+    cat <<EOF
+Usage: chipsc.sh [OPTIONS] <input.chips> <output>
+
+Compile a .chips source file into the specified output.
+
+MANDATORY ARGUMENTS:
+  <input.chips>       Source file to compile (must have a .chips extension)
+  <output>            Name of the output file to produce
+
+OPTIONS:
+  -p <path>           Directory (relative or absolute) where the output
+                      file will be stored (default: current directory)
+  --chips-xmi         Stop compilation after the XMI serialization of 
+                      chips file
+  --bip-xmi           Stop compilation after the transformation into 
+                      the XMI serialized bip model
+  --generate-cpp      Generate the C++ output
+  --generate-bip      Generate the BIP output (default if neither
+                      --generate-cpp nor --generate-bip is specified)
+  -h                  Print this help message and exit
+
+EXAMPLES:
+  chipsc.sh source.chips myapp
+  chipsc.sh -p /tmp/build --generate-cpp source.chips myapp
+  chipsc.sh --bip-xmi -p ./out source.chips myapp
+EOF
+}
+
+die() {
+    echo "Error: $*" >&2
+    echo "Run 'chipsc.sh -h' for usage information." >&2
+    exit 1
+}
+
+# ---------------------------------------------------------------------------
+# Defaults
+# ---------------------------------------------------------------------------
+
+OUTPUT_PATH="."
+STOP_STEP=""          # "", "chips-xmi", or "bip-xmi"
+GENERATE_MODE=""      # "cpp" or "bip"  (resolved to "bip" if empty later)
+
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h)
+            usage
+            exit 0
+            ;;
+        -p)
+            [[ $# -ge 2 ]] || die "Option -p requires a value."
+            OUTPUT_PATH="$2"
+            shift 2
+            ;;
+        --chips-xmi)
+            [[ -z "$STOP_STEP" ]] || die "Only one stop step (--chips-xmi / --bip-xmi) may be specified."
+            STOP_STEP="chips-xmi"
+            shift
+            ;;
+        --bip-xmi)
+            [[ -z "$STOP_STEP" ]] || die "Only one stop step (--chips-xmi / --bip-xmi) may be specified."
+            STOP_STEP="bip-xmi"
+            shift
+            ;;
+        --generate-cpp)
+            [[ -z "$GENERATE_MODE" ]] || die "Only one generation mode (--generate-cpp / --generate-bip) may be specified."
+            GENERATE_MODE="cpp"
+            shift
+            ;;
+        --generate-bip)
+            [[ -z "$GENERATE_MODE" ]] || die "Only one generation mode (--generate-cpp / --generate-bip) may be specified."
+            GENERATE_MODE="bip"
+            shift
+            ;;
+        -*)
+            die "Unknown option: $1"
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+    esac
+done
+
+# ---------------------------------------------------------------------------
+# Validate positional arguments
+# ---------------------------------------------------------------------------
+
+[[ ${#POSITIONAL[@]} -ge 1 ]] || die "Missing mandatory argument: <input.chips>"
+[[ ${#POSITIONAL[@]} -ge 2 ]] || die "Missing mandatory argument: <output>"
+[[ ${#POSITIONAL[@]} -le 2 ]] || die "Too many positional arguments: '${POSITIONAL[2]}'"
+
+INPUT_FILE="${POSITIONAL[0]}"
+OUTPUT_NAME="${POSITIONAL[1]}"
+
+# Check .chips extension (case-sensitive)
+# [[ "$INPUT_FILE" == *.chips ]] || die "Input file '$INPUT_FILE' does not have the required '.chips' extension."
+
+# Check the input file actually exists and is readable
+[[ -f "$INPUT_FILE" ]] || die "Input file '$INPUT_FILE' does not exist or is not a regular file."
+[[ -r "$INPUT_FILE" ]] || die "Input file '$INPUT_FILE' is not readable."
+
+# Apply default generation mode
+if [[ -z "$GENERATE_MODE" ]]; then
+    GENERATE_MODE="bip"
+fi
+
+# ---------------------------------------------------------------------------
+# Validate / create output path
+# ---------------------------------------------------------------------------
+
+if [[ ! -d "$OUTPUT_PATH" ]]; then
+    echo "Output directory '$OUTPUT_PATH' does not exist — creating it."
+    mkdir -p "$OUTPUT_PATH" || die "Could not create output directory '$OUTPUT_PATH'."
+fi
+
+OUTPUT_FILE="$OUTPUT_PATH/$OUTPUT_NAME"
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+echo "chipsc — CHIPS Compiler"
+echo "-----------------------"
+echo "  Input file    : $INPUT_FILE"
+echo "  Output file   : $OUTPUT_FILE"
+echo "  Generate mode : $GENERATE_MODE"
+if [[ -n "$STOP_STEP" ]]; then
+    echo "  Stop after    : $STOP_STEP"
+fi
+echo ""
+
+# ---------------------------------------------------------------------------
+# Compilation pipeline
+# (Replace the echo / placeholder blocks below with real compiler calls.)
+# ---------------------------------------------------------------------------
+
+# # Step 1 — CHIPS-XMI
+# echo "[1/3] Parsing '$INPUT_FILE' → CHIPS-XMI..."
+# # TODO: invoke the actual CHIPS-XMI tool here, e.g.:
+# #   chipsparser "$INPUT_FILE" -o "${OUTPUT_FILE}.chips.xmi"
+# echo "      (CHIPS-XMI step completed)"
+
+# if [[ "$STOP_STEP" == "chips-xmi" ]]; then
+#     echo ""
+#     echo "Stopped after CHIPS-XMI step as requested."
+#     exit 0
+# fi
+
+# Step 2 — BIP-XMI
+echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
+# needs to have the following environment variable set :
+#   CHIPSC_PATH="$CHIPS_PATH"/ChipsCompiler/FullCompileChain/Chips2BipTransformer
+java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
+    emftvm $CHIPSC_PATH/metamodels/chips1.1.ecore \
+    $CHIPSC_PATH/metamodels/BIP.ecore  \
+    "${INPUT_FILE}" \
+    $CHIPSC_PATH/transformations/chips2bip.atl \
+    "${OUTPUT_FILE}.bip.xmi"
+
+echo "      (BIP-XMI step completed)"
+
+if [[ "$STOP_STEP" == "bip-xmi" ]]; then
+    echo ""
+    echo "Stopped after BIP-XMI step as requested."
+    exit 0
+fi
+
+# Step 3 — Code generation
+echo "[3/3] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
+mkdir -p ${OUTPUT_FILE}/build
+if [[ "$GENERATE_MODE" == "cpp" ]]; then
+    bipc --xmi "${OUTPUT_FILE}.chips.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
+    echo "      (C++ generation completed)"
+else
+    bipc --xmi "${OUTPUT_FILE}.chips.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
+    echo "      (BIP generation completed)"
+fi
+
+echo ""
+echo "Compilation successful: '$OUTPUT_FILE'"
