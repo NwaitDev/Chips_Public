@@ -1,0 +1,41 @@
+package double_compound
+  port type IntPort(int i)
+
+  connector type Single(IntPort p)
+    define p
+  end
+
+  atom type Atom()
+    data int v
+    export port IntPort p(v)
+
+    place LOOP
+
+    initial to LOOP
+      do { v=0; }
+
+    on p from LOOP to LOOP
+      provided (v<=1000)
+      do { v=v+1; }
+  end
+
+
+  compound type Compound1()
+    component Atom a()
+
+    export port a.p as p
+  end
+
+  compound type Compound2()
+    component Compound1 c()
+
+    export port c.p as p
+  end
+
+  compound type System()
+    component Compound2 c()
+
+    connector Single s(c.p)
+  end
+end
+

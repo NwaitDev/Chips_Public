@@ -1,0 +1,19 @@
+package duplicatedExportPortInCompound
+ port type Port_t()
+
+ atom type AT()
+  export data int x
+  export port Port_t p()
+
+  place S1
+  initial to S1
+  on p from S1 to S1
+ end
+
+ compound type CT()
+  component AT c1(), c2()
+  export data c1.x as ex
+  export data c2.x as ex
+ end
+
+end

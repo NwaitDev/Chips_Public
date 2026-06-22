@@ -1,0 +1,150 @@
+[comment encoding = UTF-8 /]
+[module naming('http://bip2/1.0')/]
+
+[comment]
+Takes as input fully qualified names (of the form ID ( '.' ID )* ) and returns valid and unique IDs
+[/comment]
+[query private mangle(aDottedString : String) : String =
+	aDottedString.substituteAll('_','__').substituteAll('.', '_')
+/]
+
+[query private mangle(aPrefix : String, aDottedString : String) : String =
+	mangle(dot(aPrefix, aDottedString))
+/]
+
+[query private mangle(aPrefix1 : String, aPrefix2 : String, aDottedString : String) : String =
+	mangle(dot(aPrefix1, dot(aPrefix2, aDottedString)))
+/]
+
+[query private dot(left : String, right : String) : String =
+	left + '.' + right
+/]
+
+
+
+[comment]
+Fully qualified names for types.
+[/comment]
+
+[query public fullyQualifiedName(aPackage : BipPackage) : String = 
+	aPackage.name
+/]
+
+[query public fullyQualifiedName(aType : BipType) : String = 
+	dot(aType.eContainer(BipPackage).fullyQualifiedName(), 
+		aType.name)
+/]
+
+[query public fullyQualifiedName(aPrioDecl : CompoundPriorityDeclaration) : String = 
+	dot(aPrioDecl.eContainer(CompoundType).fullyQualifiedName(), 
+		aPrioDecl.name)
+/]
+
+
+[comment]
+Fully qualified names for instances.
+[/comment]
+
+[query public fullyQualifiedName(aComponent : ComponentInstance) : String =
+	if aComponent.eContainer().oclIsUndefined() then
+		aComponent.declaration.name
+	else
+		dot(aComponent.eContainer(ComponentInstance).fullyQualifiedName(),
+			aComponent.declaration.name)
+	endif
+/]
+
+[query public fullyQualifiedName(aConnector : ConnectorInstance) : String =
+	dot(aConnector.eContainer(ComponentInstance).fullyQualifiedName(),
+		aConnector.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : AtomInternalPortInstance) : String =
+	dot(aPort.eContainer(AtomInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : ExportedPortInstance) : String =
+	dot(aPort.eContainer(ComponentInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : ConnectorPortInstance) : String =
+	dot(aPort.eContainer(ConnectorInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : PortInstance) : String =
+	if (aPort.oclIsKindOf(AtomInternalPortInstance)) then
+		aPort.oclAsType(AtomInternalPortInstance).fullyQualifiedName()
+	else if (aPort.oclIsKindOf(ExportedPortInstance)) then
+		aPort.oclAsType(ExportedPortInstance).fullyQualifiedName()
+	else if (aPort.oclIsKindOf(ConnectorPortInstance)) then
+		aPort.oclAsType(ConnectorPortInstance).fullyQualifiedName()
+	else
+		'THIS SHOULD NEVER HAPPEN! problem with port ' + aPort
+	endif endif endif
+/]
+
+[query public fullyQualifiedName(aData : DataInstance) : String =
+	dot(aData.eContainer(ComponentInstance).fullyQualifiedName(),
+		aData.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPrio : CompoundPriorityInstance) : String =
+	dot(aPrio.eContainer(ComponentInstance).fullyQualifiedName(),
+		aPrio.declaration.name)
+/]
+
+[query public fullyQualifiedName(aConstDataDecl : ConstDataDeclaration) : String =
+	dot(aConstDataDecl.eContainer(BipPackage).fullyQualifiedName(),
+		aConstDataDecl.name)
+/]
+
+
+[comment]
+Generated names for classes.
+[/comment]
+
+[query private prefix(aType : BipType) : String = 
+	if aType.oclIsKindOf(AtomType) then
+    	'AT'
+    else if aType.oclIsKindOf(CompoundType) then
+    	'CT'
+    else if aType.oclIsKindOf(ConnectorType) then
+    	'ConnT'
+    else if aType.oclIsKindOf(PortType) then
+    	'PT'
+    else
+    	'\n#error in codegenerator '
+    endif endif	endif endif
+/]
+
+[query private prefix(aData : DataDeclaration) : String = 'data' /]
+[query private prefix(aPort : AtomInternalPortDeclaration) : String = 'port' /]
+
+[query public typeName(aDataType : DataType) : String =
+	if (aDataType.backendName->notEmpty()) then
+		aDataType.backendName
+	else
+		if (aDataType.native) then
+			if (aDataType.name = 'bool') then
+				'bool'
+			else if (aDataType.name = 'int') then
+				'int'
+			else if (aDataType.name = 'float') then
+				'double'
+			else if (aDataType.name = 'string') then
+				'std::string'
+			else
+				'WARNING! ERROR OF THE CPP BACKEND: UNSUPPORTED NATIVE TYPE ' + aDataType.name
+			endif endif endif endif
+		else
+			aDataType.name
+		endif
+	endif
+/]
+
+[query public name(anAtom : AtomType) : String = mangle(prefix(anAtom), fullyQualifiedName(anAtom)) /]
+[query public name(aData : DataDeclaration) : String = mangle(prefix(aData), aData.name) /]
+[query public name(aPort : AtomInternalPortDeclaration) : String = mangle(prefix(aPort), aPort.name) /]

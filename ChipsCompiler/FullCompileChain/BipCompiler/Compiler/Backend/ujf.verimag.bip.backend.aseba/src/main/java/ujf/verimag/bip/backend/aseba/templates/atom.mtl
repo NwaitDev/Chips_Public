@@ -1,0 +1,340 @@
+[comment encoding = UTF-8 /]
+[module atom('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+[import ujf::verimag::bip::backend::acceleo::templates::expressions /]
+
+[import ujf::verimag::bip::backend::aseba::templates::expressions /]
+
+[import ujf::verimag::bip::backend::aseba::templates::connector /]
+
+[query public isDelayed(delay : String) : Boolean = not delay.equalsIgnoreCase('-1') /]
+
+[comment]
+Creates a unique index for a transition. Index is unique within the atom.
+[/comment]
+[query private transitionToInt(aTransition : Transition) : Integer =
+    aTransition.eContainer().oclAsType(PetriNet).transitions->indexOf(aTransition)
+/]
+
+[query public getPortInstance(anAtomInstance : AtomInstance, aDeclaration : PortDeclaration) : AtomInternalPortInstance =
+    anAtomInstance.internalPorts->select(pi : AtomInternalPortInstance | pi.declaration.name.equalsIgnoreCase(aDeclaration.name))->first()
+/]
+
+
+[query private isSend(aPort : AtomInternalPortDeclaration) : Boolean =
+    aPort.hasAnnotation('aseba', 'send')
+/]
+
+[query public isRecv(aPort : AtomInternalPortDeclaration) : Boolean =
+    aPort.hasAnnotation('aseba', 'recv')
+/]
+
+[query private getSendTransition(aState : State) : OrderedSet(Transition) =
+    aState.getTransitionFromState()->select(t:Transition | t.triggerPort.isSend())
+/]
+
+[query private getRecvTransition(aState : State) : OrderedSet(Transition) =
+    aState.getTransitionFromState()->select(t:Transition | t.triggerPort.isRecv() )
+/]
+
+[query public getEPort(anIPort : AtomInternalPortInstance) : ExportedPortInstance =
+    anIPort.eContainer(AtomInstance).exportedPorts->select(ep : ExportedPortInstance|
+        ep.referencedPorts->includes(anIPort))->first()
+/]
+
+[query public getAtomInternalPortInstance(anAtomInstance : AtomInstance, aPort : AtomInternalPortDeclaration) : AtomInternalPortInstance =
+    anAtomInstance.internalPorts->select(p : AtomInternalPortInstance| p.declaration = aPort)->first()
+/]
+
+
+[comment][query public getEPort(anIPort : AtomInternalPortDeclaration) : AtomExportPortDeclaration =
+    anIPort.eContainer(AtomType).exportPortDeclarations->select(ep : AtomExportPortDeclaration|
+        ep.portDeclarationReferences->includes(anIPort))->first()
+/][/comment]
+
+
+[comment FIXME: abuse! !send && !recv =/=> internal /]
+[query private getInternalTransition(aState : State) : OrderedSet(Transition) =
+    aState.getTransitionFromState()->select(t:Transition | not (t.triggerPort.isSend() or t.triggerPort.isRecv()) )
+/]
+
+[query private getTransitionFromState(aState : State) : OrderedSet(Transition) =
+    aState.eContainer().oclAsType(PetriNet).transitions->select(e : Transition |
+            e.sources->includes(aState))
+/]
+
+[query public getReferencedNodes(aCompoundInstance : CompoundInstance) : Set(String) =
+    aCompoundInstance.subAtomInstances->select(e:AtomInstance| e.declaration.type.hasAnnotation('aseba', 'node'))
+/]
+
+
+[query public getTransitionByStateAndPort(anAtomType : AtomType, aState : State, aPort: AtomInternalPortDeclaration) : Transition =
+    anAtomType.getTrigeredTransitions(aPort)->select(t:Transition|
+        t.sources->includes(aState))->first()
+/]
+
+
+[query public getTrigeredTransitions(anAtomType : AtomType, anExportedPort : AtomExportPortDeclaration) : OrderedSet(Transition) =
+    anExportedPort.portDeclarationReferences->collect(p:AtomInternalPortDeclaration | getTrigeredTransitions(anAtomType, p))->asOrderedSet()
+/]
+
+[query public getTrigeredTransitions(anAtomType : AtomType, anInternalPort : AtomInternalPortDeclaration) : OrderedSet(Transition) =
+    anAtomType.behavior.transitions->select(t:Transition|
+        t.triggerPort = anInternalPort)
+/]
+
+[query public getTrigeredTransitions(anAtomInstance : AtomInstance, aPortInstance : ExportedPortInstance) : OrderedSet(Transition) =
+    anAtomInstance.declaration.type.oclAsType(AtomType).getTrigeredTransitions(aPortInstance.declaration.oclAsType(AtomExportPortDeclaration))
+/]
+
+[query public hasSendOrInternalTrans(aState : State) : Boolean =
+    aState.getInternalTransition()->union(aState.getSendTransition())->notEmpty()
+/]
+
+
+[query public getStatesTrigeredByPort(anAtomInstance : AtomInstance, aPort: AtomInternalPortInstance) : OrderedSet(State) =
+    anAtomInstance.declaration.type.oclAsType(AtomType).behavior.states->select(s:State|
+        getTransitionFromState(s)->select(t:Transition| t.triggerPort = aPort.declaration)->notEmpty())
+/]
+
+[query public getIndex(aPortType : PortType, aParamName : String) : Integer =
+aPortType.dataParameterDeclarations->indexOf(aPortType.dataParameterDeclarations->select(dpd : PortDataParameterDeclaration|
+        dpd.name.equalsIgnoreCase(aParamName))->first()) - 1
+/]
+
+
+[template public genRHSforDown(theRHS : ValuedExpression) post(trim())]
+[let sddre : SubDataDeclarationReferenceExpression = theRHS]
+event.args['['/][sddre.subDataDeclarationRef.portDeclaration.portType.getIndex(sddre.subDataDeclarationRef.forwardDataDeclaration.name)/][']'/]
+[else]
+NOT SUPPORTED [theRHS/]
+[/let]
+
+[/template]
+
+
+[query private getPortIndex(aConnectorInstance : ConnectorInstance, aPortDecl: PortDeclaration) : Integer =
+    aConnectorInstance.declaration.type.ports->indexOf(aPortDecl)
+/]
+
+[query private getPortInstance(aConnectorInstance : ConnectorInstance, aPortDecl: PortDeclaration) : AtomInternalPortInstance =
+    aConnectorInstance.portParamInstances->at(aConnectorInstance.getPortIndex(aPortDecl)).oclAsType(ExportedPortInstance).referencedPorts->first()
+/]
+
+[query private getIndexInLHS(anSDDRE : SubDataDeclarationReferenceExpression) : Integer =
+    anSDDRE.subDataDeclarationRef.portDeclaration.portType.getIndex(anSDDRE.subDataDeclarationRef.forwardDataDeclaration.name) + 1
+/]
+
+[query private realDataName(aPortInstance : AtomInternalPortInstance, anIndex : Integer) : String =
+    aPortInstance.dataParamInstances->at(anIndex).declaration.name
+/]
+
+
+
+[template public genEventHandler(aConnectorInstance : ConnectorInstance, anAtomInstance : AtomInstance)
+    {
+        aipi : AtomInternalPortInstance = getUnderlyingIPort(aConnectorInstance, anAtomInstance);
+        aipd : AtomInternalPortDeclaration = aipi.declaration.oclAsType(AtomInternalPortDeclaration);
+        attype : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+        substs : Sequence(Sequence(String)) = attype.buildSubstitutionMap();
+        inters : OrderedSet(ConnectorInteractionAction) = aConnectorInstance.declaration.type.interactions;
+    }
+]
+onevent [aConnectorInstance.eventNameFromConnector()/]
+    [if (inters->notEmpty())]
+    [if (inters->first().down->notEmpty())]
+    [for (exp : Expression | inters->first().down)]
+    [let assignExp : AssignmentExpression = exp]
+    [aConnectorInstance.getPortInstance(assignExp.lhsIndirect.subDataDeclarationRef.portDeclaration).realDataName(assignExp.lhsIndirect.getIndexInLHS())/] = [exp.oclAsType(AssignmentExpression).rhs.genRHSforDown() /]
+    [/let]
+    [comment]
+    [else]
+    # this is not supported (yet?) : [exp.generateExpression()/]
+    [/let]
+    [/comment]
+    [/for]
+    [/if]
+    [/if]
+
+    [for (s : State | anAtomInstance.getStatesTrigeredByPort(aipi))
+          before('    if ')
+          separator('    elseif ')
+          after('    end\n')]
+[s.varName()/] == 1 then
+            chosen = [anAtomInstance.declaration.type.oclAsType(AtomType).getTransitionByStateAndPort(s, aipd).transitionToInt() /]
+    [/for]
+    callsub MainPN
+[/template]
+
+[template private varName(aState : State) post(trim())]
+STATE_[aState.name/]
+[/template]
+
+[template public generateBehavior(anAtomInstance : AtomInstance, theRelatedConnectors: Set(ConnectorInstance), delay : String)]
+[anAtomInstance.genLocalData(theRelatedConnectors) /]
+[anAtomInstance.genInit(delay) /]
+
+[anAtomInstance.genChooseMethod() /]
+[anAtomInstance.genExecMethod() /]
+[anAtomInstance.genMainPN()/]
+
+[anAtomInstance.genLocalEventHandler()/]
+
+[for (conn : ConnectorInstance | theRelatedConnectors) separator('\n')]
+[if (conn.getUnderlyingIPort(anAtomInstance).declaration.oclAsType(AtomInternalPortDeclaration).hasAnnotation('aseba', 'recv'))]
+[conn.genEventHandler(anAtomInstance) /]
+[/if]
+[/for]
+
+[if (delay.isDelayed() and not anAtomInstance.declaration.hasAnnotation('aseba', 'booter'))]
+# In case of delayed start. This is a "slave" atom awaiting 'start' event.
+onevent start
+    callsub choose
+    callsub MainPN
+[elseif (delay.isDelayed())]
+# In case of delayed start. This is the "master" atom, awaiting a timer
+# expiration to broadcast the 'start' event.
+onevent timer0
+    timers.period['[0]'/] = 0
+    emit start
+    callsub choose
+    callsub MainPN
+[/if]
+
+[/template]
+
+[template public genLocalEventHandler(anAtomInstance : AtomInstance)
+    {
+        attype : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+        substs : Sequence(Sequence(String)) = attype.buildSubstitutionMap();
+    }
+]
+[for (pd : AtomInternalPortDeclaration | attype.internalPortDeclarations->select(hasAnnotation('aseba', 'system')))]
+onevent [pd.name.unmangleDottedVarName() /]
+    callsub choose
+    callsub MainPN
+
+[/for]
+[/template]
+
+[template public genInit(anAtomInstance : AtomInstance, delay: String)
+    {
+        attype : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+        substs : Sequence(Sequence(String)) = attype.buildSubstitutionMap();
+    }
+]
+[for (e : Expression | attype.behavior.initialActions)
+      before('# init bloc from "initial" transition\n')
+      after('#end of init\n')]
+[e.generateExpression().substituteVars(substs)/]
+[/for]
+
+[if (delay.isDelayed() and anAtomInstance.declaration.hasAnnotation('aseba', 'booter'))]
+timers.period['[0]'/] = [delay/]
+[/if]
+[/template]
+
+[template private genLocalData(anAtomInstance : AtomInstance, theRelatedConnectors: Set(ConnectorInstance))
+    {
+        attype : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+        substs : Sequence(Sequence(String)) = attype.buildSubstitutionMap();
+    }
+]
+[for (data : DataInstance | anAtomInstance.subDataInstances->select(e : DataInstance |
+                   e.declaration.oclAsType(AtomInternalDataDeclaration).hasAnnotation('aseba', 'system')))
+      before('## mapped BIP var to aseba builtins\n')]
+# [data.declaration.name/] maps to [data.declaration.name.substituteVars(substs)/]
+[/for]
+
+#for PetriNet
+var chosen
+
+# local data
+[for (data : DataInstance | anAtomInstance.subDataInstances->select(e : DataInstance |
+                   not e.declaration.oclAsType(AtomInternalDataDeclaration).hasAnnotation('aseba', 'system')))]
+var [data.declaration.name/]
+[/for]
+
+#
+
+[for (conn : ConnectorInstance | theRelatedConnectors->select(eventSize() > 1)) separator('\n')]
+[if (conn.getUnderlyingIPort(anAtomInstance).declaration.oclAsType(AtomInternalPortDeclaration).hasAnnotation('aseba', 'send'))]
+var [conn.dataNameFromConnector(conn) /]['[' + conn.eventSize() + ']'/]
+[/if]
+[/for]
+
+# For test/fast proto: one var for each place
+[for (place : State | attype.behavior.states)]
+var [place.varName()/] = [if (attype.behavior.initStates->includes(place))]1[else]0[/if]
+[/for]
+[/template]
+
+
+[template private genMainPN(anAtomInstance : AtomInstance)]
+sub MainPN
+    while chosen >= 0 do
+        callsub execute
+        callsub choose
+    end
+[/template]
+
+[template private genChooseMethod(anAtomInstance : AtomInstance)
+    {
+        at : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+        substs : Sequence(Sequence(String)) = at.buildSubstitutionMap();
+    }
+]
+sub choose
+    chosen = -1 #if it stays -1, means nothing to do here.
+
+    [for (transition : Transition | at.behavior.transitions->select(t:Transition | not t.triggerPort.isRecv() ))
+         before('    if ')
+         separator('    elseif ')
+         after('    end\n')]
+[for (srcState : State | transition.sources) separator(' and ')][srcState.varName()/] == 1[/for][if (transition.guard->notEmpty())] and [transition.guard.generateExpression().substituteVars(substs) /][/if] then
+            chosen = [transition.transitionToInt()/]
+    [/for]
+
+
+[/template]
+
+[template private genExecMethod(anAtomInstance : AtomInstance)
+    {
+        substs : Sequence(Sequence(String)) = anAtomInstance.declaration.type.oclAsType(AtomType).buildSubstitutionMap();
+        container : CompoundInstance = anAtomInstance.eContainer(CompoundInstance);
+    }
+]
+sub execute
+    [for (t : Transition | anAtomInstance.declaration.type.oclAsType(AtomType).behavior.transitions)
+          before('    if ')
+          separator('    elseif ')
+          after('    end\n')]
+chosen == [t.transitionToInt()/] then
+        [for (s : State | t.sources)]
+        [s.varName()/] = 0
+        [/for]
+        [for (s : State | t.destinations)]
+        [s.varName() /] = 1
+        [/for]
+        [for (exp : Expression | t.actions)]
+        [exp.generateExpression().substituteVars(substs)/]
+        [/for]
+
+        [if (t.triggerPort.isSend())]
+        [let ci : ConnectorInstance = container.getConnectorFromEPort(anAtomInstance.getAtomInternalPortInstance(t.triggerPort).getEPort())]
+        [if (ci.eventSize() > 1)]
+            [for (di : DataInstance | anAtomInstance.getPortInstance(t.triggerPort).dataParamInstances)]
+        [ci.dataNameFromConnector()/] ['[' + (anAtomInstance.getPortInstance(t.triggerPort).dataParamInstances->indexOf(di) -1) +']'/] = [di.declaration.name.substituteVars(substs)/]
+        [/for]
+        emit [ci.eventNameFromConnector()/] [ci.dataNameFromConnector()/]
+        [else][if (ci.eventSize() = 1)]
+        emit [ci.eventNameFromConnector()/] [anAtomInstance.getPortInstance(t.triggerPort).dataParamInstances->first().declaration.name.substituteVars(substs)/]
+        [else]
+        emit [ci.eventNameFromConnector()/]
+        [/if]
+        [/if]
+        [/let]
+        [/if]
+    [/for]
+[/template]

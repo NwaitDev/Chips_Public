@@ -1,0 +1,111 @@
+package typeCheckFunctionCalls
+  const data float Pi = 3.14159
+
+  extern data type List
+  extern data type Complex
+  
+  extern function print(const Complex)
+  
+  extern function Complex toComplex(const int)
+  extern function Complex toComplex(const float)
+  
+  extern function Complex toComplex(const float, const float)
+  extern function Complex toComplex(const int,   const float)
+  extern function Complex toComplex(const float, const int)
+
+  extern function Complex toCplx(const int,   const int)
+  extern function Complex toCplx(const int,   const float)
+  extern function Complex toCplx(const float, const int)
+  extern function Complex toCplx(const float, const float)
+  
+  extern function float cos(const float)
+  extern function float sin(const float)
+
+  extern function float mod(const Complex)
+  extern function float arg(const Complex)
+  extern function Complex i()
+  
+  extern operator Complex +(const Complex, const Complex)
+  extern operator Complex -(const Complex, const Complex)
+  extern operator Complex +(const float,   const Complex)
+  extern operator Complex -(const float,   const Complex)
+  extern operator Complex *(const float,   const Complex)
+    
+  extern operator bool ==(const Complex, const Complex)
+  extern operator bool !=(const Complex, const Complex)
+  
+  extern function add(List, const Complex)
+  extern function Complex get(const List, const int)
+  extern function int size(const List)
+  
+  extern function List randomList()  
+  extern operator bool ==(const List, const List)
+  extern operator bool !=(const List, const List)
+
+  port type Port(List l)
+
+  atom type Rotator()
+    data List inList
+    data List outList
+    data Complex in, out
+    data float r, phi
+    data int j
+    
+    export port Port input(inList)
+    export port Port output(outList)
+  
+    place WAIT, PROCESS, OUTPUT, END
+    
+    initial to WAIT do { in = toComplex(0); out = toComplex(0); inList = randomList(); outList = randomList(); print(in); }
+    
+    on input from WAIT to PROCESS
+      do {
+        j = 0; print(in);
+      }
+    
+    internal from PROCESS to PROCESS
+      provided (j < size(inList))
+      do {
+        in = get(inList, j);
+        r = mod(in);
+        phi = arg(in);
+        phi = phi + Pi / 2;
+        
+        if (out != 0*i()) then
+          out = r * (cos(phi) + sin(phi)*i());
+          out = r * (cos(phi) + i()*sin(phi)); // NOT OK! no operator *(Complex, float)
+        fi
+       
+        if (out) then                          // NOT OK!  out is not a bool
+          phi = print(out);                    // NOT OK!  print has no return value
+        fi
+        
+        add(outList, out);
+        
+        print(out);
+        
+        j = j + 1;
+      }
+    
+    internal from PROCESS to OUTPUT
+      provided (j == size(inList))
+    
+    on output from OUTPUT to END
+      do {
+        print(outList);                        // NOT OK!  no function print(outList)
+        
+        out = toComplex(0);
+        out = toComplex(0.0);
+        
+        out = toComplex(0.0, 0.0);
+        out = toComplex(0.0, 0);
+        out = toComplex(0,   0.0);
+        out = toComplex(0,   0);               // NOT OK!  ambiguous function call: match toComplex(float, int) and toComplex(int, float)
+        
+        out = toCplx(0.0, 0.0);
+        out = toCplx(0.0, 0);
+        out = toCplx(0,   0.0);
+        out = toCplx(0,   0);
+      }
+  end
+end

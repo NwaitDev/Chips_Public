@@ -1,0 +1,42 @@
+package broadcast_up
+  port type PortInt(int d)
+
+  connector type Broadcast(PortInt p, PortInt q, PortInt r)
+    data int x
+    
+    export port PortInt xport(x)
+
+    define p' q r
+
+    on p q r provided (false) up { x = 0; }
+    on p q   provided (true)  up { x = p.d + q.d; }
+    on p r   provided (true)  up { x = p.d + r.d; }
+    on p     provided (false) up { x = 0; }
+  end
+
+  connector type Singleton(PortInt p)
+    define p
+  end
+
+
+  atom type MyAtomType(int init)
+    data int x
+    export port PortInt p(x)
+
+    place INIT, END
+
+    initial to INIT
+      do { x = init; }
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1(12)
+    component MyAtomType myAtom2(42)
+    component MyAtomType myAtom3(103)
+
+    connector Broadcast brd(myAtom1.p, myAtom2.p, myAtom3.p)
+    connector Singleton single(brd.xport)
+  end
+end

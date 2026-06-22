@@ -1,0 +1,524 @@
+[comment encoding = UTF-8 /]
+[module generateAtom('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::c::templates::naming/]
+[import ujf::verimag::bip::backend::c::templates::bitset/]
+[import ujf::verimag::bip::backend::c::templates::common/]
+[import ujf::verimag::bip::backend::c::templates::generateExpression/]
+
+
+
+[comment Public names /]
+[query public initializeMethodName() : String = 'initialize' /]
+[query public executeMethodName(aPort : AtomInternalPortDeclaration) : String = 'execute_' + name(aPort) /]
+[query public enabledPortVariableName(aPort : AtomInternalPortDeclaration) : String = 'transition_' + name(aPort) /]
+
+[comment Private names /]
+[query private markingVariableName() : String = 'marking' /]
+[query private enabledInternalTransitionVariableName() : String = 'transition_internal' /]
+[query private executeMethodName(aTransition : Transition) : String = 'execute_' + getIndex(aTransition) /]
+[query private executeInternalMethodName() : String = 'execute_internal' /]
+[query private updateMethodName() : String = 'update' /]
+
+[comment Optimization related methods /]
+[query private optimizedUpdate() : Boolean = false /]
+
+[comment
+	Unique identifier for transitions, i.e. a positive integer (/!\ > 0)
+	It is used for storing enabled transitions.
+ /]
+[query private getIndex(aTransition : Transition) : Integer =
+	aTransition.eContainer(PetriNet).transitions->indexOf(aTransition)
+/]
+
+[comment
+	Bitset marking related queries
+	/!\ getIndex() should return a positive integer (>0)
+ /]
+[query private getBit(state : State) : Integer =
+	state.eContainer(PetriNet).states->indexOf(state) - 1
+/]
+
+[query private getBits(states : OrderedSet(State)) : OrderedSet(Integer) =
+	states
+		->collect(s : State | getBit(s))
+		->asOrderedSet()
+/]
+
+[comment
+	A set of queries computing whether a variable is completely internal
+	or can be modified by connectors, i.e. whether it is exported (directly
+	or through a port) or not.
+ /]
+[query private isExportedBy(aData : AtomInternalDataDeclaration, aPort : AtomInternalPortDeclaration) : Boolean =
+	aPort.dataParameters->exists(ref : DataDeclarationReferenceDataParameter | ref.dataDeclarationReference = aData)
+/]
+
+[query private isExportedBy(aData : AtomInternalDataDeclaration, aPort : AtomExportPortDeclaration) : Boolean =
+	aPort.portDeclarationReferences->exists(p : AtomInternalPortDeclaration | aData.isExportedBy(p))
+/]
+
+[query private isExported(aData : AtomInternalDataDeclaration) : Boolean =
+	aData.exported or
+	aData.eContainer(AtomType).exportPortDeclarations
+		->exists(aPort : AtomExportPortDeclaration | aData.isExportedBy(aPort))
+/]
+
+[query private publicVariables(anAtom : AtomType) : OrderedSet(AtomInternalDataDeclaration) =
+	anAtom.internalDataDeclarations
+		->select(d : AtomInternalDataDeclaration | isExported(d))
+/]
+
+[query private privateVariables(anAtom : AtomType) : OrderedSet(AtomInternalDataDeclaration) =
+	anAtom.internalDataDeclarations
+		->select(d : AtomInternalDataDeclaration | not isExported(d))
+/]
+
+[comment
+	Queries computing the set of states modified by a transition, i.e.
+	reset and set states.
+ /]
+[query private resetStates(aTransition : Transition) : OrderedSet(State) =
+	aTransition.sources->select(s : State | aTransition.destinations->excludes(s))
+/]
+
+[query private setStates(aTransition : Transition) : OrderedSet(State) =
+	aTransition.destinations->select(s : State | aTransition.sources->excludes(s))
+/]
+
+
+[comment
+	Queries computing the set of transitions and ports that might be initially
+	enabled.
+ /]
+[query private mightBeInitiallyEnabled(t : Transition) : Boolean =
+	t.eContainer(PetriNet).initStates->includesAll(t.sources)
+/]
+
+[query private transitionsToBeCheckedAfterInitialization(anAtom :AtomType) : OrderedSet(Transition) =
+	anAtom.behavior.transitions->select(t : Transition | mightBeInitiallyEnabled(t))
+/]
+
+[comment/]
+[query private transitions(aPort : AtomInternalPortDeclaration) : OrderedSet(Transition) =
+	aPort.eContainer(AtomType).behavior.transitions
+		->select(t : Transition | not t.triggerPort->isEmpty())
+		->select(t : Transition | t.triggerPort = aPort)
+/]
+
+[comment
+	Queries for statically analyze possible states after transitions execution.
+/]
+[query private disablesMarkingOf(t1 : Transition, t2 : Transition) : Boolean =
+	not t2.sources->excludesAll(t1.resetStates())
+/]
+
+[query private enablesMarkingOf(t1 : Transition, t2 : Transition) : Boolean =
+	t1.destinations->includesAll(t2.sources)
+/]
+
+[query private mightEnableMarkingOf(t1 : Transition, t2 : Transition) : Boolean =
+	not t2.sources->intersection(t1.setStates())->isEmpty()
+/]
+
+[query private mightModifyGuardOf(t1 : Transition, t2 : Transition) : Boolean =
+	if (t2.guard->isEmpty()) then
+		false
+	else
+		readVariables(t2.guard)->exists(d : DataDeclaration | d.mightBeModifiedBy(t1.actions))
+	endif
+/]
+
+[query private transitionsToBeCheckedAfterExecutionOf(aTransition : Transition) : OrderedSet(Transition) =
+	aTransition.eContainer(PetriNet).transitions
+			->select(t : Transition | aTransition.disablesMarkingOf(t) or
+									  aTransition.mightEnableMarkingOf(t) or
+									  aTransition.mightModifyGuardOf(t))
+/]
+
+[query private internalTransitionsToBeCheckedAfterExecutionOf(aTransition : Transition) : OrderedSet(Transition) =
+	transitionsToBeCheckedAfterExecutionOf(aTransition)
+		->select(t : Transition | t.triggerPort->isEmpty())
+/]
+
+[query private transitionsToBeCheckedAfterExectutionOf(aTransition : Transition, aPort : AtomInternalPortDeclaration) : OrderedSet(Transition) =
+	transitionsToBeCheckedAfterExecutionOf(aTransition)
+		->select(t : Transition | not t.triggerPort->isEmpty())
+		->select(t : Transition | t.triggerPort = aPort)
+/]
+
+[query private portsToBeCheckedAfterExecutionOf(aTransition : Transition) : OrderedSet(AtomInternalPortDeclaration) =
+	aTransition.eContainer(PetriNet).eContainer(AtomType).internalPortDeclarations
+		->select(p : AtomInternalPortDeclaration | not transitionsToBeCheckedAfterExectutionOf(aTransition, p)->isEmpty())
+/]
+
+
+[template private generateAtomTypeStruct(anAtom : AtomType)]
+class [name(anAtom)/] {
+ public:
+  // initialization
+  void [initializeMethodName()/]();
+
+[for (aPort : AtomInternalPortDeclaration | anAtom.internalPortDeclarations) before('  // execution w.r.t. ports\n')]
+  void [executeMethodName(aPort)/]();
+[/for]
+
+[for (aPort : AtomInternalPortDeclaration | anAtom.internalPortDeclarations) before('  // variables recording enabledness of ports\n')]
+  unsigned int [enabledPortVariableName(aPort)/];
+[/for]
+
+[for (aVariable : DataDeclaration | anAtom.publicVariables()) before('  // variables accessed externally by connectors/priorities\n')]
+  [typeName(aVariable.dataType)/] [name(aVariable)/];
+[/for]
+
+ private:
+  // method for internal transitions execution
+  void [executeInternalMethodName()/]();
+
+  // methods for transitions execution
+[for (t : Transition | anAtom.behavior.transitions)]
+  void [executeMethodName(t)/]();
+[/for]
+
+[if (not optimizedUpdate())]
+  // method for recomputing enabled transitions
+  void [updateMethodName()/]();
+[/if]
+
+  // variable recording the enabled internal transition
+  unsigned int [enabledInternalTransitionVariableName()/];
+
+  // bitset recording current marking of the 1-safe Petri net
+  [generateBitSetDeclaration(markingVariableName(), anAtom.behavior.states->size())/];
+
+[for (aVariable : DataDeclaration | anAtom.privateVariables()) before('  // variables not used externally\n')]
+  [typeName(aVariable.dataType)/] [name(aVariable)/];
+[/for]
+[for (aVariable : DataDeclaration | anAtom.dataParameterDeclarations) before('  // component parameters\n')]
+  [typeName(aVariable.dataType)/] [name(aVariable)/];
+[/for]
+};
+[/template]
+
+[template public generateAtomType(anAtom : AtomType)]
+// structure for recording [anAtom.name/] states
+[generateAtomTypeStruct(anAtom)/]
+
+inline
+void [name(anAtom)/]::[initializeMethodName()/]() {
+  [anAtom.generateInitialize()/]
+}
+
+[for (aPort : AtomInternalPortDeclaration | anAtom.internalPortDeclarations) separator('\n')]
+inline
+void [name(anAtom)/]::[executeMethodName(aPort)/]() {
+  [aPort.generateExecutePort()/]
+}
+[/for]
+
+inline
+void [name(anAtom)/]::[executeInternalMethodName()/]() {
+  [generateExecuteInternal()/]
+}
+
+[for (aTransition : Transition | anAtom.behavior.transitions) separator('\n')]
+inline
+void [name(anAtom)/]::[executeMethodName(aTransition)/]() {
+  [aTransition.generateExecuteTransition()/]
+}
+[/for]
+
+[if (not optimizedUpdate())]
+inline
+void [name(anAtom)/]::[updateMethodName()/]() {
+  [generateNonOptimizedUpdate(anAtom)/]
+}
+[/if]
+[/template]
+
+
+[comment Generates code updating current marking w.r.t. the execution of a transition. /]
+[template private generateUpdateMarking(aTransition : Transition) {
+	anAtom : AtomType = aTransition.eContainer(PetriNet).eContainer(AtomType);
+}]
+assert([generateTestBitSet(markingVariableName(), aTransition.resetStates()->getBits())/]);
+[generateResetBitSet(markingVariableName(), aTransition.resetStates()->getBits())/]
+assert(!([generateTestBitSet(markingVariableName(), aTransition.setStates()->getBits())/]));
+[generateSetBitSet(markingVariableName(), aTransition.setStates()->getBits())/]
+[/template]
+
+[comment Generates boolean expressions testing enabledness of transitions. /]
+[template private generateTestMarking(aTransition : Transition) {
+	anAtom : AtomType = aTransition.eContainer(PetriNet).eContainer(AtomType);
+}]
+[generateTestBitSet(markingVariableName(), aTransition.sources->getBits())/]
+[/template]
+[template private generateGuard(aTransition : Transition)][if (aTransition.guard->isEmpty())]true[else][guard.generateExpression(true)/][/if][/template]
+[template private generateTestEnabled(aTransition : Transition)][generateTestMarking(aTransition)/][if (not aTransition.guard->isEmpty())] && [generateGuard(aTransition)/][/if][/template]
+
+
+[comment
+	Generates the initialization, i.e. the execution of the initial BIP code,
+	the update of the marking to the initial one, and the update of the enabled
+	transitions of ports.
+/]
+[template private generateInitialize(anAtom : AtomType)]
+// initialize marking
+[generateInitializeBitSet(markingVariableName(), anAtom.behavior.states->size())/]
+[generateSetBitSet(markingVariableName(), anAtom.behavior.initStates->getBits())/]
+
+// disable all ports / internal
+[enabledInternalTransitionVariableName()/] = 0;
+[for (aPort : AtomInternalPortDeclaration | anAtom.internalPortDeclarations)]
+[enabledPortVariableName(aPort)/] = 0;
+[/for]
+
+[if (not anAtom.behavior.initialActions->isEmpty())]
+// execute initial code
+[generateExpressions(anAtom.behavior.initialActions)/]
+[/if]
+
+[if (optimizedUpdate())]
+[for (t : Transition | transitionsToBeCheckedAfterInitialization(anAtom)) before('// update enabledness of transitions and ports\n') separator('\n')]
+[if (t.guard->isEmpty())]
+[setEnabled(t)/]
+[else]
+if ([generateGuard(t)/]) {
+  [setEnabled(t)/]
+}
+[/if]
+[/for]
+[else]
+// update enabledness of transitions
+[updateMethodName()/]();
+[/if]
+
+// execute internal transitions
+execute_internal();
+[/template]
+
+[comment
+	Generates code corresponding to the execution of a ports, i.e.
+	select the right transition and execute it.
+/]
+[template private generateExecutePort(aPort : AtomInternalPortDeclaration) {
+	atom : AtomType = aPort.eContainer(AtomType);
+}]
+switch ([enabledPortVariableName(aPort)/]) {
+ case 0:
+  assert(false);
+  break;
+
+[for (t : Transition | transitions(aPort))]
+ case [getIndex(t)/]:
+  [executeMethodName(t)/]();
+  break;
+
+[/for]
+ default:
+  assert(false);
+  break;
+}
+
+// execute internal transitions
+execute_internal();
+[/template]
+
+[comment
+	Generates code corresponding to the execution of internal transitions,
+	i.e. execute internal transitions as long as there exists one enabled.
+/]
+[template private generateExecuteInternal(atom : AtomType) {
+	internals : OrderedSet(Transition) = atom.behavior.transitions
+											->select(t : Transition | t.triggerPort->isEmpty());
+}]
+while ([enabledInternalTransitionVariableName()/] != 0) {
+  switch ([enabledInternalTransitionVariableName()/]) {
+  [for (t : Transition | internals)]
+   case [getIndex(t)/]:
+    [executeMethodName(t)/]();
+    break;
+
+  [/for]
+   default:
+    assert(false);
+    break;
+  }
+}
+[/template]
+
+
+[comment
+	Generates code corresponding to the execution of transitions.
+	This includes execution of the corresponding BIP code, the
+	update of the current marking, and the update of the enabled
+	transitions / ports.
+/]
+[template private generateExecuteTransition(aTransition : Transition)]
+// check that the transition is enabled
+assert([generateTestEnabled(aTransition)/]);
+
+[if (not aTransition.actions->isEmpty())]
+// execute transition code
+[generateExpressions(aTransition.actions)/]
+[/if]
+
+[if (not aTransition.sources->symmetricDifference(aTransition.destinations)->isEmpty())]
+// update marking
+[generateUpdateMarking(aTransition)/]
+[/if]
+
+[if (optimizedUpdate())]
+[generateUpdate(aTransition)/]
+
+[generateUpdateInternal(aTransition)/]
+[else]
+// update enabledness of transitions
+[updateMethodName()/]();
+[/if]
+[/template]
+
+
+[comment
+	Generates the code responsible for updating the enabledness
+	of transitions and ports after the execution of a transition.
+/]
+[template private generateUpdate(aTransition : Transition) {
+	petriNet : PetriNet = aTransition.eContainer(PetriNet);
+	atom : AtomType = petriNet.eContainer(AtomType);
+}]
+[for (aPort : AtomInternalPortDeclaration | portsToBeCheckedAfterExecutionOf(aTransition))]
+[if (transitionsToBeCheckedAfterExectutionOf(aTransition, aPort)->includesAll(transitions(aPort)))]
+// reset enabledness of [aPort.name/]
+[setDisabled(aPort)/]
+[else]
+// reset enabledness of transitions to be recomputed for [aPort.name/]
+switch ([enabledPortVariableName(aPort)/]) {
+ case 0:
+  break;
+[for (t : Transition | transitionsToBeCheckedAfterExectutionOf(aTransition, aPort))]
+ case [getIndex(t)/]:
+[/for]
+  [setDisabled(aPort)/]
+  break;
+ default:
+  break;
+}
+[/if]
+
+[for (t : Transition | transitionsToBeCheckedAfterExectutionOf(aTransition, aPort)
+	->select(t : Transition | not aTransition.disablesMarkingOf(t)))
+	before('// compute enabledness of transitions to be recomputed for' + aPort.name + '\n')]
+[aTransition.updateEnablednessOf(t)/]
+[/for]
+[/for]
+[/template]
+
+
+[comment
+	Generates the code responsible for updating the enabledness
+	of transitions and ports after the execution of a transition.
+/]
+[template private generateUpdateInternal(aTransition : Transition) {
+	petriNet : PetriNet = aTransition.eContainer(PetriNet);
+	atom : AtomType = petriNet.eContainer(AtomType);
+	internals : OrderedSet(Transition) = petriNet.transitions->select(t : Transition | t.triggerPort->isEmpty());
+}]
+
+[if (aTransition.triggerPort->isEmpty())]
+[if (internalTransitionsToBeCheckedAfterExecutionOf(aTransition)->includesAll(internals))]
+// reset enabledness of internal transitions
+[setDisabledInternal()/]
+[else]
+// reset enabledness of internal transitions
+switch ([enabledInternalTransitionVariableName()/]) {
+ case 0:
+  break;
+[for (t : Transition | internalTransitionsToBeCheckedAfterExecutionOf(aTransition))]
+ case [getIndex(t)/]:
+[/for]
+  [setDisabledInternal()/]
+  break;
+ default:
+  break;
+}
+[/if]
+[else]
+// internal transitions should not be enabled
+assert([enabledInternalTransitionVariableName()/] == 0);
+[/if]
+
+[for (t : Transition | internalTransitionsToBeCheckedAfterExecutionOf(aTransition)
+	->select(t : Transition | not aTransition.disablesMarkingOf(t)))
+	before('// recompute enabledness of internal transitions\n')]
+[aTransition.updateEnablednessOf(t)/]
+[/for]
+[/template]
+
+[template private generateNonOptimizedUpdate(anAtom : AtomType)]
+// reset enabledness of all ports
+[for (p : AtomInternalPortDeclaration | anAtom.internalPortDeclarations)]
+[setDisabled(p)/]
+[/for]
+
+// reset enabledness of internal transitions
+[setDisabledInternal()/]
+
+// recompute enabledness of transitions
+[for (t : Transition | anAtom.behavior.transitions)]
+if ([generateTestEnabled(t)/]) {
+  [setEnabled(t)/]
+}
+[/for]
+[/template]
+
+[template private setEnabled(aTransition : Transition) ?(not aTransition.triggerPort->isEmpty())]
+assert([enabledPortVariableName(aTransition.triggerPort)/] == 0);
+[enabledPortVariableName(aTransition.triggerPort)/] = [getIndex(aTransition)/];
+[/template]
+
+[template private setEnabled(aTransition : Transition) ?(aTransition.triggerPort->isEmpty())]
+assert([enabledInternalTransitionVariableName()/] == 0);
+[enabledInternalTransitionVariableName()/] = [getIndex(aTransition)/];
+[/template]
+
+[template private setDisabled(aTransition : Transition) ?(not aTransition.triggerPort->isEmpty())]
+assert([enabledPortVariableName(aTransition.triggerPort)/] == [getIndex(aTransition)/]);
+[setDisabled(aTransition.triggerPort)/]
+[/template]
+
+[template private setDisabled(aTransition : Transition) ?(aTransition.triggerPort->isEmpty())]
+assert([enabledInternalTransitionVariableName()/] == [getIndex(aTransition)/]);
+[enabledInternalTransitionVariableName()/] = 0;
+[/template]
+
+[template private setDisabled(aPort : AtomInternalPortDeclaration)]
+[enabledPortVariableName(aPort)/] = 0;
+[/template]
+
+[template private setDisabledInternal()]
+[enabledInternalTransitionVariableName()/] = 0;
+[/template]
+
+[template private updateEnablednessOf(t1 : Transition, t2 : Transition)]
+[if (t1.disablesMarkingOf(t2))]
+[elseif (t1.enablesMarkingOf(t2))]
+[if (not t2.guard->isEmpty())]
+if ([generateGuard(t2)/]) {
+  [setEnabled(t2)/]
+}
+[else]
+[setEnabled(t2)/]
+[/if]
+[else]
+if ([generateTestEnabled(t2)/]) {
+  [setEnabled(t2)/]
+}
+[/if]
+[/template]
+
+
+[comment Debug related queries / templates/]
+[template private generate(states : OrderedSet(State))]
+{ [for (s : State | states) separator(', ')][s.name/][/for] }
+[/template]

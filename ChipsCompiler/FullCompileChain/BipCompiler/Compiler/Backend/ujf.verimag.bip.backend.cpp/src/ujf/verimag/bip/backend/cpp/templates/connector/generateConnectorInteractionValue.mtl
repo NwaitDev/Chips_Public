@@ -1,0 +1,208 @@
+[comment encoding = UTF-8 /]
+[module generateConnectorInteractionValue('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteraction /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::expressions /]
+
+
+
+
+[template private ctorParams(aConnectorType : ConnectorType) post(trim())]
+const [aConnectorType.className()/] &connector, const Interaction& interaction, const vector<PortValue *> &values
+[/template]
+
+[template private recycleParams(aConnectorType : ConnectorType) post(trim())]
+const Interaction& interaction, const vector<PortValue *> &values
+[/template]
+
+[template private genCtorProto(aConnectorType : ConnectorType) post(trim())]
+[aConnectorType.interactionValueClassName()/]([aConnectorType.ctorParams()/])
+[/template]
+
+[query private dataWithInitializer(aConnectorType : ConnectorType) : OrderedSet(ConnectorDataDeclaration) =
+	aConnectorType.dataDeclarations->select(dd : ConnectorDataDeclaration | dd.value->notEmpty())
+/]
+
+[template private generateDataReinitialization(aConnectorType : ConnectorType)]
+[for (dd : ConnectorDataDeclaration | dataWithInitializer(aConnectorType)->select(d : ConnectorDataDeclaration | not d.const)) before('\n// initialize connector variables\n')]
+[dd.setData(dd.value.generateExpression(false, 'this'), 'this')/];
+[/for]
+[/template]
+
+[template private generatePortValueInitialization(aConnectorType : ConnectorType)]
+[for (aParam : DataDeclarationReferenceDataParameter | aConnectorType.exportedPortDeclaration.dataParameters) separator(', ')][aParam.dataDeclarationReference.oclAsType(ConnectorDataDeclaration).varName()/][/for]
+[/template]
+
+[template private generateDataInitialization(aConnectorType : ConnectorType)]
+[for (aData : ConnectorDataDeclaration | dataWithInitializer(aConnectorType)) before(',\n') separator(',\n')]
+[aData.varName()/]([aData.value.generateExpression(false, 'this')/])
+[/for]
+[/template]
+
+[template public generateConnectorInteractionValue(aConnectorType : ConnectorType, aCMakeList : String)
+    {
+        container : BipPackage = aConnectorType.eContainer(BipPackage);
+        fullCpp : String = aConnectorType.fullCppFilePath(aConnectorType.interactionValueClassName());
+        fullHpp : String = aConnectorType.fullHppFilePath(aConnectorType.interactionValueClassName());
+        acivCN : String = aConnectorType.interactionValueClassName();
+        aciCN : String = aConnectorType.interactionClassName();
+    }
+]
+[comment 
+    IMPLEMENTATION FILE
+/]
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+
+#include <[aConnectorType.relHppFilePath(acivCN)/]>
+#include <[aConnectorType.relHppFilePath()/]>
+
+[acivCN/]::[aConnectorType.genCtorProto()/] :
+        InteractionValue(),
+        mInteraction(connector, interaction.ports())[generateDataInitialization(aConnectorType)/][if (aConnectorType.exportedPortDeclaration->notEmpty())],
+        mExportedPortValue([generatePortValueInitialization(aConnectorType)/])[/if] {
+    this->mPortValues.reserve([aConnectorType.getPortCount()/]);
+    commonRecycle(interaction, values);
+}
+
+[if ('poolciv'.isOptimEnabled())]
+void [acivCN/]::recycle([aConnectorType.recycleParams()/]) {
+    [generateDataInitialization(aConnectorType)/]
+    mInteraction.recycle(interaction.ports());
+    [generateDataReinitialization(aConnectorType)/]
+    commonRecycle(interaction, values);
+}
+[/if]
+
+void [acivCN/]::commonRecycle([aConnectorType.recycleParams()/]) {
+	this->mPortValues.clear();
+    for (vector<PortValue *>::const_iterator valueIt = values.begin() ;
+         valueIt != values.end() ;
+         ++valueIt) {
+        this->mPortValues.push_back(*valueIt);
+    }
+}
+
+
+[acivCN/]::~[acivCN/](){
+}
+
+
+[/file]
+
+[comment 
+    HEADER FILE
+ /]
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+
+#include <[aConnectorType.relHppFilePath(aConnectorType.interactionClassName())/]>
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+// port values for exported port.
+#include <[aConnectorType.exportedPortDeclaration.portType.relHppFilePath(aConnectorType.exportedPortDeclaration.portType.portValueClassName())/]>
+[/if]
+
+class Port;
+class PortValue;
+class [aConnectorType.className() /];
+
+class [acivCN/] : public InteractionValue {
+public:
+    virtual ~[acivCN/]();
+
+    // getters for references (declared pure virtual in interface)
+    virtual const Interaction &interaction() const { return mInteraction; }
+    virtual const vector<PortValue *> &portValues() const;
+    virtual bool hasPortValues() const;
+
+    // specific operations
+    const vector<Port *> &ports() const { return mInteraction.ports(); }
+
+    // Only allow the connector to call the ctor here (see createInteractionValue() method)
+    friend class [aConnectorType.className()/];
+    [for (aData : ConnectorDataDeclaration | aConnectorType.dataDeclarations)
+			before('\n    // getters for data\n')]
+    [if (aData.const)]const [/if][aData.dataType.typeName()/]& cget_[aData.name/]() const;
+    [/for]
+    [for (aData : ConnectorDataDeclaration | aConnectorType.dataDeclarations
+												->select(d : ConnectorDataDeclaration | not d.const))
+			before('\n    // setters for non const data\n')]
+    void cset_[aData.name/]([aData.dataType.typeName()/] _[aData.varName()/]) const;
+    [/for]
+
+protected:
+    [aConnectorType.genCtorProto()/];
+    [aConnectorType.interactionClassName()/] mInteraction;
+    vector<PortValue *> &portValues();
+    vector<PortValue *> mPortValues;
+
+[if ('poolciv'.isOptimEnabled())]
+    virtual void recycle([recycleParams(aConnectorType)/]);
+[/if]
+    void commonRecycle([aConnectorType.recycleParams()/]);
+
+    [for (aData : ConnectorDataDeclaration | aConnectorType.dataDeclarations
+												->select(d : ConnectorDataDeclaration | d.const and not d.value->isEmpty()))
+		before('    // setters for const data (used for initialization)\n')
+		separator('\n')]
+    void cset_[aData.name/]([aData.dataType.typeName()/] _[aData.varName()/]) const;
+    [/for]
+
+[for (aData : ConnectorDataDeclaration | aConnectorType.dataDeclarations)
+		before('    // non exported data\n')]
+    mutable [if (aData.const)]const [/if][aData.dataType.typeName()/] [aData.varName()/];
+[/for]
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+    // port value used to store values of data exported through the exported port
+    mutable [aConnectorType.exportedPortDeclaration.portType.portValueClassName()/] mExportedPortValue;
+[/if]
+}; 
+
+inline
+const vector<PortValue *> &[acivCN/]::portValues() const {
+    return this->mPortValues;
+}
+
+inline
+bool [acivCN/]::hasPortValues() const {
+    return (!this->mPortValues.empty());
+}
+
+inline
+vector<PortValue *> &[acivCN/]::portValues() {
+    return mPortValues;
+}
+
+[for (datadecl : ConnectorDataDeclaration | aConnectorType.dataDeclarations)
+         before('\n    // get/set for non exported data\n')
+         separator('\n')]
+inline
+[if (datadecl.const)]const [/if][datadecl.dataType.typeName()/]& [acivCN/]::cget_[datadecl.name/]() const {
+    return [datadecl.varName()/];
+}
+[if (not datadecl.const or not datadecl.value->isEmpty())]
+inline
+void [acivCN/]::cset_[datadecl.name/]([datadecl.dataType.typeName()/] _[datadecl.varName()/]) const {
+    [datadecl.varName()/] = _[datadecl.varName()/];
+}
+[/if]
+[/for]
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /] 
+                        [fullHpp /])
+[/file]
+[/template]
+
+
+[comment 
+    Returns the corresponding data parameter in the exported port given a connector local data.
+/]
+[query private getRelatedDataParameter(aConnDataDecl : ConnectorDataDeclaration) : DataDeclaration =
+    let connector : ConnectorType = aConnDataDecl.eContainer(ConnectorType) in 
+        connector.exportedPortDeclaration.dataParameters->select(d : DataDeclarationReferenceDataParameter|
+                d.dataDeclarationReference.name.equalsIgnoreCase(aConnDataDecl.name))->first().parameterDeclaration
+ /]

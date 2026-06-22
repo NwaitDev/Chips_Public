@@ -1,0 +1,124 @@
+package typeCheckGuards
+  const data float Pi = 3.14159
+
+  extern data type List
+  extern data type Complex
+  
+  extern function print(const Complex)
+  
+  extern function Complex toComplex(const int)
+  extern function Complex toComplex(const float)
+  
+  extern function Complex toComplex(const float, const float)
+  extern function Complex toComplex(const int,   const float)
+  extern function Complex toComplex(const float, const int)
+  
+  extern function Complex toCplx(const int,   const int)
+  extern function Complex toCplx(const int,   const float)
+  extern function Complex toCplx(const float, const int)
+  extern function Complex toCplx(const float, const float)
+  
+  extern function float cos(const float)
+  extern function float sin(const float)
+
+  extern function float mod(const Complex)
+  extern function float arg(const Complex)
+  extern function Complex i()
+  
+  extern operator Complex +(const Complex, const Complex)
+  extern operator Complex -(const Complex, const Complex)
+  extern operator Complex +(const float,   const Complex)
+  extern operator Complex -(const float,   const Complex)
+  extern operator Complex *(const float,   const Complex)
+    
+  extern operator bool ==(const Complex, const Complex)
+  extern operator bool !=(const Complex, const Complex)
+  
+  extern function add(List, const Complex)
+  extern function Complex get(const List, const int)
+  extern function int size(const List)
+  
+  extern function List randomList()
+  extern operator bool ==(const List, const List)
+  extern operator bool !=(const List, const List)
+  extern operator List  +(const List, const List)
+
+  port type Port(List l, bool b)
+  
+  connector type ListConnector(Port p1, Port p2, Port p3)
+    define p1' p2' p3'
+    on p1       provided (p1.l == p1.l) // OK
+    on    p2    provided (p2.l + p2.l)  // NOT OK!    
+    on p1 p2    provided (p1.l)         // NOT OK!
+    on    p2 p3 provided (p2.b)         // OK
+    on p1    p3 provided (p1.b == p3.b) // OK
+    on p1 p2 p3 provided (0)            // NOT OK!
+  end
+
+  atom type Rotator()
+    data List inList
+    data List outList
+    data Complex in, out
+    data float r, phi
+    data int j
+    data bool b
+    export data int xp
+    export data bool xb
+    
+    export port Port input(inList, b)
+    export port Port output(outList, b)
+  
+    place WAIT, PROCESS, OUTPUT, END
+    
+    initial to WAIT do { in = toComplex(0); out = toComplex(0); inList = randomList(); outList = randomList(); b = false; }
+    
+    on input from WAIT to PROCESS
+      do {
+        j = 0; xp = 42; xb = false;
+      }
+    
+    internal from PROCESS to PROCESS
+      provided (j < size(inList))  // OK !
+      do {
+        in = get(inList, j);
+        r = mod(in);
+        phi = arg(in);
+        phi = phi + Pi / 2;
+      }
+    
+    internal from PROCESS to OUTPUT
+      provided (j - size(inList))  // NOT OK !
+      
+    internal from PROCESS to OUTPUT
+      provided (j)                 // NOT OK !
+    
+    on output from OUTPUT to END
+      do {        
+        out = toComplex(0);
+        out = toComplex(0.0);
+        
+        out = toComplex(0.0, 0.0);
+        out = toComplex(0.0, 0);
+        out = toComplex(0,   0.0);
+        
+        out = toCplx(0.0, 0.0);
+        out = toCplx(0.0, 0);
+        out = toCplx(0,   0.0);
+        out = toCplx(0,   0);
+      }
+      
+    priority prioInOut1 input < output provided (phi - Pi / 2)      // NOT OK !
+    priority prioInOut2 input < output provided (phi - Pi / 2 > 0)  // OK !
+  end
+  
+  compound type Compound()
+    component Rotator r1(), r2(), r3()
+    connector ListConnector c1(r1.input, r2.output, r3.input)
+    connector ListConnector c2(r1.output, r2.input, r3.output)
+    
+    priority priority1 c1:* < c2:* provided (1+1+1+2) // NOT OK ! 
+    priority priority2 c1:* < c2:* provided (r1.xp)   // NOT OK !
+    priority priority3 c1:* < c2:* provided (r1.xp == 42) //OK !
+    priority priority4 c1:* < c2:* provided (r3.xb)       //OK !
+  end
+end

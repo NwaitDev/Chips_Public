@@ -1,0 +1,11 @@
+package badFieldAccessExpression
+  atom type A()
+    port Port_t p()
+    place L
+    initial to L
+      do {
+        (f+g)(0); // BAD!
+      }
+    on p from L to L
+  end
+end

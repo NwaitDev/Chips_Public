@@ -1,0 +1,56 @@
+@cpp(include="unistd.h")
+package priority_rules_cycle4
+  extern function usleep(int)
+
+  port type Port()
+
+  connector type Connector(Port p, Port q)
+    define p q
+  end
+
+  connector type Single(Port p)
+    define p
+  end
+
+  atom type Atom()
+    export port Port p()
+
+    place INIT
+
+    initial to INIT
+
+    on p from INIT to INIT
+      provided (false)
+  end
+
+  atom type Value()
+    export data bool V
+    export port Port change()
+
+    place INIT, END
+
+    initial to INIT
+      do { V = false; }
+
+    on change from INIT to END
+      do { V = true; usleep(1000000); }
+  end
+
+  compound type Compound()
+    component Atom A()
+    component Atom B()
+    component Atom C()
+    component Atom D()
+
+    component Value V1(), V2()
+
+    connector Connector C1(A.p, B.p)
+    connector Connector C2(C.p, D.p)
+
+    connector Single S1(V1.change),
+                     S2(V2.change)
+    
+    priority prio1 C1:* < C2:* provided (V1.V != V2.V)
+    priority prio2 C2:* < C1:* provided (V1.V != V2.V)
+  end
+end

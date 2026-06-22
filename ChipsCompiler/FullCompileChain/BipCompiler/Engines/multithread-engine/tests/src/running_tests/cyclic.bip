@@ -1,0 +1,43 @@
+package cyclic
+ // 251001 reachable states, 0 deadlock, and 0 error in 0 state
+ port type Port_t()
+ 
+ connector type RDV(Port_t p1, Port_t p2)
+   define p1 p2
+ end
+
+ atom type AT()
+  data int count
+
+  export port Port_t loop()
+  export port Port_t rst()
+
+  place LOOP
+
+  initial to LOOP
+    do {
+      count = 0;
+    }
+
+  on loop from LOOP to LOOP provided (count < 500)
+    do {
+      count = count + 1;
+    }
+
+  on rst from LOOP to LOOP provided (count == 500)
+    do {
+      count = 0;
+    }
+ end
+ 
+ compound type CT()
+  component AT a(), b(), c(), d()
+
+  connector RDV loop_ab(a.loop, b.loop)
+  connector RDV loop_cd(c.loop, d.loop)
+
+  connector RDV rst_ab(a.rst, b.rst)
+  connector RDV rst_cd(c.rst, d.rst)
+ end
+
+end

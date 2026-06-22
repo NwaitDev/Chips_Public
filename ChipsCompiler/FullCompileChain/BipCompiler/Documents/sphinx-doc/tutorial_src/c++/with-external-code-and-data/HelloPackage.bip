@@ -1,0 +1,18 @@
+@cpp(src="ext-cpp/HelloPackage.cpp",include="HelloPackage.hpp")
+package HelloPackage
+  extern function my_print(string, int)
+
+  port type HelloPort_t()
+
+  atom type HelloAtom()
+    data int somedata
+    port HelloPort_t p()
+    place START,END
+    initial to START do { somedata = 0; }
+    on p from START to END do {my_print("Hello World", somedata);}
+  end
+
+  compound type HelloCompound()
+    component HelloAtom c1()
+  end
+end

@@ -1,0 +1,17 @@
+package duplicatedPortRefInCompoundMergedPort
+ port type Port_t()
+
+ atom type Atom_t()
+  export port Port_t p1()
+  place S1
+  initial to S1
+  on p1 from S1 to S1
+ end
+
+ compound type Compound_simple()
+      component Atom_t a1()
+      
+      // BAD: duplicated port ref
+      export port a1.p1, a1.p1 as badmp2
+ end
+end

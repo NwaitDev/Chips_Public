@@ -1,0 +1,60 @@
+package priorities_wildcard
+
+  port type PortInt(int x)
+
+  connector type Singleton(PortInt p)
+    define p
+  end
+
+  connector type RendezVous(PortInt p1, PortInt p2, PortInt p3)
+    define p1 p2 p3
+  end
+
+  connector type Broadcast(PortInt p1, PortInt p2, PortInt p3)
+    define p1' p2' p3'
+  end
+
+  atom type Counter(int init)
+    export data int x, y
+
+    export port PortInt p(x), q(y)
+
+    place S1, S2
+
+    initial to S1
+      do {
+        x = 0;
+        y = 0;
+      }
+
+    on p from S1 to S2 // provided (x <= 100)
+      do { x = x + 1; }
+
+    on q from S2 to S1
+      do { y = y + 1; }
+  end
+
+  compound type MyCompound()
+    component Counter A1(0)
+    component Counter A2(0)
+    component Counter A3(0)
+
+    connector Singleton s1p(A1.p)
+    connector Singleton s2p(A2.p)
+    connector Singleton s3p(A3.p)
+    connector Broadcast brdp(A1.p, A2.p, A3.p)
+
+    connector Singleton s1q(A1.q)
+    connector Singleton s2q(A2.q)
+    connector Singleton s3q(A3.q)
+    connector Broadcast brdq(A1.q, A2.q, A3.q)
+
+    priority myPrioProgress1p *:* < s1p:* provided (A1.x < A2.x && A1.x < A3.x)
+    priority myPrioProgress2p *:* < s2p:* provided (A2.x < A1.x && A2.x < A3.x)
+    priority myPrioProgress3p *:* < s3p:* provided (A3.x < A1.x && A3.x < A2.x)
+ 
+    priority myPrioProgress1q *:* < s1q:* provided (A1.y < A2.y && A1.y < A3.y)
+    priority myPrioProgress2q *:* < s2q:* provided (A2.y < A1.y && A2.y < A3.y)
+    priority myPrioProgress3q *:* < s3q:* provided (A3.y < A1.y && A3.y < A2.y)
+  end
+end

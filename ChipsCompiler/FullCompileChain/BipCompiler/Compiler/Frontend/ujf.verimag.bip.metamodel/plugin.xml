@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+
+<!--
+ <copyright>
+ </copyright>
+
+ $Id$
+-->
+
+<plugin>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/1.0"
+            class="bip2.Bip2Package"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/1.0"
+            class="bip2.ujf.UjfPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/1.0"
+            class="bip2.ujf.verimag.VerimagPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/1.0"
+            class="bip2.ujf.verimag.bip.BipPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/types/1.0"
+            class="bip2.ujf.verimag.bip.types.TypesPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/data/1.0"
+            class="bip2.ujf.verimag.bip.data.DataPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/port/1.0"
+            class="bip2.ujf.verimag.bip.port.PortPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/behavior/1.0"
+            class="bip2.ujf.verimag.bip.behavior.BehaviorPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/priority/1.0"
+            class="bip2.ujf.verimag.bip.priority.PriorityPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/connector/1.0"
+            class="bip2.ujf.verimag.bip.connector.ConnectorPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/component/1.0"
+            class="bip2.ujf.verimag.bip.component.ComponentPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/component/atom/1.0"
+            class="bip2.ujf.verimag.bip.component.atom.AtomPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/component/compound/1.0"
+            class="bip2.ujf.verimag.bip.component.compound.CompoundPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/package/1.0"
+            class="bip2.ujf.verimag.bip.packaging.PackagingPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/actionlang/1.0"
+            class="bip2.ujf.verimag.bip.actionlang.ActionlangPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/instance/1.0"
+            class="bip2.ujf.verimag.bip.instance.InstancePackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <package
+            uri="http://bip2/ujf/verimag/bip/annotation/1.0"
+            class="bip2.ujf.verimag.bip.annotation.AnnotationPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+   <extension point="org.eclipse.emf.ecore.generated_package">
+      <!-- @generated bip2 -->
+      <package
+            uri="http://bip2/ujf/verimag/bip/invariant/1.0"
+            class="bip2.ujf.verimag.bip.invariant.InvariantPackage"
+            genModel="model/bip2.genmodel"/>
+   </extension>
+
+</plugin>

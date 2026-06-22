@@ -1,0 +1,33 @@
+package variableInitialization
+  const data int x = 3, y = x + 1 // valid initialization
+  const data int z, t = 0         // invalid initialization
+  const data int r = 0, s         // invalid initialization
+  const data int u                // invalid initialization
+
+  port type Port_t()
+  port type Port_td(int x)
+
+  atom type AT()
+    data int md1, md2 = md1         // valid initialization
+    data const int md3 = 2, md4 = 4 // valid initialization
+    data const int md5 = 5, md6     // invalid initialization
+    data const int md7, md8 = 8     // invalid initialization
+    data const int md9              // invalid initialization
+    
+    port Port_t p1(), p2()
+    place S1
+    initial to S1
+    on p1 from S1 to S1 
+  end
+
+  connector type CoT(Port_t p1, Port_t p2)
+    data int md1, md2 = md1         // valid initialization
+    data const int md3 = 2, md4 = 4 // valid initialization
+    data const int md5 = 5, md6     // invalid initialization
+    data const int md7, md8 = 8     // invalid initialization
+    data const int md9              // invalid initialization
+    define p1 p2
+    on p1 p2
+  end
+
+end

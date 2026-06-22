@@ -1,0 +1,35 @@
+package petri_net
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type SimplePetriNet()
+    export port Port start1(), start2(), res1(), res2(), sync()
+
+    place INIT1, INIT2, SYNC1, SYNC2, RES1, RES2, RESOURCE, END1, END2
+
+    initial to INIT1, INIT2, RESOURCE
+
+    on start1 from INIT1 to RES1
+
+    on start2 from INIT2 to RES2
+
+    on res1 from RES1, RESOURCE to SYNC1, RESOURCE
+
+    on res2 from RES2, RESOURCE to SYNC2, RESOURCE
+
+    on sync from SYNC1, SYNC2 to END1, END2
+  end
+
+  compound type MyCompoundType()
+    component SimplePetriNet petriNet()
+
+    connector Singleton start1(petriNet.start1)
+    connector Singleton start2(petriNet.start2)
+    connector Singleton res1(petriNet.res1)
+    connector Singleton res2(petriNet.res2)
+    connector Singleton sync(petriNet.sync)
+  end
+end

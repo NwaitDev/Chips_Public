@@ -1,0 +1,22 @@
+package conflict_type_instance
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  atom type Atom(int Xx)
+    export port Port p()
+
+    place INIT
+
+    initial to INIT
+
+    on p from INIT to INIT
+  end
+
+  compound type Comp()
+    component Atom Single(3), B(4), C(5)
+    connector Single SA(B.p), SB(B.p), SC(C.p)
+  end
+end

@@ -1,0 +1,23 @@
+package nested3
+  port type Port()
+
+  connector type ConnectorType(Port p, Port q, Port r, Port s, Port t, Port u)
+    define (((p q') (r' s')) (t u)')
+  end
+
+  atom type AtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+    
+  compound type MyCompoundType()
+    component AtomType P(), Q(), R(), S(), T(), U()
+    connector ConnectorType C(P.p, Q.p, R.p, S.p, T.p, U.p)
+  end
+end

@@ -1,0 +1,26 @@
+@cpp(src="ext-cpp/HelloPackage.cpp",include="HelloPackage.hpp")
+package HelloPackage
+  extern function bool my_guard(int)
+  extern function my_modify(int)
+  extern function my_print(string, int)
+
+  port type HelloPort_t()
+
+  atom type HelloAtom()
+    data int somedata
+    port HelloPort_t p(), positive(), negative()
+    place START, S, END
+    initial to START do { somedata = 0; }
+    on p from START to S do { my_modify(somedata); }
+    on negative from S to END 
+      provided (my_guard(somedata))
+      do {my_print("Positive data", somedata);}
+    on positive from S to END
+      provided (!my_guard(somedata))
+      do {my_print("Negative data", somedata);}
+  end
+
+  compound type HelloCompound()
+    component HelloAtom c1()
+  end
+end

@@ -1,0 +1,85 @@
+[comment encoding = UTF-8 /]
+[module generatePackage('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+[import ujf::verimag::bip::backend::bip::templates::generateAtomType /]
+[import ujf::verimag::bip::backend::bip::templates::generatePortType /]
+[import ujf::verimag::bip::backend::bip::templates::generateConnectorType /]
+[import ujf::verimag::bip::backend::bip::templates::generateCompoundType /]
+[import ujf::verimag::bip::backend::bip::templates::annotations /]
+[import ujf::verimag::bip::backend::acceleo::templates::expressions /]
+
+[template public generatePackage(aPackage : BipPackage, fname : String)]
+[comment @main /]
+[file (fname, false, 'UTF-8')]
+[aPackage.genAnnotations()/]
+package [aPackage.name /]
+
+[for (up : BipPackage | aPackage.used_packages)]
+    use [up.name /]
+[/for]
+
+[for (cdd : ConstDataDeclaration | aPackage.constData)]
+    const data [qualifiedName(aPackage, cdd.dataType)/] [cdd.name/] = [cdd.value.generateExpression()/]
+[/for]
+
+[for (edt : DataType | aPackage.dataTypes)]
+    [if (not edt.native)]
+    [edt.genAnnotations()/]
+    extern data type [edt.name /]
+    [/if]
+[/for]
+
+[for (ef : FunctionCallPrototype | aPackage.prototypes->select(oclIsKindOf(FunctionCallPrototype)))]
+    [if (not ef.native)]
+    [ef.genAnnotations()/]
+    extern function [if (not ef.returnType->isEmpty())][qualifiedName(aPackage, ef.returnType.oclAsType(DataType)) /] [/if][ef.functionName /]([generatePrototypeParameters(ef)/])
+    [/if]
+[/for]
+
+[for (ef : BinaryOpPrototype | aPackage.prototypes->select(oclIsKindOf(BinaryOpPrototype)))]
+    [if (not ef.native)]
+    [ef.genAnnotations()/]
+    extern operator [if (not ef.returnType->isEmpty())][qualifiedName(aPackage, ef.returnType.oclAsType(DataType)) /] [/if][ef.operator /]([generatePrototypeParameters(ef)/])
+    [/if]
+[/for]
+
+[for (ef : UnaryOpPrototype | aPackage.prototypes->select(oclIsKindOf(UnaryOpPrototype)))]
+    [if (not ef.native)]
+    [ef.genAnnotations()/]
+    extern operator [if (not ef.returnType->isEmpty())][qualifiedName(aPackage, ef.returnType.oclAsType(DataType)) /] [/if][ef.operator /]([generatePrototypeParameters(ef)/])
+    [/if]
+[/for]
+
+[for (pt : PortType | aPackage.portTypes)]
+    [pt.genAnnotations()/]
+    [pt.generatePortType() /]
+[/for]
+
+[for (ct : ConnectorType | aPackage.connectorTypes) separator('\n')]
+    [ct.genAnnotations()/]
+    [ct.generateConnectorType()/]
+[/for]
+
+[for (at : AtomType | aPackage.atomTypes) separator('\n')]
+    [at.genAnnotations()/]
+    [at.generateAtomType()/]
+[/for]
+
+[for (ct : CompoundType | aPackage.compoundTypes) separator('\n')]
+    [ct.genAnnotations()/]
+    [ct.generateCompoundType()/]
+[/for]
+end
+[/file]
+[/template]
+
+[template private generatePrototypeParameters(proto : Prototype)]
+[for (param : PrototypeParameterDeclaration | proto.parameterDeclarations) separator(', ')][generatePrototypeParameter(param)/][/for]
+[/template]
+
+[template private generatePrototypeParameter(param : PrototypeParameterDeclaration) {
+	aPackage : BipPackage = param.eContainer(Prototype).eContainer(BipPackage);
+	paramType : DataType = param.type.oclAsType(DataType);
+}]
+[if (param.const)]const [/if][qualifiedName(aPackage, paramType) /][if (param.name <> '')] [param.name/][/if]
+[/template]

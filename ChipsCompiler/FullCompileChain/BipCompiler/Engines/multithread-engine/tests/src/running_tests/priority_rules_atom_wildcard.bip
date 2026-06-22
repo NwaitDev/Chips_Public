@@ -1,0 +1,32 @@
+package priority_rules_atom_wildcard
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType()
+    export port Port p(), q(), r()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+
+    on q from INIT to END
+
+    on r from INIT to END
+
+    priority myPrio1 r < *
+    priority myPrio2 * < p
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+
+    connector Singleton single1(myAtom.p)
+    connector Singleton single2(myAtom.q)
+    connector Singleton single3(myAtom.r)
+  end
+end

@@ -1,0 +1,23 @@
+package petri_net_non_deterministic3
+  port type Port()
+
+  atom type MyAtomType()
+    data int x
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+      do {
+        x = 0;
+      }
+
+    on p from INIT to END provided (x == 0)
+
+    on p from INIT to END provided (x == 0)
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+  end
+end

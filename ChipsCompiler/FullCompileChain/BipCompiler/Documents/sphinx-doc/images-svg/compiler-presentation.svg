@@ -1,0 +1,1376 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1059.6495"
+   height="365.19968"
+   id="svg6247"
+   version="1.1"
+   inkscape:version="0.47 r22583"
+   sodipodi:docname="compiler-presentation.svg"
+   inkscape:export-filename="/home/poulhies/git/bip2/Documents/sphinx-doc/images/compiler-engines-presentation/compiler-presentation.png"
+   inkscape:export-xdpi="67.949997"
+   inkscape:export-ydpi="67.949997">
+  <defs
+     id="defs6249">
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend"
+       style="overflow:visible">
+      <path
+         id="path3961"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)" />
+    </marker>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective6255" />
+    <inkscape:perspective
+       id="perspective6814"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective6842"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective6898"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective6898-2"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective6971"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective6971-4"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective7468"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective7468-8"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective7468-7"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective7468-9"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8000"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend-0"
+       style="overflow:visible">
+      <path
+         id="path3961-6"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)" />
+    </marker>
+    <inkscape:perspective
+       id="perspective8364"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8364-9"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8364-5"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8364-1"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8539"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8843"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8843-2"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8843-6"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8843-7"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <inkscape:perspective
+       id="perspective8991"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend-6"
+       style="overflow:visible">
+      <path
+         id="path3961-1"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)" />
+    </marker>
+    <inkscape:perspective
+       id="perspective9370"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend-3"
+       style="overflow:visible">
+      <path
+         id="path3961-14"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)" />
+    </marker>
+    <inkscape:perspective
+       id="perspective9370-3"
+       inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
+       inkscape:vp_z="1 : 0.5 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_x="0 : 0.5 : 1"
+       sodipodi:type="inkscape:persp3d" />
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend-9"
+       style="overflow:visible">
+      <path
+         id="path3961-2"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="385.84133"
+     inkscape:cy="68.79571"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="1001"
+     inkscape:window-x="1920"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata6252">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(171.22061,-31.608112)">
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect6278"
+       width="683.87329"
+       height="234.35539"
+       x="8.0812206"
+       y="32.108112"
+       ry="22.223356" />
+    <g
+       id="g6862"
+       transform="translate(-30.357147,0)">
+      <rect
+         ry="22.223356"
+         y="84.862183"
+         x="277.14285"
+         height="165"
+         width="211.42857"
+         id="rect6790-7"
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+      <text
+         id="text6792-0"
+         y="111.33649"
+         x="294.10013"
+         style="font-size:27.57290268px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="111.33649"
+           x="294.10013"
+           id="tspan6794-0"
+           sodipodi:role="line">MIDDLE-END</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="259.1687"
+       y="156.63113"
+       id="text6796-4"><tspan
+         sodipodi:role="line"
+         x="259.1687"
+         y="156.63113"
+         id="tspan6804-9">- BIP to BIP operations</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="295.69702"
+       y="211.91525"
+       id="text6959"><tspan
+         sodipodi:role="line"
+         id="tspan6961"
+         x="295.69702"
+         y="211.91525">(plug-in based)</tspan></text>
+    <g
+       id="g7635"
+       transform="translate(-21.213203,4.5456865)">
+      <text
+         id="text6999"
+         y="76.807365"
+         x="-132.07744"
+         style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="76.807365"
+           x="-132.07744"
+           id="tspan7001"
+           sodipodi:role="line">BIP sources</tspan></text>
+      <g
+         id="g7444">
+        <g
+           id="g6995">
+          <path
+             id="path6993"
+             d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+             sodipodi:nodetypes="cccccc" />
+          <path
+             id="rect6988"
+             d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        </g>
+        <text
+           xml:space="preserve"
+           style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+           x="-127.60924"
+           y="101.96735"
+           id="text6959-7"><tspan
+             sodipodi:role="line"
+             id="tspan6961-8"
+             x="-127.60924"
+             y="101.96735">atom type AtomT(int x)</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="109.46677"
+             id="tspan7014">   data int d1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="116.96619"
+             id="tspan7016">   export data int d2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="124.46561"
+             id="tspan7018">   export port Port_t p1()</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="131.96503"
+             id="tspan7020">   places S1,S2,S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="139.46446"
+             id="tspan7022">   initial to S1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="146.96388"
+             id="tspan7024">   on p1 from S1 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="154.4633"
+             id="tspan7026">   internal from S2 to S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="161.96272"
+             id="tspan7028">   on p1 from S3 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="169.46214"
+             id="tspan7030">end</tspan></text>
+      </g>
+      <g
+         id="g7444-2"
+         transform="translate(11.109671,12.073684)">
+        <g
+           id="g6995-8">
+          <path
+             id="path6993-4"
+             d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+             sodipodi:nodetypes="cccccc" />
+          <path
+             id="rect6988-1"
+             d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        </g>
+        <text
+           xml:space="preserve"
+           style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+           x="-127.60924"
+           y="101.96735"
+           id="text6959-7-5"><tspan
+             sodipodi:role="line"
+             id="tspan6961-8-5"
+             x="-127.60924"
+             y="101.96735">atom type AtomT(int x)</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="109.46677"
+             id="tspan7014-0">   data int d1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="116.96619"
+             id="tspan7016-5">   export data int d2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="124.46561"
+             id="tspan7018-0">   export port Port_t p1()</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="131.96503"
+             id="tspan7020-2">   places S1,S2,S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="139.46446"
+             id="tspan7022-3">   initial to S1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="146.96388"
+             id="tspan7024-8">   on p1 from S1 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="154.4633"
+             id="tspan7026-3">   internal from S2 to S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="161.96272"
+             id="tspan7028-1">   on p1 from S3 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="169.46214"
+             id="tspan7030-1">end</tspan></text>
+      </g>
+      <g
+         id="g7444-3"
+         transform="translate(7.0690611,38.33765)">
+        <g
+           id="g6995-7">
+          <path
+             id="path6993-0"
+             d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+             sodipodi:nodetypes="cccccc" />
+          <path
+             id="rect6988-9"
+             d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        </g>
+        <text
+           xml:space="preserve"
+           style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+           x="-127.60924"
+           y="101.96735"
+           id="text6959-7-3"><tspan
+             sodipodi:role="line"
+             id="tspan6961-8-6"
+             x="-127.60924"
+             y="101.96735">atom type AtomT(int x)</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="109.46677"
+             id="tspan7014-2">   data int d1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="116.96619"
+             id="tspan7016-7">   export data int d2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="124.46561"
+             id="tspan7018-4">   export port Port_t p1()</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="131.96503"
+             id="tspan7020-1">   places S1,S2,S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="139.46446"
+             id="tspan7022-6">   initial to S1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="146.96388"
+             id="tspan7024-1">   on p1 from S1 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="154.4633"
+             id="tspan7026-4">   internal from S2 to S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="161.96272"
+             id="tspan7028-3">   on p1 from S3 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="169.46214"
+             id="tspan7030-4">end</tspan></text>
+      </g>
+      <g
+         id="g7444-39"
+         transform="translate(-19.194905,40.863031)">
+        <g
+           id="g6995-81">
+          <path
+             id="path6993-6"
+             d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+             sodipodi:nodetypes="cccccc" />
+          <path
+             id="rect6988-0"
+             d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        </g>
+        <text
+           xml:space="preserve"
+           style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+           x="-127.60924"
+           y="101.96735"
+           id="text6959-7-6"><tspan
+             sodipodi:role="line"
+             id="tspan6961-8-62"
+             x="-127.60924"
+             y="101.96735">atom type AtomT(int x)</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="109.46677"
+             id="tspan7014-1">   data int d1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="116.96619"
+             id="tspan7016-6">   export data int d2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="124.46561"
+             id="tspan7018-8">   export port Port_t p1()</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="131.96503"
+             id="tspan7020-4">   places S1,S2,S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="139.46446"
+             id="tspan7022-9">   initial to S1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="146.96388"
+             id="tspan7024-6">   on p1 from S1 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="154.4633"
+             id="tspan7026-9">   internal from S2 to S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="161.96272"
+             id="tspan7028-7">   on p1 from S3 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="169.46214"
+             id="tspan7030-6">end</tspan></text>
+      </g>
+      <g
+         id="g7444-24"
+         transform="translate(7.0690607,34.802116)">
+        <g
+           id="g6995-1">
+          <path
+             id="path6993-1"
+             d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+             sodipodi:nodetypes="cccccc" />
+          <path
+             id="rect6988-94"
+             d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+             style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        </g>
+        <text
+           xml:space="preserve"
+           style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+           x="-127.60924"
+           y="101.96735"
+           id="text6959-7-7"><tspan
+             sodipodi:role="line"
+             id="tspan6961-8-2"
+             x="-127.60924"
+             y="101.96735">atom type AtomT(int x)</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="109.46677"
+             id="tspan7014-9">   data int d1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="116.96619"
+             id="tspan7016-2">   export data int d2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="124.46561"
+             id="tspan7018-7">   export port Port_t p1()</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="131.96503"
+             id="tspan7020-8">   places S1,S2,S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="139.46446"
+             id="tspan7022-68">   initial to S1</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="146.96388"
+             id="tspan7024-87">   on p1 from S1 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="154.4633"
+             id="tspan7026-49">   internal from S2 to S3</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="161.96272"
+             id="tspan7028-5">   on p1 from S3 to S2</tspan><tspan
+             sodipodi:role="line"
+             x="-127.60924"
+             y="169.46214"
+             id="tspan7030-2">end</tspan></text>
+      </g>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.89999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+       d="m -57.578695,155.8518 40.406102,0"
+       id="path7714" />
+    <text
+       xml:space="preserve"
+       style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="767.46436"
+       y="91.222702"
+       id="text6999-5"><tspan
+         sodipodi:role="line"
+         id="tspan7001-6"
+         x="767.46436"
+         y="91.222702">C++ sources</tspan></text>
+    <g
+       transform="translate(820.74989,-41.648136)"
+       id="g8340">
+      <g
+         id="g6995-1-0"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4" />
+      </g>
+      <text
+         id="text6959-7-7-0"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan7030-2-2"
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line">int main(int argc, </tspan><tspan
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8322">              char **argv) {</tspan><tspan
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8324">   cout &lt;&lt; &quot;bla&quot;;</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8326">   for (;;){</tspan><tspan
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8330">      func1();</tspan><tspan
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8332">      do_while(1);</tspan><tspan
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8328">   }</tspan><tspan
+           y="244.82381"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8336">}</tspan><tspan
+           y="252.32323"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338" /><tspan
+           y="259.82263"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334" /></text>
+    </g>
+    <g
+       transform="translate(833.37585,-40.911178)"
+       id="g8340-3">
+      <g
+         id="g6995-1-0-6"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-2" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-1" />
+      </g>
+      <text
+         id="text6959-7-7-0-4"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan7030-2-2-8"
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line">int main(int argc, </tspan><tspan
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8322-9">              char **argv) {</tspan><tspan
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8324-7">   cout &lt;&lt; &quot;bla&quot;;</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8326-9">   for (;;){</tspan><tspan
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8330-2">      func1();</tspan><tspan
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8332-9">      do_while(1);</tspan><tspan
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8328-2">   }</tspan><tspan
+           y="244.82381"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8336-7">}</tspan><tspan
+           y="252.32323"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-4" /><tspan
+           y="259.82263"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-1" /></text>
+    </g>
+    <g
+       transform="translate(842.9723,-53.033009)"
+       id="g8340-1">
+      <g
+         id="g6995-1-0-2"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-6" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-8" />
+      </g>
+      <text
+         id="text6959-7-7-0-2"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan7030-2-2-1"
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line">int main(int argc, </tspan><tspan
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8322-8">              char **argv) {</tspan><tspan
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8324-2">   cout &lt;&lt; &quot;bla&quot;;</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8326-4">   for (;;){</tspan><tspan
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8330-0">      func1();</tspan><tspan
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8332-90">      do_while(1);</tspan><tspan
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8328-8">   }</tspan><tspan
+           y="244.82381"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8336-2">}</tspan><tspan
+           y="252.32323"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-5" /><tspan
+           y="259.82263"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-3" /></text>
+    </g>
+    <g
+       transform="translate(800.04081,-63.134534)"
+       id="g8340-4">
+      <g
+         id="g6995-1-0-8"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-62" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-9" />
+      </g>
+      <text
+         id="text6959-7-7-0-0"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan7030-2-2-3"
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line">int main(int argc, </tspan><tspan
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8322-1">              char **argv) {</tspan><tspan
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8324-70">   cout &lt;&lt; &quot;bla&quot;;</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8326-46">   for (;;){</tspan><tspan
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8330-3">      func1();</tspan><tspan
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8332-8">      do_while(1);</tspan><tspan
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8328-3">   }</tspan><tspan
+           y="244.82381"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8336-1">}</tspan><tspan
+           y="252.32323"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-1" /><tspan
+           y="259.82263"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-6" /></text>
+    </g>
+    <g
+       transform="translate(810.14234,-42.931483)"
+       id="g8340-32">
+      <g
+         id="g6995-1-0-1"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4" />
+      </g>
+      <text
+         id="text6959-7-7-0-1"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan7030-2-2-7"
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line">int main(int argc, </tspan><tspan
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8322-0">              char **argv) {</tspan><tspan
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8324-4">   cout &lt;&lt; &quot;bla&quot;;</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8326-7">   for (;;){</tspan><tspan
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8330-01">      func1();</tspan><tspan
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8332-3">      do_while(1);</tspan><tspan
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8328-89">   }</tspan><tspan
+           y="244.82381"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8336-5">}</tspan><tspan
+           y="252.32323"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8" /><tspan
+           y="259.82263"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9" /></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="766.70679"
+       y="251.3148"
+       id="text6999-5-7"><tspan
+         sodipodi:role="line"
+         id="tspan7001-6-5"
+         x="766.70679"
+         y="251.3148">ASEBA sources</tspan></text>
+    <g
+       transform="translate(814.94056,110.08956)"
+       id="g8340-32-2">
+      <g
+         id="g6995-1-0-1-0"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5-8" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4-0" />
+      </g>
+      <text
+         id="text6959-7-7-0-1-5"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8-7">global int d1, d2</tspan><tspan
+           id="tspan8827"
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line">event toto</tspan><tspan
+           id="tspan8825"
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line">   send spin_right d1 d2</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9-6" /><tspan
+           id="tspan8829"
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line">event spin</tspan><tspan
+           id="tspan8831"
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line">   send wheel_right d2</tspan><tspan
+           id="tspan8833"
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line" /></text>
+    </g>
+    <g
+       transform="translate(827.82,113.13708)"
+       id="g8340-32-2-3">
+      <g
+         id="g6995-1-0-1-0-0"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5-8-2" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4-0-2" />
+      </g>
+      <text
+         id="text6959-7-7-0-1-5-5"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8-7-3">global int d1, d2</tspan><tspan
+           id="tspan8827-0"
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line">event toto</tspan><tspan
+           id="tspan8825-8"
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line">   send spin_right d1 d2</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9-6-5" /><tspan
+           id="tspan8829-6"
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line">event spin</tspan><tspan
+           id="tspan8831-6"
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line">   send wheel_right d2</tspan><tspan
+           id="tspan8833-2"
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line" /></text>
+    </g>
+    <g
+       transform="translate(785.89867,92.428963)"
+       id="g8340-32-2-0">
+      <g
+         id="g6995-1-0-1-0-3"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5-8-3" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4-0-7" />
+      </g>
+      <text
+         id="text6959-7-7-0-1-5-7"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8-7-0">global int d1, d2</tspan><tspan
+           id="tspan8827-1"
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line">event toto</tspan><tspan
+           id="tspan8825-1"
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line">   send spin_right d1 d2</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9-6-7" /><tspan
+           id="tspan8829-1"
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line">event spin</tspan><tspan
+           id="tspan8831-9"
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line">   send wheel_right d2</tspan><tspan
+           id="tspan8833-6"
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line" /></text>
+    </g>
+    <g
+       transform="translate(792.96973,139.40106)"
+       id="g8340-32-2-4">
+      <g
+         id="g6995-1-0-1-0-06"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5-8-39" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4-0-9" />
+      </g>
+      <text
+         id="text6959-7-7-0-1-5-53"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8-7-1">global int d1, d2</tspan><tspan
+           id="tspan8827-06"
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line">event toto</tspan><tspan
+           id="tspan8825-11"
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line">   send spin_right d1 d2</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9-6-4" /><tspan
+           id="tspan8829-9"
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line">event spin</tspan><tspan
+           id="tspan8831-7"
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line">   send wheel_right d2</tspan><tspan
+           id="tspan8833-62"
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line" /></text>
+    </g>
+    <g
+       transform="translate(820.74893,97.479721)"
+       id="g8340-32-2-2">
+      <g
+         id="g6995-1-0-1-0-7"
+         transform="translate(98.487866,84.299591)">
+        <path
+           sodipodi:nodetypes="cccccc"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -130.3125,96.75 0,75.85714 76.78125,0 0,-93.01339 -59.59375,0 -17.1875,17.15625 z"
+           id="path6993-1-3-5-8-7" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+           d="m -113.09201,79.682778 -17.1875,17.156241 17.1875,-6e-6 0,-17.156231 z"
+           id="rect6988-94-4-4-0-99" />
+      </g>
+      <text
+         id="text6959-7-7-0-1-5-8"
+         y="192.32785"
+         x="-26.595989"
+         style="font-size:5.99953747px;font-style:normal;font-weight:normal;fill:#7e7b7b;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="192.32785"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8338-8-7-16">global int d1, d2</tspan><tspan
+           id="tspan8827-9"
+           y="199.82727"
+           x="-26.595989"
+           sodipodi:role="line">event toto</tspan><tspan
+           id="tspan8825-0"
+           y="207.32669"
+           x="-26.595989"
+           sodipodi:role="line">   send spin_right d1 d2</tspan><tspan
+           y="214.82611"
+           x="-26.595989"
+           sodipodi:role="line"
+           id="tspan8334-9-6-47" /><tspan
+           id="tspan8829-7"
+           y="222.32553"
+           x="-26.595989"
+           sodipodi:role="line">event spin</tspan><tspan
+           id="tspan8831-4"
+           y="229.82497"
+           x="-26.595989"
+           sodipodi:role="line">   send wheel_right d2</tspan><tspan
+           id="tspan8833-3"
+           y="237.32439"
+           x="-26.595989"
+           sodipodi:role="line" /></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.89999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+       d="m 721.24987,174.30774 40.4061,0"
+       id="path7714-7" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.89999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+       d="m 721.74242,239.83521 34.99271,20.20305"
+       id="path7714-7-0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.89999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+       d="m 204.21829,168.64565 40.4061,0"
+       id="path7714-8" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.89999998;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+       d="m 459.93258,168.64565 40.4061,0"
+       id="path7714-3" />
+    <g
+       id="g9414">
+      <rect
+         ry="22.223356"
+         y="87.362183"
+         x="-10.714285"
+         height="165"
+         width="211.42857"
+         id="rect6790"
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+      <text
+         id="text6796"
+         y="167.36218"
+         x="12.857144"
+         style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="167.36218"
+           x="12.857144"
+           id="tspan6798"
+           sodipodi:role="line">- parser</tspan><tspan
+           id="tspan6800"
+           y="186.11218"
+           x="12.857144"
+           sodipodi:role="line">- EMF model building</tspan><tspan
+           id="tspan6802"
+           y="204.86218"
+           x="12.857144"
+           sodipodi:role="line">- check model wrt. BIP</tspan><tspan
+           id="tspan6804"
+           y="223.61218"
+           x="12.857144"
+           sodipodi:role="line">  language specs.</tspan></text>
+      <text
+         id="text6792"
+         y="113.83649"
+         x="13.970944"
+         style="font-size:27.57290268px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="113.83649"
+           x="13.970944"
+           id="tspan6794"
+           sodipodi:role="line">FRONT-END</tspan></text>
+    </g>
+    <g
+       id="g9430">
+      <g
+         id="g9424">
+        <rect
+           ry="22.223356"
+           y="84.862183"
+           x="504.28571"
+           height="165"
+           width="211.42857"
+           id="rect6790-7-2"
+           style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0" />
+        <g
+           id="g6867">
+          <text
+             id="text6792-0-5"
+             y="111.33649"
+             x="538.96069"
+             style="font-size:27.57290268px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+             xml:space="preserve"><tspan
+               y="111.33649"
+               x="538.96069"
+               id="tspan6794-0-8"
+               sodipodi:role="line">BACK-END</tspan></text>
+        </g>
+      </g>
+      <text
+         id="text6796-9"
+         y="153.09561"
+         x="517.2627"
+         style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           id="tspan6804-97"
+           y="153.09561"
+           x="517.2627"
+           sodipodi:role="line">- code generation</tspan></text>
+      <text
+         id="text6959-8"
+         y="222.61945"
+         x="553.19702"
+         style="font-size:15px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="222.61945"
+           x="553.19702"
+           id="tspan6961-9"
+           sodipodi:role="line">(plug-in based)</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:44.5395546px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="19.82955"
+       y="70.16964"
+       id="text9441"><tspan
+         sodipodi:role="line"
+         id="tspan9443"
+         x="19.82955"
+         y="70.16964">BIP COMPILER</tspan></text>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+package redefinedAnnotation
+
+@duplicated
+@duplicated(ahah="pouet")
+port type Port_t()
+end

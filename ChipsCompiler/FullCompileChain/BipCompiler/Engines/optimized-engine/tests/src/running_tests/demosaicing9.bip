@@ -1,0 +1,378 @@
+@cpp(include="demo_functions.h,stdio.h", src="demosaicing/demo_functions.C,demosaicing/color.C")
+package demosaicing9
+
+extern data type RawImg
+extern data type RawLine
+extern data type RawBlock
+extern data type RgbImg
+extern data type RgbLine
+extern data type RgbBlock
+
+// extern function printf(string)
+extern function print(string, int)
+extern function print(string, int, int)
+
+extern function load_img(const int, RawImg)
+extern function get_line_from_img(RawImg, RawLine, const int)
+extern function get_block_from_line(RawLine, RawBlock, const int)
+extern function demosaicing(RawBlock, RgbBlock, RgbBlock, RgbBlock, const int, const int)   
+extern function copy_block(RgbBlock, RgbBlock)
+extern function copy_line(RgbLine, RgbLine)
+extern function join_block_into_line(RgbBlock, RgbLine, const int)
+extern function join_line_into_img(RgbLine, RgbImg, const int)
+extern function output_img(RgbImg)
+
+port type Synchro()
+
+port type RawImgP(RawImg raw_data)
+port type RawLineP(RawLine raw_data, int line_nb)
+port type RawBlockP(RawBlock raw_data, int col_nb)
+
+port type RgbImgP(RgbImg r, RgbImg g, RgbImg b)
+port type RgbLineP(RgbLine r, RgbLine g, RgbLine b, int line_nb, int block_count)
+port type RgbBlockP(RgbBlock r, RgbBlock g, RgbBlock b, int col_nb)
+
+
+connector type SplitImgToLines(RawImgP img, RawLineP line0, RawLineP line1, RawLineP line2)
+  
+  define img line0 line1 line2
+  on img line0 line1 line2
+  down {
+ //   printf("SplitImgToLines\n");
+    get_line_from_img(img.raw_data,line0.raw_data,0); 
+    get_line_from_img(img.raw_data,line1.raw_data,1); 
+    get_line_from_img(img.raw_data,line2.raw_data,2); 
+  }
+end
+
+connector type SplitLineToBlocks(RawLineP line, RawBlockP block0, RawBlockP block1, RawBlockP block2)
+  define line block0 block1 block2
+  on line block0 block1 block2
+  down {
+   // printf("SplitLineToBlocks\n");
+    get_block_from_line(line.raw_data,block0.raw_data,0); 
+    get_block_from_line(line.raw_data,block1.raw_data,1); 
+    get_block_from_line(line.raw_data,block2.raw_data,2); 
+  }
+end
+
+connector type CopyRgbBlock(Synchro ctrl, RgbBlockP src, RgbBlockP dest)
+   define ctrl src dest
+   on ctrl src dest
+   down {
+//    printf("CopyRgbBlock\n");
+    dest.col_nb = src.col_nb;
+    copy_block(src.r,dest.r);
+    copy_block(src.g,dest.g);
+    copy_block(src.b,dest.b);
+   }
+end
+
+connector type CopyRgbLine(RgbLineP src, RgbLineP dest)
+   define src dest
+   on src dest
+   down {
+ //     printf("CopyRgbLine\n");
+    dest.line_nb = src.line_nb;
+    dest.block_count = src.block_count;
+    copy_line(src.r,dest.r);
+    copy_line(src.g,dest.g);
+    copy_line(src.b,dest.b);
+   }
+end
+
+connector type BinarySynchro(Synchro p, Synchro q)
+  define p q
+  on p q 
+down{    //   printf("BinarySynchro\n");
+}
+end
+
+connector type Global_Start (Synchro src, Synchro d1, Synchro d2, Synchro d3, Synchro d4, Synchro d5, Synchro d6, Synchro d7, Synchro d8, Synchro d9, Synchro bj1, Synchro bj2, Synchro bj3, Synchro dest)
+  define src  d1 d2 d3 d4 d5 d6 d7 d8 d9 bj1 bj2 bj3 dest
+  on src  d1 d2 d3 d4 d5 d6 d7 d8 d9 bj1 bj2 bj3 dest
+         down{  //printf ("start global start \n " );
+}
+end
+
+atom type ImageLoader()
+  data RawImg img
+  data int counter=0      
+  
+  export port Synchro get_img()
+  export port RawImgP transmit(img)
+
+  place waiting_img, got_img, finished
+  initial to waiting_img
+
+  on get_img
+    from waiting_img to got_img
+  
+    do {
+        load_img(0,img);
+     }
+
+  on transmit
+    from got_img to waiting_img
+    provided (counter <  100)
+
+  on transmit
+    from got_img to finished
+    provided (counter == 100)
+end
+
+atom type LineLoader(int line_nb)
+  data int line_number=line_nb
+  data RawLine line
+  
+  export port RawLineP get_line(line,line_number)
+  export port RawLineP transmit(line,line_number)
+
+  place wait_line, got_line
+  initial to wait_line
+
+  on get_line
+    from wait_line to got_line
+  on transmit
+    from got_line to wait_line
+end
+
+
+// atomic type that controls the demosaicing process (no data involved here)
+atom type BlockDemosaicerCtrl()
+   export port Synchro global_start()
+   export port Synchro local_start()
+   export port Synchro finish()
+   export port Synchro cancel()
+
+   place wait_global_sync, wait_start, demosaicing_running, waiting_for_cancel
+   initial to wait_global_sync
+ 
+   on global_start
+     from wait_global_sync to wait_start
+   on local_start
+     from wait_start to demosaicing_running
+
+   on finish
+     from demosaicing_running to wait_global_sync
+  //   do{printf("finishing demosaicing...\n");}
+   
+end
+
+  
+// atomic type that does the actual job (no timing involved here)
+atom type BlockDemosaicer(int line_nb, int col_nb)
+   data int line_number=line_nb, col_number=col_nb
+   data RawBlock block
+   data RgbBlock r
+   data RgbBlock g
+   data RgbBlock b
+
+   export port RawBlockP get_block(block,col_number)
+   export port RgbBlockP send_block(r,g,b,col_number)
+   export port Synchro start()
+   export port Synchro cancel()
+
+   place wait_data, wait_start, demosaicing_done
+   initial to wait_data
+
+   on get_block
+     from wait_data to wait_start
+   on start
+     from wait_start to demosaicing_done
+     do {
+       demosaicing(block,r,g,b,col_nb,line_nb);   
+     }
+   on cancel 
+     from demosaicing_done to wait_data
+   on send_block
+     from demosaicing_done to wait_data     
+
+end
+
+atom type BlockJoiner(int line_nb)
+  data RgbBlock r_block
+  data RgbBlock g_block
+  data RgbBlock b_block
+  data RgbLine r
+  data RgbLine g
+  data RgbLine b
+  data int line_number=line_nb, col_nb, nb_block_received=0
+  
+  export port RgbBlockP get_block(r_block,g_block,b_block,col_nb)
+  export port RgbLineP send_line(r,g,b,line_number,nb_block_received)
+  export port Synchro global_start()
+
+
+  place wait_start, wait_data, got_all
+  initial to wait_start
+    do { line_number = line_nb; nb_block_received=0; }
+
+  on global_start
+    from wait_start to wait_data
+    do {
+      nb_block_received=0;
+    }
+  on get_block
+    from wait_data to wait_data
+    do {
+      join_block_into_line(r_block,r,col_nb);
+      join_block_into_line(g_block,g,col_nb);
+      join_block_into_line(b_block,b,col_nb);
+      nb_block_received = nb_block_received + 1;
+     // printf("I got the block, %d\n", nb_block_received );
+    }
+
+  internal
+    from wait_data to got_all
+    provided (nb_block_received == 3)
+//do {printf("I got all blocks\n");}
+
+  on send_line
+    from got_all to wait_start
+end
+ 
+
+atom type LineJoiner()
+  data RgbLine r_line
+  data RgbLine g_line
+  data RgbLine b_line
+  data RgbImg r
+  data RgbImg g
+  data RgbImg b
+  data int line_nb
+  data int nb=0, nb_line_received=0, nb_block_from_line,
+    nb_block_received, nb_total
+  
+  export port RgbLineP get_line(r_line,g_line,b_line,line_nb,nb_block_from_line)
+  export port Synchro global_start()
+  place wait_start, wait_data, got_all, enddemo
+  initial to wait_start
+
+  on global_start
+    from wait_start to wait_data
+    provided (nb < 20)
+    do {
+      nb_line_received=0;
+      nb_block_received=0;
+    }
+
+  internal from wait_start to enddemo
+    provided (nb==20)
+    do {
+       print("la moyenne est : ",nb_total/20);
+       //nb_total = nb_total + nb_block_received;
+      //output_img(r);
+      //exit(0);
+    }
+  on get_line
+    from wait_data to wait_data
+
+    do {
+      join_line_into_img(r_line,r,line_nb);
+      join_line_into_img(g_line,g,line_nb);
+      join_line_into_img(b_line,b,line_nb);
+      nb_line_received  = nb_line_received + 1;
+      nb_block_received=nb_block_received + nb_block_from_line;
+     // printf("Im line joiner, I got line : %d\n",nb_block_received );
+     
+    }
+
+  internal
+    from wait_data to got_all
+    provided (nb_line_received == 3)
+
+
+  internal
+    from got_all to wait_start
+
+    do {
+       print("nb_block_received: ",nb_block_received, nb);
+       nb_total = nb_total + nb_block_received;
+       nb = nb+1;
+      output_img(r);
+      //exit(0);
+    }
+
+
+end
+
+compound type Demosaicer()
+  // splitting components
+  component ImageLoader src()
+  component LineLoader ln0(0)
+  component LineLoader ln1(1)
+  component LineLoader ln2(2)
+  // components
+  component BlockDemosaicerCtrl ctl00()
+  component BlockDemosaicerCtrl ctl01()
+  component BlockDemosaicerCtrl ctl02()
+  component BlockDemosaicerCtrl ctl10()
+  component BlockDemosaicerCtrl ctl11()
+  component BlockDemosaicerCtrl ctl12()
+  component BlockDemosaicerCtrl ctl20()
+  component BlockDemosaicerCtrl ctl21()
+  component BlockDemosaicerCtrl ctl22()
+  component BlockJoiner          b0(0)
+  component BlockJoiner          b1(1)
+  component BlockJoiner          b2(2)
+  component LineJoiner           dest()
+  //components doing demoisacing
+  component BlockDemosaicer dem00(0,0)
+  component BlockDemosaicer dem01(0,1)
+  component BlockDemosaicer dem02(0,2)
+  component BlockDemosaicer dem10(1,0)
+  component BlockDemosaicer dem11(1,1)
+  component BlockDemosaicer dem12(1,2)
+  component BlockDemosaicer dem20(2,0)
+  component BlockDemosaicer dem21(2,1)
+  component BlockDemosaicer dem22(2,2)
+
+  // for clock synchronization
+  connector Global_Start gs(src.get_img, ctl00.global_start, ctl10.global_start, ctl20.global_start, b0.global_start, 
+                                        ctl01.global_start, ctl11.global_start, ctl21.global_start, b1.global_start, 
+                                        ctl02.global_start, ctl12.global_start, ctl22.global_start, b2.global_start, dest.global_start) 
+  // split source image
+  connector SplitImgToLines si(src.transmit,ln0.get_line,ln1.get_line,ln2.get_line)
+  connector SplitLineToBlocks sl0(ln0.transmit,dem00.get_block,dem01.get_block,dem02.get_block)
+  connector SplitLineToBlocks sl1(ln1.transmit,dem10.get_block,dem11.get_block,dem12.get_block)
+  connector SplitLineToBlocks sl2(ln2.transmit,dem20.get_block,dem21.get_block,dem22.get_block)
+
+  // copy processed parts
+  connector CopyRgbBlock cpb00(ctl00.finish,dem00.send_block,b0.get_block)
+  connector CopyRgbBlock cpb01(ctl01.finish,dem01.send_block,b0.get_block)
+  connector CopyRgbBlock cpb02(ctl02.finish,dem02.send_block,b0.get_block)
+  connector CopyRgbBlock cpb10(ctl10.finish,dem10.send_block,b1.get_block)
+  connector CopyRgbBlock cpb11(ctl11.finish,dem11.send_block,b1.get_block)
+  connector CopyRgbBlock cpb12(ctl12.finish,dem12.send_block,b1.get_block)
+  connector CopyRgbBlock cpb20(ctl20.finish,dem20.send_block,b2.get_block)
+  connector CopyRgbBlock cpb21(ctl21.finish,dem21.send_block,b2.get_block)
+  connector CopyRgbBlock cpb22(ctl22.finish,dem22.send_block,b2.get_block)
+
+  connector CopyRgbLine cpl0(b0.send_line,dest.get_line)
+  connector CopyRgbLine cpl1(b1.send_line,dest.get_line)
+  connector CopyRgbLine cpl2(b2.send_line,dest.get_line)
+
+  // sync between control and computation
+  connector BinarySynchro start00(ctl00.local_start,dem00.start)
+  connector BinarySynchro start01(ctl01.local_start,dem01.start)
+  connector BinarySynchro start02(ctl02.local_start,dem02.start)
+  connector BinarySynchro start10(ctl10.local_start,dem10.start)
+  connector BinarySynchro start11(ctl11.local_start,dem11.start)
+  connector BinarySynchro start12(ctl12.local_start,dem12.start)
+  connector BinarySynchro start20(ctl20.local_start,dem20.start)
+  connector BinarySynchro start21(ctl21.local_start,dem21.start)
+  connector BinarySynchro start22(ctl22.local_start,dem22.start)
+  
+  connector BinarySynchro cancel00(ctl00.cancel,dem00.cancel)
+  connector BinarySynchro cancel01(ctl01.cancel,dem01.cancel)
+  connector BinarySynchro cancel02(ctl02.cancel,dem02.cancel)
+  connector BinarySynchro cancel10(ctl10.cancel,dem10.cancel)
+  connector BinarySynchro cancel11(ctl11.cancel,dem11.cancel)
+  connector BinarySynchro cancel12(ctl12.cancel,dem12.cancel)
+  connector BinarySynchro cancel20(ctl20.cancel,dem20.cancel)
+  connector BinarySynchro cancel21(ctl21.cancel,dem21.cancel)
+  connector BinarySynchro cancel22(ctl22.cancel,dem22.cancel)
+end
+
+end

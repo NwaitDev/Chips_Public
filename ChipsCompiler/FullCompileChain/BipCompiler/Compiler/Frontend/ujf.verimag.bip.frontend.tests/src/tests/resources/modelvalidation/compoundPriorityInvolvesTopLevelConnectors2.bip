@@ -1,0 +1,65 @@
+package compoundPriorityInvolvesTopLevelConnectors2
+  extern function int min(int, int)
+  extern function int rand()
+
+  port type Port(int d)
+
+  connector type MinSelect(Port p, Port q)
+    data int z
+    export port Port e(z)
+    define p' q'
+
+    @SuppressWarning(modifiedvariableinteraction)
+    on p q up { z = min(q.d, p.d); } down {p.d = z; q.d = z;}
+
+    @SuppressWarning(modifiedvariableinteraction)
+    on p up {z = p.d;} down {p.d = z; }
+    
+    @SuppressWarning(modifiedvariableinteraction)
+    on q up {z = q.d;} down {q.d = z; }
+  end
+
+  connector type Simple(Port a, Port b)
+    define a b
+    on a b down {a.d = b.d;}
+  end
+
+  atom type Random(int mcount)
+    data int x
+    data int cnt
+    export port Port p(x)
+
+    place PROD, END
+
+    initial to PROD do { x = rand(); cnt = 0; }
+
+    on p from PROD to PROD provided (cnt < mcount)
+      do { x = rand(); cnt = cnt + 1;}
+  end
+
+  atom type Sink()
+    data int v
+    export port Port s(v)
+
+    place STATE
+
+    initial to STATE do { v = 0; }
+    on s from STATE to STATE
+  end
+    
+  compound type MyCompoundType()
+    component Random r1(10), r2(20)
+    component Sink snk()
+
+    connector MinSelect sel(r1.p, r2.p)
+    connector Simple siml(snk.s, sel.e)
+
+    connector MinSelect sel2(r1.p, r2.p)
+    connector Simple siml2(snk.s, sel2.e)
+
+    priority wrong1 sel2:r1.p,r2.p < siml2:snk.s,sel2.e
+    priority wrong2 sel:r1.p,r2.p < sel2:r1.p,r2.p
+    priority wrong3 sel2:r1.p,r2.p < siml2:snk.s,sel2.e
+    priority ok     siml:snk.s,sel.e < siml2:snk.s,sel2.e
+  end
+end

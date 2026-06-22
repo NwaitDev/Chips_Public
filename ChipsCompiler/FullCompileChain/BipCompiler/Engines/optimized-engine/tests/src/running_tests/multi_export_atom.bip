@@ -1,0 +1,31 @@
+package multi_export_atom
+  port type PortInt(int d)
+
+  connector type Singleton(PortInt p)
+    define p
+  end
+
+  atom type MyAtomType()
+    data int x, y, z
+
+    export port PortInt p(x), q(y), r(z) as xport 
+
+    place INIT, END
+
+    initial to INIT
+      do {
+        x = 1;
+        y = 2;
+        z = 3;
+      }
+
+    on p from INIT to END
+    on q from INIT to END
+    on r from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+    connector Singleton  mySingleton(myAtom.xport)
+  end
+end

@@ -1,0 +1,27 @@
+@cpp(src="ext-cpp/HelloPackage.cpp",include="HelloPackage.hpp")
+package HelloPackage
+  extern data type my_custom_type
+
+  extern function init_data(int, my_custom_type)
+  extern function print_data(int, my_custom_type)
+
+  port type HelloPort_t(my_custom_type d)
+
+  atom type HelloAtom(int id)
+    data my_custom_type d
+    export port HelloPort_t p(d)
+    place START,END
+    initial to START do {init_data(id, d); print_data(id, d);}
+    on p from START to END do {print_data(id, d);}
+  end
+
+  connector type ThreeRendezVous(HelloPort_t p1, HelloPort_t p2, HelloPort_t p3)
+  define p1 p2 p3
+  on p1 p2 p3 down { p1.d = p3.d; p2.d = p3.d; }
+  end
+
+  compound type HelloCompound()
+    component HelloAtom c1(1), c2(2), c3(3)
+    connector ThreeRendezVous connect(c1.p, c2.p, c3.p)
+  end
+end

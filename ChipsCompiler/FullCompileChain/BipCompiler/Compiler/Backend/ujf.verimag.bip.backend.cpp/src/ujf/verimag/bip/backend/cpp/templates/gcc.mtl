@@ -1,0 +1,14 @@
+[comment encoding = UTF-8 /]
+[module gcc('http://bip2/1.0')/]
+[comment 
+
+This module should contain everything specific to GCC extensions.
+It is ok to use them, but we must be able to disable them easily and at least
+identify them !
+/]
+
+
+[comment 
+This attribute removes the warning about the variable being unused.
+/]
+[query public unusedAttr(any : OclAny) : String = '__attribute__((unused))' /]

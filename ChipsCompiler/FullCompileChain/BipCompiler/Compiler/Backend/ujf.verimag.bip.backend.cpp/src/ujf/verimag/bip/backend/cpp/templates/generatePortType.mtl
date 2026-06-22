@@ -1,0 +1,70 @@
+[comment encoding = UTF-8 /]
+[module generatePortType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateConnectorExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomExportPort/]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomInternalPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomExternalPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateCompoundExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateQuotedPortReference /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+
+[comment]
+This is for the main PortType class.
+Uses the regular mechanism.
+[/comment]
+[template public generateHeaderBody(aPortType : PortType, disableSerialization : Boolean)
+    {
+        cl : String = aPortType.className();
+    }]
+#include <Port.hpp>
+
+[for (userInclude : String | aPortType.getUserIncludes()) before('// User include given in @cpp annotation\n')]
+#include <[userInclude/]>
+[/for]
+
+class [aPortType.className()/] : public virtual Port{
+
+public:
+    [aPortType.genCtorProto()/];
+    ~[aPortType.className() /]();
+};
+[/template]
+
+[template public generateImplemBody(aPortType : PortType, disableSerialization: Boolean)
+    {
+        cl : String = aPortType.className();
+    }]
+
+[aPortType.className()/]::[aPortType.genCtorProto()/] :  PortItf(name, type), Port(name, type) {
+}
+
+[aPortType.className()/]::~[aPortType.className()/]() { }
+[/template]
+
+[comment]
+Generate other subclasses:
+ - ConnectorPort
+ - CompoundExportPort
+ - AtomExportPort
+ - AtomInternalPort
+[/comment]
+
+[template public generateSubClasses(aPortType : PortType, aCMakeList : String, 
+                                    disableSerialization: Boolean)]
+[aPortType.generateConnectorEPort(aCMakeList) /]
+[aPortType.generateCompoundEPort(aCMakeList) /]
+[aPortType.generateAtomEPort(aCMakeList) /]
+[aPortType.generateAtomIPort(aCMakeList) /]
+[aPortType.generateAtomExternalPort(aCMakeList) /]
+[aPortType.generatePortValue(aCMakeList, disableSerialization) /]
+[aPortType.generateQuotedPortReference(aCMakeList) /]
+
+[/template]
+
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.className()/](const string &name, const ExportType& type)
+[/template]

@@ -1,0 +1,3 @@
+package Pi
+  const data float Pi = 3.14159
+end

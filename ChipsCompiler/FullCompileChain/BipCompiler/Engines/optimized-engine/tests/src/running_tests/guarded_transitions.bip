@@ -1,0 +1,30 @@
+package guarded_transitions
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType(int limit)
+    data int i
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+      do { i = 0; }
+
+    on p from INIT to INIT provided (i < limit)
+      do { i = i + 1; }
+
+    on p from INIT to END provided (i == limit)
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1(10)
+    component MyAtomType myAtom2(20)
+
+    connector Singleton single1(myAtom1.p)
+    connector Singleton single2(myAtom2.p)
+  end
+end

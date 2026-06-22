@@ -1,0 +1,12 @@
+package use_creation
+
+
+ port type Port_t()
+
+ // this one is bogus !
+ connector type RDV(Port_t p, Port_t q)
+   define p q
+   on p q
+  end
+
+end

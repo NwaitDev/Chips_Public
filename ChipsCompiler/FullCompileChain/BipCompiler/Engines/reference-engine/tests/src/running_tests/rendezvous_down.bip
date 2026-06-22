@@ -1,0 +1,45 @@
+package rendezvous_down
+  port type PortInt(int d)
+
+  connector type Send(PortInt p, PortInt q)
+    define p q
+
+    on p q down { q.d = p.d; }
+  end
+
+  atom type MySender(int init1, int init2)
+    data int x
+    export port PortInt p(x)
+
+    place INIT, SECOND, END
+
+    initial to INIT
+      do { x = init1; }
+
+    on p from INIT to SECOND
+      do { x = init2; }
+
+    on p from SECOND to END
+  end
+
+  atom type MyReceiver()
+    data int x
+    export port PortInt p(x)
+
+    place INIT, SECOND, END
+
+    initial to INIT
+      do { x = 0; }
+
+    on p from INIT to SECOND
+
+    on p from SECOND to END
+  end
+
+  compound type MyCompoundType()
+    component MySender   sender(-32, 99)
+    component MyReceiver receiver()
+
+    connector Send send(sender.p, receiver.p)
+  end
+end

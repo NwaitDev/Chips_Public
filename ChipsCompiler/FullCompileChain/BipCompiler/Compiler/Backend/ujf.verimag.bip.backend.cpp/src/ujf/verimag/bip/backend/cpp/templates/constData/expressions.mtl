@@ -1,0 +1,90 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') /]
+
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[comment
+The following set of template simply generates back the input expression without
+any modification.
+/]
+[comment][template public generateExpression(anExpression : AssignmentExpression, isConst : Boolean) ? (anExpression.lhsDirect <> null)]
+#error Internal compiler error : assignment expression in const data init
+[/template][/comment]
+
+[template public generateExpressionWithoutCast(anExpression : DirectDataDeclarationReferenceExpression) post(trim())]
+[anExpression.dataDeclaration.oclAsType(ConstDataDeclaration).varName()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : BinaryOpExpression) post(trim())]
+([anExpression.left.generateExpression() /]) [' ' + anExpression.operator + ' '/] ([anExpression.right.generateExpression() /])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : FunctionCallExpression, isConst : Boolean) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression() /][/for])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : UnaryOpExpression) post(trim())]
+[anExpression.operator /] ([anExpression.operand.generateExpression() /])
+[/template]
+
+[template public generateExpression(anExpression : IfThenElseExpression) post(trim())]
+if ([anExpression.condition.generateExpression()/]) {
+    [for (e : Expression | anExpression._then) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}[if (anExpression._else->notEmpty())] else {
+    [for (e : Expression | anExpression._else) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}
+[/if]
+[/template]
+
+[comment
+for <compdecl>.<datadecl>
+/]
+[comment][template public generateExpression(anExpression : SubDataDeclarationReferenceExpression, isConst : Boolean) ? (anExpression.subDataDeclarationRef.componentDeclaration <> null)]
+[anExpression.subDataDeclarationRef.componentDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template][/comment]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[comment][template public generateExpression(anExpression : SubDataDeclarationReferenceExpression, isConst : Boolean) ? (anExpression.subDataDeclarationRef.portDeclaration <> null)]
+[anExpression.subDataDeclarationRef.portDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template][/comment]
+
+[template public generateExpressionWithoutCast(anExpression : DirectBooleanExpression) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectIntegerExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectFloatExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectStringExpression) post(trim())]
+[anExpression.value/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpressionWithoutCast(anExpression : ValuedExpression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression' : [anExpression/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpression(anExpression : ValuedExpression) {
+    type : Type = anExpression.getType();
+    expectedType : Type = anExpression.getExpectedType();
+    hasToBeCasted : Boolean = (type <> expectedType and expectedType <> null);
+}]
+[if (hasToBeCasted)][expectedType.typeName()/]([/if][generateExpressionWithoutCast(anExpression)/][if (hasToBeCasted)])[/if]
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateExpression(anExpression : Expression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression' [anExpression/]
+[/template]

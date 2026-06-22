@@ -1,0 +1,47 @@
+package or_expressions
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  atom type Bits()
+    data int b0
+    data int b1
+    data int b2
+    data int b3
+
+    export port Port sync()
+
+    place LOOP, END
+
+    initial to LOOP
+      do { b0=1; b1=0; b2=0; b3=0; }
+
+    on sync from LOOP to LOOP
+      provided (b0==1 || b1==1 || b2==1 || b3==1)
+      do {
+        if (b0==1) then
+          b0=0;
+          b1=1;
+        else if (b1==1) then
+          b1=0;
+          b2=1;
+        else if (b2==1) then
+          b2=0;
+          b3=1;
+        else if (b3==1) then
+          b3=0;
+        fi fi fi fi
+      }
+
+    internal from LOOP to END
+      provided (b0==0 && b1==0 && b2==0 && b3==0)
+  end
+
+  compound type OrExpressions()
+    component Bits B()
+
+    connector Single single(B.sync)
+  end
+end

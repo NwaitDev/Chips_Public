@@ -1,0 +1,95 @@
+[comment encoding = UTF-8 /]
+[module common('http://bip2/1.0')/]
+
+[comment TODO: replace by actual code checking for options /]
+[query public isOptimEnabled(name : String) : Boolean = true /]
+
+[comment The following query provides static analysis expressions (data dependencies) /]
+[query private usesCustomDataTypes(anAtomType : AtomType) : Boolean = 
+    anAtomType.internalDataDeclarations->select(s:AtomInternalDataDeclaration| not s.dataType.native)->notEmpty()
+/]
+
+[query public includesFunctionCall(expression : Expression) : Boolean =
+ 	if expression.oclIsKindOf(BinaryOpExpression) then
+		expression.oclAsType(BinaryOpExpression).left.includesFunctionCall() or
+		expression.oclAsType(BinaryOpExpression).right.includesFunctionCall()
+	else if expression.oclIsKindOf(UnaryOpExpression) then
+		expression.oclAsType(UnaryOpExpression).operand.includesFunctionCall()
+	else if expression.oclIsKindOf(AssignmentExpression) then
+		expression.oclAsType(AssignmentExpression).rhs.includesFunctionCall()
+	else if expression.oclIsKindOf(FunctionCallExpression) then
+		true
+	else if expression.oclIsKindOf(ValuedReferenceExpression) then
+		expression.oclAsType(ValuedReferenceExpression).expressionReference.includesFunctionCall()
+	else if expression.oclIsKindOf(IfThenElseExpression) then
+		expression.oclAsType(IfThenElseExpression).condition.includesFunctionCall() or
+		expression.oclAsType(IfThenElseExpression)._then->exists(includesFunctionCall()) or
+		expression.oclAsType(IfThenElseExpression)._else->exists(includesFunctionCall())
+	else false
+	endif endif endif endif endif endif
+/]
+
+[query public readVariables(expression : Expression) : Set(DataDeclaration) =
+ 	if expression.oclIsKindOf(BinaryOpExpression) then
+		expression.oclAsType(BinaryOpExpression).left.readVariables()
+			->union(expression.oclAsType(BinaryOpExpression).right.readVariables())
+	else if expression.oclIsKindOf(UnaryOpExpression) then
+		expression.oclAsType(UnaryOpExpression).operand.readVariables()
+	else if expression.oclIsKindOf(SubDataDeclarationReference) then
+		Set { expression.oclAsType(SubDataDeclarationReference).forwardDataDeclaration }
+    else if expression.oclIsKindOf(DirectDataDeclarationReferenceExpression) then
+		Set { expression.oclAsType(DirectDataDeclarationReferenceExpression).dataDeclaration }
+	else if expression.oclIsKindOf(AssignmentExpression) then
+		Set { expression.oclAsType(AssignmentExpression).lhsDirect.dataDeclaration }
+			->union(expression.oclAsType(AssignmentExpression).rhs.readVariables())
+	else if expression.oclIsKindOf(FunctionCallExpression) then
+		expression.oclAsType(FunctionCallExpression).parameters->collect(readVariables())
+			->flatten()->asSet()
+	else if expression.oclIsKindOf(ValuedReferenceExpression) then
+		expression.oclAsType(ValuedReferenceExpression).expressionReference.readVariables()
+	else if expression.oclIsKindOf(IfThenElseExpression) then
+		expression.oclAsType(IfThenElseExpression).condition.readVariables()
+			->union(expression.oclAsType(IfThenElseExpression)._then->collect(readVariables())->flatten()->asSet())
+			->union(expression.oclAsType(IfThenElseExpression)._else->collect(readVariables())->flatten()->asSet())
+	else Set {}
+	endif endif endif endif endif endif endif endif
+/]
+
+[query public writtenVariables(expression : Expression) : Set(DataDeclaration) =
+ 	if expression.oclIsKindOf(BinaryOpExpression) then
+		expression.oclAsType(BinaryOpExpression).left.writtenVariables()
+			->union(expression.oclAsType(BinaryOpExpression).right.writtenVariables())
+	else if expression.oclIsKindOf(UnaryOpExpression) then
+		expression.oclAsType(UnaryOpExpression).operand.writtenVariables()
+	else if expression.oclIsKindOf(AssignmentExpression) then
+		Set { expression.oclAsType(AssignmentExpression).lhsDirect.dataDeclaration }
+			->union(expression.oclAsType(AssignmentExpression).rhs.writtenVariables())
+	else if expression.oclIsKindOf(FunctionCallExpression) then
+		expression.oclAsType(FunctionCallExpression).parameters->collect(readVariables())
+			->flatten()->asSet()
+	else if expression.oclIsKindOf(ValuedReferenceExpression) then
+		expression.oclAsType(ValuedReferenceExpression).expressionReference.writtenVariables()
+	else if expression.oclIsKindOf(IfThenElseExpression) then
+		expression.oclAsType(IfThenElseExpression).condition.writtenVariables()
+			->union(expression.oclAsType(IfThenElseExpression)._then->collect(writtenVariables())->flatten()->asSet())
+			->union(expression.oclAsType(IfThenElseExpression)._else->collect(writtenVariables())->flatten()->asSet())
+	else Set {}
+	endif endif endif endif endif endif
+/]
+
+[query public readVariables(actions : OrderedSet(Expression)) : Set(DataDeclaration) =
+	actions->collect(readVariables())->flatten()->asSet()
+/]
+
+[query public writtenVariables(actions : OrderedSet(Expression)) : Set(DataDeclaration) =
+	actions->collect(writtenVariables())->flatten()->asSet()
+/]
+
+[query public includesFunctionCall(actions : OrderedSet(Expression)) : Boolean =
+	actions->exists(a : Expression | includesFunctionCall(a))
+/]
+
+[query public mightBeModifiedBy(data : DataDeclaration, actions : OrderedSet(Expression)) : Boolean =
+	(not isOptimEnabled('no-side-effect') and (includesFunctionCall(actions) or writtenVariables(actions)->exists(not dataType.native))) or
+	writtenVariables(actions)->includes(data)
+/]

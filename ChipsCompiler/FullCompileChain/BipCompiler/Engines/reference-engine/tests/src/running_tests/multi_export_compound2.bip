@@ -1,0 +1,40 @@
+package multi_export_compound2
+  port type Port()
+
+  connector type MyConnector(Port p, Port q)
+    export port Port x()
+
+    define p' q'
+
+    on p q provided (false)
+  end
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type CT()
+    component MyAtomType myAtom1()
+    component MyAtomType myAtom2()
+    component MyAtomType myAtom3()
+
+    connector MyConnector conn1(myAtom2.p, myAtom3.p)
+
+    export port myAtom1.p, myAtom2.p, myAtom3.p, conn1.x as xport
+  end
+
+  compound type Top()
+    component CT C()
+    connector Singleton mySingleton(C.xport)
+  end
+end

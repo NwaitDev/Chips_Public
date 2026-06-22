@@ -1,0 +1,37 @@
+package connectorHasExportPortBound
+ port type Port_t()
+
+ connector type CoT(Port_t p1)
+ export port Port_t p()
+ define p1
+ end
+
+ connector type CoT2(Port_t p1)
+ define p1
+ end
+
+ atom type AT()
+   export port Port_t p()
+   place S
+   initial to S
+   on p from S to S
+ end
+
+ compound type Toto()
+   component AT c1()
+
+   // this is good! 
+   connector CoT co1(c1.p)
+   connector CoT2 co2(co1.p)   
+   
+   // BAD 
+   connector CoT bad1(c1.p)
+
+   // good
+   connector CoT co3(c1.p)
+
+   export port co3.p as ep
+      
+ end
+
+end

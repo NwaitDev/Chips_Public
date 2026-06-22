@@ -1,0 +1,41 @@
+@cpp(include="MyExternalPortSum.hpp,MyExternalPortSingle.hpp")
+package external_error
+  port type Port()
+  port type IntPort(int x)
+
+  connector type RDV(Port p, Port q)
+    define p q
+    on p q down { printf("sync %d and %d\n", 1, 2); }
+  end
+
+  extern function printf(string, int, int)
+  extern function customsleep()
+
+  atom type Atom(int index)
+    data int s1, s2, s3, s4
+
+    export port Port p()
+    extern port IntPort p1(s1) as "MyExternalPortSum"    error
+    extern port IntPort p2(s2) as "MyExternalPortSum"    error
+    extern port IntPort p3(s3) as "MyExternalPortSingle" remember
+    extern port IntPort p4(s4) as "MyExternalPortSingle" remember
+
+    place WAIT12, WAIT4, END
+
+    initial to WAIT12 do { s1 = 0; s2 = 0; s3 = 0; s4 = 0; }
+
+    on p1 from WAIT12 to WAIT12 provided (s1 < 4950) do { customsleep(); }
+    on p2 from WAIT12 to WAIT12 provided (s2 < 5050) do { customsleep(); }
+
+    on p3 from WAIT12 to WAIT4 provided (s1 >= 4950 && s2 >= 5050)
+
+    on p4 from WAIT4 to WAIT4 provided (s4 != 42)
+
+    on p from WAIT4 to END provided (s4 == 42)
+  end
+
+  compound type Compound()
+    component Atom A(1), B(2)
+    connector RDV conn(A.p, B.p)
+  end
+end

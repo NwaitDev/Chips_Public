@@ -1,0 +1,8 @@
+package big.sample.another_pack
+
+ use big.sample.someone_else
+
+ port type Port_tt()
+
+end
+

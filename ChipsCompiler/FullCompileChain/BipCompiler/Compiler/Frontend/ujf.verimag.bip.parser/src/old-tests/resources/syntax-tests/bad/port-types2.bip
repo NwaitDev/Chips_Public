@@ -1,0 +1,6 @@
+package this.is.a.pack
+
+// incorrect data parameter
+port type Port2_t(x)
+
+end

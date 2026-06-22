@@ -1,0 +1,30 @@
+package broadcast
+  port type Port()
+
+  connector type Broadcast(Port p, Port q, Port r)
+    define p' q r
+
+    on p q r provided (false)
+    on p q   provided (true)
+    on p r   provided (true)
+    on p     provided (true)
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1()
+    component MyAtomType myAtom2()
+    component MyAtomType myAtom3()
+
+    connector Broadcast myBroadcast(myAtom1.p, myAtom2.p, myAtom3.p)
+  end
+end

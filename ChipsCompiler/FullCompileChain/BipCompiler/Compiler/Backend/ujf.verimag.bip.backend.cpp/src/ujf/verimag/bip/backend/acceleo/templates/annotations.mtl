@@ -1,0 +1,78 @@
+[comment encoding = UTF-8 /]
+[module annotations('http://bip2/1.0')/]
+
+[comment 
+
+See ticket #153 in BTS
+
+
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING  
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+This file is SHOULD BE used from the backend common module.
+There is a problem with acceleo dependencies that prevent correct handling of 
+module within jars so THIS file is a **SLAVE** **COPY** !
+
+Do not modify it directly. Modify the master file and then copy it back here.
+
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING  
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+/]
+[comment 
+Returns the the BipAnnotation attached to the node for the name 'annotName' if any.
+ /]
+[query public getAnnotation(anAnnotatedElement : AnnotatedElement, annotName : String) : BipAnnotation =
+    anAnnotatedElement.bipAnnotations->select(e: StringToAnnotationMapEntry| e.key.equalsIgnoreCase(annotName))->first().value
+/]
+
+[comment 
+Returns the parameter value (as String) for the given node/annotation name/parameter name.
+/]
+
+[query public getAnnotation(anAnnotatedElement : AnnotatedElement, annotName : String, keyName : String) : String =
+    anAnnotatedElement.getAnnotation(annotName).parameters->select(e: StringToStringMapEntry|
+                   e.key.equalsIgnoreCase(keyName))->collect(e : StringToStringMapEntry|
+                          e.value)->first()
+/]
+
+[comment 
+Tests if the given parameter for a given node/annotation name exists
+/]
+[query public hasAnnotation(anAnnotatedElement : AnnotatedElement, annotName : String, keyName : String) : Boolean =
+    anAnnotatedElement.hasAnnotation(annotName) and
+    anAnnotatedElement.getAnnotation(annotName).parameters->select(e: StringToStringMapEntry| e.key.equalsIgnoreCase(keyName))->notEmpty()
+/]
+
+[comment
+Tests is the annotation name exists for the given node
+/]
+[query public hasAnnotation(anAnnotatedElement : AnnotatedElement, annotName : String) : Boolean =
+    anAnnotatedElement.bipAnnotations->select(e: StringToAnnotationMapEntry| e.key.equalsIgnoreCase(annotName))->notEmpty()
+/]
+
+[comment
+Collect all Atom instances within a Compound for which the declaration has the given annotation name
+/]
+[query public atomInstancesFromAnnot(aCompoundInstance : CompoundInstance, annotName : String) : Set(AtomInstance) =
+    aCompoundInstance.subAtomInstances->select(e:AtomInstance| e.declaration.hasAnnotation(annotName))
+/]
+
+[comment
+Collect all Atom instances within a Compound for which the declaration has the given annotation name + parameter name.
+/]
+[query public atomInstancesFromAnnot(aCompoundInstance : CompoundInstance, annotName : String, keyName : String) : Set(AtomInstance) =
+    aCompoundInstance.subAtomInstances->select(e:AtomInstance| e.declaration.hasAnnotation(annotName, keyName))
+/]
+
+[query public getSystemProperty(aPropertyName : String) : String = 
+  invoke('java.lang.System', 'getProperty(java.lang.String,java.lang.String)', Sequence{aPropertyName, ''})
+/]
+
+[query public getSystemProperty(aPropertyName : String, aDefault : String) : String = 
+  invoke('java.lang.System', 'getProperty(java.lang.String,java.lang.String)', Sequence{aPropertyName, aDefault})
+/]

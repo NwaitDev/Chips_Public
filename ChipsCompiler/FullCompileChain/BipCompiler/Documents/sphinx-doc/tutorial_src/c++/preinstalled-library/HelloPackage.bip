@@ -1,0 +1,17 @@
+@cpp(include="stdio.h")
+package HelloPackage
+  extern function printf(string)
+
+  port type HelloPort_t()
+
+  atom type HelloAtom()
+    port HelloPort_t p()
+    place START,END
+    initial to START
+    on p from START to END do {printf("Hello World\n");}
+  end
+
+  compound type HelloCompound()
+    component HelloAtom c1()
+  end
+end

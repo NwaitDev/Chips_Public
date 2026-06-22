@@ -1,0 +1,18 @@
+package this.is.a.pack
+
+ port type Port_t()
+
+ atom type Atom_t(int x, int y)
+    port Port_t p1(),p2()
+    port Port_t p3()
+    export port Port_t ep1(),ep2()
+    export port Port_t ep3()
+
+    place S1,S2,S3,S4,S5
+    // missing initial
+    on p1 from S1 to S2
+    on p2 from S2 to S1
+   
+ end
+
+end

@@ -1,0 +1,46 @@
+stages:
+  - build
+  - test
+
+after_script:
+  - cd distribution
+  - ./wrap.sh -t clean
+
+test-compiler:
+  stage: test
+  image: ubuntu:latest
+  script:  
+    # install necessary dependencies
+    - apt-get update -qq && apt-get install -y -qq ant cmake g++ default-jre default-jdk
+
+    # test the compiler (frontend + backend)
+    - cd distribution
+    - ./wrap.sh -t compiler
+
+test-engines:
+  stage: test
+  image: ubuntu:latest
+  only:
+    - staging
+  script:
+    # install necessary dependencies
+    - apt-get update -qq && apt-get install -y -qq ant cmake g++ default-jre default-jdk    
+
+    # test the engines with default compilation options
+    - cd distribution
+    - ./wrap.sh
+    - ./wrap.sh -t engines
+    
+test-engines-all:
+  stage: test
+  image: ubuntu:latest
+  only:
+    - master
+  script:
+    # install necessary dependencies
+    - apt-get update -qq && apt-get install -y -qq ant cmake g++ default-jre default-jdk    
+
+    # test the engines with all compilation options
+    - cd distribution
+    - ./wrap.sh
+    - ./wrap.sh -t engines-all

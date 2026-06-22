@@ -1,0 +1,3 @@
+package duplicatedDataParamInPortType
+ port type Port_t(int x, int x)
+end

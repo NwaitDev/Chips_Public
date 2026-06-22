@@ -1,0 +1,14 @@
+package this.is.a.pack
+
+ port type Port_t()
+
+ connector type Conn_t(Port_t p)
+ define p
+ end
+
+ connector type Conn_t(Port_t p)
+ define p
+ end
+
+
+end

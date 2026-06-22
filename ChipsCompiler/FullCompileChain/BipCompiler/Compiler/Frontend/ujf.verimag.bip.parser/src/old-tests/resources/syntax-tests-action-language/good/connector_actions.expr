@@ -1,0 +1,52 @@
+// simple data access
+
+{
+
+// simple field access, should be rejected by analyzer
+avar.afield;
+
+// simple assignments
+x = y;
+x = (y);
+x = x + y;
+
+x = (1+3);
+x = (1+2+3);
+
+x = (1*y);
+x = (1*y*z);
+x = ((1+r)*y);
+x = 1 + (((5))) + (y % (y * 5));
+
+x = 1 + (2 / 4) % 3 * 6 + (x-7);
+
+// logical expr
+
+x = (a && b);
+x = (a && (b || y));
+x = (1 && (c && (19 || f) || u));
+
+// unary + postfix
+x = -y;
+x = +y;
+x = ~y;
+x = !y;
+
+x = -y + ~y;
+
+x = f(1);
+x = g(x);
+g();
+g(1,2,x);
+g((1+2), x, 3%x);
+
+// field access
+g.x = 3;
+
+//array access
+g[5] = 37;
+x = g[19];
+g[f(x)] = h[f[h[g(19)+1]]];
+
+f(g[x]);
+}

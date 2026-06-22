@@ -1,0 +1,18 @@
+package exportOfConstData
+  const data int answer = 42
+
+  port type Port(int p)
+
+  atom type AtomExportParam(int param)
+    data int x
+    export port Port p(answer)  // incorrect!
+    
+    place L
+    initial to L
+    on p from L to L
+  end
+  
+  compound type System()
+    component AtomExportParam A(10)
+  end
+end

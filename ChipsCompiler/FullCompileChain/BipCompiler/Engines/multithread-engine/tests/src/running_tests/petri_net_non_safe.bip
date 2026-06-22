@@ -1,0 +1,25 @@
+package petri_net_non_safe
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type SimplePetriNet()
+    export port Port start(), non_safe()
+
+    place START, NON_SAFE, SAFE, END
+
+    initial to START, NON_SAFE
+
+    on start    from START          to NON_SAFE, SAFE provided (true)
+    on non_safe from NON_SAFE, SAFE to END
+  end
+
+  compound type MyCompoundType()
+    component SimplePetriNet petriNet()
+
+    connector Singleton start(petriNet.start)
+    connector Singleton non_safe(petriNet.non_safe)
+  end
+end

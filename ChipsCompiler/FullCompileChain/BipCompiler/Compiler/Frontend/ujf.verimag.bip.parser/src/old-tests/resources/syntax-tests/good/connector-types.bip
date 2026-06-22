@@ -1,0 +1,56 @@
+package this.is.a.pack
+
+ port type Port_t()
+ port type Port2_t()
+
+
+ connector type Conn_t(Port_t p1, Port2_t p2, Port_t p3)
+ define p1 p2 p3
+ end
+
+ connector type Conn2_t(Port_t p)
+ define p
+ end
+
+ connector type Conn3_t(Port_t p)
+ data int x,y,z
+ define p
+ end
+
+ connector type Conn4_t(Port_t p)
+ data int x
+ define p
+ end
+
+
+ connector type Conn5_t(Port_t p1, Port_t p2)
+ define p1 p2
+ end
+
+ connector type Conn6_t(Port_t p1, Port_t p2)
+ data int x,y,z
+ define p1 p2
+ end
+
+ connector type Conn7_t(Port_t p1, Port_t p2)
+ data int x
+ define p1
+
+ on p1 provided ( x == 6 )
+       up { x = some_function(x,x+1); }
+       down { x = 6; p1.x = 3838; }
+
+ on p1 p2 provided ( x == 18 )
+       up { x = other_function(); }
+       down { x = 7; }
+
+ on p1
+       up { x = 19; }
+       down { x = 56%15 ;}
+
+ on p1
+       up { x = 99; }
+
+ end
+
+end

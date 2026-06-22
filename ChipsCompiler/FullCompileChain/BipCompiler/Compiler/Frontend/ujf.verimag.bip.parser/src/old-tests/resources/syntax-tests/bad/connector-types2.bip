@@ -1,0 +1,14 @@
+package this.is.a.pack
+
+ port type Port_t()
+ port type Port2_t()
+
+
+ connector type Conn_t(Port_t p1, Port2_t p2, Port_t p3)
+ data int x,y,z
+// missing define
+ end
+
+end
+
+

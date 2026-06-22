@@ -1,0 +1,47 @@
+package this.is.a.pack
+
+use this.is.an.other.pack
+use this.is.another.stupid.pack
+
+port type Port1_t(int x)
+port type Port2_t(int y, char z)
+
+connector type Conn_t_1(Port1_t p1, Port2_t p2)
+data int x,y
+data char z
+export port Port_t pp3(b,sdf,z)
+define p1' p2 p3
+on p1 p2 p3
+provided ( x == y )
+up { x = y + 1;}
+on p2 p3
+end
+
+atom type StupidAtom(int x)
+  data int x,y,z
+  data char qsd
+  export port Port_t p(x,y,z),p2(z),p3(),p5()
+  port Port2_t p4()
+  place p1,p2,p3,p4
+
+  initial to p1,p2 do {x=0; y=0; z=0; }
+
+  on p from s1 to s1,s5 provided (x==y && z == 19) do { x=1; y=2; z=3; }
+  on p2 from s5,s4 to s7 do {x=0;}
+end
+
+compound type TestCompound()
+  component TotoC t(x,y), t2(y,z)
+  component TataC p(z), p2(d)
+  
+  connector ConnectorT c(t.x,t.t),d(t.r,t.t)
+  connector ConnectorP h(d.d),t(f.r),d(s.g)
+
+  priority toto c:c.p1 < j:g.p
+  priority tata f:g.p < k:d.p,g.p,f.p
+
+  export port c.t as u
+  export port c.v as v
+  export data c.t as d
+end
+end

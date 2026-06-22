@@ -1,0 +1,132 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') /]
+
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[comment
+    We need to do the dynamic dispatch by hand... If not, then the query is selected based
+    on the dynamic type used in the caller (usually, abstract), not the actual type of the
+    object. Leading to empty sets.
+ /]
+[query public getInvolvedCompDecl(anExpression : ValuedExpression) : OrderedSet(ComponentDeclaration) =
+    if anExpression.oclIsKindOf(BinaryOpExpression) then
+        anExpression.oclAsType(BinaryOpExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(FunctionCallExpression) then
+        anExpression.oclAsType(FunctionCallExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(UnaryOpExpression) then
+        anExpression.oclAsType(UnaryOpExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(SubDataDeclarationReferenceExpression) then
+        anExpression.oclAsType(SubDataDeclarationReferenceExpression).getInvolvedCompDecl()
+    else OrderedSet{}
+    endif endif endif endif
+/]
+
+[query public getInvolvedCompDecl(anExpression : Expression) : OrderedSet(ComponentDeclaration) =
+    if anExpression.oclIsKindOf(BinaryOpExpression) then
+        anExpression.oclAsType(BinaryOpExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(FunctionCallExpression) then
+        anExpression.oclAsType(FunctionCallExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(UnaryOpExpression) then
+        anExpression.oclAsType(UnaryOpExpression).getInvolvedCompDecl()
+    else if anExpression.oclIsKindOf(SubDataDeclarationReferenceExpression) then
+        anExpression.oclAsType(SubDataDeclarationReferenceExpression).getInvolvedCompDecl()
+    else OrderedSet{}
+    endif endif endif endif
+/]
+
+[query public getInvolvedCompDecl(anExpression : BinaryOpExpression) : OrderedSet(ComponentDeclaration) =
+    anExpression.left.getInvolvedCompDecl()->union(anExpression.right.getInvolvedCompDecl())->asOrderedSet()
+/]
+
+[query public getInvolvedCompDecl(anExpression : FunctionCallExpression) : OrderedSet(ComponentDeclaration) =
+    anExpression.parameters->collect(e:ValuedExpression | e.getInvolvedCompDecl())->asOrderedSet()
+/]
+
+[query public getInvolvedCompDecl(anExpression : UnaryOpExpression) : OrderedSet(ComponentDeclaration) =
+    anExpression.operand.getInvolvedCompDecl()
+/]
+
+[query public getInvolvedCompDecl(anExpression : SubDataDeclarationReferenceExpression) : OrderedSet(ComponentDeclaration) =
+    OrderedSet{anExpression.subDataDeclarationRef.componentDeclaration}
+/]
+
+[comment
+The following set of template simply generates back the input expression without
+any modification.
+/]
+
+
+
+[template public generateExpression(anExpression : AssignmentExpression)]
+#error Should never reach that. No assignment in priorities!
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectDataDeclarationReferenceExpression) post(trim())]
+[if (anExpression.dataDeclaration.oclIsTypeOf(ConstDataDeclaration))]
+[anExpression.dataDeclaration.oclAsType(ConstDataDeclaration).varName()/]
+[else]
+#error Should never reach that. No direct data ref in priorities!
+[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : BinaryOpExpression) post(trim())]
+([anExpression.left.generateExpression() /]) [' ' + anExpression.operator + ' '/] ([anExpression.right.generateExpression() /])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : FunctionCallExpression) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression() /][/for])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : UnaryOpExpression) post(trim())]
+[anExpression.operator /] ([anExpression.operand.generateExpression() /])
+[/template]
+
+[comment
+for <compdecl>.<datadecl>
+/]
+[template public varName(aCompDecl : ComponentDeclaration) post(trim())]
+cd_[aCompDecl.name/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.componentDeclaration <> null)]
+[anExpression.subDataDeclarationRef.componentDeclaration.varName() /].get_[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]()
+[/template]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[template public generateExpressionWithoutCast(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.portDeclaration <> null)]
+#error no port referenced data in priority guard
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectBooleanExpression) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectIntegerExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectFloatExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectStringExpression) post(trim())]
+[anExpression.value/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpressionWithoutCast(anExpression : ValuedExpression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression'
+[/template]
+
+[template public generateExpression(anExpression : ValuedExpression)]
+[generateCast(anExpression.getType(), anExpression.getExpectedType(), generateExpressionWithoutCast(anExpression))/]
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateExpression(anExpression : Expression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression'
+[/template]
+
+

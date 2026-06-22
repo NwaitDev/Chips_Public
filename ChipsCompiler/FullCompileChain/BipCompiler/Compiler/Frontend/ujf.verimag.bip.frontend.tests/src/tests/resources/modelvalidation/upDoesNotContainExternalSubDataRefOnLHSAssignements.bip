@@ -1,0 +1,10 @@
+package upDoesNotContainExternalSubDataRefOnLHSAssignements
+  port type Port_t(int x)
+  
+  connector type CoT(Port_t p1, Port_t p2)
+  data int x
+  export port Port_t ep(x)
+  define p1 p2
+  on p1 p2 up { x = 0; p1.x = 2; }
+  end
+end

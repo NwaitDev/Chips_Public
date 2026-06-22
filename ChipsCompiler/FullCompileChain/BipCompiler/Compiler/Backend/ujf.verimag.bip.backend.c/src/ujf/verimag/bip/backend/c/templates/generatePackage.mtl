@@ -1,0 +1,14 @@
+[comment encoding = UTF-8 /]
+[module generatePackage('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::c::templates::generateAtom/]
+
+[template public generatePackage(aPackage : BipPackage, name : String)]
+[comment @main /]
+[file (name, false, 'UTF-8')]
+#include <assert.h>
+[for (anAtom : AtomType | aPackage.atomTypes)]
+[anAtom.generateAtomType()/]
+[/for]
+[/file]
+[/template]

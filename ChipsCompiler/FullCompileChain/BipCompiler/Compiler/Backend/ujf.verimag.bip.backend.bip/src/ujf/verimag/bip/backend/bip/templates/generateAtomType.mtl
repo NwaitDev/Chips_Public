@@ -1,0 +1,94 @@
+[comment encoding = UTF-8 /]
+[module generateAtomType('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::bip::templates::generatePortDeclaration /]
+
+[import ujf::verimag::bip::backend::acceleo::templates::expressions /]
+[import ujf::verimag::bip::backend::bip::templates::annotations /]
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+
+[query private internalNotExported(iport : AtomInternalPortDeclaration, aAtomType: AtomType) : Boolean = 
+    aAtomType.exportedPortDeclarations->select(e|e.oclAsType(AtomExportPortDeclaration).portDeclarationReferences->select(refs|refs.name = iport.name)->notEmpty())->isEmpty() /]
+
+[template private generateAtomPriorityDeclaration(priod : AtomPriorityDeclaration)]
+priority [priod.name/] [if (priod.low <> null)] [priod.low.name /][else] * [/if] < [if (priod.high <> null)] [priod.high.name /][else] * [/if]
+[if (priod.guard->notEmpty())]
+    provided ([priod.guard.generateExpression() /])
+[/if]
+[/template]
+
+[template private generateAtomInvariant(invariant : AtomInvariant)]
+invariant [invariant.name/][if (invariant.exactState)] at[elseif (invariant.sources->notEmpty())] from[/if][for (state : State | invariant.sources) before(' ') separator(', ')][state.name/][/for][if (invariant.guard->notEmpty())] provided ([invariant.guard.generateExpression()/])[/if]
+[/template]
+
+[template public generateAtomType(aAtomType : AtomType) post(trim())]
+atom type [aAtomType.name/] ([for (dd : DataDeclaration | aAtomType.dataParameterDeclarations) separator(', ')][if (dd.const)]const [/if][qualifiedName(aAtomType, dd.dataType) /] [dd.name /][/for])
+
+    [for (data : AtomInternalDataDeclaration | aAtomType.internalDataDeclarations)]
+    [data.genAnnotations()/]
+    [if (data.exported)]export [/if]data [if (data.const)]const [/if][qualifiedName(aAtomType, data.dataType)/] [data.name /][if (not data.value->isEmpty())] = [data.value.generateExpression()/][/if]
+    [/for]
+    
+    [for (eport : AtomExportPortDeclaration | aAtomType.exportPortDeclarations)]
+    [if (eport.portDeclarationReferences->size() = 1)]
+    [eport.portDeclarationReferences->at(1).genAnnotations()/]
+    export port [eport.portDeclarationReferences->at(1).generatePortDeclaration(aAtomType) /]
+    [else]
+    export port [qualifiedName(aAtomType, eport.portDeclarationReferences->first().portType)/] [for (pd : AtomInternalPortDeclaration | eport.portDeclarationReferences) separator(', ')][pd.generatePortDeclaration(true, aAtomType)/][/for] as [eport.name /]
+    [/if]
+    [/for]
+    [for (iport : AtomInternalPortDeclaration | aAtomType.internalPortDeclarations)]
+    [if (internalNotExported(iport, aAtomType))]
+    [iport.genAnnotations()/]
+    port [iport.generatePortDeclaration(aAtomType) /]
+    [/if]
+    [/for]
+    [for (eport : AtomExternalPortDeclaration | aAtomType.externalPortDeclarations)]
+    extern port [eport.generatePortDeclaration(aAtomType)/][if (eport.backendName->notEmpty())] as "[eport.backendName/]"[/if] [generatePolicy(eport.policy)/]
+    [/for]
+    [comment][for (port : AtomInternalPortDeclaration | aAtomType.internalPortDeclarations)]
+    [if (port.exported)]export [/if]port [port.generatePortDeclaration() /]
+    [/for][/comment]
+    
+    [aAtomType.behavior.generatePetriNet() /]
+
+    [for (priod : AtomPriorityDeclaration | aAtomType.priorities)]
+    [generateAtomPriorityDeclaration(priod) /]
+    [/for]
+
+    [for (invar : AtomInvariant | aAtomType.invariants)]
+    [generateAtomInvariant(invar) /]
+    [/for]
+end
+[/template]
+
+[template private generatePolicy(p : EventConsumptionPolicy) post(trim())]
+[if (p = EventConsumptionPolicy::remember)]remember[elseif (p = EventConsumptionPolicy::ignore)]ignore[elseif (p = EventConsumptionPolicy::error)]error[else]#ERROR: unsupported event consumption policy![/if]
+[/template]
+
+[template private generatePetriNet(pn : PetriNet) post(trim())]
+place [for (s : State | pn.states) separator(', ')][s.name /][/for]
+initial to [for (s : State | pn.initStates) separator(', ')][s.name /][/for]
+[for (initaction : Expression | pn.initialActions) before ('    do {\n') after('    }\n')]
+        [initaction.generateExpression() /][if (not initaction.oclIsTypeOf(IfThenElseExpression))];[/if]
+[/for]
+    
+[for (t : Transition | pn.transitions)]
+    [t.generateTransition() /]
+[/for]
+[/template]
+
+[template private generateTransition(t : Transition)]
+[if (not t.triggerPort.oclIsUndefined())]
+on [t.triggerPort.name/]
+[else]
+internal
+[/if]
+    from [for (s : State | t.sources) separator(', ')][s.name/][/for]
+    to [for (s : State | t.destinations) separator(', ')][s.name/][/for]
+    [if (t.guard->notEmpty())]
+    provided ([t.guard.generateExpression() /])
+    [/if]
+    [for (e : Expression | t.actions) before ('    do {\n') after('    }\n') ]
+            [e.generateExpression() /][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+[/template]

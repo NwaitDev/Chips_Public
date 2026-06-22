@@ -1,0 +1,20 @@
+package nested_pack
+  port type Port(int x)
+
+  connector type Connector(Port p)
+    define p
+  end
+
+
+  atom type Atom()
+    data int x
+    export port Port p(x)
+
+    place INIT
+
+    initial to INIT
+
+    on p from INIT to INIT
+  end
+end
+

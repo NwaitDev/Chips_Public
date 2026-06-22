@@ -1,0 +1,105 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0')/]
+
+[comment
+
+See ticket #153 in BTS
+
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+This file is NOT used by the backends. There is a problem with acceleo
+dependencies that prevent correct handling of module within jars.
+
+Until a fix is released, this file must be copied in the concrete Backend.
+
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+/]
+
+[comment
+The following set of template simply generates back the input expression without
+any modification.
+/]
+[template public generateExpression(anExpression : AssignmentExpression)
+	? (anExpression.lhs.oclIsKindOf(DirectDataDeclarationReferenceExpression) or
+		anExpression.lhs.oclIsKindOf(SubDataDeclarationReferenceExpression))]
+[anExpression.lhs.generateExpression() /] = [anExpression.rhs.generateExpression() /]
+[/template]
+
+[template public generateExpression(anExpression : DirectDataDeclarationReferenceExpression)]
+[anExpression.dataDeclaration.name /]
+[/template]
+
+[template public generateExpression(anExpression : BinaryOpExpression) post(trim())]
+([anExpression.left.generateExpression() /] [' ' + anExpression.operator + ' '/] [anExpression.right.generateExpression() /])
+[/template]
+
+[template public generateExpression(anExpression : FunctionCallExpression) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression() /][/for])
+[/template]
+
+[template public generateExpression(anExpression : UnaryOpExpression) post(trim())]
+[anExpression.operator /] [anExpression.operand.generateExpression() /]
+[/template]
+
+[template public generateExpression(anExpression : IfThenElseExpression) post(trim())]
+if ([anExpression.condition.generateExpression()/]) then
+    [for (e : Expression | anExpression._then) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+
+[if (anExpression._else->notEmpty())]
+else
+    [for (e : Expression | anExpression._else) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+[/if]
+fi
+[/template]
+
+[comment
+for <compdecl>.<datadecl>
+/]
+[template public generateExpression(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.componentDeclaration <> null)]
+[anExpression.subDataDeclarationRef.componentDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[template public generateExpression(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.portDeclaration <> null)]
+[anExpression.subDataDeclarationRef.portDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template]
+
+[template public generateExpression(anExpression : DirectBooleanExpression) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateExpression(anExpression : DirectIntegerExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpression(anExpression : DirectFloatExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpression(anExpression : DirectStringExpression) post(trim())]
+[anExpression.value/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpression(anExpression : ValuedExpression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression'
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateExpression(anExpression : Expression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression'
+[/template]
+

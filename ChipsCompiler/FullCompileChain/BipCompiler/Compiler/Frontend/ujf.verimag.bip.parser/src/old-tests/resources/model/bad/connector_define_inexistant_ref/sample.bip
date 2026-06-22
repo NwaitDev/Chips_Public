@@ -1,0 +1,9 @@
+package sample
+
+ port type P_t()
+
+ connector type C_t(P_t p1, P_t p2)
+ define p1 p2 eza
+ end
+
+end

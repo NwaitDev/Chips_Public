@@ -1,0 +1,14 @@
+package triggerPortsValidWrtDefine
+  port type Port_t(int x)
+  
+  connector type CoT(Port_t p1, Port_t p2)
+  define p1' p2
+  on p1 p2 down {p2.x = 3; }
+  on p2 down { p2.x = 3; }
+  end
+
+  connector type CoT2(Port_t p1, Port_t p2)
+  define p1 p2
+  on p2 down { p2.x = 3; }
+  end
+end

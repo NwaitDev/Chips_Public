@@ -1,0 +1,158 @@
+// // From Generated code. FIXME: we should give java location.
+
+#include <TeaStoreVariation/ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt.hpp>
+
+#include <TeaStoreVariation/PV__TeaStoreVariation__boolboolfloatintint_xport_xt.hpp>
+
+// for exported port.
+#include <TeaStoreVariation/PV__TeaStoreVariation__boolboolfloatintint_xport_xt.hpp>
+#include <TeaStoreVariation/PV__TeaStoreVariation__boolboolfloatintint_xport_xt.hpp>
+#include <TeaStoreVariation/PT__TeaStoreVariation__boolboolfloatintint_xport_xt.hpp>
+
+static inline PortValue * getPortValue(const QuotedPortReference & qpr, const InteractionValue &civ){
+    Port &p = qpr.port();
+    vector<Port *>::size_type idx = 0;
+    for (vector<Port *>::const_iterator i = civ.ports().begin();
+         i != civ.ports().end();
+         i++, idx++){
+        if (&p == *i) break;
+    }
+    assert (idx < civ.ports().size()); // means we couldn't find corresponding port value 
+    return civ.portValues()[idx];
+}
+
+static inline PV__TeaStoreVariation__boolboolfloatintint_xport_xt * get_p0_cppd(const QPR__TeaStoreVariation__boolboolfloatintint_xport_xt & qpr, const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt &civ){
+  return dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(getPortValue(qpr, civ));
+}
+static inline PV__TeaStoreVariation__boolboolfloatintint_xport_xt * get_p1_cppd(const QPR__TeaStoreVariation__boolboolfloatintint_xport_xt & qpr, const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt &civ){
+  return dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(getPortValue(qpr, civ));
+}
+static inline PV__TeaStoreVariation__boolboolfloatintint_xport_xt * get_p2_cppd(const QPR__TeaStoreVariation__boolboolfloatintint_xport_xt & qpr, const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt &civ){
+  return dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(getPortValue(qpr, civ));
+}
+static inline PV__TeaStoreVariation__boolboolfloatintint_xport_xt * get_p3_cppd(const QPR__TeaStoreVariation__boolboolfloatintint_xport_xt & qpr, const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt &civ){
+  return dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(getPortValue(qpr, civ));
+}
+static inline PV__TeaStoreVariation__boolboolfloatintint_xport_xt * get_p4_cppd(const QPR__TeaStoreVariation__boolboolfloatintint_xport_xt & qpr, const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt &civ){
+  return dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(getPortValue(qpr, civ));
+}
+
+
+ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt(const string &name, QPR__TeaStoreVariation__boolboolfloatintint_xport_xt &p0_cppd, QPR__TeaStoreVariation__boolboolfloatintint_xport_xt &p1_cppd, QPR__TeaStoreVariation__boolboolfloatintint_xport_xt &p2_cppd, QPR__TeaStoreVariation__boolboolfloatintint_xport_xt &p3_cppd, QPR__TeaStoreVariation__boolboolfloatintint_xport_xt &p4_cppd, ConnPort__TeaStoreVariation__boolboolfloatintint_xport_xt &s_exported_port) : Connector(name), p0_cppd(p0_cppd), p1_cppd(p1_cppd), p2_cppd(p2_cppd), p3_cppd(p3_cppd), p4_cppd(p4_cppd), s_exported_port(s_exported_port) {
+    this->addPort(p0_cppd);
+    this->addPort(p1_cppd);
+    this->addPort(p2_cppd);
+    this->addPort(p3_cppd);
+    this->addPort(p4_cppd);
+    this->setExportedPort(s_exported_port);
+
+    // Interactions
+    _i__p0_cppd_p1_cppd_p2_cppd_p3_cppd_p4_cppd = new Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt(*this, true, true, true, true, true);
+}
+
+ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::~ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt() {
+
+    // Interactions
+    delete _i__p0_cppd_p1_cppd_p2_cppd_p3_cppd_p4_cppd;
+    for (vector<Interaction *>::const_iterator interactionIt = definedInteractions.begin() ;
+         interactionIt != definedInteractions.end() ;
+         ++interactionIt) {
+        delete *interactionIt;
+    }
+    definedInteractions.clear();
+}
+
+PortValue &ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::up(const InteractionValue &interactionValue) const {
+    assert(dynamic_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue) != NULL);
+    const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction_v __attribute__((unused)) = static_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue);
+    const Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction __attribute__((unused)) = &(c_interaction_v->mInteraction);
+    PV__TeaStoreVariation__boolboolfloatintint_xport_xt *cpv __attribute__((unused))= &(c_interaction_v->mExportedPortValue);
+    
+    // first
+    if(*c_interaction == *_i__p0_cppd_p1_cppd_p2_cppd_p3_cppd_p4_cppd) {
+    }
+    return *cpv;
+}
+
+void ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::down(InteractionValue &interactionValue) const {
+    // You should *never* reach this. Calling this method denotes an error in
+    // scheduling (the down(interactionvalue, portvalue) should have been used)
+    assert(false);
+}
+
+void ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::down(InteractionValue &interactionValue, PortValue &portValue) const {
+    assert(dynamic_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(&portValue) != NULL);
+    PV__TeaStoreVariation__boolboolfloatintint_xport_xt *cpv __attribute__((unused))= static_cast<PV__TeaStoreVariation__boolboolfloatintint_xport_xt *>(&portValue);
+    assert(dynamic_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue) != NULL);
+    const Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction __attribute__((unused)) = static_cast<const Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&(interactionValue.interaction()));
+    const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction_v __attribute__((unused)) = static_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue);
+    if(*c_interaction == *_i__p0_cppd_p1_cppd_p2_cppd_p3_cppd_p4_cppd) {
+    // // From Generated code. FIXME: we should give java location.
+        get_p0_cppd(p0_cppd, *c_interaction_v)->set_v0(c_interaction_v->cget_v0());
+    // // From Generated code. FIXME: we should give java location.
+        get_p1_cppd(p1_cppd, *c_interaction_v)->set_v1(c_interaction_v->cget_v1());
+    // // From Generated code. FIXME: we should give java location.
+        get_p2_cppd(p2_cppd, *c_interaction_v)->set_v2(c_interaction_v->cget_v2());
+    // // From Generated code. FIXME: we should give java location.
+        get_p3_cppd(p3_cppd, *c_interaction_v)->set_v3(c_interaction_v->cget_v3());
+    // // From Generated code. FIXME: we should give java location.
+        get_p4_cppd(p4_cppd, *c_interaction_v)->set_v4(c_interaction_v->cget_v4());
+    }
+}
+
+Interaction &ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::createInteraction() const{
+    Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *ret = NULL;
+
+    ret = new Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt(*this);
+
+    return *ret;
+}
+
+Interaction &ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::createInteraction(const vector<Port *> &ports) const{
+  Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *ret = NULL;
+
+    ret = new Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt(*this, ports);
+
+    return *ret;
+}
+
+InteractionValue &ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::createInteractionValue(const Interaction &interaction, const vector<PortValue *> &values) const {
+    InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *ret = NULL;
+
+    ret = new InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt(*this, interaction, values);
+
+    return *ret;
+}
+
+void ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::releaseInteraction(Interaction &interaction) const {
+    delete &interaction;
+}
+
+void ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::releaseInteractionValue(InteractionValue &interactionValue) const {
+    delete &interactionValue;
+}
+
+bool ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::guard(const InteractionValue &interactionValue) const {
+    assert(dynamic_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue) != NULL);
+    const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction_v __attribute__((unused)) = static_cast<const InterV__TeaStoreVariation__one2many_xboolboolfloatintint_xt *>(&interactionValue);
+    const Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt *c_interaction __attribute__((unused)) = &(c_interaction_v->mInteraction);
+    if(*c_interaction == *_i__p0_cppd_p1_cppd_p2_cppd_p3_cppd_p4_cppd){
+// // From Generated code. FIXME: we should give java location.
+
+        return true;
+    }
+
+    // default to true. May not be the wisest choice.
+    return true;
+}
+
+const vector<Interaction*>& ConnT__TeaStoreVariation__one2many_xboolboolfloatintint_xt::interactions() const {
+  if (definedInteractions.empty()) {
+    definedInteractions.push_back(new Inter__TeaStoreVariation__one2many_xboolboolfloatintint_xt(*this, true, true, true, true, true));
+  }
+
+  // check that the number of defined interactions is correct
+  assert(definedInteractions.size() == 1);
+
+  return definedInteractions;
+}

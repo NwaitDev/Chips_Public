@@ -1,0 +1,19 @@
+package duplicatedPlaceDeclaration
+
+ port type Port_t()
+ 
+ atom type AT()
+  port Port_t p()
+ 
+  place EXPORT1, INTERNAL, EXPORT2, STOPPED, STOPPED
+
+  initial to EXPORT1
+
+  on p from EXPORT1 to INTERNAL
+
+  on p from INTERNAL to EXPORT2
+
+  on p from EXPORT2 to STOPPED
+ end
+
+end

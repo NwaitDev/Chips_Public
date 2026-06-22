@@ -1,0 +1,19 @@
+package simple10counter
+
+ port type Port_t()
+ 
+ atom type AT()
+  data int count
+
+  place COUNTING, STOPPED
+  initial to COUNTING do { count = 0; }
+
+  internal from COUNTING to COUNTING provided (count < 10) do {count = count + 1; }
+  internal from COUNTING to STOPPED provided (count == 10)
+ end
+ 
+ compound type CT()
+  component AT c()
+ end
+
+end

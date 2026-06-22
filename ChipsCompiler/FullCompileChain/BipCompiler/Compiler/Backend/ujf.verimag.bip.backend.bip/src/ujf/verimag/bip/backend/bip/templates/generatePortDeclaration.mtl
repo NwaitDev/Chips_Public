@@ -1,0 +1,11 @@
+[comment encoding = UTF-8 /]
+[module generatePortDeclaration('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+
+[template public generatePortDeclaration(aPortDeclaration : PortDeclaration, container : BipType)]
+[aPortDeclaration.generatePortDeclaration(false, container)/]
+[/template]
+
+[template public generatePortDeclaration(aPortDeclaration : PortDeclaration, skipType: Boolean, container : BipType)]
+[if (not skipType)][qualifiedName(container, aPortDeclaration.portType)/] [/if][aPortDeclaration.name /]([for (param : DataDeclarationReferenceDataParameter | aPortDeclaration.dataParameters) separator(', ')][param.dataDeclarationReference.name /][/for])
+[/template]

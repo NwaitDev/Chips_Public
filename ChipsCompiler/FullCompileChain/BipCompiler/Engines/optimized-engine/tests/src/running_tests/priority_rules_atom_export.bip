@@ -1,0 +1,28 @@
+package priority_rules_atom_export
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType()
+    export port Port p(), q(), r(), s() as exp
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+    on r from INIT to END
+    on s from INIT to END
+
+    priority myPrio1 q < p
+    priority myPrio2 s < q
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+
+    connector Singleton single(myAtom.exp)
+  end
+end

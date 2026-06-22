@@ -1,0 +1,6 @@
+<project name="ujf.verimag.bip.frontend.tests" default="compile">
+	<property file="build.properties" />
+
+	<import file="${distribution.dir}/common.xml" />
+	
+</project>

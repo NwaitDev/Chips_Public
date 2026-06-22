@@ -1,0 +1,9 @@
+package this.is.a.pack
+
+ port type Port_t()
+
+ atom type Atom_t()
+  // missing body
+ end
+
+end

@@ -1,0 +1,10 @@
+[comment encoding = UTF-8 /]
+[module marshalling('http://bip2/1.0') /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[template public genMarshallingSize(anAtomInstance : AtomInstance) post(trim())
+{
+at : AtomType = anAtomInstance.declaration.type.oclAsType(AtomType);
+}]
+sizeof(int)[for (dd : AtomInternalDataDeclaration | at.internalDataDeclarations) before(' + ') separator(' + ')]sizeof([dd.dataType.typeName()/])[/for]
+[/template]

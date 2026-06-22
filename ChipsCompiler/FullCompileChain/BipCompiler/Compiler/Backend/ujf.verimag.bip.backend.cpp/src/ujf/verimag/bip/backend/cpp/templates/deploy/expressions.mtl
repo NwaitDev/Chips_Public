@@ -1,0 +1,72 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') /]
+
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[comment
+The following set of template simply generates back the input expression without
+any modification.
+/]
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : DirectDataDeclarationReferenceExpression) post(trim())]
+[if (anExpression.dataDeclaration.oclIsKindOf(ComponentDataParameterDeclaration))]
+[anExpression.dataDeclaration.oclAsType(ComponentDataParameterDeclaration).varName(aCompoundInstance)/]
+[elseif (anExpression.dataDeclaration.oclIsKindOf(ConstDataDeclaration))]
+[anExpression.dataDeclaration.oclAsType(ConstDataDeclaration).varName()/]
+[else]
+#error bad data param type
+[/if]
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : BinaryOpExpression) post(trim())]
+([aCompoundInstance.generateCpndDeployExpression(anExpression.left) /]) [' ' + anExpression.operator + ' '/] ([aCompoundInstance.generateCpndDeployExpression(anExpression.right) /])
+[/template]
+
+[template public generateCpndDeployExpression(aCompoundInstance : CompoundInstance, anExpression : FunctionCallExpression) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][aCompoundInstance.generateCpndDeployExpression(ve) /][/for])
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : UnaryOpExpression) post(trim())]
+[anExpression.operator /] ([aCompoundInstance.generateCpndDeployExpression(anExpression.operand) /])
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : DirectBooleanExpression) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : DirectIntegerExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : DirectFloatExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : DirectStringExpression) post(trim())]
+[anExpression.value/]
+[/template]
+
+
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : ValuedReferenceExpression) post(trim())]
+[aCompoundInstance.generateCpndDeployExpression(anExpression.expressionReference)/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateCpndDeployExpressionWithoutCast(aCompoundInstance : CompoundInstance, anExpression : ValuedExpression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression' [anExpression/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateCpndDeployExpression(aCompoundInstance : CompoundInstance, anExpression : ValuedExpression) {
+    type : Type = anExpression.getType();
+    expectedType : Type = anExpression.getExpectedType();
+    hasToBeCasted : Boolean = (type <> expectedType and expectedType <> null);
+}]
+[if (hasToBeCasted)][expectedType.typeName()/]([/if][generateCpndDeployExpressionWithoutCast(aCompoundInstance, anExpression)/][if (hasToBeCasted)])[/if]
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateCpndDeployExpression(aCompoundInstance : CompoundInstance, anExpression : Expression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression'  [anExpression/]
+[/template]
+
+
