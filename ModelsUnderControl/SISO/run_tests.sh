@@ -44,6 +44,8 @@ ${CXX} ${CXXFLAGS} \
     -I. \
     -o ${BUILD_DIR}/test_pi
 
+
+
 ${CXX} ${CXXFLAGS} \
     ${TEST_DIR}/test_PIDController.cpp \
     ${CONTROLLER_OBJS} \
@@ -55,6 +57,7 @@ echo "Exécution des tests"
 ./${BUILD_DIR}/test_p
 ./${BUILD_DIR}/test_pi
 ./${BUILD_DIR}/test_pid
+
 
 echo "Tests terminés"
 echo "Fichiers CSV générés :"
