@@ -2,7 +2,10 @@
 #define PID_CONTROLLER_HPP
 
 #include "../../IControllerSISO.hpp"
+#include "../../../Filters/IFilter.hpp"
+#include "../../../AntiWindup/IAntiWindup.hpp"
 #include <limits>
+#include <memory>
 
 /**
  * @file PIDController.hpp
@@ -28,8 +31,11 @@ public:
      * @param kp Proportional gain
      * @param ki Integral gain
      * @param kd Derivative gain
+     * @param inputFilter nullptr -> PassThroughFilter  (applied to the measurement)
+     * @param outputFilter nullptr -> PassThroughFilter (applied to the PI output)
+     * @param antiwindup nullptr -> NoAntiWindup
      */
-    PIDController(float kp, float ki, float kd);
+    PIDController(float kp, float ki, float kd, std::shared_ptr<IFilter> inputFilter = nullptr, std::shared_ptr<IFilter> outputFilter = nullptr, std::shared_ptr<IAntiWindup> antiwindup = nullptr);
 
     /**
      * @brief Construct a new PIDController object with output limits
@@ -137,6 +143,25 @@ public:
     void setKd(float kd) { m_kd = kd; }
 
     /**
+     * @brief Set the input filter (applied to the raw measurement).
+     *
+     * Typical choices: LowPassFilter (sensor noise), DeadbandFilter (sensor
+     * quantization), or a CompositeFilter combining both.
+     * nullptr -> PassThroughFilter.
+     */
+    void setInputFilter(std::shared_ptr<IFilter> inputFilter) { m_inputFilter = std::move(inputFilter); }
+
+    /**
+     * @brief Set the output filter (applied to the raw P command).
+     *
+     * Typical choices: ClampFilter (saturation), RateLimiterFilter (slew
+     * rate), or a CompositeFilter. nullptr -> PassThroughFilter.
+     */
+    void setOutputFilter(std::shared_ptr<IFilter> outputFilter) { m_outputFilter = std::move(outputFilter); }
+
+    void setAntiWindup(std::shared_ptr<IAntiWindup> antiwindup) { m_antiWindup = std::move(antiwindup); }
+
+    /**
      * @brief Set the output limits object
      *
      * @param minOutput Minimum output limit
@@ -149,6 +174,22 @@ public:
      */
     void removeOutputLimits();
 
+    const IFilter* getInputFilter()  const { return m_inputFilter.get();  }
+    const IFilter* getOutputFilter() const { return m_outputFilter.get(); }
+    const IAntiWindup* getAntiWindup() const { return m_antiWindup.get(); }
+ 
+    /**
+     * @brief Return the last input-filtered measurement used in compute().
+     *
+     * Useful for debugging: compare with getCurrentValue() to see what the
+     * input filter removed.
+     */
+    float getFilteredMeasure() const { return m_filteredMeasure; }
+
+    float getProportional() const { return m_proportional; }
+    float getIntegral() const { return m_integral; }
+    float getDerivative() const { return m_derivative; }
+
 private:
     float m_kp;             // Proportional gain
     float m_ki;             // Integral gain
@@ -159,9 +200,18 @@ private:
 
     float m_targetValue;    // Target setpoint value
     float m_currentValue;   // Current measured value
+
+    float m_proportional;
     float m_integral;       // Integral of the error
+    float m_derivative;
+
     float m_correction;     // Controller output (correction)
     float m_prevError;
+    float m_filteredMeasure; // Last value after the input filter
+
+    std::shared_ptr<IFilter> m_inputFilter;
+    std::shared_ptr<IFilter> m_outputFilter;
+    std::shared_ptr<IAntiWindup> m_antiWindup;
 
     /**
      * @brief Clamp the given value within the output limits if they are set

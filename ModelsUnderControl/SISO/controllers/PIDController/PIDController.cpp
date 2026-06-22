@@ -4,6 +4,8 @@
  */
 
 #include "PIDController.hpp"
+#include "../../../Filters/StatelessFilter/PassThrough/PassThroughFilter.hpp"
+#include "../../../AntiWindup/StatelessAntiWindup/NoAntiWindup/NoAntiWindup.hpp"
 #include <iostream>
 
 ControllerPtr create_pid_controller(float kp, float ki, float kd) {
@@ -14,7 +16,7 @@ ControllerPtr create_pid_controller_with_limits(float kp, float ki, float kd, fl
     return new PIDController(kp, ki, kd, minOutput, maxOutput);
 }
 
-PIDController::PIDController(float kp, float ki, float kd) 
+PIDController::PIDController(float kp, float ki, float kd, std::shared_ptr<IFilter> inputFilter, std::shared_ptr<IFilter> outputFilter, std::shared_ptr<IAntiWindup> antiwindup) 
     : m_kp(kp),
       m_ki(ki), 
       m_kd(kd), 
@@ -23,9 +25,18 @@ PIDController::PIDController(float kp, float ki, float kd)
       m_hasLimits(false),
       m_targetValue(0.0f),
       m_currentValue(0.0f),
+      m_proportional(0.0f),
       m_integral(0.0f),
+      m_derivative(0.0f),
       m_correction(0.0f),
-      m_prevError(0.0f)
+      m_prevError(0.0f),
+      m_filteredMeasure(0.0f),
+      m_inputFilter(inputFilter ? std::move(inputFilter)
+                                : std::make_shared<PassThroughFilter>()),
+      m_outputFilter(outputFilter ? std::move(outputFilter)
+                        : std::make_shared<PassThroughFilter>()),
+      m_antiWindup(antiwindup ? std::move(antiwindup)
+                              : std::make_shared<NoAntiWindup>())
 {
 }
 
@@ -38,9 +49,15 @@ PIDController::PIDController(float kp, float ki, float kd, float minOutput, floa
       m_hasLimits(true),
       m_targetValue(0.0f),
       m_currentValue(0.0f),
+      m_proportional(0.0f),
       m_integral(0.0f),
+      m_derivative(0.0f),
       m_correction(0.0f),
-      m_prevError(0.0f)
+      m_prevError(0.0f),
+      m_filteredMeasure(0.0f),
+      m_inputFilter(std::make_shared<PassThroughFilter>()),
+      m_outputFilter(std::make_shared<PassThroughFilter>()),
+      m_antiWindup(std::make_shared<NoAntiWindup>())
 {
 }
 
@@ -65,11 +82,16 @@ void PIDController::setCurrentValue(float currentValue) {
 }
 
 float PIDController::compute(float dt) {
+
+    // m_filteredMeasure = m_inputFilter->apply(m_currentValue, dt);
+
     // 1. Erreur
+    // float error = m_targetValue - m_filteredMeasure;
     float error = m_targetValue - m_currentValue;
 
     // 2. Terme P
     float p_out = m_kp * error;
+    m_proportional = error;
 
     // 3. Terme I
     m_integral += error * dt;
@@ -80,10 +102,26 @@ float PIDController::compute(float dt) {
     if (dt > 0.0f) {
         derivative = (error - m_prevError) / dt;
     }
+
+    m_derivative = derivative;
     float d_out = m_kd * derivative;
 
+    float rawCorrection = p_out + i_out + d_out;
+
+    // keep unclamped raw value for anti-windup correction
+    float unclamped = rawCorrection;
+
+    // apply output limits (saturation)
+    float saturated = clamp(unclamped);
+
+    const float filtered = m_outputFilter->apply(saturated, dt);
+
+    // Anti-Windup : correct the integral using the unclamped raw and the saturated output
+    // m_integral = m_antiWindup->correct(unclamped, filtered, m_integral, error, dt);
+    m_integral = m_antiWindup->correct(unclamped, saturated, m_integral, error, dt);
+    
     // 5. Sortie
-    m_correction = clamp(p_out + i_out + d_out);
+    m_correction = filtered;
 
     // 6. Mémoire
     m_prevError = error;

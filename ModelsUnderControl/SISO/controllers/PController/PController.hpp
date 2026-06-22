@@ -2,7 +2,11 @@
 #define PCONTROLLER_H
 
 #include "../../IControllerSISO.hpp"
+#include "../../../Filters/IFilter.hpp"
+#include "../../../AntiWindup/IAntiWindup.hpp"
 #include <limits>
+#include <vector>
+#include <memory>
 
 typedef IControllerSISO* ControllerPtr;
 
@@ -21,12 +25,12 @@ ControllerPtr create_p_controller_with_limits(float kp, float minOutput, float m
  */
 class PController : public IControllerSISO {
 public:
-    /**
-     * @brief Construct a new PController object
-     * 
-     * @param kp Proportional gain
-     */
-    explicit PController(float kp);
+    // /**
+    //  * @brief Construct a new PController object
+    //  * 
+    //  * @param kp Proportional gain
+    //  */
+    // explicit PController(float kp);
 
     /**
      * @brief Construct a new PController object with output limits
@@ -36,6 +40,16 @@ public:
      * @param maxOutput Maximum output limit
      */
     PController(float kp, float minOutput, float maxOutput);
+
+    /**
+     * @brief Construct a new PController object
+     * 
+     * @param kp Proportional gain
+     * @param inputFilter nullptr -> PassThroughFilter  (applied to the measurement)
+     * @param outputFilter nullptr -> PassThroughFilter (applied to the P output)
+     * @param antiwindup nullptr -> NoAntiWindup
+     */
+    PController(float kp, std::shared_ptr<IFilter> inputFilter = nullptr, std::shared_ptr<IFilter> outputFilter = nullptr, std::shared_ptr<IAntiWindup> antiwindup = nullptr);
 
     /**
      * @brief Get the target value object
@@ -87,6 +101,30 @@ public:
     void setKp(float kp) { m_kp = kp; }
 
     /**
+     * @brief Set the input filter (applied to the raw measurement).
+     *
+     * Typical choices: LowPassFilter (sensor noise), DeadbandFilter (sensor
+     * quantization), or a CompositeFilter combining both.
+     * nullptr -> PassThroughFilter.
+     */
+    void setInputFilter(std::shared_ptr<IFilter> inputFilter);
+
+    /**
+     * @brief Set the output filter (applied to the raw P command).
+     *
+     * Typical choices: ClampFilter (saturation), RateLimiterFilter (slew
+     * rate), or a CompositeFilter. nullptr -> PassThroughFilter.
+     */
+    void setOutputFilter(std::shared_ptr<IFilter> outputFilter);
+
+    /**
+     * @brief Set an anti-windup to correct the integrator when the output is satured
+     * 
+     * nullptr -> NoAntiWindup
+     */
+    void setAntiWindup(std::shared_ptr<IAntiWindup> aw);
+
+    /**
      * @brief Set output limits for the controller
      * 
      * @param minOutput Minimum output limit
@@ -116,6 +154,18 @@ public:
      */
     void removeOutputLimits();
 
+    const IFilter* getInputFilter()  const { return m_inputFilter.get();  }
+    const IFilter* getOutputFilter() const { return m_outputFilter.get(); }
+    const IAntiWindup* getAntiWindup() const { return m_antiWindup.get(); }
+ 
+    /**
+     * @brief Return the last input-filtered measurement used in compute().
+     *
+     * Useful for debugging: compare with getCurrentValue() to see what the
+     * input filter removed.
+     */
+    float getFilteredMeasure() const { return m_filteredMeasure; }
+
 private:
     float m_kp;           // Proportional gain
     float m_minOutput;    // Minimum output limit
@@ -125,6 +175,11 @@ private:
     float m_targetValue;  // Setpoint
     float m_currentValue; // Measured value
     float m_correction;   // Controller output
+    float m_filteredMeasure; // Last value after the input filter
+
+    std::shared_ptr<IFilter> m_inputFilter;
+    std::shared_ptr<IFilter> m_outputFilter;
+    std::shared_ptr<IAntiWindup> m_antiWindup;
     
     /**
      * @brief Clamps the value within the set output limits if limits are active
