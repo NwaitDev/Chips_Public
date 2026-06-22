@@ -1,5 +1,3 @@
-# Chips
-
 # The Chips language
 
 <img src="img/CHIPS.png">
@@ -12,160 +10,62 @@ Chips is a language to textually design complex systems with ease. Its main focu
 
 Whatever the devices, whatever the number or the structure of the network they form, Chips will handle it, and it will give the programmer the opportunity to manage all the parameters **adaptively**.
 
-It is (going to be) a strongly typed language with the particuliarity of being **functionnal (and soon, object oriented)**. Chips assumes that each subroutine is either a mathematical function, a temporarily centralized operation, or a perpetually executed protocol instanciated on each device.
+It is a synchronous description language that is built upon the [BIP framework](https://www-verimag.imag.fr/TOOLS/DCS/bip/doc/latest/html/index.html). Chips assumes that each subroutine is either a temporarily centralized operation (which Chips calls *logical*), or a perpetually executed protocol (respectively *physical*) instanciated on each device.
 
-The Chips language takes its root in the design of block schema representation of complex systems, and allows to modelize such systems with a syntax that mixes C and Mathematical description of functions. 
+Its toolchain being built using robust Model Driven Engineering methods and tools (EMF metamodels and ATL Model2Model transformations), we ensure the code generated from a Chips specification is correct regarding our language semantics (yet to be formalised). The so-said code is generated acknowledging the different nature of the model's elements.
 
-$$
-    \begin{cases}
-        f : & \mathbb{R} & \rightarrow &  \mathbb{R}\\
-        & x & \rightarrow & 3 x
-    \end{cases}
-$$
+The Chips language takes its root in the design of block schema representation of complex systems, and allows to modelize such systems with a syntax that mixes C-style definition of functions with dataflow logics.
 
-would be written:
+## Chips typical usage
 
-```cpp
-pure f(float x) -> (3*x)
-```
-
-
-When an engineer wants to test a system they designed using a functionnal block representation such as the following image, chips allows to code the functions directly as they are in the diagram.
-
-<img src="img/ClosedLoop.png">
-
-
-The associated code would look like this:
-
-```cpp
-
-import "thermometer.json" as thermometer;
-
-pure pid(float error, float ierror, float derror) 
-		-> (2*error+3.2*ierror+0.4*derror)
-
-pure errorf(float expected, float received) 
-		-> (expected - received)
-
-// control operation from the control theory perspective
-virtual control(float expected, float received) init {
-    float derivative = 0;
-    float integral = 0;
-    float lasterror = 0;
-    float error = 0;
-    float out = pid(error, integral, derivative);
-} then {
-    error = errorf(expected, received);
-    derivative = (lasterror-error)/dt;
-    integral = integral+error*dt;
-    lasterror = error;
-    out = pid(error, integral, derivative)
-} -> (out)
-
-
-
-pure input() -> (23) // 23°c required by the user
-pure output(float any) -> (any) // temperature in the room
-
-physical resistance.json resistance(float voltage, float roomTemp) init {
-    float resTemp = roomTemp; // in °c
-} then {
-    resTemp = (resTemp + voltage*this.roomSizeFactor + roomTemp)/2;
-} -> (resTemp)
-
-
-physical thermometer(float roomTemp) init {
-    int delay = 10;
-    float [] temperatureOverTime = floatarray(delay, roomTemp);
-} then {
-    for(int i = delay-1; i>0; --i){
-        temperatureOverTime[i]=temperatureOverTime[i-1];
-    }
-    temperatureOverTime[0] = roomTemp;
-} -> (temperatureOverTime[delay-1])
-
-
-SYSTEM dimensions(3) {
-    control controller;
-    thermometer thermo; //coordinates of the thermometer in the space
-    resistance resis; //coordinates of the resistance in the space
-
-    link controller to resis;
-
-    controller.in(input.out, thermo.out);
-    resis.in(controller.out);
-    thermo.in(resis.out);
-    output.in(resis.out);
-
-    thermo at (0,0,0);
-    resis at (1,1,1);
-}
-```
-
-## Types
-
-Chips is integrating two different categories of types : dataflow types, and function types.
-
-
-### Dataflow types
-
-On the one hand, dataflow types are a set of usual primitive types found in most programming languages:
-
-- **int** for relative numbers;
-- **float** for floating point values;
-- **bool** for true and false;
-- **\<type>[]** for dynamic dataflow arrays;
-
-These data types serve as input and output types for all the components of the complex systems.
-
-### Function types
-
-On the other hand, function types are there to give context to the operations:
-
-- **pure** is the type for mathematical constructs that need no physical support (i.e. devices) to exist or being defined. They only treat dataflows.
-- **physical (object)** is the type for procedures that are, by default, embodied in physical devices. A **physical** is always associated to a json file describing the capabilities and features of the device.
-- **virtual (object)** is the type of the procedures that may independently be instanciated on any device of the system.
-
-Actually, each one of these types can be seen as functions, except that :
-
-- objects have a memory for additionnal treatment,
-- real objects are to be placed in space,
-- virtual objects have to be linked to at least one real object with enough memory associated for their instanciation.
-
-<img src="img/FunctionTypesDiagram.png">
-
-On top of these function types, the language will implement **\<object type>[]** for arrays containing many functionnal blocks at the same time, thus allowing loop construction of systems when many virtual or real components are used.
-
-
-## About the compilation
-
-<img src="img/Compilation.png">
-
-## XMI generation
-
-The parser can generate an XMI file automatically when parsing a `.chips` file.
-You can select the schema version used in `xsi:schemaLocation` with a CLI flag.
-
-Example:
-
-```bash
-./chipsc path/to/file.chips --schema-version 1.1
-./chipsc path/to/file.chips --schema-version 2
-```
-
-Default schema version is `1.1` when the flag is not provided.
+- Simulation of Block Diagram models according to Chips specification,
+- Easy generation of large BIP models when their desired architecture matches the Chips semantics,
+- C++ code generation for Chips Models to embark on real hardware,
+- JavaBIP code generation for interfacing with other Java applications like microservices (yet to be integrated).
 
 ## Current state of the project
 
-Currently, The language can be recognized by the parser, but type check operations are not completed and no complete data structure for a model is available.
-There is still a need to code the BIP object file generator and physical coherence check for a system (no overlapping of physical devices).
+- A parser is implemented for the language, separately from the rest of the compile chain. It generates ```.xmi``` serialized versions of Chips models.
+- ATL transformations are developped for turning ```.xmi``` serialized versions of Chips models into ```.xmi``` serialized versions of equivalent (yet to prove) BIP models. Such transformations are based on the ```chips1.1.ecore``` and ```BIP.ecore``` metamodels. They are 
+  - fully integrated to the compile chain, 
+  - but not complete yet (missing interpretation of network architecture, dataflows and collective primitives)
+- A forked version of the BIP compiler is provided. It has been modified to be able to either read ```.bip``` files or ```.xmi``` serialized versions of BIP models. It is also integrated to the compile chain.
 
-The target language for the compilation will be BIP (in order to more easily prove properties of the system designed). The compiler will probably be written in C++ because its data types can be imported in BIP. 
 
+## Installation (On Unix based systems)
+
+(Currently, no other OS is supported)
+
+Before anything, make sure you have all the following software in a recent enough version (who still uses java 1.7 anyway?) installed on your machine:
+``` 
+git g++ gcc make cmake build-essential curl bash ant java
+```
+
+Once all these softwares are installed with the method of your choic, open a terminal and run:
+```bash
+cd <path to your desired installation location>
+git clone git@github.com:NwaitDev/Chips_Public.git
+cd Chips_Public/ChipsCompiler/FullCompileChain
+./build.sh # Compiles all the sources (Chips Parser + ATL transformations + BIP Compiler)
+source setenv.sh # Defines Environment variables to run the compiler
+```
+
+## Running the compiler
+
+The compiler CLI is available in the form of a bash script:
+```<Installation path>/Chips_Public/ChipsCompiler/FullCompileChain/chipsc.sh```.
+
+Feel free to make your own alias or simlink for this program.
+
+## Documentation Links
+
+- [Users documentation](./documentation/UsersDocumentation/UD0_Introduction.md)
+- [Developers documentation](./documentation/DevelopersDocumentation/DD0_Introduction.md)
 
 ## Upgrades for next versions of Chips 
 
 - Adding MACROS ?
+- Generation of Block Diagrams PNG from Chips specs ? <3 
 - adding collective primitives to the base syntax to integrate aggregate programming features
 - aliases to apply dimensionnal analysis on top of the type checking
 - Object orientation of the language (interfaces, inheritance, object composition)
@@ -173,10 +73,9 @@ The target language for the compilation will be BIP (in order to more easily pro
 - Syntaxic coloration for Chips and some code snippets
 - Function wrapping in different files
 - new syntax for easier usage of physical interfaces ?
-
-## Authors and acknowledgment
-Designed and implemented by Anna <3
-Thesis project supervised by O. Kouchnarenko, S. Cerf And S. Bliudze
+- Pure addition and extension (syntactic sugar)
+- multiple devices node implementation
+- external chips libraries/packages
 
 ## License
 I have no idea of what license to use, I'm just a poor little PhD student 

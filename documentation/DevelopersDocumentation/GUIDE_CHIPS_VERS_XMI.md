@@ -1,5 +1,19 @@
 # Guide de génération CHIPS → XMI
 
+
+## XMI generation options
+
+The CLI supports choosing the XMI schema version with `--schema-version`.
+Valid values are `1.1` and `2`. The default is `1.1`.
+
+Examples:
+
+```bash
+./chipsc path/to/file.chips --schema-version 1.1
+./chipsc path/to/file.chips --schema-version 2
+```
+
+
 ## 1) Objectif du module
 
 Ce dossier implémente la conversion d'un AST CHIPS vers un fichier XMI conforme au méta-modèle CHIPS (`chips1.1.ecore` ou `chips2.ecore`).

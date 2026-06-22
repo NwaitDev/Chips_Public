@@ -1,4 +1,6 @@
-# Documentation
+# Glossary
+
+Here are quickly defined most of the technical expressions used throughout the Chips Documentation. It is most likely to be outdated/often updated as the language is not so mature and still in development.
 
 ## Structural configuration
 
@@ -73,24 +75,3 @@ A **function** that can effectively produce an output is what we call a **source
 ## Deadlock freedom
 
 A system is said to be **deadlock free** if all functions are **sources**. A system must be deadlock free to be compiled and run.
-
-## XMI generation options
-
-The CLI supports choosing the XMI schema version with `--schema-version`.
-Valid values are `1.1` and `2`. The default is `1.1`.
-
-Examples:
-
-```bash
-./chipsc path/to/file.chips --schema-version 1.1
-./chipsc path/to/file.chips --schema-version 2
-```
-
--------------------------------------------
-
-
-# Further developments
-
-- Pure addition and extension (syntactic sugar)
-- multiple devices node implementation
-- external chips libraries/packages
