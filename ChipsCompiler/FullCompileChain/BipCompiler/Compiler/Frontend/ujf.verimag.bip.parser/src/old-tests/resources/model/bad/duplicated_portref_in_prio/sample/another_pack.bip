@@ -1,0 +1,7 @@
+package sample.another_pack
+
+ use sample.someone_else
+port type Port_tt()
+
+end
+

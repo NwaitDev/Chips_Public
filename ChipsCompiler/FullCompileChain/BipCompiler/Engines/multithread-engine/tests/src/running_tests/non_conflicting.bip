@@ -1,0 +1,24 @@
+package non_conflicting
+  port type Port()
+
+  atom type Atom()
+    export port Port p(), q()
+
+    place L1, L2
+
+    initial to L1
+
+    on p from L1 to L2
+    on q from L2 to L1
+  end
+
+  connector type RendezVous(Port p, Port q)
+    define p q
+  end
+
+  compound type Comp()
+    component Atom A(), B(), C(), D()
+    connector RendezVous c1(A.p, B.p), c2(C.p, D.p)
+    connector RendezVous c3(A.q, B.q), c4(C.q, D.q)
+  end
+end

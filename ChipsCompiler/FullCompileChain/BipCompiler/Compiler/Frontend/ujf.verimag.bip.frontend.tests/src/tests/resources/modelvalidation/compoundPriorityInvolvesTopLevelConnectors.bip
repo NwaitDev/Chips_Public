@@ -1,0 +1,47 @@
+package compoundPriorityInvolvesTopLevelConnectors
+  port type Port_t()
+
+  atom type AT()
+    export port Port_t p()
+
+    place S1
+    initial to S1
+    on p from S1 to S1
+  end
+
+  connector type CoT(Port_t p1, Port_t p2)
+    define p1 p2
+  end
+  
+  connector type CoXT(Port_t p1, Port_t p2)
+    export port Port_t x()
+    define p1 p2
+  end
+
+  compound type CT()
+    component AT a1(), a2(), a3(), a4(),
+                a5(), a6(), a7(), a8()
+                
+    connector CoXT c12(a1.p, a2.p)
+    connector CoXT c23(a3.p, a4.p)
+    connector CoXT c56(a5.p, a6.p)
+    connector CoXT c78(a7.p, a8.p)
+   
+    connector CoT c1234(c12.x, c23.x)
+    connector CoT c5678(c56.x, c78.x)
+   
+    connector CoXT cX1234(c12.x, c23.x)
+    connector CoXT cX5678(c56.x, c78.x)
+    
+    priority badPrio1 c12:* < c23:*
+    priority badPrio2 c12:* < c56:*
+    
+    priority goodPrio1 c1234:* < c5678:*
+    priority goodPrio2 cX1234:* < cX5678:*
+    priority goodPrio3 c5678:* < cX1234:*
+        
+    export port cX1234.x as x
+    export port cX5678.x as y
+  end
+
+end

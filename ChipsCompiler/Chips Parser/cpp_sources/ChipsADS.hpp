@@ -125,7 +125,7 @@ namespace chips_ads {
                 }
             }
             
-            inline void debug(){for (int n : dimension) { std::cout<<"["<<n<<"]"; }}
+            void debug(){for (int n : dimension) { std::cout<<"["<<n<<"]"; }}
 
             size_t get_cardinality();
 
@@ -179,7 +179,7 @@ namespace chips_ads {
             dataflow_t(const DATAFLOW_TYPE type, const std::vector<size_t> dimensions);
             ~dataflow_t();
 
-            inline void set_as_argument() {is_set = true;};
+            void set_as_argument() {is_set = true;};
             
             void set_value(int value);
             void set_value(double value);
@@ -194,7 +194,7 @@ namespace chips_ads {
             
             inline bool in_use(){return is_set;}
 
-            inline void debug(){ std::cout<< type; dimension.debug(); std::cout<<" variable(is set: "<< in_use() <<")\n";}
+            void debug(){ std::cout<< type; dimension.debug(); std::cout<<" variable(is set: "<< in_use() <<")\n";}
             
             inline DATAFLOW_TYPE get_df_type(){return type;}
             inline const dimension_t get_dimension(){return dimension.get_dimension();}

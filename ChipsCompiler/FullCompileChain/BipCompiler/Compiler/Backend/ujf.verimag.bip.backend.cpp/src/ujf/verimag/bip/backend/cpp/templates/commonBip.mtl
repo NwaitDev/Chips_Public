@@ -1,0 +1,221 @@
+[comment encoding = UTF-8 /]
+[module commonBip('http://bip2/1.0')/]
+
+
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+[import ujf::verimag::bip::backend::cpp::templates::traceBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[comment 
+    This module mainly contains path handling. In your templates, you should
+    mainly use 'relXppFilePath()' and 'relXppFilePath(aname)'. The other queries
+    are internal recipies.
+/]
+
+[comment Simply creates a header guard for avoiding duplicate inclusion /]
+[template public startHeaderGuard(aFilePath : String)]
+#ifndef [aFilePath.toUpper().substituteAll('_', '__').substituteAll('/', '_').substituteAll('.', '_') /]_
+#define [aFilePath.toUpper().substituteAll('_', '__').substituteAll('/', '_').substituteAll('.', '_') /]_
+
+[/template]
+
+[template public endHeaderGuard(aFilePath : String)]
+#endif // [aFilePath.toUpper().substituteAll('_', '__').substituteAll('/', '_').substituteAll('.', '_') /]_
+[/template]
+
+[comment
+	Produces names from dotted names.
+	Unicity is ensure of the produced names is ensured by replacing:
+		(i) first '_' by '__'
+        (ii) then '.' by '_'.
+/]
+
+[query public hppRoot(aPackage : BipPackage) : String = aPackage.dirName() /]
+[query public cppRoot(aPackage : BipPackage) : String = aPackage.dirName()  /]
+
+[query private hppRoot(aType : BipType) : String = 'include' /]
+[query private cppRoot(aType : BipType) : String = 'src' /]
+
+[query public packagePath(aType : BipType) : String =
+    aType.eContainer(BipPackage).dirName()
+/]
+
+[query public fullCppFilePath(aType : BipType, aClassName: String) : String =
+    aType.cppRoot() + '/' + aType.relCppFilePath(aClassName)
+/]
+[query public fullCppFilePath(aType : BipType) : String =
+    aType.fullCppFilePath(aType.className())
+/]
+
+[query public fullHppFilePath(aType : BipType, aClassName: String) : String =
+    aType.hppRoot() + '/' + aType.relHppFilePath(aClassName)
+/]
+
+[query public fullHppFilePath(aType : BipType) : String =
+    aType.fullHppFilePath(aType.className())
+/]
+
+[query public relCppFilePath(aType : BipType, aClassName: String) : String =
+    aType.packagePath() + '/' + aClassName + '.cpp'
+/]
+[query public relCppFilePath(aType : BipType) : String =
+    aType.relCppFilePath(aType.className())
+/]
+
+[query public relHppFilePath(aType : BipType, aClassName: String) : String =
+    aType.packagePath() + '/' + aClassName + '.hpp'
+/]
+
+[query public relHppFilePath(aType : BipType) : String =
+    aType.relHppFilePath(aType.className())
+/]
+
+[query public fullPackageHppFilePath(aPackage : BipPackage) : String =
+    aPackage.hppRoot() + '/include/' + aPackage.relPackageHppFilePath()
+/]
+
+[query public relPackageHppFilePath(aPackage : BipPackage) : String =
+    aPackage.dirName() + '.hpp'
+/]
+
+[comment
+    from a Sequence of string, simply join them with '/'
+    This won't work on non-Unix platform where file path separator is not '/'
+/]
+[query private joinPath(paths : Sequence(String)) : String =
+    if paths->size() = 1 then
+        paths->last()
+    else
+        paths->first() + '/' + joinPath(paths->subSequence(2, paths->size()))
+    endif
+/]
+
+
+[comment 
+    Returns the directory part of a file path
+/]
+[query private getDirname(obj : OclAny) : String =
+    let a: Sequence(String) = obj.getSourceURLString().substring(6).tokenize('/') in '/' + joinPath(a->subSequence(1, a->size()-1)) + '/'
+/]
+
+[comment 
+    Returns the absolute path for the 'path'. If path is relative, absolute is computed
+    wrt. sourceUrl found in 'obj'
+/]
+[query private absolutizePath(path : String, obj : OclAny) : String =
+if path.startsWith('/') then path
+else getDirname(obj) + './' + path
+endif
+/]
+
+
+[comment 
+    Returns a sequence of user specified include to add in generated code.
+    @cpp(include="file1.hpp,file2.hpp")
+    This query returns user includes for a package
+/]
+[query public getUserIncludes(aPackage : BipPackage) : Sequence(String) = 
+    if aPackage.hasAnnotation('cpp', 'include') then 
+        aPackage.getAnnotation('cpp', 'include').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')
+    else
+        Sequence{}
+    endif
+/]
+
+[comment 
+    Returns a sequence of user specified include to add in generated code.
+    @cpp(include="file1.hpp,file2.hpp")
+    This query returns user includes for a given type and appends also the
+    includes specified in the enclosing package
+/]
+[query public getUserIncludes(aType : BipType) : Sequence(String) = 
+    (if aType.hasAnnotation('cpp', 'include') then 
+        aType.getAnnotation('cpp', 'include').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')
+    else
+        Sequence{}
+    endif)->union(aType.eContainer(BipPackage).getUserIncludes())
+/]
+
+[comment 
+    Returns a sequence of user specified src to compile along with the generated code.
+    @cpp(src="file1.cpp,file2.cpp")
+    This query returns user src for a package
+/]
+[query public getUserExtraSrc(aPackage : BipPackage) : Sequence(String) = 
+    if aPackage.hasAnnotation('cpp', 'src') then 
+        aPackage.getAnnotation('cpp', 'src').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')->collectNested(s:String| s.absolutizePath(aPackage))
+    else
+        Sequence{}
+    endif
+/]
+
+[comment 
+    Returns a sequence of user specified src to compile along with the generated code.
+    @cpp(src="file1.cpp,file2.cpp")
+    This query returns user src for a given type
+/]
+[query public getUserExtraSrc(aType : BipType) : Sequence(String) = 
+    if aType.hasAnnotation('cpp', 'src') then 
+        aType.getAnnotation('cpp', 'src').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')->collectNested(s:String| s.absolutizePath(aType))
+    else
+        Sequence{}
+    endif
+/]
+
+[comment 
+    Returns a sequence of user specified obj to link with the generated code.
+    @cpp(obj="file1.o,file2.o")
+    This query returns user obj for a package
+/]
+[query public getUserExtraObj(aPackage : BipPackage) : Sequence(String) = 
+    if aPackage.hasAnnotation('cpp', 'obj') then 
+        aPackage.getAnnotation('cpp', 'obj').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')->collectNested(s:String| s.absolutizePath(aPackage))
+    else
+        Sequence{}
+    endif
+/]
+
+[comment 
+    Returns a sequence of user specified obj to link with the generated code.
+    @cpp(obj="file1.o,file2.o")
+    This query returns user obj for a given type
+/]
+[query public getUserExtraObj(aType : BipType) : Sequence(String) = 
+    if aType.hasAnnotation('cpp', 'obj') then 
+        aType.getAnnotation('cpp', 'obj').replaceAll('^"', '').replaceAll('"$', '').tokenize(',')->collectNested(s:String| s.absolutizePath(aType))
+    else
+        Sequence{}
+    endif
+/]
+
+[comment 
+    Returns true iff the current optimization level is greater
+    that a given threshold
+/]
+[query public optimLvlGreaterThan(aLevel : Integer) : Boolean = 
+    'bipc_gencpp-optim_lvl'.getSystemProperty().toInteger() >= aLevel
+/]
+
+[comment 
+    Returns true iff the current optimization level is greater
+    that a given threshold
+/]
+[query public optimLvlSmallerThan(aLevel : Integer) : Boolean = 
+    'bipc_gencpp-optim_lvl'.getSystemProperty().toInteger() < aLevel
+/]
+
+[query public getOptimParam(anOptimName : String, aParameterName : String) : String = 
+    ('bipc_gencpp-optim__' + anOptimName + '__' + aParameterName).getSystemProperty()
+/]
+
+[query public getOptimParam(anOptimName : String, aParameterName : String, aDefaultValue : String) : String = 
+    ('bipc_gencpp-optim__' + anOptimName + '__' + aParameterName).getSystemProperty(aDefaultValue)
+/]
+
+[query public isOptimEnabled(anOptimName : String) : Boolean = 
+    ('bipc_gencpp-optim__' + anOptimName).getSystemProperty('0') <> '0'
+/]
+
+[query public isMarshEnabled(any : OclAny) : Boolean =
+    ('bipc_gencpp-enable_marshalling').getSystemProperty('false') <> 'false'
+/]

@@ -1,0 +1,83 @@
+[comment encoding = UTF-8 /]
+[module bitset('http://bip2/1.0')/]
+
+[query public numberOfBitsInt() : Integer = 32 /]
+
+[query public numberOfInt(size : Integer) : Integer =
+	if (size.mod(numberOfBitsInt()) = 0) then
+		size.div(numberOfBitsInt())
+	else
+		size.div(numberOfBitsInt()) + 1
+	endif
+/]
+
+[query private signature(bits : Set(Integer), index : Integer) : Integer =
+	bits
+		->select(i : Integer | index * numberOfBitsInt() <= i and i < (index + 1) * numberOfBitsInt())
+		->collect(i : Integer | i - index * numberOfBitsInt())
+		->collect(i : Integer | signatureSingleBit(i))
+		->sum()
+/]
+
+[query private signatureSingleBit(bit : Integer) : Integer =
+	if (bit = 0) then
+		1
+	else
+		2 * signatureSingleBit(bit - 1)
+	endif
+/]
+
+[query private maximal(seq : Sequence(Integer)) : Integer =
+	if (seq->size() = 0) then
+		0
+	else if (seq->size() = 1) then
+		seq->first()
+	else
+		if (seq->first() >= maximal(seq->subSequence(2, seq->size()))) then
+			seq->first()
+		else
+			maximal(seq->subSequence(2, seq->size()))
+		endif
+	endif endif
+/]
+
+[template private toStringBinary(i : Integer)]
+
+[/template]
+
+[template public generateBitSetDeclaration(name : String, size : Integer)]unsigned int [name/]['['/][numberOfInt(size)/][']'/][/template]
+
+[template public generateTestBitSet(name : String, bits : Set(Integer)) {
+	maximalIndex : Integer = numberOfInt(bits->asSequence()->maximal() + 1) - 1;
+	indexesToCheck : Sequence(Integer) = Sequence{0 .. maximalIndex }->select(i : Integer | signature(bits, i) <> 0);
+}]
+[if (indexesToCheck->isEmpty())]true[else][for (index : Integer | indexesToCheck) separator(' && ')](([name/]['['/][index/][']'/] & [signature(bits, index)/]) == [signature(bits, index)/])[/for][/if]
+[/template]
+
+[template public generateSetBitSet(name : String, bits : Set(Integer)) {
+	maximalIndex : Integer = numberOfInt(bits->asSequence()->maximal() + 1) - 1;
+}
+]
+[for (index : Integer | Sequence{0 .. maximalIndex }
+		->select(i : Integer | signature(bits, i) <> 0))]
+[name/]['['/][index/][']'/] |= [signature(bits, index)/];
+[/for]
+[/template]
+
+[template public generateResetBitSet(name : String, bits : Set(Integer)) {
+	maximalIndex : Integer = numberOfInt(bits->asSequence()->maximal() + 1) - 1;
+}
+]
+[for (index : Integer | Sequence{0 .. maximalIndex }
+		->select(i : Integer | signature(bits, i) <> 0))]
+[name/]['['/][index/][']'/] &= ~[signature(bits, index)/];
+[/for]
+[/template]
+
+[template public generateInitializeBitSet(name : String, size : Integer)]
+[for (index : Integer |  Sequence{0 .. numberOfInt(size) - 1})]
+[name/]['['/][index/][']'/] = 0;
+[/for]
+[/template]
+
+

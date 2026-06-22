@@ -1,0 +1,43 @@
+package conflict_packages
+  use nested.pack
+
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  connector type Connector(Port p)
+    define p
+  end
+
+  connector type SinglePack(nested.pack.Port p)
+    define p
+  end
+
+  atom type Atom()
+    export data int x
+    export port Port p()
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on p from LOOP to LOOP
+  end
+
+
+  compound type Composite()
+    component Atom A(), B(), a()
+    component nested.pack.Atom D()
+
+    connector Single c1(A.p), c2(B.p)
+    connector Connector c3(A.p)
+
+    connector nested.pack.Connector c4(D.p)
+
+    priority prio c1:* < c2:* provided (A.x == B.x && A.x != a.x)
+  end
+end
+

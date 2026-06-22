@@ -1,0 +1,62 @@
+<project name="ujf.verimag.bip.parser" default="compile">
+	<property file="build.properties" />
+
+	<property name="antlrtask.jar.file" value="external-lib/antlr3_task.jar" />
+	<property name="antlr.location" value="external-lib/antlr-3.5.2-complete.jar" />
+
+	<import file="${distribution.dir}/common.xml" />
+	<property name="build.generated-src" value="${build.dir}/generated-src" />
+
+
+	<target name="load-antlr">
+	        <!-- try to load ivy here from home ivy dir, in case the user has not already dropped
+	              it into ant's lib dir (note that the latter copy will always take precedence).
+	              We will not fail as long as ivy home lib dir exists (it may be empty) and
+	              ivy is in at least one of ant's lib dir or the ivy home lib dir. -->
+	        <path id="antlrtask.lib.path">
+	                <pathelement location="${antlrtask.jar.file}"/>
+	        </path>
+	        <taskdef uri="antlib:org/apache/tools/ant/antlr" classpathref="antlrtask.lib.path"/>
+	    </target>    
+
+	
+	<macrodef name="antlr3">
+		<attribute name="grammar.name" />
+        <attribute name="gencode.root" />
+
+		<sequential>
+			<antlr:ant-antlr3 xmlns:antlr="antlib:org/apache/tools/ant/antlr"
+				target="grammar/@{grammar.name}"
+				outputdirectory="@{gencode.root}/ujf/verimag/bip/parser"
+				libdirectory="@{gencode.root}/ujf/verimag/bip/parser">
+
+				<classpath>
+					<pathelement path="${antlr.location}" />
+				</classpath>
+			</antlr:ant-antlr3>
+		</sequential>
+	</macrodef>
+
+	<target name="gencode" depends="load-antlr">
+		<mkdir dir="${build.generated-src}" />
+		<mkdir dir="${build.generated-src}/ujf/verimag/bip/parser" />
+		<antlr3 grammar.name="Bip2.g" gencode.root="${build.generated-src}"/>
+		<antlr3 grammar.name="Bip2Walker.g" gencode.root="${build.generated-src}" />
+	</target>
+
+    <target name="gencode-for-eclipse" depends="load-antlr">
+        <mkdir dir="build/generated-src" />
+        <mkdir dir="build/generated-src/ujf/verimag/bip/parser" />
+        <antlr3 grammar.name="Bip2.g" gencode.root="build/generated-src" />
+        <antlr3 grammar.name="Bip2Walker.g" gencode.root="build/generated-src" />
+    </target>
+        	
+	<target name="compile" depends="resolve,gencode" description="--> compile the project">
+		<mkdir dir="${classes.dir}" />
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="lib.path.id" debug="${compile.debug}" target="${compile.target}" source="${compile.source}" encoding="${compile.encoding}">
+			<src path="${src.dir}" />
+			<src path="${build.generated-src}" />
+            <compilerarg value="-Xlint:unchecked"/>
+		</javac>
+	</target>
+</project>

@@ -1,0 +1,28 @@
+package connectorDoesNotBindTheSameComponentMoreThanOnce
+
+	port type Port_t()
+
+	connector type Conn_t(Port_t p1, Port_t p2)
+	define p1 p2
+	end
+
+	connector type Conn_t2(Port_t p1, Port_t p2)
+	export port Port_t cep()
+	define p1 p2
+	end
+
+	atom type AT()
+	     export port Port_t ep()
+
+	     place S
+	     initial to S
+	     on ep from S to S
+	end
+
+	compound type CT()
+		 component AT c1(),c2(),c3()
+		 connector Conn_t2 ct21(c1.ep, c2.ep), ct22(c2.ep, c3.ep)
+		 connector Conn_t ct(ct21.cep, ct22.cep)
+	end
+
+end

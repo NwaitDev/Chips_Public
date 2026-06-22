@@ -1,0 +1,18 @@
+package duplicatedExportPortInAtom2
+  port type Port()
+
+  atom type A()
+    export port Port p()
+    export port Port a(), b() as p
+
+    place LOOP
+
+    initial to LOOP
+
+    on p from LOOP to LOOP
+  end
+
+  compound type System()
+    component A a()
+  end
+end

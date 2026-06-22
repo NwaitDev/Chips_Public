@@ -1,0 +1,284 @@
+[comment encoding = UTF-8 /]
+[module generateCompoundType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip/]
+[import ujf::verimag::bip::backend::cpp::templates::naming/]
+[import ujf::verimag::bip::backend::cpp::templates::generateExportData/]
+[import ujf::verimag::bip::backend::cpp::templates::priority::generatePriorityType /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteraction /]
+[import ujf::verimag::bip::backend::cpp::templates::priority::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateCompoundExportPort /]
+
+[comment 
+    Template for creating the CPP body for the class corresponding to the
+    Compound Type being compiled.
+/]
+[template public generateImplemBody(aCompoundType : CompoundType, disableSerialization: Boolean)
+    {
+        cl : String = aCompoundType.className();
+    }]
+[cl/]::[aCompoundType.genCtorProto()/] : ComponentItf(name, COMPOUND), Compound(name), [aCompoundType.genCtorInit()/] {
+[for (cdecl : ComponentDeclaration | aCompoundType.componentDeclarations)]
+    this->addComponent([cdecl.varName()/]);
+[/for]
+[for (condecl : ConnectorDeclaration | aCompoundType.connectorDeclarations)]
+    this->addConnector([condecl.varName()/]);
+[/for]
+[for (pd : CompoundExportPortDeclaration | aCompoundType.exportPortDeclarations)]
+    this->addPort([pd.varName()/]);
+[/for]
+[for (dd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations)]
+    this->addData([dd.varName()/]);
+[/for]
+[for (prio : CompoundPriorityDeclaration | aCompoundType.priorities)]
+    this->addPriority([prio.prioVarName()/]);
+[/for]
+}
+
+[cl/]::~[cl/]() {
+}
+[/template]
+
+[template public generateCMakeBody(aCompoundType : CompoundType) post(trim())]
+[for (extra_src : String | aCompoundType.getUserExtraSrc())
+      before('# @cpp(src="") annotation\n')]
+list(APPEND EXTRA_SRC [extra_src/])
+[/for]
+[/template]
+
+[comment 
+    Template for creating the HPP body for the class corresponding to the
+    Compound Type being compiled.
+/]
+[template public generateHeaderBody(aCompoundType : CompoundType, disableSerialization : Boolean)
+    {
+        cl : String = aCompoundType.className();
+    }]
+#include <Compound.hpp>
+
+[for (userInclude : String | aCompoundType.getUserIncludes()) before('// User include given in @cpp annotation\n')]
+#include <[userInclude/]>
+[/for]
+
+[for (ct : String | aCompoundType.compTypesWithRelPath()) before('// for component types\n') after('\n')]
+#include <[ct/]>
+[/for]
+[for (ct : String | aCompoundType.connTypesWithRelPath()) before('// for connector types\n') after('\n')]
+#include <[ct/]>
+[/for]
+[for (p : CompoundPriorityDeclaration | aCompoundType.priorities) before('// for priorities\n') after('\n')]
+#include <[relHppFilePath(aCompoundType, p.className())/]>
+[/for]
+[for (ct : String | aCompoundType.cpndTypesWithRelPath()) before('// for exported ports\n') after('\n')]
+#include <[ct/]>
+[/for]
+[for (ct : String | aCompoundType.exportDataTypesWithRelPath()) before('// for exported data\n') after('\n')]
+#include <[ct/]>
+[/for]
+
+class [cl/] : public Compound {
+public:
+    [aCompoundType.genCtorProto()/];
+    virtual ~[cl /]();
+
+[for (edd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations)
+     before('    // getters for exported data.\n')]
+    const [edd.dataType.typeName()/]& get_[edd.name/]() const;
+[/for]
+
+private:
+[for (cdecl : ComponentDeclaration | aCompoundType.componentDeclarations)
+     before('\n    // SubComponent decls\n')]
+    [cdecl.type.className()/] &[cdecl.varName()/];
+[/for]
+[for (cdecl : ConnectorDeclaration | aCompoundType.connectorDeclarations)
+     before('\n    // connector decls\n')]
+    [cdecl.type.className()/] &[cdecl.varName()/];
+[/for]
+[for (prio : CompoundPriorityDeclaration | aCompoundType.priorities) before('\n    // priorities decls\n')]
+    [prio.className()/] &[prio.prioVarName()/];
+[/for]
+[for (ep : CompoundExportPortDeclaration | aCompoundType.exportPortDeclarations) before('\n    // export port decl\n')]
+    [ep.portType.compoundExportClassName()/] &[ep.varName()/];
+[/for]
+[for (dd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations) before('\n    // export data decl\n')]
+    [dd.dataType.exportDataClassName(aCompoundType)/] &[dd.varName()/];
+[/for]
+[for (cdp : ComponentDataParameterDeclaration | aCompoundType.dataParameterDeclarations) before('\n    // component data parameters, read-only\n')]
+    const [cdp.dataType.typeName()/] [cdp.varName()/];
+[/for]
+};
+
+[for (edd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations)
+     before('    // getters for exported data.\n')]
+inline
+const [edd.dataType.typeName()/]& [cl/]::get_[edd.name/]() const {
+    return [edd.dataDeclarationReference.componentDeclaration.varName()/].get_[edd.dataDeclarationReference.forwardDataDeclaration.name/]();
+}
+[/for]
+
+[/template]
+
+[comment 
+    There is no priority type in BIP, but we'll use one in the generated code.
+    Type name will be encoded by the prio name + compound type name.
+/]
+[template public generateSubClasses(aCompoundType : CompoundType, aCMakeList : String,
+                                    disableSerialization: Boolean) post(trim())]
+[aCompoundType.priorities.generatePriorityTypeFromDecl(aCMakeList)/]
+[for (aDataType : DataType | aCompoundType.exportDataDeclarations->collect(dataType)->asSet())]
+[aCompoundType.generateExportData(aDataType, aCMakeList)/]
+[/for]
+[/template]
+
+[comment 
+    returns the variable name for an exported data declaration
+/]
+[query private varName(aDataDecl : CompoundExportDataDeclaration) : String = '__edata_decl_' + aDataDecl.name /]
+
+[comment 
+    returns the variable name for the low interaction corresponding to the given priority declaration
+/]
+[query private lowVarName(aPrioDecl : CompoundPriorityDeclaration) : String = '__ipL_' + aPrioDecl.name /]
+
+[comment 
+    returns the variable name for the high interaction corresponding to the given priority declaration
+/]
+[query private highVarName(aPrioDecl : CompoundPriorityDeclaration) : String = '__ipH_' + aPrioDecl.name /]
+
+[comment 
+    Returns the variable name used in the compound type for the given priority declaration
+/]
+[query public prioVarName(aPrioDecl : CompoundPriorityDeclaration) : String = '__prio_decl_' + aPrioDecl.name /]
+
+[comment 
+    Returns the variable name used to store value of data parameter
+/]
+[query private varName(aCompDataParamDecl : ComponentDataParameterDeclaration) : String =
+    '_comp_param__' + aCompDataParamDecl.name
+/]
+
+[comment 
+    Returns the variable name corresponding to the component declaration
+/]
+[query private varName(aCompDecl : ComponentDeclaration) : String =
+    '_comp_decl__' + aCompDecl.name
+/]
+
+[comment 
+    Returns the variable name corresponding to the connector declaration
+/]
+[query private varName(aConnectorDecl: ConnectorDeclaration): String =
+    '_conn_decl__' + aConnectorDecl.name
+/]
+
+[comment 
+    Returns the variable name corresponding to the export port declaration
+/]
+[query public varName(aCpndExportPortDecl : CompoundExportPortDeclaration) : String =
+    '_eport_decl__' + aCpndExportPortDecl.name
+/]
+
+[comment
+    Creates a set of file names to include for component types used
+/]
+[query private compTypesWithRelPath(aCompoundType : CompoundType) : Set(String) =
+    aCompoundType.componentDeclarations->collect(e:ComponentDeclaration | relHppFilePath(e.type, e.type.className()))->asSet()
+/]
+
+[comment
+    Creates a set of file names to include for connector types used
+/]
+[query private connTypesWithRelPath(aCompoundType : CompoundType) : Set(String) =
+    aCompoundType.connectorDeclarations->collect(e:ConnectorDeclaration | relHppFilePath(e.type, e.type.className()))->asSet()
+/]
+
+[query public cpndTypesWithRelPath(aCompoundType : CompoundType) : Set(String) =
+    aCompoundType.exportPortDeclarations->collect(pd:CompoundExportPortDeclaration | relHppFilePath(pd.portType, pd.portType.compoundExportClassName()))->asSet()
+/]
+
+[query public exportDataTypesWithRelPath(aCompoundType : CompoundType) : Set(String) =
+    aCompoundType.exportDataDeclarations->collect(dd:CompoundExportDataDeclaration | relHppFilePath(aCompoundType, dd.dataType.exportDataClassName(aCompoundType)))->asSet()
+/]
+
+[comment
+     ctor handling (prototype and init list).
+/]
+[template private genCtorProto(aCompoundType : CompoundType) post(trim())]
+[aCompoundType.className()/] (const string &name, [aCompoundType.genListCompDecl()/]
+                              [if (aCompoundType.connectorDeclarations->notEmpty())], [aCompoundType.genListConnectorDecl()/][/if]
+                              [if (aCompoundType.priorities->notEmpty())][aCompoundType.genListPriorityDecl()/][/if]
+                              [if (aCompoundType.exportPortDeclarations->notEmpty())][aCompoundType.genListCpndEPortDecl()/][/if]
+                              [if (aCompoundType.exportDataDeclarations->notEmpty())][aCompoundType.genListCpndEDataDecl()/][/if]
+                              [if (aCompoundType.dataParameterDeclarations->notEmpty())][aCompoundType.genListDataParamDecl()/][/if]
+
+)
+[/template]
+
+
+[template public prioInterCtorInit(aPrioDecl : CompoundPriorityDeclaration) post(trim())]
+[if (aPrioDecl.low->notEmpty())]
+[aPrioDecl.lowVarName()/]([aPrioDecl.low.connectorDeclaration.varName()/])[/if][if (aPrioDecl.high->notEmpty())][if (aPrioDecl.low->notEmpty())], [/if]
+[aPrioDecl.highVarName()/]([aPrioDecl.high.connectorDeclaration.varName()/])[/if]
+[/template]
+
+[template public prioCtorEnd(aPrioDecl : CompoundPriorityDeclaration) post(trim())]
+[if (aPrioDecl.guard->notEmpty())]
+[for (cd : ComponentDeclaration | aPrioDecl.guard.getInvolvedCompDecl()) before(', ') separator(', ')]
+[cd.varName()/][/for]
+[/if]
+[/template]
+
+[template public prioCtorInit(aPrioDecl : CompoundPriorityDeclaration) post(trim())]
+[aPrioDecl.prioVarName()/]([aPrioDecl.prioVarName()/])
+[/template]
+
+[template private genCtorInit(aCompoundType : CompoundType) post(trim())]
+[for (cdecl : ComponentDeclaration | aCompoundType.componentDeclarations) separator(', ')]
+[cdecl.varName()/]([cdecl.varName()/])[/for][for (codecl : ConnectorDeclaration | aCompoundType.connectorDeclarations) before(', ') separator(', ')]
+[codecl.varName()/]([codecl.varName()/])[/for]
+[for (p : CompoundPriorityDeclaration | aCompoundType.priorities) before(', ') separator(', ')]
+[p.prioCtorInit()/][/for][for (pd : CompoundExportPortDeclaration | aCompoundType.exportPortDeclarations) before(', ') separator(', ')]
+[pd.varName()/]([pd.varName()/])[/for][for (dd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations) before(', ') separator(', ')]
+[dd.varName()/]([dd.varName()/])[/for][for (cdpd : ComponentDataParameterDeclaration | aCompoundType.dataParameterDeclarations) before(', ') separator(', ')]
+[cdpd.varName()/]([cdpd.varName()/])[/for]
+[/template]
+
+[comment
+    Creates list for class members. Used for init list.
+/]
+[template private genListCompDecl(aCompoundType : CompoundType) post(trim())
+    {
+        atom_decls : OrderedSet(ComponentDeclaration) = aCompoundType.componentDeclarations->select(cd : ComponentDeclaration| cd.type.oclIsTypeOf(AtomType));
+        cpnd_decls : OrderedSet(ComponentDeclaration) = aCompoundType.componentDeclarations->select(cd : ComponentDeclaration| cd.type.oclIsTypeOf(CompoundType));
+    }
+]
+[for (cd : ComponentDeclaration | atom_decls) separator (', ')][cd.type.className()/] &[cd.varName()/][/for]
+[if (atom_decls->notEmpty() and cpnd_decls->notEmpty())],[/if]
+[for (cd : ComponentDeclaration | cpnd_decls) separator (', ')][cd.type.className()/] &[cd.varName()/][/for]
+[/template]
+
+[template private genListConnectorDecl(aCompoundType : CompoundType) post(trim())]
+[for (cd : ConnectorDeclaration | aCompoundType.connectorDeclarations) separator (', ')]
+[cd.type.className()/] &[cd.varName()/][/for]
+[/template]
+
+[template private genListPriorityDecl(aCompoundType : CompoundType) post(trim())]
+[for (p : CompoundPriorityDeclaration | aCompoundType.priorities) before(', ') separator(', ')]
+[p.className()/] &[p.prioVarName()/][/for]
+[/template]
+
+[template private genListCpndEPortDecl(aCompoundType : CompoundType) post(trim())]
+[for (pd : CompoundExportPortDeclaration | aCompoundType.exportPortDeclarations) before(', ') separator(', ')]
+[pd.portType.compoundExportClassName()/] &[pd.varName()/][/for]
+[/template]
+
+[template private genListCpndEDataDecl(aCompoundType : CompoundType) post(trim())]
+[for (dd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations) before(', ') separator(', ')]
+[dd.dataType.exportDataClassName(aCompoundType)/] &[dd.varName()/][/for]
+[/template]
+
+[template private genListDataParamDecl(aCompoundType : CompoundType) post(trim())]
+[for (cdpd : ComponentDataParameterDeclaration | aCompoundType.dataParameterDeclarations) before(', ') separator(', ')]
+[cdpd.dataType.typeName()/] [cdpd.varName()/][/for]
+[/template]

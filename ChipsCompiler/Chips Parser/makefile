@@ -8,8 +8,15 @@ ChipsParser.cpp: ChipsParser.yy cpp_sources/ChipsAST.hpp
 ChipsLexer.cpp: ChipsLexer.l ChipsParser.cpp
 	flex -o $@ $<
 
-chipsc: ChipsLexer.cpp ChipsParser.cpp ChipsDriver.cpp
-	g++ ChipsParser.cpp ChipsLexer.cpp ChipsDriver.cpp -lfl -o chipsc
+chipsc: ChipsLexer.cpp ChipsParser.cpp ChipsDriver.cpp cpp_sources/chips_node_print.cpp cpp_sources/chips_exceptions.cpp
+	g++ -fPIC ChipsParser.cpp ChipsLexer.cpp ChipsDriver.cpp \
+	    cpp_sources/chips_node_print.cpp \
+	    cpp_sources/chips_exceptions.cpp \
+	    cpp_sources/chips_ast_impl.cpp \
+		cpp_sources/chips_semantic_analyzer.cpp \
+	    to_xmi/ChipsToXmiWriter.cpp \
+	    to_xmi/ChipsToXmiVisitor.cpp \
+	    -lfl -std=c++17 -o chipsc
 
 test: chipsc
 	./CompilerTests.sh
@@ -17,6 +24,6 @@ test: chipsc
 quicktest: chipsc quick.chips
 	./chipsc quick.chips
 
-clean: 
+clean:
 	rm -f ChipsParser.hpp ChipsParser.cpp ChipsLexer.cpp chipsc \
-		position.hh stack.hh location.hh
+	      position.hh stack.hh location.hh output_*.xmi *.output

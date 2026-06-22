@@ -1,0 +1,8 @@
+[comment encoding = UTF-8 /]
+[module generatePortType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+
+[template public generatePortType(aPortType : PortType)]
+port type [aPortType.name /] ([for (dd : DataDeclaration | aPortType.dataParameterDeclarations) separator(', ')][if (dd.const)]const [/if][qualifiedName(aPortType, dd.dataType)/] [dd.name /][/for])
+[/template]

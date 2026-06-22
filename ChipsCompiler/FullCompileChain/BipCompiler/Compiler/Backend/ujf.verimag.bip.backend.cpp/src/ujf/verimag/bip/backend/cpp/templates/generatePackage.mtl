@@ -1,0 +1,40 @@
+[comment encoding = UTF-8 /]
+[module generatePackage('http://bip2/1.0')/]
+
+
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::generateBipType /]
+[import ujf::verimag::bip::backend::cpp::templates::cmake /]
+[import ujf::verimag::bip::backend::cpp::templates::constData::expressions /]
+
+[template public generatePackage(bipPackages : BipPackageSet, userIncludeDirs : Sequence(String),
+                                 disableSerialization : Boolean)]
+    [comment @main /]
+
+[for (aBipPackage : BipPackage | bipPackages.packages)]
+    [aBipPackage.startPackageCmake(userIncludeDirs, aBipPackage.getUserExtraSrc(), aBipPackage.getUserExtraObj()) /]
+
+    [aBipPackage.genPackageHeader()/]
+
+    [aBipPackage.atomTypes.generate(disableSerialization)/]
+    [aBipPackage.compoundTypes.generate(disableSerialization)/]
+    [aBipPackage.connectorTypes.generate(disableSerialization)/]
+    [aBipPackage.portTypes.generate(disableSerialization)/]
+
+    [aBipPackage.endPackageCmake() /]
+[/for]
+[/template]
+
+[template private genPackageHeader(aBipPackage : BipPackage)]
+[file (aBipPackage.fullPackageHppFilePath(), false, 'UTF-8')]
+[aBipPackage.relPackageHppFilePath().startHeaderGuard()/]
+#include <string>
+
+[for (cdd : ConstDataDeclaration | aBipPackage.constData)]
+    const [cdd.dataType.typeName()/] [cdd.varName()/] = [cdd.value.generateExpression()/];
+[/for]
+
+[aBipPackage.relPackageHppFilePath().endHeaderGuard()/]
+[/file]
+[/template]

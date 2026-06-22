@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:bip2.ujf.verimag.bip.actionlang="http://bip2/ujf/verimag/bip/actionlang/1.0"
+    xmlns:bip2.ujf.verimag.bip.package="http://bip2/ujf/verimag/bip/package/1.0"
+    xmlns:bip2.ujf.verimag.bip.types="http://bip2/ujf/verimag/bip/types/1.0"
+    xmlns:bip2.ujf.verimag.bip.data="http://bip2/ujf/verimag/bip/data/1.0"
+    xmlns:bip2.ujf.verimag.bip.port="http://bip2/ujf/verimag/bip/port/1.0"
+    xmlns:bip2.ujf.verimag.bip.behavior="http://bip2/ujf/verimag/bip/behavior/1.0"
+    xmlns:bip2.ujf.verimag.bip.priority="http://bip2/ujf/verimag/bip/priority/1.0"
+    xmlns:bip2.ujf.verimag.bip.connector="http://bip2/ujf/verimag/bip/connector/1.0"
+    xmlns:bip2.ujf.verimag.bip.component="http://bip2/ujf/verimag/bip/component/1.0"
+    xmlns:bip2.ujf.verimag.bip.component.atom="http://bip2/ujf/verimag/bip/component/atom/1.0"
+    xmlns:bip2.ujf.verimag.bip.component.compound="http://bip2/ujf/verimag/bip/component/compound/1.0"
+    xmlns:bip2.ujf.verimagpackage.bip.instance="http://bip2/ujf/verimag/bip/instance/1.0"
+    xmlns:bip2.ujf.verimag.bip.annotation="http://bip2/ujf/verimag/bip/annotation/1.0"
+    xmlns:bip2.ujf.verimag.bip.invariant="http://bip2/ujf/verimag/bip/invariant/1.0"
+    xsi:schemaLocation="http://bip2 BIP.ecore http://bip2/ujf/verimag/bip/actionlang/1.0 BIP.ecore#//ujf/verimag/bip/actionlang http://bip2/ujf/verimag/bip/package/1.0 BIP.ecore#//ujf/verimag/bip/packaging http://bip2/ujf/verimag/bip/types/1.0 BIP.ecore#//ujf/verimag/bip/types http://bip2/ujf/verimag/bip/data/1.0 BIP.ecore#//ujf/verimag/bip/data http://bip2/ujf/verimag/bip/port/1.0 BIP.ecore#//ujf/verimag/bip/port http://bip2/ujf/verimag/bip/behavior/1.0 BIP.ecore#//ujf/verimag/bip/behavior http://bip2/ujf/verimag/bip/priority/1.0 BIP.ecore#//ujf/verimag/bip/priority http://bip2/ujf/verimag/bip/connector/1.0 BIP.ecore#//ujf/verimag/bip/connector http://bip2/ujf/verimag/bip/types/1.0 BIP.ecore#//ujf/verimag/bip/types http://bip2/ujf/verimag/bip/component/1.0 BIP.ecore#//ujf/verimag/bip/component http://bip2/ujf/verimag/bip/component/atom/1.0 BIP.ecore#//ujf/verimag/bip/component/atom http://bip2/ujf/verimag/bip/component/compound/1.0 BIP.ecore#//ujf/verimag/bip/component/compound http://bip2/ujf/verimag/bip/instance/1.0 BIP.ecore#//ujf/verimag/bip/instance ">
+
+  <dataTypes name="bool" native="true"/>
+  <dataTypes name="int" native="true"/>
+  <dataTypes name="float" native="true" castableTypes="int"/>
+  <dataTypes name="string" native="true"/>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="==">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="!=">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator=">=">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&lt;=">
+    <parameterDeclarations type="string" name="" const="true"/>
+    <parameterDeclarations type="string" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="-">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="-">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="-">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="-">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="*">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="*">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="*">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="*">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="/">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="/">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="/">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="/">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="%">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="%">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="%">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="float" native="true" operator="%">
+    <parameterDeclarations type="float" name="" const="true"/>
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="int" native="true">
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="float" native="true">
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="int" native="true" operator="-">
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="float" native="true" operator="-">
+    <parameterDeclarations type="float" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="&amp;">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="^">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="int" native="true" operator="|">
+    <parameterDeclarations type="int" name="" const="true"/>
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="int" native="true" operator="~">
+    <parameterDeclarations type="int" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="||">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:BinaryOpPrototype" returnType="bool" native="true" operator="&amp;&amp;">
+    <parameterDeclarations type="bool" name="" const="true"/>
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+  <prototypes xsi:type="bip2.ujf.verimag.bip.package:UnaryOpPrototype" returnType="bool" native="true" operator="!">
+    <parameterDeclarations type="bool" name="" const="true"/>
+  </prototypes>
+</xmi:XMI>

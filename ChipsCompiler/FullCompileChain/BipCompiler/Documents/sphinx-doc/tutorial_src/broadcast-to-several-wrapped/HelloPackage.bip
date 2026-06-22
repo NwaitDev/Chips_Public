@@ -1,0 +1,58 @@
+@cpp(include="stdio.h")
+package HelloPackage
+  extern function printf(string, int)
+  extern function printf(string, int, int)
+
+  port type HelloPort_t(int d)
+
+  atom type HelloSender(int id)
+    data int myd
+    export port HelloPort_t p(myd)
+
+    place START, END
+
+    initial to START do { myd = id; }
+
+    on p from START to END
+      do { printf("I'm %d, sending Hello World....\n", myd); }
+  end
+
+  atom type HelloReceiver(int id)
+    data int myd
+    export port HelloPort_t p(myd)
+
+    place START,END
+
+    initial to START
+
+    on p from START to END
+      provided (id == 1 || id == 3)
+      do { printf("I'm %d, Hello World received from %d\n", id, myd); }
+  end
+
+  connector type SyncRecvs(HelloPort_t r1, HelloPort_t r2, HelloPort_t r3)
+    data int d
+    export port HelloPort_t ep(d)
+    define r1' r2' r3'
+
+    on r1 r2 r3 down { r1.d = d; r2.d = d; r3.d = d; }
+    on r1 r2    down { r1.d = d; r2.d = d;           }
+    on r1    r3 down { r1.d = d;           r3.d = d; }
+    on    r2 r3 down {           r2.d = d; r3.d = d; }
+    on r1       down { r1.d = d;                     }
+    on    r2    down {           r2.d = d;           }
+    on       r3 down {                     r3.d = d; }
+  end
+
+  connector type OneToOne(HelloPort_t s, HelloPort_t c)
+    define s' c
+    on s c down { c.d = s.d; }
+  end
+
+  compound type HelloCompound()
+    component HelloSender s(0)
+    component HelloReceiver r1(1), r2(2), r3(3)
+    connector SyncRecvs sync(r1.p, r2.p, r3.p)
+    connector OneToOne brd(s.p, sync.ep)
+  end
+end

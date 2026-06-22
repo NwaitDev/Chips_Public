@@ -1,0 +1,6 @@
+package CycleFoundInPackageDep
+    use CycleFoundInPackageDep2
+
+    port type Port_t()
+
+end

@@ -1,0 +1,35 @@
+package priority_rules_cycle2
+  port type Port()
+
+  connector type Broadcast(Port p, Port q, Port r)
+    define p' q r
+
+    on p q r provided (false)
+    on p q   provided (true)
+    on p r   provided (true)
+    on p     provided (false)
+  end
+
+  atom type MyAtomType()
+    export port Port p(), q()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+    on q from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1()
+    component MyAtomType myAtom2()
+    component MyAtomType myAtom3()
+
+    connector Broadcast brd1(myAtom1.p, myAtom2.p, myAtom3.p)
+
+    priority myPrio1 brd1:myAtom1.p,myAtom2.p           < brd1:myAtom1.p,myAtom3.p
+    priority myPrio2 brd1:myAtom1.p,myAtom2.p,myAtom3.p < brd1:myAtom1.p,myAtom3.p
+      provided (true)
+  end
+end

@@ -4,71 +4,66 @@
 
 //#include "./ChipsADS.hpp"
 #include "./chips_ast_classes.hpp"
+#include "./chips_expressions.hpp"
+#include "./chips_overall.hpp"
+#include "./chips_overall_system.hpp"
+#include "./chips_config_stts.hpp"
+#include "./chips_overall_stts.hpp"
+#include "./chips_overall_collective.hpp"
+#include "./chips_declaration_ctx.hpp"
 #include <memory>
 #include <string>
 #include <utility>
 #include <iostream>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /*
     Configuration stuff
 */
 
-class dimension_node : public ast_node {
-private:
-    std::unique_ptr<number_literal_node> dimension;
-public:
-    dimension_node(std::unique_ptr<number_literal_node> dimension)
-        : dimension(std::move(dimension)){}
-    void accept(chips_visitor& visitor);
-
-    inline void hello() override {std::cout << "hello from dimension_node\n";}
-};
-
 class system_node : public ast_node {
-    std::unique_ptr<dimension_node> dimension = nullptr;
-    std::unique_ptr<c_statements_node> sstatements;
+private:
+    std::unique_ptr<s_statements_node> sstatements;
 public:
-    system_node(std::unique_ptr<dimension_node>& dimension, std::unique_ptr<c_statements_node>& sstatements)
-        : dimension(std::move(dimension)), sstatements(std::move(sstatements)) {}
+    system_node() {}
 
-    system_node(std::unique_ptr<c_statements_node>& sstatements)
+    system_node(std::unique_ptr<s_statements_node> sstatements)
         : sstatements(std::move(sstatements)) {}
+
+    s_statements_node* get_system_statements() { return sstatements.get(); }
+    const s_statements_node* get_system_statements() const { return sstatements.get(); }
     
     void accept(chips_visitor& visitor);
 
-    inline void hello() override {std::cout << "hello from system_node\n";}
+    virtual void hello() override;
 };
 
 class chips_node : public ast_node{
 private:
-    preambles_node preambles;
+    std::unique_ptr<preambles_node> preambles;
     std::unique_ptr<system_node> system;
 public:
 
     chips_node(){}
 
-    chips_node(std::unique_ptr<preambles_node>& preambles, std::unique_ptr<system_node>& system)
+    chips_node(std::unique_ptr<preambles_node> preambles, std::unique_ptr<system_node> system)
         : preambles(std::move(preambles)), system(std::move(system)) {}
 
+    preambles_node* get_preambles() const { return preambles.get(); }
+    system_node* get_system() const { return system.get(); }
+
     void accept(chips_visitor& visitor){
-        // TODO
+        visitor.visit(*this);
     }
 
-    inline void hello() override {std::cout << "hello from chips_node\n";}
-
+    virtual void hello() override;/* {
+        if(preambles){
+            preambles.get()->hello();
+        }
+        if(system){
+            system.get()->hello();
+        }
+    }*/
 };
 
 

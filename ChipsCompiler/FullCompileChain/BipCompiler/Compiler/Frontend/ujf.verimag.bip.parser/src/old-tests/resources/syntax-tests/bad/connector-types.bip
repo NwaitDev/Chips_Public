@@ -1,0 +1,9 @@
+package this.is.a.pack
+
+ // missing required port param
+ connector type Conn2_t()
+ end
+
+end
+
+

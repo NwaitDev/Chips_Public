@@ -1,0 +1,26 @@
+package portReferencesOnCorrectConnectorDeclaration
+  port type Port_t1()
+
+  atom type AT()
+   export data int x
+   export port Port_t1 p10()
+   place S1
+   initial to S1 do { x = 0; }
+   on p10 from S1 to S1
+  end
+
+  connector type CoT(Port_t1 p1, Port_t1 p2)
+  define p1' p2'
+  end
+
+  compound type CT()
+   component AT c1(), c2(), c3(), c4()
+   
+   connector CoT co1(c1.p10, c2.p10), co2(c3.p10, c4.p10)
+
+   priority badprio1 co1:c1.p10, c3.p10 < *:*
+   priority badprio2 *:* < co2:c1.p10, c4.p10
+
+  end
+
+end

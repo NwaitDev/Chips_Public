@@ -1,0 +1,27 @@
+package conflicting
+  port type Port()
+
+  atom type Atom()
+    data int i
+    export port Port p(), q()
+
+    place L
+
+    initial to L
+      do { i = 0; }
+
+    on p from L to L provided (i%2 == 0) do { i = i + 1; }
+    on q from L to L provided (i%3 == 0) do { i = i + 1; }
+    internal from L to L provided (i%2 != 0 && i%3 != 0)  do { i = i + 1; }
+  end
+
+  connector type RendezVous(Port p, Port q)
+    define p q
+  end
+
+  compound type Comp()
+    component Atom A(), B(), C(), D()
+    connector RendezVous c1(A.p, B.p), c2(C.p, D.p)
+    connector RendezVous c3(A.q, B.q), c4(C.q, D.q)
+  end
+end

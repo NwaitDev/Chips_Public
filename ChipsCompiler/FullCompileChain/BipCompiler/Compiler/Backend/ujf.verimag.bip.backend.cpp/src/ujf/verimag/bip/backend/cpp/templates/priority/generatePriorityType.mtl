@@ -1,0 +1,111 @@
+[comment encoding = UTF-8 /]
+[module generatePriorityType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteraction /]
+
+[import ujf::verimag::bip::backend::cpp::templates::priority::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::traceBip /]
+
+[template public generatePriorityTypeFromDecl(aPrioDecl : CompoundPriorityDeclaration, aCMakeList : String)
+    {
+        container : CompoundType = aPrioDecl.eContainer(CompoundType);
+        pcontainer : BipPackage = container.eContainer(BipPackage);
+        fullCpp : String = container.fullCppFilePath(aPrioDecl.className());
+        fullHpp : String = container.fullHppFilePath(aPrioDecl.className());
+        pCN : String = aPrioDecl.className();
+    }
+]
+
+[file (pcontainer.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <Priority.hpp>
+#include <[container.eContainer(BipPackage).relPackageHppFilePath()/]>
+
+
+[for (userInclude : String | aPrioDecl.eContainer(CompoundType).getUserIncludes()) before('// User include given in @cpp annotation\n')]
+#include <[userInclude/]>
+[/for]
+
+[if (aPrioDecl.high->notEmpty())]
+#include <[aPrioDecl.high.connectorDeclaration.type.relHppFilePath(aPrioDecl.high.connectorDeclaration.type.interactionClassName())/]>
+[/if]
+[if (aPrioDecl.low->notEmpty())]
+#include <[aPrioDecl.low.connectorDeclaration.type.relHppFilePath(aPrioDecl.low.connectorDeclaration.type.interactionClassName())/]>
+[/if]
+[if (aPrioDecl.guard->notEmpty())]
+[for (cdecl : ComponentDeclaration | aPrioDecl.guard.getInvolvedCompDecl())]
+#include <[cdecl.type.relHppFilePath()/]>
+[/for]
+[/if]
+
+class [pCN/]: public Priority {
+public :
+[if (aPrioDecl.low->notEmpty() and aPrioDecl.high->notEmpty())]
+    [pCN/]([aPrioDecl.low.connectorDeclaration.type.interactionClassName()/] &low, [aPrioDecl.high.connectorDeclaration.type.interactionClassName()/] &high[aPrioDecl.feedCtorWithCDecl()/]);
+[elseif (aPrioDecl.low->notEmpty() and aPrioDecl.high->isEmpty())]
+    [pCN/]([aPrioDecl.low.connectorDeclaration.type.interactionClassName()/] &low[aPrioDecl.feedCtorWithCDecl()/]);
+[else]
+    [pCN/]([aPrioDecl.high.connectorDeclaration.type.interactionClassName()/] &high[aPrioDecl.feedCtorWithCDecl()/]);
+[/if]
+
+    virtual ~[pCN/]();
+
+    virtual bool guard() const;
+
+protected:
+[if (aPrioDecl.guard->notEmpty())]
+    [for (cd : ComponentDeclaration | aPrioDecl.guard.getInvolvedCompDecl())]
+    const [cd.type.className()/] &[cd.varName()/];
+    [/for]
+[/if]
+
+};
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (pcontainer.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[container.relHppFilePath(pCN)/]>
+
+[if (aPrioDecl.low->notEmpty() and aPrioDecl.high->notEmpty())]
+[pCN/]::[pCN/]([aPrioDecl.low.connectorDeclaration.type.interactionClassName()/] &low, [aPrioDecl.high.connectorDeclaration.type.interactionClassName()/] &high[aPrioDecl.feedCtorWithCDecl()/]) : Priority(&low, &high) [aPrioDecl.feedCtorInitWithCDecl()/]{
+}
+[elseif (aPrioDecl.low->notEmpty() and aPrioDecl.high->isEmpty())]
+[pCN/]::[pCN/]([aPrioDecl.low.connectorDeclaration.type.interactionClassName()/] &low[aPrioDecl.feedCtorWithCDecl()/]) : Priority(&low, NULL) [aPrioDecl.feedCtorInitWithCDecl()/]{
+}
+[else]
+[pCN/]::[pCN/]([aPrioDecl.high.connectorDeclaration.type.interactionClassName()/] &high[aPrioDecl.feedCtorWithCDecl()/]) : Priority(NULL, &high) [aPrioDecl.feedCtorInitWithCDecl()/]{
+}
+[/if]
+
+[pCN/]::~[pCN/](){
+}
+
+bool [pCN/]::guard() const {
+[if (aPrioDecl.guard->notEmpty())]
+[aPrioDecl.guard.gtc()/]
+    return [aPrioDecl.guard.generateExpression()/];
+[else]
+    return true;
+[/if]
+}
+
+[/file]
+
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template public feedCtorWithCDecl(aPrioDecl : CompoundPriorityDeclaration)  ? (aPrioDecl.guard->notEmpty()) post(trim())]
+[for (cd : ComponentDeclaration | aPrioDecl.guard.getInvolvedCompDecl()) before(', ') separator(', ')]
+const [cd.type.className()/] &[cd.varName()/][/for]
+[/template]
+
+[template public feedCtorInitWithCDecl(aPrioDecl : CompoundPriorityDeclaration)  ? (aPrioDecl.guard->notEmpty()) post(trim())]
+[for (cd : ComponentDeclaration | aPrioDecl.guard.getInvolvedCompDecl()) before(', ') separator(', ')]
+[cd.varName()/]([cd.varName()/])[/for]
+[/template]

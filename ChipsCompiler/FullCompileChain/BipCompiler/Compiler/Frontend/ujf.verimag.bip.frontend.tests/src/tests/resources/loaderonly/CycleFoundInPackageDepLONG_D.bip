@@ -1,0 +1,6 @@
+package CycleFoundInPackageDepLONG_D
+   use CycleFoundInPackageDepLONG_B
+   port type Port_t()
+
+
+end

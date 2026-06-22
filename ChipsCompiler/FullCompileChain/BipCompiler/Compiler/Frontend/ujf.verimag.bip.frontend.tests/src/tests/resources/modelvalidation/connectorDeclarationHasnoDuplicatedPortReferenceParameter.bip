@@ -1,0 +1,26 @@
+package connectorDeclarationHasNoDuplicatedPortReferenceParameter
+
+  port type Port_t()
+
+  connector type Rdv_t (Port_t p1, Port_t p2)
+  define p1 p2
+  end
+
+  atom type A_t()
+    data int c
+    export port Port_t p()
+    place S, END
+    initial to S do { c = 0; }
+    on p from S to S provided (c<100) do {c = c + 1; }
+  end
+
+  compound type Top()
+   component A_t c0()
+   
+   // BAD: duplicated ref
+   connector Rdv_t co_0_0(c0.p, c0.p)
+
+  end
+
+end
+

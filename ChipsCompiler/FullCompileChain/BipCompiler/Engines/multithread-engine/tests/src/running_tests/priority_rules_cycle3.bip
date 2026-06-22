@@ -1,0 +1,35 @@
+package priority_rules_cycle3
+  port type Port()
+
+  connector type BRD(Port p, Port q, Port r)
+    define p' q' r'
+  end
+
+  connector type RDV(Port p, Port q, Port r)
+    define p q r
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType A1()
+    component MyAtomType A2()
+    component MyAtomType A3()
+
+    connector BRD brd(A1.p, A2.p, A3.p)
+    connector RDV rdv(A1.p, A2.p, A3.p)
+
+    priority prio1 brd:A1.p    < *:*
+    priority prio2 *:*         < brd:A2.p
+    priority prio3 brd:A2.p    < brd:A3.p provided (true)
+    priority prio4 brd:A3.p    < brd:A1.p provided (true)
+  end
+end

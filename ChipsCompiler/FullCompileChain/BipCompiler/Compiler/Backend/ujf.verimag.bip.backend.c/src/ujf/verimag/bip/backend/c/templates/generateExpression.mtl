@@ -1,0 +1,88 @@
+[comment encoding = UTF-8 /]
+[module generateExpression('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::c::templates::naming/]
+[import ujf::verimag::bip::backend::c::templates::bitset/]
+
+
+[template public generateExpression(anExpression : IfThenElseExpression, isConst : Boolean)]
+if ([anExpression.condition.generateExpression(isConst)/]) {
+  [generateExpressions(anExpression._then, isConst)/]
+}[if (anExpression._else->notEmpty())] else {
+  [generateExpressions(anExpression._else, isConst)/]
+}
+[/if]
+[/template]
+
+[template public generateExpression(anExpression : FunctionCallExpression, isConst : Boolean)]
+[if (isConst)]const_[/if][anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression(isConst) /][/for])
+[/template]
+
+[template public generateExpression(anExpression : AssignmentExpression, isConst : Boolean)]
+[anExpression.lhsDirect.generateExpression(isConst) /] = [anExpression.rhs.generateExpression(isConst) /]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : BinaryOpExpression, isConst : Boolean)]
+([anExpression.left.generateExpression(isConst) /]) [' ' + anExpression.operator + ' '/] ([anExpression.right.generateExpression(isConst) /])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : UnaryOpExpression, isConst : Boolean)]
+[anExpression.operator /] ([anExpression.operand.generateExpression(isConst) /])
+[/template]
+
+[template public generateExpressionWithoutCast(aRef : DirectDataDeclarationReferenceExpression, isConst : Boolean)]
+[aRef.dataDeclaration.name()/]
+[/template]
+
+[template public generateExpressionWithoutCast(aRef : SubDataDeclarationReferenceExpression, isConst : Boolean)]
+
+[/template]
+
+[template public generateExpressionWithoutCast(anInteger : DirectIntegerExpression, isConst : Boolean)]
+[anInteger.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(aBoolean : DirectBooleanExpression, isConst : Boolean)]
+[if (aBoolean.value = true)]true[else]false[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(aFloat : DirectFloatExpression, isConst : Boolean)]
+[aFloat.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(aString : DirectStringExpression, isConst : Boolean)]
+[aString.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(aValuedExpression : ValuedExpression, isConst : Boolean)]
+// SHOULD NOT BE CALLED: unsupported type of expression [aValuedExpression/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpression(anExpression : ValuedExpression, isConst : Boolean) {
+    dataType : DataType = anExpression.getDataType();
+    expectedDataType : DataType = anExpression.getExpectedDataType();
+    hasToBeCasted : Boolean = (dataType <> expectedDataType and expectedDataType <> null);
+}]
+[if (hasToBeCasted)][expectedDataType.typeName()/]([/if][generateExpressionWithoutCast(anExpression, isConst)/][if (hasToBeCasted)])[/if]
+[/template]
+
+[template public generateExpression(anExpression : Expression, isConst : Boolean)]
+// SHOULD NOT BE CALLED: unsupported type of expression [anExpression/]
+[/template]
+
+[template public generateExpression(anExpression : Expression)]
+[anExpression.generateExpression(false)/]
+[/template]
+
+[template public generateExpressions(expressions : OrderedSet(Expression), isConst : Boolean)]
+[for (expression : Expression | expressions)]
+[expression.generateExpression(isConst)/][if (not expression.oclIsTypeOf(IfThenElseExpression))];[/if]
+[/for]
+[/template]
+
+[template public generateExpressions(expressions : OrderedSet(Expression))]
+[for (expression : Expression | expressions)]
+[expression.generateExpression()/][if (not expression.oclIsTypeOf(IfThenElseExpression))];[/if]
+[/for]
+[/template]

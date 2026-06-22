@@ -1,0 +1,44 @@
+package priority_rules_cycle_hierarchy
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  connector type RDV(Port p, Port q, Port r)
+    export port Port xp()
+    define p q r
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type CT()
+    component MyAtomType A1()
+    component MyAtomType A2()
+    component MyAtomType A3()
+
+    connector RDV rdv1(A1.p, A2.p, A3.p)
+    connector RDV rdv2(A1.p, A2.p, A3.p)
+
+    priority prio1 rdv1:* < rdv2:* provided (true)
+    priority prio2 rdv2:* < rdv1:* provided (true)
+
+    export port rdv1.xp as p
+    export port rdv2.xp as q
+  end
+
+  compound type CTH()
+    component CT C()
+
+    connector Single single1(C.p)
+    connector Single single2(C.q)
+  end
+end

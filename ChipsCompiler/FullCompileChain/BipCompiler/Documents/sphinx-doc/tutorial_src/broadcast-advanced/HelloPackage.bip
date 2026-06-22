@@ -1,0 +1,63 @@
+@cpp(include="stdio.h")
+package HelloPackage
+  extern function printf(string, int, int)
+
+  port type HelloPort_t(int d)
+
+  atom type HelloAtom(int id)
+    data int active
+    export port HelloPort_t p(active)
+
+    place LOOP
+
+    initial to LOOP
+      do { active = 1; }
+
+    on p from LOOP to LOOP
+      provided (active == 1)
+      do { printf("I'm %d, active=%d\n", id, active); }
+  end
+
+  connector type Plus(HelloPort_t r1, HelloPort_t r2)
+    data int number_of_active
+    export port HelloPort_t ep(number_of_active)
+    define r1' r2'
+    
+    on r1 r2
+      up { number_of_active = r1.d + r2.d; }
+      down {
+        r1.d = number_of_active;
+        r2.d = number_of_active;
+      }
+
+    on r1 
+      up { number_of_active = r1.d; }
+      down { r1.d = number_of_active; }
+
+    on r2
+      up { number_of_active = r2.d; }
+      down { r2.d = number_of_active; }
+  end
+
+  connector type Filter(HelloPort_t r)
+    define r
+
+    on r provided (r.d <= 4) down { r.d = 0; }
+  end
+
+  compound type HelloCompound()
+    component HelloAtom A1(1), A2(2), A3(3), A4(4), A5(5), A6(6), A7(7), A8(8)
+
+    connector Plus plus12(A1.p, A2.p)
+    connector Plus plus34(A3.p, A4.p)
+    connector Plus plus56(A5.p, A6.p)
+    connector Plus plus78(A7.p, A8.p)
+
+    connector Plus plus1234(plus12.ep, plus34.ep)
+    connector Plus plus5678(plus56.ep, plus78.ep)
+
+    connector Plus plus12345678(plus1234.ep, plus5678.ep)
+
+    connector Filter filter(plus12345678.ep)
+  end
+end

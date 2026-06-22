@@ -1,0 +1,29 @@
+package priorities_in_compound
+  port type Port()
+
+  atom type MyAtom(int enabled)
+    export port Port p()
+
+    place SYNC, END
+
+    initial to SYNC
+
+    on p from SYNC to END
+      provided (enabled == 1)
+  end
+
+  connector type Broadcast(Port p, Port q, Port r)
+    define p' q r
+    on p provided (false)
+  end
+
+  compound type Model()
+    component MyAtom A(1), B(1), C(0)
+    component MyAtom D(1), E(1), F(1)
+
+    connector Broadcast brdABC(A.p, B.p, C.p)
+    connector Broadcast brdDEF(D.p, E.p, F.p)
+
+    priority scheduler brdABC:A.p,B.p,C.p < brdDEF:D.p
+  end
+end

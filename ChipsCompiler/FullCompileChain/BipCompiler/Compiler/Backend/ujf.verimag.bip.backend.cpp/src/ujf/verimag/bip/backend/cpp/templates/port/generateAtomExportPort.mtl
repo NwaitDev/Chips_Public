@@ -1,0 +1,119 @@
+[comment encoding = UTF-8 /]
+[module generateAtomExportPort('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::behaviorAnalyzer /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomInternalPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+
+[template public generateAtomEPort(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.atomExportClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.atomExportClassName());
+        aepCN : String = aPortType.atomExportClassName();
+    }
+]
+
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+
+#include <[aPortType.relHppFilePath(aepCN)/]>
+#include <[aPortType.relHppFilePath(aPortType.portValueClassName())/]>
+
+[aepCN/]::[aPortType.genCtorProto()/] :
+    PortItf(name, ATOM_EXPORT),
+    Port(name, ATOM_EXPORT),
+    AtomExportPort(name, hasEarlyUpdate),
+    [aPortType.className()/](name, ATOM_EXPORT),
+    mIsReset(false) {
+}
+
+[aepCN/]::~[aepCN/](){
+}
+[/file]
+
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <AtomExportPort.hpp>
+#include <[aPortType.relHppFilePath(aPortType.atomInternalClassName())/]>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [aepCN/] :
+    public virtual Port,
+    public AtomExportPort,
+    public [aPortType.className()/] {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[aepCN/]();
+    virtual void addInternalPort([aPortType.atomInternalClassName()/] &p);
+
+    virtual vector<PortValue *> &portValues();
+    virtual const vector<PortValue *> &portValues() const;
+    virtual bool hasPortValues() const;
+    virtual void addPortValue(PortValue &port);
+    virtual void clearPortValues();
+
+    virtual bool isReset() const;
+    void setIsReset(bool b);
+
+protected:
+// Getting messy to store actual type and return more abstract one (thanks to vector template...)
+//    vector<[aPortType.portValueClassName()/] *> mPortValues;
+    vector<PortValue *> mPortValues;
+    bool mIsReset;
+}; 
+
+
+inline
+void [aepCN/]::addInternalPort([aPortType.atomInternalClassName()/] &p) {
+    AtomExportPort::addInternalPort(p);
+}
+
+inline
+vector<PortValue *> &[aepCN/]::portValues() {
+    return mPortValues;
+}
+
+inline
+const vector<PortValue *> &[aepCN/]::portValues() const {
+    return mPortValues;
+}
+
+inline
+bool [aepCN/]::hasPortValues() const {
+    return !mPortValues.empty();
+}
+
+inline
+void [aepCN/]::addPortValue(PortValue &port) {
+    mPortValues.push_back(&port);
+}
+
+inline
+void [aepCN/]::clearPortValues() {
+    mPortValues.clear();
+}
+
+inline
+bool [aepCN/]::isReset() const {
+    return mIsReset;
+}
+
+inline
+void [aepCN/]::setIsReset(bool b) {
+    mIsReset = b;
+}
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /] 
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.atomExportClassName()/](const string &name, bool hasEarlyUpdate)
+[/template]

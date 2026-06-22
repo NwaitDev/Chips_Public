@@ -1,0 +1,26 @@
+package priorities_in_atom
+  port type Port()
+
+  atom type MyAtom()
+    data int i
+    port Port p(),q()
+
+    place LOOP
+
+    initial to LOOP
+      do { i=0; }
+
+    on p from LOOP to LOOP
+      do { i=i+1; }
+
+    on q from LOOP to LOOP
+      do { i=i+1; }
+
+    priority myPrioEven q < p provided ((i%2) == 0) 
+    priority myPrioOdd  p < q provided ((i%2) == 1) 
+  end
+
+  compound type Model()
+    component MyAtom a()
+  end
+end

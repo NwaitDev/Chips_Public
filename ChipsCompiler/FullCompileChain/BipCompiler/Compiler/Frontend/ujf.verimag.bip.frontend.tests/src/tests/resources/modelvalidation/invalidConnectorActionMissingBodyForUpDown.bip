@@ -1,0 +1,12 @@
+package invalidConnectorActionMissingBodyForUpDown
+
+ port type Port_t()
+
+ connector type RDV(Port_t p, Port_t q)
+   define p q
+ 
+   // BAD : missing up/down body.
+   on p q up {} down {}
+  end
+
+end

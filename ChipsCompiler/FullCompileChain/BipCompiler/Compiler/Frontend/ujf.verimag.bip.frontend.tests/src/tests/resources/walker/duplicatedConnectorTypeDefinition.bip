@@ -1,0 +1,12 @@
+package duplicatedConnectorTypeDefinition
+ port type Port_t()
+
+ connector type CoT(Port_t p1, Port_t p2)
+ define p1 p2
+ end
+
+ connector type CoT(Port_t p1, Port_t p2, Port_t p3)
+ define p1 p2 p3
+ end
+
+end

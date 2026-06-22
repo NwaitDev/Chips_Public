@@ -1,0 +1,68 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') extends ujf::verimag::bip::backend::acceleo::templates::expressions/]
+
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+
+
+[comment
+Overrides default one because aseba needs the 'call' keyword before the function name.
+ /]
+[template public generateExpression(anExpression : FunctionCallExpression) post(trim())]
+call [anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression() /][/for])
+[/template]
+
+
+
+[template public downExpression(anExpression : AssignmentExpression) ? (anExpression.lhsIndirect <> null)]
+[anExpression.lhsIndirect.generateExpression() /] = [anExpression.rhs.generateExpression() /]
+[/template]
+
+[query public getAsebaOp(anOperator : String) : String =
+    if anOperator = '&&' then 'and'
+    else if anOperator = '||' then 'or'
+    else anOperator
+    endif endif
+/]
+
+
+[template public generateExpression(anExpression : BinaryOpExpression) post(trim())]
+([anExpression.left.generateExpression() /]) [' ' + anExpression.operator.toString().getAsebaOp() + ' '/] ([anExpression.right.generateExpression() /])
+[/template]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[template public generateExpression(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.portDeclaration <> null)]
+[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template]
+
+[query public buildSubstitutionMap(anAtomType : AtomType) : Sequence(Sequence(String)) =
+    anAtomType.internalDataDeclarations->select(
+        hasAnnotation('aseba', 'system') and hasAnnotation('aseba', 'map'))->collectNested(
+            Sequence{name, getAnnotation('aseba', 'map').substituteAll('"', '')})
+/]
+
+[query public unmangleDottedVarName(aMangledName : String) : String =
+    aMangledName.replaceAll('__', '.')
+/]
+
+
+[query public substituteVars(theStatements : String, theSubstitutions : Sequence(Sequence(String))) : String =
+    theStatements.unmangleDottedVarName().onlySubstituteVars(theSubstitutions)
+/]
+
+[query public onlySubstituteVars(theStatements : String, theSubstitutions : Sequence(Sequence(String))) : String =
+    if theSubstitutions->size() = 0 then
+        theStatements
+    else if theSubstitutions->size() = 1 then
+        theStatements.substituteVar(theSubstitutions->first())
+    else
+        theStatements.substituteVar(theSubstitutions->first()).substituteVars(theSubstitutions->subSequence(2,theSubstitutions->size()))
+    endif
+    endif
+/]
+
+
+[query public substituteVar(theStatements : String, theSubstitution : Sequence(String)) : String =
+    theStatements.replaceAll('\\b' + theSubstitution->at(1) + '\\b', theSubstitution->at(2))
+/]

@@ -1,0 +1,52 @@
+package broadcast_reverted
+  port type Port1()
+  port type Port2()
+  port type Port3()
+
+  connector type Broadcast(Port1 p, Port2 q, Port3 r)
+    define p q r'
+
+    on p q r provided (false)
+    on q r   provided (true)
+    on p r   provided (true)
+    on r     provided (true)
+  end
+
+  atom type MyAtomType1()
+    export port Port1 p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  atom type MyAtomType2()
+    export port Port2 p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  atom type MyAtomType3()
+    export port Port3 p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType1 myAtom1()
+    component MyAtomType2 myAtom2()
+    component MyAtomType3 myAtom3()
+
+    connector Broadcast myBroadcast(myAtom1.p, myAtom2.p, myAtom3.p)
+  end
+end

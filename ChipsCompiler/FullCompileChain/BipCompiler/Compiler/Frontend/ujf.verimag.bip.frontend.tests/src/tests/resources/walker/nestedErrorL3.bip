@@ -1,0 +1,21 @@
+package nestedErrorL3
+	port type Booh(int x)
+
+	atom type AT()
+	   port Booh p()
+	   place S
+	   initial to S
+	   on p from S to S
+	end
+
+	atom type AT2()
+	   data int x
+	   port Booh p(x)
+
+	   place S
+	   initial to S do { x = 0; }
+	   on p from S to S
+  	   internal from S to S
+	   internal from S to S
+	end
+end

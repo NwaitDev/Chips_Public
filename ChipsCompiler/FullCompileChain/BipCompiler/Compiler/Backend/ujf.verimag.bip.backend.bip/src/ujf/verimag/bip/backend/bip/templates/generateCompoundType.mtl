@@ -1,0 +1,57 @@
+[comment encoding = UTF-8 /]
+[module generateCompoundType('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::acceleo::templates::expressions /]
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+
+[template public generateCompoundType(aCompoundType : CompoundType) post(trim())]
+compound type [aCompoundType.name/] ([for (dd : DataDeclaration | aCompoundType.dataParameterDeclarations) separator(', ')][if (dd.const)]const [/if][qualifiedName(aCompoundType, dd.dataType) /] [dd.name /][/for])
+
+[for (cd : ComponentDeclaration | aCompoundType.componentDeclarations) after('\n')]
+    [cd.generateComponentDeclaration(aCompoundType) /]
+[/for]
+[for (cod : ConnectorDeclaration | aCompoundType.connectorDeclarations) after('\n')]
+    [cod.generateConnectorDeclaration(aCompoundType) /]
+[/for]
+[for (priod : CompoundPriorityDeclaration | aCompoundType.priorities) separator('\n')]
+    [priod.generatePriorityDeclaration() /]
+[/for]
+[for (epd : CompoundExportPortDeclaration | aCompoundType.exportPortDeclarations) after('\n')]
+    export port [for (spdr : SubPortDeclarationReference | epd.portDeclarationReferences) separator(', ')][spdr.generateSubPortDeclRef()/][/for] as [epd.name /]
+[/for]
+[for (edd : CompoundExportDataDeclaration | aCompoundType.exportDataDeclarations) after('\n')]
+    export data [edd.dataDeclarationReference.generateSubDataDeclRef() /] as [edd.name /]
+[/for]
+end
+[/template]
+
+[template private generateComponentDeclaration(aComponentDeclaration : ComponentDeclaration, aCompoundType : CompoundType) post(trim())]
+component [qualifiedName(aCompoundType, aComponentDeclaration.type) /] [aComponentDeclaration.name /] ([for (param : ValuedExpression | aComponentDeclaration.parameters) separator(', ')][param.generateExpression()/][/for])
+[/template]
+
+[template private generateSubDataDeclRef(aDataDecl : SubDataDeclarationReference)]
+[if (aDataDecl.componentDeclaration <> null)]
+[aDataDecl.componentDeclaration.name /][else]
+[aDataDecl.portDeclaration.name /][/if].[aDataDecl.forwardDataDeclaration.name /]
+[/template]
+
+[template private generateSubPortDeclRef(aPortDecl : SubPortDeclarationReference)]
+[if (aPortDecl.componentDeclaration <> null)]
+[aPortDecl.componentDeclaration.name /][else]
+[aPortDecl.connectorDeclaration.name /][/if].[aPortDecl.forwardPortDeclaration.name /]
+[/template]
+
+[template public generateConnectorDeclaration(aConnectorDeclaration : ConnectorDeclaration, aCompoundType : CompoundType)]
+connector [qualifiedName(aCompoundType, aConnectorDeclaration.type) /] [aConnectorDeclaration.name /] ([for (param : PortDeclarationReferenceParameter | aConnectorDeclaration.portParameters) separator(', ')][param.subPortDeclarationReference.generateSubPortDeclRef()/][/for])
+[/template]
+
+[template public generatePriorityDeclaration(aPriorityDeclaration : CompoundPriorityDeclaration)]
+priority [aPriorityDeclaration.name /] [aPriorityDeclaration.low.generateConnectorInteraction() /] < [aPriorityDeclaration.high.generateConnectorInteraction() /]
+    [if (aPriorityDeclaration.guard <> null)]provided ([aPriorityDeclaration.guard.generateExpression()/])[/if]
+[/template]
+
+[template public generateConnectorInteraction(aConnectorInteraction : ConnectorInteraction)]
+[if (aConnectorInteraction = null)]
+*:*[else]
+[aConnectorInteraction.connectorDeclaration.name /]:[for (pr : SubPortDeclarationReference | aConnectorInteraction.portDeclarationReferences) separator(', ')]
+[pr.generateSubPortDeclRef() /][/for][if (aConnectorInteraction.portDeclarationReferences->isEmpty())]*[/if][/if]
+[/template]

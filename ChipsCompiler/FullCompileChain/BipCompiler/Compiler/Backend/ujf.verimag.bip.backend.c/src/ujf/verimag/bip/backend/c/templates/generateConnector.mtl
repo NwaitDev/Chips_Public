@@ -1,0 +1,15 @@
+[comment encoding = UTF-8 /]
+[module generateConnector('http://bip2/1.0')/]
+
+[comment
+
+- traiter les connecteur hierarchiques comme des connecteurs unique (= flattening)
+- pour la partie "define", algo pour hierarchie identique à algo pour paranthèses
+- pour les gardes : conjonction des gardes en utilisant les up pour synthétiser les valeurs intermédiaires
+- recherche des interactions possibles dans l'ordre inverse de maximal progress pour trouver les interactions max.
+- enumeration lors des exports multiples
+- idée cache pour stocker l'évaluations des gardes / up : hashmap interaction -> (boolean, value)
+
+- il faut des algos d'exploration suivant l'ordre max progress (ou inverse), limité à un sous ensemble de ports
+- ces algos sont utilisés pour chercher les interactions possible soit pour calculer les interactions locallement maximales, soit pour évaluer les priorités
+/]

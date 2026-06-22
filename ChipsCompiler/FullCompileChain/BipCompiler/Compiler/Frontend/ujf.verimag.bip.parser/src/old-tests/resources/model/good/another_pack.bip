@@ -1,0 +1,5 @@
+package another_pack
+
+port type Port_tt()
+
+end

@@ -1,0 +1,12 @@
+<project name="ujf.verimag.bip.metamodel" default="compile">
+	<property file="build.properties" />
+
+	<import file="${distribution.dir}/common.xml" />
+	<target name="compile" depends="resolve" description="--> compile the project">
+		<mkdir dir="${classes.dir}" />
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="lib.path.id" debug="${compile.debug}" target="${compile.target}" source="${compile.source}" encoding="${compile.encoding}">
+			<src path="${src.dir}" />
+			<src path="src/main/emf-generated" />
+		</javac>
+	</target>
+</project>

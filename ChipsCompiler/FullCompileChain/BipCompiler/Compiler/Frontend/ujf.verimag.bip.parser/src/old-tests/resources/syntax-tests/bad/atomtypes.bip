@@ -1,0 +1,10 @@
+package this.is.a.pack
+
+ port type Port_t()
+
+ atom type Atom_t_with_a_dot_in_the_name.wrong()
+  
+ end
+
+
+end

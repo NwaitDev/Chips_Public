@@ -1,0 +1,7 @@
+#ifndef ENGINE_VERSION__HPP
+#define ENGINE_VERSION__HPP
+
+// define your version_libinterface
+#define ENGINE_VERSION "@VERSION@"
+
+#endif // ENGINE_VERSION__HPP

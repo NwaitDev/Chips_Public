@@ -1,0 +1,39 @@
+package conflict_packages2
+  use nested.pack
+  use nested_pack
+
+  port type XPort()
+
+  connector type Single(XPort p)
+    define p
+  end
+
+  connector type Connector(XPort p)
+    define p
+  end
+
+  atom type Atom()
+    export data int x
+    export port XPort p()
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on p from LOOP to LOOP
+  end
+
+
+  compound type Composite()
+    component Atom A(), B(), a()
+    component nested.pack.Atom D()
+    component nested_pack.Atom E()
+
+    connector Single c1(A.p), c2(B.p)
+    connector Connector c3(A.p)
+
+    priority prio c1:* < c2:* provided (A.x == B.x && A.x != a.x)
+  end
+end
+

@@ -1,0 +1,11 @@
+package missingUpForExportedPort
+  port type Port_t(int x)
+
+  // WARNING because 'up' may be missing.
+  connector type Conn_t(Port_t p1, Port_t p2)
+  data int d
+  export port Port_t ep(d)
+  define p1 p2
+  on p1 p2 down { p1.x = 0; p2.x = 0;}
+  end
+end

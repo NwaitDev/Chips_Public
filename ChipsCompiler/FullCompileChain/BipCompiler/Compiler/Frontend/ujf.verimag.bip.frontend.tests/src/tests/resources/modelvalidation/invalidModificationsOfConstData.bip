@@ -1,0 +1,46 @@
+package invalidModificationsOfConstData
+  const data int I = 10
+  
+  extern function print(const int n)
+  extern function swap(int n1, int n2)
+  
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  atom type A(const int k, int l)
+    data int i
+    data const int j = 0
+    port Port p()
+
+    place LOOP
+
+    initial to LOOP
+
+    on p from LOOP to LOOP
+      do {
+        I = 11; // this is bad, I is const
+        i = 11; // this is OK, i is not const
+        j = 11; // this is bad, j is const
+        k = 11; // this is bad, k is const
+        l = 11; // this is OK, i is not const
+        
+        print(I); // this is OK, print do not modify I
+        print(i); // this is OK
+        print(j); // this is OK, print do not modify j
+        print(k); // this is OK, print do not modify k
+        print(l); // this is OK
+        
+        swap(i, j); // this is not OK, j is const
+        swap(i, l); // this is OK
+        swap(l, I); // this is not OK, I is const
+      }
+  end
+  
+  compound type System()
+    component A a(2*I, // this is OK
+                  I)   // this is OK (I is passed by value)
+  end
+end

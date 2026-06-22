@@ -1,0 +1,10 @@
+package test
+
+   port type Port_t()
+
+   connector type InvalidDefine_t (Port_t p1, Port_t p2, Port_t p3)
+   define p1 p2 p3
+   on p1 down { f(); }
+   end
+
+end

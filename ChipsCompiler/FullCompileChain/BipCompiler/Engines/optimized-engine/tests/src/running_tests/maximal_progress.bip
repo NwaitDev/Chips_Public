@@ -1,0 +1,60 @@
+package maximal_progress
+  port type Port()
+  port type PortInt(int x)
+
+  connector type Low(Port p, Port q, Port r)
+    data int x
+    
+    export port PortInt xport(x)
+
+    define p' q' r'
+
+    on p q r provided (false) up { x = 42; }
+    on p q   provided (true)  up { x = -5; }
+    on p r   provided (true)  up { x = 17; }
+    on r q   provided (true)  up { x = 8; }
+    on p     provided (true)  up { x = 24; }
+    on q     provided (true)  up { x = 3; }
+    on r     provided (true)  up { x = -12; }
+  end
+
+  connector type High(PortInt p, Port q)
+    define p q
+
+    on p q provided (p.x <= 0)
+  end
+
+  connector type Singleton(PortInt p)
+    define p
+
+    on p provided (p.x <= 0)
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, STOP
+
+    initial to INIT
+    
+    on p from INIT to STOP
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType A()
+    component MyAtomType B()
+    component MyAtomType C()
+    component MyAtomType D()
+
+    connector Low  low(A.p, B.p, C.p)
+    connector High high(low.xport, D.p)
+
+    export port low.xport as p
+  end
+
+  compound type Top()
+    component MyCompoundType myCompound()
+
+    connector Singleton single(myCompound.p)
+  end
+end

@@ -1,0 +1,26 @@
+package internal_port
+
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type Atom()
+    data int x
+
+    port Port p()
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on p from LOOP to LOOP
+      do { x = x + 1; }
+  end
+
+  compound type MyCompound()
+    component Atom A()
+  end
+end

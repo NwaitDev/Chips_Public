@@ -1,0 +1,10 @@
+package connectorActionNotEmpty
+  port type Port_t(int x)
+  
+  connector type CoT(Port_t p1, Port_t p2)
+  define p1' p2'
+  on p1 p2 up {  }
+  on p1 up {  } down {}
+  on p2
+  end
+end

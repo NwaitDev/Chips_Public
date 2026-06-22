@@ -1,0 +1,43 @@
+package invariants
+
+ port type Port()
+ 
+ atom type AT()
+  data int nbUse1 = 0, nbUse2 = 0
+
+  port Port get1(), get2(), free1(), free2(), stop()
+
+  place FREE, USE,
+        WAIT1, WAIT2,
+        USE1,  USE2,
+        STOP
+
+  initial to WAIT1, WAIT2, FREE
+        
+  on get1 from WAIT1, FREE to USE1, USE
+    provided (nbUse1 <= nbUse2 && (nbUse1 + nbUse2) <= 100)
+    do { nbUse1 = nbUse1 + 1; }
+
+  on get2 from WAIT2, FREE to USE2, USE
+    provided (nbUse1 >  nbUse2 && (nbUse1 + nbUse2) <= 100)
+    do { nbUse2 = nbUse2 + 1; }
+
+  on free1 from USE1, USE  to WAIT1, FREE
+
+  on free2 from USE2, USE  to WAIT2, FREE
+
+  on stop from WAIT1, WAIT2 to STOP
+
+  priority prio1 stop < get1
+  priority prio2 stop < get2
+
+  invariant sched                     provided (nbUse1 == nbUse2 || nbUse1 == nbUse2 + 1)
+  invariant mutex     from USE1, USE2 provided (false)
+  invariant totalUse1 at   STOP       provided ((nbUse1 + nbUse2) <= 100)
+  invariant totalUse2 from STOP       provided ((nbUse1 + nbUse2) <= 100)
+ end
+ 
+ compound type CT()
+  component AT c()
+ end
+end

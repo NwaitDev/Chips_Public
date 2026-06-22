@@ -1,0 +1,80 @@
+[comment encoding = UTF-8 /]
+[module generateAtomExternalPort('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+
+[query private accessorName(param : PortDataParameterDeclaration) : String =
+	'lastEvent_get_' + param.name
+/]
+
+[query private variableName(param : PortDataParameterDeclaration) : String =
+	'm_' + param.name
+/]
+
+[template public generateAtomExternalPort(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        aipCN : String = aPortType.atomExternalClassName();
+        fullCpp : String = aPortType.fullCppFilePath(aipCN);
+        fullHpp : String = aPortType.fullHppFilePath(aipCN);
+    }
+]
+
+[comment 
+    IMPLEMENTATION FILE
+ /]
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[aPortType.relHppFilePath(aipCN)/]>
+
+[aipCN/]::[aPortType.genCtorProto()/] : AtomExternalPort(name, policy) {
+}
+
+[aipCN/]::~[aipCN/]() {
+}
+[/file]
+
+[comment 
+    HEADER FILE
+ /]
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <AtomExternalPort.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [aipCN/] : public AtomExternalPort {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[aipCN/]();
+
+    virtual void initialize() { }
+    virtual bool hasEvent() const { return false; }
+    virtual void popEvent() { }
+    virtual void purgeEvents() { }
+
+    [for (param : PortDataParameterDeclaration | aPortType.dataParameterDeclarations) before('')]
+    virtual [param.dataType.typeName()/] &[accessorName(param)/]() { return [variableName(param)/]; }
+    [/for]
+
+protected:
+    [for (param : PortDataParameterDeclaration | aPortType.dataParameterDeclarations) before('')]
+    [param.dataType.typeName()/] [variableName(param)/];
+    [/for]
+
+private:
+};
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.atomExternalClassName()/](const string &name, const EventConsumptionPolicy &policy)
+[/template]

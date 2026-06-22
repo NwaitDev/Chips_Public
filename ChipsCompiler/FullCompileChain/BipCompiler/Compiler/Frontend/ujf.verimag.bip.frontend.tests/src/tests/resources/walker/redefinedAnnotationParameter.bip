@@ -1,0 +1,5 @@
+package redefinedAnnotationParameter
+
+@duplicated(param="pouet",param="23")
+port type Port_t()
+end

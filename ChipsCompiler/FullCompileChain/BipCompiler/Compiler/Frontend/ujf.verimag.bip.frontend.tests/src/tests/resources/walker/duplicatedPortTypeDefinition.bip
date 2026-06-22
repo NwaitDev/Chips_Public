@@ -1,0 +1,5 @@
+package duplicatedCompoundTypeDefinition
+ // BAD: duplicated type
+ port type Port_t()
+ port type Port_t()
+end

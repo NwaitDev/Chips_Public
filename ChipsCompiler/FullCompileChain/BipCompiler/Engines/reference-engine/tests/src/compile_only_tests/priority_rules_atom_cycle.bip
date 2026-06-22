@@ -1,0 +1,34 @@
+package priority_rules_atom_cycle
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType()
+    export port Port p(), q(), r(), s(), t()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+    on t from INIT to END
+
+    priority myPrio1 p < q
+    priority myPrio2 q < s
+    priority myPrio3 q < r
+    priority myPrio4 r < t
+    priority myPrio5 t < q
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+
+    connector Singleton single1(myAtom.p)
+    connector Singleton single2(myAtom.q)
+    connector Singleton single3(myAtom.r)  
+    connector Singleton single4(myAtom.s)
+    connector Singleton single5(myAtom.t)
+  end
+end

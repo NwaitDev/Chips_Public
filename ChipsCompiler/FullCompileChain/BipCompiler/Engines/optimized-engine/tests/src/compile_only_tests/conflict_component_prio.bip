@@ -1,0 +1,29 @@
+package conflict_component_prio
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  atom type Atom(int Xx)
+    export port Port p()
+
+    place INIT
+
+    initial to INIT
+
+    on p from INIT to INIT
+  end
+
+  compound type Bug()
+    component Atom low(10)
+  end
+
+  compound type Comp()
+    component Atom A(3), B(4), C(5)
+    component Bug prio()
+    connector Single SA(A.p), SB(B.p), SC(C.p)
+
+    priority  prio SA:A.p < SB:B.p
+  end
+end

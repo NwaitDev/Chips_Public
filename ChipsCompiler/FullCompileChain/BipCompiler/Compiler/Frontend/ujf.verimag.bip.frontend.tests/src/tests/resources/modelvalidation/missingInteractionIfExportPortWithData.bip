@@ -1,0 +1,44 @@
+package missingInteractionIfExportPortWithData
+ port type Port_t(int x)
+
+ connector type CT(Port_t p1, Port_t p2, Port_t p3, Port_t p4)
+ data int x
+ export port Port_t e(x)
+ define p1' p2' p3 p4
+ 
+ on p1 up {x=3;}
+ on p1 p3 up {x=3;}
+ on p1 p4 up {x=3;}
+ on p1 p3 p4 up {x=3;}
+ on p2 up {x=3;}
+ on p2 p3 up {x=3;}
+ on p2 p4 up {x=3;}
+ on p2 p3 p4 up {x=3;}
+ on p1 p2 up {x=3;}
+ on p1 p2 p3 up {x=3;}
+ on p1 p2 p4 up {x=3;}
+ on p1 p2 p3 p4 up {x=3;}
+ end
+
+// this connector has 12 - 5 = 7 interactions defined.
+// 5 of them leave the 'x' data undefined.
+ connector type CT_BAD(Port_t p1, Port_t p2, Port_t p3, Port_t p4)
+ data int x
+ export port Port_t e(x)
+ define p1' p2' p3 p4
+ 
+ on p1 up {x=3;}
+ on p1 p3 up {x=3;}
+ on p1 p4 up {x=3;}
+ // on p1 p3 p4 up {x=3;}
+ // on p2 up {x=3;}
+ // on p2 p3 up {x=3;}
+ // on p2 p4 up {x=3;}
+ // on p2 p3 p4 up {x=3;}
+ on p1 p2 up {x=3;}
+ on p1 p2 p3 up {x=3;}
+ on p1 p2 p4 up {x=3;}
+ on p1 p2 p3 p4 up {x=3;}
+ end
+
+end

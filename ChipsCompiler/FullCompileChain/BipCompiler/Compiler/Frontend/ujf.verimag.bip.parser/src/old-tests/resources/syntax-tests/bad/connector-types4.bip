@@ -1,0 +1,18 @@
+package this.is.a.pack
+
+ port type Port_t()
+ port type Port2_t()
+
+
+ connector type Conn_t(Port_t p1, Port2_t p2, Port_t p3)
+ data int x,y,z
+ define p1 p2 p3
+
+ // inverted up and down
+ on p1 down {x = z + y;}
+       up {x = 19; }
+
+ end
+end
+
+

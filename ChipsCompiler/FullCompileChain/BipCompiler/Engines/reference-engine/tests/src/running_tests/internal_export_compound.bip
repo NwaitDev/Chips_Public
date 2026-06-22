@@ -1,0 +1,33 @@
+package internal_export_compound
+
+ port type Port_t()
+
+ connector type Singleton(Port_t p)
+   define p
+ end
+ 
+ atom type AT()
+  port Port_t intern()
+  export port Port_t p()
+ 
+  place EXPORT1, INTERNAL, EXPORT2, STOPPED
+
+  initial to EXPORT1
+
+  on p from EXPORT1 to INTERNAL
+
+  on intern from INTERNAL to EXPORT2
+
+  on p from EXPORT2 to STOPPED
+ end
+ 
+ compound type CT()
+  component AT a()
+  export port a.p as p
+ end
+
+ compound type BIG_CT()
+   component CT ct()
+   connector Singleton c(ct.p)
+ end
+end

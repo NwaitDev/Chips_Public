@@ -1,0 +1,97 @@
+[comment encoding = UTF-8 /]
+[module generateBipType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::generateAtomType /]
+[import ujf::verimag::bip::backend::cpp::templates::generateCompoundType /]
+[import ujf::verimag::bip::backend::cpp::templates::generateConnectorType /]
+[import ujf::verimag::bip::backend::cpp::templates::generatePortType /]
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::cmake /]
+[import ujf::verimag::bip::backend::cpp::templates::traceBip /]
+
+[comment
+    Main template called once for every type.
+    Calls the templates for
+     - CMake
+     - CPP
+     - HPP
+     - sub-classes (when a single type creates more than 1 class)
+/]
+[template public generate(aType : BipType, disableSerialization : Boolean)
+    {
+        container : BipPackage = aType.eContainer(BipPackage);
+    }
+]
+
+[file (container.getCMakeList(), true, 'UTF-8')]
+[aType.gtccm()/]
+list(APPEND TYPE_FILES [aType.fullHppFilePath() /] [aType.fullCppFilePath() /])
+[aType.generateCMakeBody() /]
+[/file]
+
+[file (container.hppRoot() + '/' + aType.fullHppFilePath(), false, 'UTF-8')]
+[aType.genHeader(disableSerialization) /]
+[/file]
+
+[file (container.cppRoot() + '/' + aType.fullCppFilePath(), false, 'UTF-8')]
+[aType.gtc()/]
+
+#include <[aType.relHppFilePath()/]>
+
+[aType.generateImplemBody(disableSerialization) /]
+[/file]
+
+[aType.generateSubClasses(container.getCMakeList(), disableSerialization) /]
+[/template]
+
+
+[comment
+    Creates the HPP file content for a bip type.
+
+    Template called for every top level types (Atom, Compound, Connectors,...):
+    - creates include guard
+    - calls the template responsible for the real content
+    - closes the include guard
+/]
+[template private genHeader(aBipType : BipType, disableSerialization: Boolean)]
+[aBipType.relHppFilePath().startHeaderGuard() /]
+[aBipType.gtc()/]
+// include package "master" header
+#include <[aBipType.eContainer(BipPackage).relPackageHppFilePath()/]>
+
+[aBipType.generateHeaderBody(disableSerialization) /]
+[aBipType.relHppFilePath().endHeaderGuard() /]
+[/template]
+
+[comment
+    Exists only for typing correctness. There is no 'interface' concept.
+    Calling this template is an error. Polymorphism should always trigger
+    the use of a more specific template.
+/]
+[template public generateHeaderBody(aBipType : BipType, disableSerialization: Boolean)]
+// THIS IS A PLACEHOLDER AND SHOULD NEVER BE CALLED
+// IF YOU READ THIS IN THE GENERATED CODE, THEN, 
+// THERE IS A BUG IN THE CODE GENERATOR.
+#error Bug in Cpp code generator
+[/template]
+
+[comment
+    Exists only for typing correctness. There is no 'interface' concept.
+    Calling this template is an error. Polymorphism should always trigger
+    the use of a more specific template.
+/]
+[template public generateImplemBody(aBipType : BipType, disableSerialization: Boolean)]
+// THIS IS A PLACEHOLDER AND SHOULD NEVER BE CALLED
+// IF YOU READ THIS IN THE GENERATED CODE, THEN, 
+// THERE IS A BUG IN THE CODE GENERATOR.
+#error Bug in Cpp code generator
+[/template]
+
+[comment]
+    This is the default one, when the submodule has nothing to add to 
+    the CMakeLists.txt file.
+[/comment]
+[template public generateCMakeBody(aType : BipType) post(trim())]
+[/template]
+[template public generateSubClasses(aType : BipType, aCMakeList : String, disableSerialization: Boolean) post(trim())]
+[/template]

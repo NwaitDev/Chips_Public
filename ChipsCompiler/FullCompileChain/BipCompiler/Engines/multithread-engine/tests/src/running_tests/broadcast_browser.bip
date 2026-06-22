@@ -1,0 +1,80 @@
+package broadcast_browser
+  port type Port()
+
+  connector type Sync(Port p, Port q, Port r, Port s, Port t, Port u)
+    define p' q' r' s' t' u'
+  end
+
+  connector type Broadcast(Port p, Port q, Port r, Port s, Port t, Port u)
+    define p q r s t u'
+  end
+
+  connector type Stop(Port p, Port q, Port r, Port s, Port t, Port u)
+    define p q r s t u
+  end
+
+  connector type RendezVous(Port p, Port q)
+    define p q
+  end
+
+  atom type Bit()
+    export port Port sync(), carry_left(), carry_right(), flip(), stop()
+
+    place ZERO, ONE, CARRY, WAIT_FLIP, STOP
+
+    initial to ZERO
+
+    on carry_right from ZERO      to ONE
+    on carry_right from ONE       to CARRY
+    on carry_left  from CARRY     to ZERO
+    on sync        from ONE       to WAIT_FLIP
+    on stop        from ONE       to STOP
+    on flip        from WAIT_FLIP to ONE
+  end
+
+  atom type FlipperBit()
+    export port Port sync(), carry(), flip(), stop()
+
+    place ZERO, ONE, SYNC, ZERO_CARRY, STOP
+
+    initial to ZERO
+
+    on flip  from ZERO to SYNC
+    on flip  from ONE to ZERO_CARRY
+
+    on carry from ZERO_CARRY to ZERO
+    on sync  from SYNC to ONE
+    on stop  from SYNC to STOP
+  end
+
+  compound type MyCompoundType()
+    component Bit        bit1()
+    component Bit        bit2()
+    component Bit        bit3()
+    component Bit        bit4()
+    component Bit        bit5()
+    component FlipperBit bit6()
+
+    connector Sync       sync(bit1.sync, bit2.sync, bit3.sync, bit4.sync, bit5.sync, bit6.sync)
+
+    connector Stop       stop(bit1.stop, bit2.stop, bit3.stop, bit4.stop, bit5.stop, bit6.stop)
+
+    connector RendezVous carry56(bit5.carry_right, bit6.carry)
+    connector RendezVous carry45(bit4.carry_right, bit5.carry_left)
+    connector RendezVous carry34(bit3.carry_right, bit4.carry_left)
+    connector RendezVous carry23(bit2.carry_right, bit3.carry_left)
+    connector RendezVous carry12(bit1.carry_right, bit2.carry_left)
+
+    connector Broadcast  flip(bit1.flip, bit2.flip, bit3.flip, bit4.flip, bit5.flip, bit6.flip)
+
+    priority priocarry56 sync:* < carry56:*
+    priority priocarry45 sync:* < carry45:*
+    priority priocarry34 sync:* < carry34:*
+    priority priocarry23 sync:* < carry23:*
+    priority priocarry12 sync:* < carry12:*
+
+    priority prioflip    flip:* < sync:*
+    
+    priority priostop    sync:* < stop:*
+  end
+end

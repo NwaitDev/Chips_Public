@@ -1,0 +1,311 @@
+[comment encoding = UTF-8 /]
+[module naming('http://bip2/1.0')/]
+
+[comment]
+Takes as input fully qualified names (of the form ID ( '.' ID )* ) and returns valid and unique IDs
+[/comment]
+[query private mangle(aDottedString : String) : String =
+	aDottedString.substituteAll('_','_x').substituteAll('.', '__')
+/]
+
+[query private mangle(aPrefix : String, aDottedString : String) : String =
+	mangle(dot(aPrefix, aDottedString))
+/]
+
+[query private mangle(aPrefix1 : String, aPrefix2 : String, aDottedString : String) : String =
+	mangle(dot(aPrefix1, dot(aPrefix2, aDottedString)))
+/]
+
+[query private dot(left : String, right : String) : String =
+	left + '.' + right
+/]
+
+[query private dot(seq : Sequence(String)) : String =
+	if seq->size() = 0 then
+		''
+	else if seq->size() = 1 then
+		seq->first()
+	else
+		dot(seq->first(), dot(seq->subSequence(2, seq->size())))
+	endif endif
+/]
+
+[query private mangle(seq : Sequence(String)) : String =
+	mangle(dot(seq))
+/]
+
+[comment]
+Fully qualified names for types.
+[/comment]
+
+[query public fullyQualifiedName(aPackage : BipPackage) : String = 
+	aPackage.name
+/]
+
+[query public fullyQualifiedName(aType : BipType) : String = 
+	dot(aType.eContainer(BipPackage).fullyQualifiedName(), 
+		aType.name)
+/]
+
+[query public fullyQualifiedName(aPrioDecl : CompoundPriorityDeclaration) : String = 
+	dot(aPrioDecl.eContainer(CompoundType).fullyQualifiedName(), 
+		aPrioDecl.name)
+/]
+
+
+[comment]
+Fully qualified names for instances.
+[/comment]
+
+[query public fullyQualifiedName(aComponent : ComponentInstance) : String =
+	if aComponent.eContainer().oclIsUndefined() then
+		aComponent.declaration.name
+	else
+		dot(aComponent.eContainer(ComponentInstance).fullyQualifiedName(),
+			aComponent.declaration.name)
+	endif
+/]
+
+[query public fullyQualifiedName(aConnector : ConnectorInstance) : String =
+	dot(aConnector.eContainer(ComponentInstance).fullyQualifiedName(),
+		aConnector.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : AtomInternalPortInstance) : String =
+	dot(aPort.eContainer(AtomInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : AtomExternalPortInstance) : String =
+	dot(aPort.eContainer(AtomInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : ExportedPortInstance) : String =
+	dot(aPort.eContainer(ComponentInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : ConnectorPortInstance) : String =
+	dot(aPort.eContainer(ConnectorInstance).fullyQualifiedName(),
+		aPort.declaration.name)
+/]
+
+[query public fullyQualifiedName(aPort : PortInstance) : String =
+	if (aPort.oclIsKindOf(AtomInternalPortInstance)) then
+		aPort.oclAsType(AtomInternalPortInstance).fullyQualifiedName()
+	else if (aPort.oclIsKindOf(AtomExternalPortInstance)) then
+		aPort.oclAsType(AtomExternalPortInstance).fullyQualifiedName()
+	else if (aPort.oclIsKindOf(ExportedPortInstance)) then
+		aPort.oclAsType(ExportedPortInstance).fullyQualifiedName()
+	else if (aPort.oclIsKindOf(ConnectorPortInstance)) then
+		aPort.oclAsType(ConnectorPortInstance).fullyQualifiedName()
+	else
+		'THIS SHOULD NEVER HAPPEN! problem with port ' + aPort
+	endif endif endif endif
+/]
+
+[query public fullyQualifiedName(aData : DataInstance) : String =
+	dot(aData.eContainer(ComponentInstance).fullyQualifiedName(),
+		aData.declaration.name)
+/]
+[query public fullyQualifiedName(aPrio : CompoundPriorityInstance) : String =
+	dot(aPrio.eContainer(ComponentInstance).fullyQualifiedName(),
+		aPrio.declaration.name)
+/]
+
+[query public fullyQualifiedName(aConstDataDecl : ConstDataDeclaration) : String =
+	dot(aConstDataDecl.eContainer(BipPackage).fullyQualifiedName(),
+		aConstDataDecl.name)
+/]
+
+
+[comment]
+Generated names for classes.
+[/comment]
+
+[query private prefix(aType : BipType) : String = 
+	if aType.oclIsKindOf(AtomType) then
+    	'AT'
+    else if aType.oclIsKindOf(CompoundType) then
+    	'CT'
+    else if aType.oclIsKindOf(ConnectorType) then
+    	'ConnT'
+    else if aType.oclIsKindOf(PortType) then
+    	'PT'
+    else
+    	'\n#error in codegenerator '
+    endif endif	endif endif
+/]
+
+[query public className(aType : BipType) : String = 
+	mangle(prefix(aType), aType.fullyQualifiedName())
+/]
+
+[query public exportDataClassName(aDataType : DataType, aType : BipType) : String =
+	if (aType.oclIsKindOf(AtomType)) then
+		mangle('AtomEData', aDataType.name, aType.fullyQualifiedName())
+	else if (aType.oclIsKindOf(CompoundType)) then
+		mangle('CpndEData', aDataType.name, aType.fullyQualifiedName())
+	else 'error!' endif endif
+/]
+
+[query public interactionClassName(aConnectorType : ConnectorType) : String = 
+	mangle('Inter', aConnectorType.fullyQualifiedName())
+/]
+
+[query public interactionValueClassName(aConnectorType : ConnectorType) : String = 
+	mangle('InterV', aConnectorType.fullyQualifiedName())
+/]
+
+[query public portValueClassName(aPortType : PortType) : String = 
+	mangle('PV', aPortType.fullyQualifiedName())
+/]
+
+[query public atomInternalClassName(aPortType : PortType) : String = 
+	mangle('AtomIPort', aPortType.fullyQualifiedName())
+/]
+
+[query public atomExternalClassName(aPortType : PortType) : String = 
+	mangle('AtomExternalPort', aPortType.fullyQualifiedName())
+/]
+
+[query public atomExternalClassName(aPort : AtomExternalPortDeclaration) : String = 
+	if aPort.backendName->isEmpty() then
+		aPort.portType.atomExternalClassName()
+	else
+		aPort.backendName
+	endif
+/]
+
+[query public atomExportClassName(aPortType : PortType) : String = 
+	mangle('AtomEPort', aPortType.fullyQualifiedName())
+/]
+
+[query public compoundExportClassName(aPortType : PortType) : String = 
+	mangle('CpndEPort', aPortType.fullyQualifiedName())
+/]
+
+[query public connectorExportClassName(aPortType : PortType) : String = 
+	mangle('ConnPort', aPortType.fullyQualifiedName())
+/]
+
+[query public quotedReferenceClassName(aPortType : PortType) : String = 
+	mangle('QPR', aPortType.fullyQualifiedName())
+/]
+
+[query public className(aPrioDecl : CompoundPriorityDeclaration) : String = 
+	mangle('PrioT', aPrioDecl.fullyQualifiedName())
+/]
+
+
+[comment]
+Generated names for variables.
+[/comment]
+
+[query public varName(aComponent : ComponentInstance) : String = mangle('Comp', aComponent.fullyQualifiedName()) /]
+
+[query public varName(aConnector : ConnectorInstance) : String = mangle('Conn', aConnector.fullyQualifiedName()) /]
+
+[query public varName(aPort : PortInstance) : String =
+	if (aPort.oclIsKindOf(AtomInternalPortInstance)) then
+		mangle('iport', aPort.fullyQualifiedName())
+	else if (aPort.oclIsKindOf(AtomExternalPortInstance)) then
+		mangle('eport', aPort.fullyQualifiedName())
+	else
+		mangle('port', aPort.fullyQualifiedName())
+	endif endif
+/]
+
+[query public varName(aData : DataInstance) : String = mangle('data', aData.fullyQualifiedName()) /]
+
+[query public quotedReferenceVarName(aPort : ConnectorPortParameterDeclaration, aConnector : ConnectorInstance) : String =
+	mangle('ref', dot(aConnector.fullyQualifiedName(), aPort.name))
+/]
+
+[query public quotedReferenceVarName(aPort : PortInstance, aConnector : ConnectorInstance) : String =
+	quotedReferenceVarName(aConnector.declaration.type.ports->at(aConnector.portParamInstances->indexOf(aPort)), aConnector)
+/]
+
+
+[query public varName(aPrio : CompoundPriorityInstance) : String = mangle('prio', aPrio.fullyQualifiedName()) /]
+
+[query public highInteractionVarName(aPrio : CompoundPriorityInstance) : String = mangle('high', aPrio.fullyQualifiedName()) /]
+
+[query public lowInteractionVarName(aPrio : CompoundPriorityInstance) : String = mangle('low', aPrio.fullyQualifiedName()) /]
+
+[query public varName(aDataParam : ComponentDataParameterDeclaration, aComponent : ComponentInstance) : String =
+	mangle('data', dot(aComponent.fullyQualifiedName(),	aDataParam.name))
+/]
+
+[query public varName(aConstDataDecl : ConstDataDeclaration) : String =
+	mangle('const', aConstDataDecl.fullyQualifiedName())
+/]
+
+[query public typeName(aType : Type) : String =
+	if (aType.oclIsKindOf(BipType)) then
+		aType.oclAsType(BipType).className()
+	else if (aType.oclIsKindOf(DataType)) then
+		if (aType.oclAsType(DataType).backendName->notEmpty()) then
+			aType.oclAsType(DataType).backendName
+		else
+			if (aType.oclAsType(DataType).native) then
+				if (aType = aType.eContainer(BipPackage).getBoolDataType()) then
+					'bool'
+				else if (aType = aType.eContainer(BipPackage).getIntDataType()) then
+					'int'
+				else if (aType = aType.eContainer(BipPackage).getFloatDataType()) then
+					'double'
+				else if (aType = aType.eContainer(BipPackage).getStringDataType()) then
+					'std::string'
+				else
+					'WARNING! ERROR OF THE CPP BACKEND: UNSUPPORTED NATIVE TYPE ' + aType.name
+				endif endif endif endif
+			else
+				aType.name
+			endif
+		endif
+	else
+		'WARNING! ERROR OF THE CPP BACKEND: UNSUPPORTED TYPE ' + aType.name
+	endif endif
+/]
+
+[query public canBeCastTo(type : Type, toType : Type) : Boolean =
+	type = toType 												or
+	(type.native and toType.native and type.name = toType.name) or
+	toType.castableTypes->includes(type) 						or
+	type.superTypes->includes(type) 							or
+	type.superTypes->exists(t : Type | canBeCastTo(t, toType))
+/]
+
+[query public needToBeCast(type : Type, toType : Type) : Boolean =
+	type <> toType and
+	not (type.native and toType.native and type.name = toType.name)
+/]
+
+
+[template public generateCast(type : Type, expectedType : Type, expr : String)
+	? (canBeCastTo(type, expectedType) and needToBeCast(type, expectedType)) {
+	pack : BipPackage = type.eContainer(BipPackage);
+}]
+[if (type.oclIsKindOf(DataType) and expectedType.oclIsKindOf(DataType))]
+[expectedType.typeName()/]([expr/])[else]
+#ERROR: unsupported conversion of type '[type.name/]' to type '[expectedType.name/]'[/if]
+[/template]
+
+[template public generateCast(type : Type, expectedType : Type, expr : String)
+	? (canBeCastTo(type, expectedType) and not needToBeCast(type, expectedType))][expr/][/template]
+
+[template public generateCast(type : Type, expectedType : Type, expr : String)
+	? (not canBeCastTo(type, expectedType))]
+#ERROR: unsupported conversion of type '[type.name/]' to type '[expectedType.name/]'
+[/template]
+
+
+[comment]
+Generated names for packages.
+[/comment]
+
+[query public dirName(aBipPackage : BipPackage) : String = mangle(aBipPackage.name) /]
+
+[query public libName(aBipPackage : BipPackage) : String = mangle('pack', aBipPackage.name) /]

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.    
+-->
+<ivy-module version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+    <info
+        organisation="ujf.verimag.bip"
+        module="acceleo.standalone.compiler">
+	</info>
+    <configurations>
+        <include file="../../../distribution/configurations.xml"/>
+    </configurations>
+    <dependencies>
+    	<dependency name="ujf.verimag.bip.metamodel" rev="latest.integration"></dependency>
+
+   <dependency name="lpg.runtime.java" rev="2.0.17.v201004271640">
+        <artifact name="lpg.runtime.java" type="jar" url="file://${basedir}/externals/lpg.runtime.java_2.0.17.v201004271640.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.acceleo.common" rev="3.6.6.201610060831">
+        <artifact name="org.eclipse.acceleo.common" type="jar" url="file://${basedir}/externals/org.eclipse.acceleo.common_3.6.6.201610060831.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.acceleo.model" rev="3.6.6.201610060831">
+        <artifact name="org.eclipse.acceleo.model" type="jar" url="file://${basedir}/externals/org.eclipse.acceleo.model_3.6.6.201610060831.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.acceleo.parser" rev="3.6.6.201610060831">
+        <artifact name="org.eclipse.acceleo.parser" type="jar" url="file://${basedir}/externals/org.eclipse.acceleo.parser_3.6.6.201610060831.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.core.contenttype" rev="3.4.200.v20120523-2004">
+        <artifact name="org.eclipse.core.contenttype" type="jar" url="file://${basedir}/externals/org.eclipse.core.contenttype_3.4.200.v20120523-2004.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.core.jobs" rev="3.5.200.v20120521-2346">
+        <artifact name="org.eclipse.core.jobs" type="jar" url="file://${basedir}/externals/org.eclipse.core.jobs_3.5.200.v20120521-2346.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.core.runtime" rev="3.8.0.v20120521-2346">
+        <artifact name="org.eclipse.core.runtime" type="jar" url="file://${basedir}/externals/org.eclipse.core.runtime_3.8.0.v20120521-2346.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.equinox.app" rev="1.3.100.v20120522-1841">
+        <artifact name="org.eclipse.equinox.app" type="jar" url="file://${basedir}/externals/org.eclipse.equinox.app_1.3.100.v20120522-1841.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.equinox.common" rev="3.6.100.v20120522-1841">
+        <artifact name="org.eclipse.equinox.common" type="jar" url="file://${basedir}/externals/org.eclipse.equinox.common_3.6.100.v20120522-1841.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.equinox.preferences" rev="3.5.0.v20120522-1841">
+        <artifact name="org.eclipse.equinox.preferences" type="jar" url="file://${basedir}/externals/org.eclipse.equinox.preferences_3.5.0.v20120522-1841.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.ocl" rev="3.2.0.v20120611-1210">
+        <artifact name="org.eclipse.ocl" type="jar" url="file://${basedir}/externals/org.eclipse.ocl_3.2.0.v20120611-1210.jar"/>
+    </dependency>
+    <dependency name="org.eclipse.ocl.ecore" rev="3.2.0.v20120522-1637">
+        <artifact name="org.eclipse.ocl.ecore" type="jar" url="file://${basedir}/externals/org.eclipse.ocl.ecore_3.2.0.v20120522-1637.jar"/>
+    </dependency>
+    <dependency name="runtime" rev="registry_compatibility">
+        <artifact name="runtime" type="jar" url="file://${basedir}/externals/runtime_registry_compatibility.jar"/>
+    </dependency>
+	<dependency name="org.apache.ant" rev="1.8.0">
+		<artifact name="org.apache.ant" type="jar"
+			url="file://${basedir}/externals/ant-1.8.0.jar" />
+	</dependency>
+    </dependencies>
+
+</ivy-module>

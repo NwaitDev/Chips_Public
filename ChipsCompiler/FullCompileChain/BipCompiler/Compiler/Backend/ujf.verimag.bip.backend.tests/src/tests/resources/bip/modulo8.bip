@@ -1,0 +1,47 @@
+package modulo8
+  port type eport(bool x, bool y)
+  port type iport()
+
+  connector type RDV3(eport p0, eport p1, eport p2)
+    define p0 p1 p2
+    on p0 p1 p2
+      provided (true)
+      down {
+        p0.x = true;
+        p1.x = p0.y;
+        p2.x = p0.y && p1.y;
+      }
+  end    
+
+  atom type Modulo2()
+    data bool input
+    data bool output
+
+    export port eport Sync(input, output)
+
+    place ZERO, ZEROPRIME, ONE, ONEPRIME
+
+    initial to ZEROPRIME do { output = false; }
+
+    on Sync from ONE to ONEPRIME  
+    on Sync from ONEPRIME to ONEPRIME
+    on Sync from ZERO to ZEROPRIME
+    on Sync from ZEROPRIME to ZEROPRIME
+
+    internal from ZEROPRIME to ONE
+      provided (input)
+      do { output = true; }
+
+    internal from ONEPRIME to ZERO
+      provided (input)
+      do { output = false; }
+  end
+
+  compound type Modulo8()
+    component Modulo2 bit0()
+    component Modulo2 bit1()
+    component Modulo2 bit2()
+
+    connector RDV3 C1(bit0.Sync, bit1.Sync, bit2.Sync)
+  end
+end

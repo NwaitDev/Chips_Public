@@ -1,0 +1,80 @@
+package ifthenelse
+ extern function int f(int)
+ extern function int g(int)
+
+ port type Port_t()
+ port type Port_tt(int x)
+
+ connector type Cot1(Port_t p1, Port_tt p2)
+ data int x
+ export port Port_tt ep(x)
+ define p1 p2
+ on p1 p2 
+    up {
+      if (p2.x == 3) then
+        x = 3;
+      else
+        x = f(g(p2.x * 9));
+      fi
+      x = 2 * x;
+    }
+    down {
+      if (x >= 19) then
+         if (x % 10 == 4) then
+            p2.x = 1;
+         else
+            p2.x = 3;
+         fi
+     else
+         p2.x = 5;
+     fi
+     p2.x = f(p2.x);
+    }
+  end
+
+ atom type AT()
+   data int x,y,z
+   export port Port_t p1()
+   export port Port_tt p2(x)
+   place S1
+   initial to S1 do {
+     x = 0;
+     y = 10;
+     z = 100;
+     if ( x == z) then
+        y = 18;
+     fi
+     if (y == 10) then
+         z = 19;
+         if (z == 19) then
+             x = 19;
+         fi
+     else
+         x = 19;
+         y = 19 + z;
+     fi
+   }
+
+   on p1 from S1 to S1 do {
+     if ( x == z) then
+        y = 18;
+     fi
+     if (y == 10) then
+         z = 19;
+         if (z == 19) then
+             x = 19;
+         fi
+     else
+         x = 19;
+         y = 19 + z;
+     fi    
+   }
+
+ end
+
+ compound type CT()
+   component AT c1(), c2()
+   connector Cot1 conn1(c1.p1, c2.p2)
+ end
+
+end

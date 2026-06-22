@@ -1,0 +1,14 @@
+package noRefToLocalDataInConnectorGuard
+
+   extern function f()
+
+   port type Port_t(int x)
+
+   connector type CoT (Port_t p1, Port_t p2, Port_t p3)
+   data int x,y
+   define p1 p2 p3
+
+   // BAD:  connector guard should not use "x" !
+   on p1 p2 p3 provided (x == 3) down { f(); }
+   end
+end

@@ -1,0 +1,6 @@
+package this.is.a.pack
+
+// missing ()
+port type Port2_t
+
+end

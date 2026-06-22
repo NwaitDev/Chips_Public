@@ -1,0 +1,680 @@
+[comment encoding = UTF-8 /]
+[module generateConnectorType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteraction /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteractionValue /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateQuotedPortReference /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateConnectorExportPort/]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue/]
+[import ujf::verimag::bip::backend::cpp::templates::gcc /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::utils /]
+[import ujf::verimag::bip::backend::cpp::templates::traceBip /]
+
+[query private canUpOnlyMaximalInteractions(aConnectorType : ConnectorType) : Boolean =
+	if aConnectorType.exportedPortDeclaration->size() > 0 then
+		aConnectorType.exportedPortDeclaration.dataParameters->size() = 0 or
+		aConnectorType.interactions->forAll(up->size() = 0)
+	else
+		true
+	endif
+/]
+
+[comment 
+    Template for creating the HPP body for the class corresponding to the
+    connector Type being compiled.
+/]
+[template public generateHeaderBody(aConnectorType : ConnectorType, disableSerialization : Boolean)
+    {
+        cl : String = aConnectorType.className();
+    }]
+#include <Connector.hpp>
+#include <Interaction.hpp>
+#include <PortValue.hpp>
+
+#if __cplusplus >= 201103L
+#include <atomic>
+#endif
+
+[for (userInclude : String | aConnectorType.getUserIncludes()) before('// User include given in @cpp annotation\n')]
+#include <[userInclude/]>
+[/for]
+
+[for (ptype : String | portQPRTypesWithRelPath(aConnectorType))]
+#include <[ptype/]>
+[/for]
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+#include <[relHppFilePath(aConnectorType.exportedPortDeclaration.portType, aConnectorType.exportedPortDeclaration.portType.connectorExportClassName())/]>
+[/if]
+#include <[aConnectorType.relHppFilePath(aConnectorType.interactionValueClassName())/]>
+
+class [cl /] : public Connector {
+public:
+    [aConnectorType.genCtorProto()/];
+    virtual ~[cl /]();
+
+    virtual PortValue &up(const InteractionValue &interactionValue) const;
+    virtual void down(InteractionValue &interactionValue) const;
+    virtual void down(InteractionValue &interactionValue, PortValue &portValue) const;
+
+    virtual Interaction &createInteraction() const;
+    virtual Interaction &createInteraction(const vector<Port *> &ports) const;
+    virtual void releaseInteraction(Interaction &interaction) const;
+
+    virtual InteractionValue &createInteractionValue(const Interaction &interactionValue, const vector<PortValue *> &values) const;
+    virtual void releaseInteractionValue(InteractionValue &interactionValue) const;
+
+    virtual bool guard(const InteractionValue &interactionValue) const;
+    virtual const vector<Interaction *> &interactions() const;
+    virtual bool canUpOnlyMaximalInteractions() const {
+[if (isOptimEnabled('ports-reset') and aConnectorType.canUpOnlyMaximalInteractions())]
+        return true;
+[else]
+        return false;
+[/if]
+    }
+
+private:
+[for (paramdecl : ConnectorPortParameterDeclaration | aConnectorType.ports)]
+    [paramdecl.portType.quotedReferenceClassName()/] &[paramdecl.varName()/];
+[/for]
+
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+    [aConnectorType.exportedPortDeclaration.portType.connectorExportClassName()/] &[aConnectorType.exportedPortDeclaration.varName()/];
+[/if]
+[for (aCI : ConnectorInteractionAction | aConnectorType.interactions) before('\n    // Interactions\n')]
+    // build for [for (aCPPD : ConnectorPortParameterDeclaration | aCI.onPorts) separator(',')][aCPPD.name/][/for]
+    [aConnectorType.interactionClassName()/] *[iVarName(aCI.onPorts) /];
+[/for]
+
+[if (isOptimEnabled('poolci'))]
+#if __cplusplus >= 201103L
+    void unlockPoolCi() const { mPoolCiIsLocked.clear(); }
+    void lockPoolCi() const { while (mPoolCiIsLocked.test_and_set()) { }; }
+
+    mutable atomic_flag mPoolCiIsLocked;
+#endif
+
+#define POOL_CI_SIZE ['poolci'.getOptimParam('size', '100')/]
+    mutable [aConnectorType.interactionClassName()/]* pool_ci['[POOL_CI_SIZE]'/];
+    mutable unsigned int pool_ci_size;
+[/if]
+
+[if (isOptimEnabled('poolciv'))]
+#if __cplusplus >= 201103L
+    void unlockPoolCiv() const { mPoolCivIsLocked.clear(); }
+    void lockPoolCiv() const { while (mPoolCivIsLocked.test_and_set()) { }; }
+
+    mutable atomic_flag mPoolCivIsLocked;
+#endif
+
+#define POOL_CIV_SIZE ['poolciv'.getOptimParam('size', '100')/]
+    mutable [aConnectorType.interactionValueClassName()/]* pool_civ['[POOL_CIV_SIZE]'/];
+    mutable unsigned int pool_civ_size;
+[/if]
+
+    mutable vector<Interaction *> definedInteractions;
+};
+[/template]
+
+
+[comment 
+    Template for creating the CPP body for the class corresponding to the
+    Connector Type being compiled.
+/]
+[template public generateImplemBody(aConnectorType : ConnectorType, disableSerialization: Boolean)
+    {
+        cl : String = aConnectorType.className();
+        
+    }]
+[for (pvtype : String | aConnectorType.portValueTypesWithRelPath())]
+#include <[pvtype/]>
+[/for]
+
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+// for exported port.
+#include <[aConnectorType.exportedPortDeclaration.portType.relHppFilePath(aConnectorType.exportedPortDeclaration.portType.portValueClassName())/]>
+#include <[aConnectorType.exportedPortDeclaration.portType.relHppFilePath(aConnectorType.exportedPortDeclaration.portType.portValueClassName())/]>
+#include <[aConnectorType.exportedPortDeclaration.portType.relHppFilePath()/]>
+[/if]
+
+static inline PortValue * getPortValue(const QuotedPortReference & qpr, const InteractionValue &civ){
+    Port &p = qpr.port();
+    vector<Port *>::size_type idx = 0;
+    for (vector<Port *>::const_iterator i = civ.ports().begin();
+         i != civ.ports().end();
+         i++, idx++){
+        if (&p == *i) break;
+    }
+    assert (idx < civ.ports().size()); // means we couldn't find corresponding port value 
+    return civ.portValues()['['/]idx[']'/];
+}
+
+[for (aPortDecl : ConnectorPortParameterDeclaration | aConnectorType.ports)]
+static inline [aPortDecl.portType.portValueClassName()/] * get_[aPortDecl.name/](const [aPortDecl.portType.quotedReferenceClassName()/] & qpr, const [aConnectorType.interactionValueClassName()/] &civ){
+  return dynamic_cast<[aPortDecl.portType.portValueClassName()/] *>(getPortValue(qpr, civ));
+}
+[/for]
+
+
+[cl/]::[aConnectorType.genCtorProto()/] : [aConnectorType.genCtorInit()/] {
+[for (paramDecl : ConnectorPortParameterDeclaration | aConnectorType.ports)]
+    this->addPort([paramDecl.varName()/]);
+[/for]
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+    this->setExportedPort([aConnectorType.exportedPortDeclaration.varName()/]);
+[/if]
+[for (aCI : ConnectorInteractionAction | aConnectorType.interactions) before('\n    // Interactions\n')]
+    [iVarName(aCI.onPorts) /] = new [aConnectorType.interactionClassName()/](*this[aConnectorType.interactCtorInitList(aCI.onPorts)/]);
+[/for]
+}
+
+[cl /]::~[cl /]() {
+[for (aCI : ConnectorInteractionAction | aConnectorType.interactions) before('\n    // Interactions\n')]
+    delete [iVarName(aCI.onPorts) /];
+[/for]
+    for (vector<Interaction *>::const_iterator interactionIt = definedInteractions.begin() ;
+         interactionIt != definedInteractions.end() ;
+         ++interactionIt) {
+        delete *interactionIt;
+    }
+    definedInteractions.clear();
+}
+
+PortValue &[cl/]::up(const InteractionValue &interactionValue) const {
+[if (aConnectorType.exportedPortDeclaration->notEmpty())]
+    [aConnectorType.generateUps(aConnectorType.interactions)/]
+    return *cpv;
+[else]
+    // THIS SHOULD *NEVER* HAPPEN.
+    assert(false);
+
+    // to avoid warnings
+    PortValue *pv = NULL;
+
+    return *pv;
+[/if]
+}
+
+void [cl/]::down(InteractionValue &interactionValue) const {
+    [if (aConnectorType.exportedPortDeclaration->isEmpty())]
+    [aConnectorType.generateDowns(aConnectorType.interactions, false)/]
+    [else]
+    // You should *never* reach this. Calling this method denotes an error in
+    // scheduling (the down(interactionvalue, portvalue) should have been used)
+    assert(false);
+    [/if]
+}
+
+void [cl/]::down(InteractionValue &interactionValue, PortValue &portValue) const {
+    [if (aConnectorType.exportedPortDeclaration->notEmpty())]
+    assert(dynamic_cast<[aConnectorType.exportedPortDeclaration.portType.portValueClassName()/] *>(&portValue) != NULL);
+    [aConnectorType.exportedPortDeclaration.portType.portValueClassName()/] *cpv [unusedAttr()/]= static_cast<[aConnectorType.exportedPortDeclaration.portType.portValueClassName()/] *>(&portValue);
+    [aConnectorType.generateDowns(aConnectorType.interactions, true)/]
+    [else]
+    // You should *never* reach this. Calling this method denotes an error in
+    // scheduling (the down(interactionvalue) should have been used
+    assert(false);
+    [/if]
+}
+
+Interaction &[cl/]::createInteraction() const{
+    [aConnectorType.interactionClassName()/] *ret = NULL;
+
+[if (isOptimEnabled('poolci'))]
+#if __cplusplus >= 201103L
+    lockPoolCi();
+#endif
+
+    if (pool_ci_size > 0) {
+        ret = pool_ci['[pool_ci_size-1]'/];
+        pool_ci_size--;
+        ret->recycle();
+    }
+    else {
+        ret = new [aConnectorType.interactionClassName()/](*this);
+    }
+
+#if __cplusplus >= 201103L
+    unlockPoolCi();
+#endif
+[else]
+    ret = new [aConnectorType.interactionClassName()/](*this);
+[/if]
+
+    return *ret;
+}
+
+Interaction &[cl/]::createInteraction(const vector<Port *> &ports) const{
+  [aConnectorType.interactionClassName()/] *ret = NULL;
+
+[if (isOptimEnabled('poolci'))]
+#if __cplusplus >= 201103L
+    lockPoolCi();
+#endif
+
+    if (pool_ci_size > 0) {
+        ret = pool_ci['[pool_ci_size-1]'/];
+        pool_ci_size--;
+        ret->recycle(ports);
+    }
+    else {
+        ret = new [aConnectorType.interactionClassName()/](*this, ports);
+    }
+
+#if __cplusplus >= 201103L
+    unlockPoolCi();
+#endif
+[else]
+    ret = new [aConnectorType.interactionClassName()/](*this, ports);
+[/if]
+
+    return *ret;
+}
+
+InteractionValue &[cl/]::createInteractionValue(const Interaction &interaction, const vector<PortValue *> &values) const {
+    [aConnectorType.interactionValueClassName()/] *ret = NULL;
+
+[if (isOptimEnabled('poolciv'))]
+#if __cplusplus >= 201103L
+    lockPoolCiv();
+#endif
+
+    if (pool_civ_size > 0) {
+        ret = pool_civ['[pool_civ_size-1]'/];
+        pool_civ_size--;
+        ret->recycle(interaction, values);
+    }
+    else {
+        ret = new [aConnectorType.interactionValueClassName()/](*this, interaction, values);
+    }
+
+#if __cplusplus >= 201103L
+    unlockPoolCiv();
+#endif
+[else]
+    ret = new [aConnectorType.interactionValueClassName()/](*this, interaction, values);
+[/if]
+
+    return *ret;
+}
+
+void [cl/]::releaseInteraction(Interaction &interaction) const {
+[if (isOptimEnabled('poolci'))]
+#if __cplusplus >= 201103L
+    lockPoolCi();
+#endif
+
+    if (pool_ci_size < POOL_CI_SIZE) {
+        assert(dynamic_cast<[aConnectorType.interactionClassName()/] *>(&interaction) != NULL);
+        pool_ci['[pool_ci_size]'/] = static_cast<[aConnectorType.interactionClassName()/] *>(&interaction);
+        assert(pool_ci['[pool_ci_size]'/] != NULL);
+        pool_ci_size++;
+    } else {
+        delete &interaction;
+    }
+
+#if __cplusplus >= 201103L
+    unlockPoolCi();
+#endif
+[else]
+    delete &interaction;
+[/if]
+}
+
+void [cl/]::releaseInteractionValue(InteractionValue &interactionValue) const {
+[if (isOptimEnabled('poolciv'))]
+#if __cplusplus >= 201103L
+    lockPoolCiv();
+#endif
+
+    if (pool_civ_size < POOL_CIV_SIZE) {
+        assert(dynamic_cast<[aConnectorType.interactionValueClassName()/] *>(&interactionValue) != NULL);
+        pool_civ['[pool_civ_size]'/] = static_cast<[aConnectorType.interactionValueClassName()/] *>(&interactionValue);
+        assert(pool_civ['[pool_civ_size]'/] != NULL);
+        pool_civ_size++;
+    } else {
+        delete &interactionValue;
+    }
+
+#if __cplusplus >= 201103L
+    unlockPoolCiv();
+#endif
+[else]
+    delete &interactionValue;
+[/if]
+}
+
+bool [cl/]::guard(const InteractionValue &interactionValue) const {
+    [if (aConnectorType.interactions->notEmpty())]
+    assert(dynamic_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue) != NULL);
+    const [aConnectorType.interactionValueClassName()/] *c_interaction_v [unusedAttr()/] = static_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue);
+    const [aConnectorType.interactionClassName() /] *c_interaction [unusedAttr()/] = &(c_interaction_v->mInteraction);
+[if (isOptimEnabled('rdvconnector') and aConnectorType.isRendezVous())]
+    assert(c_interaction->isDefined());
+    [for (cia : ConnectorInteractionAction | aConnectorType.interactions->select(c:ConnectorInteractionAction | c.guard->notEmpty()))]
+      [comment don't know how to get an element from a singleton collection' /]
+[cia.guard.gtc()/]
+      return [cia.guard.generateExpression(false, 'c_interaction_v')/];
+    [/for]
+[else]
+    [for (cia : ConnectorInteractionAction | aConnectorType.interactions->select(c:ConnectorInteractionAction | c.guard->notEmpty())) separator(' else ')]
+    if(*c_interaction == *[iVarName(cia.onPorts)/]){
+[cia.guard.gtc()/]
+
+        return [cia.guard.generateExpression(false, 'c_interaction_v')/];
+    }[/for]
+ [/if]
+ [/if]
+
+
+    // default to true. May not be the wisest choice.
+    return true;
+}
+
+const vector<Interaction*>& [cl/]::interactions() const {
+  if (definedInteractions.empty()) {
+[if (aConnectorType.isRendezVous())]
+    definedInteractions.push_back(new [aConnectorType.interactionClassName()/](*this[aConnectorType.interactCtorInitList(aConnectorType.ports->asOrderedSet())/]));
+[else]
+    [aConnectorType.generateComputationOfDefinedInteractions()/]
+[/if]
+  }
+
+  // check that the number of defined interactions is correct
+  assert(definedInteractions.size() == [numberOfDefinedInteractions(aConnectorType.interactionDefinition)/]);
+
+  return definedInteractions;
+}
+[/template]
+
+
+[template private generateNumberOfDefinedInteractions(aDefinition : ConnectorInteractionPortReference)]1[/template]
+
+[template private generateNumberOfDefinedInteractions(aDefinition : ConnectorInteractionNestedDefinition) ?(aDefinition.triggers()->isEmpty())]
+[for (d : ConnectorInteractionDefinition | aDefinition.subInteractions) separator('*')]([d.generateNumberOfDefinedInteractions()/])[/for]
+[/template]
+
+[template private generateNumberOfDefinedInteractions(aDefinition : ConnectorInteractionNestedDefinition) ?(not aDefinition.triggers()->isEmpty() and not aDefinition.synchrons()->isEmpty())]
+[for (d : ConnectorInteractionDefinition | aDefinition.subInteractions) separator('*')]([d.generateNumberOfDefinedInteractions()/] + 1)[/for] - [for (d : ConnectorInteractionDefinition | aDefinition.synchrons()) separator('*')]([d.generateNumberOfDefinedInteractions()/] + 1)[/for]
+[/template]
+
+[template private generateNumberOfDefinedInteractions(aDefinition : ConnectorInteractionNestedDefinition) ?(not aDefinition.triggers()->isEmpty() and aDefinition.synchrons()->isEmpty())]
+[for (d : ConnectorInteractionDefinition | aDefinition.subInteractions) separator('*')]([d.generateNumberOfDefinedInteractions()/] + 1)[/for] - 1
+[/template]
+
+[template private generateNumberOfDefinedInteractions(aDefinition : ConnectorInteractionDefinition)]
+// SHOULD NOT BE CALLED! Invalid generation of defined interactions for [aDefinition/]
+[/template]
+
+[query private numberOfDefinedInteractions(aDefinition : ConnectorInteractionDefinition) : Integer =
+	if (aDefinition.oclIsKindOf(ConnectorInteractionPortReference)) then
+		1
+	else if (aDefinition.oclIsKindOf(ConnectorInteractionNestedDefinition)) then
+		if (aDefinition.oclAsType(ConnectorInteractionNestedDefinition).triggers()->isEmpty()) then
+			aDefinition.oclAsType(ConnectorInteractionNestedDefinition).subInteractions
+				->numberOfCombinations(0)
+		else
+			aDefinition.oclAsType(ConnectorInteractionNestedDefinition).subInteractions
+				->numberOfCombinations(1)
+			-
+			aDefinition.oclAsType(ConnectorInteractionNestedDefinition).synchrons()
+				->numberOfCombinations(1)
+		endif
+	else
+		0
+	endif endif
+/]
+
+[query private numberOfCombinations(aSeq : OrderedSet(ConnectorInteractionDefinition), additionalInteraction : Integer) : Integer =
+	if (aSeq->size() = 0) then
+		1
+	else if (aSeq->size() = 1) then
+		aSeq->first().numberOfDefinedInteractions() + additionalInteraction
+	else
+		(aSeq->first().numberOfDefinedInteractions() + additionalInteraction) * numberOfCombinations(subOrderedSet(2, aSeq->size()), additionalInteraction)
+	endif endif
+/]
+
+[query private triggers(aDefinition : ConnectorInteractionNestedDefinition) : OrderedSet(ConnectorInteractionDefinition) =
+	aDefinition.subInteractions->select(d : ConnectorInteractionDefinition | d.quoted)
+/]
+
+[query private synchrons(aDefinition : ConnectorInteractionNestedDefinition) : OrderedSet(ConnectorInteractionDefinition) =
+	aDefinition.subInteractions->select(d : ConnectorInteractionDefinition | not d.quoted)
+/]
+
+[comment BFS order is critical! do no attempt to modify it! /]
+[query private all(aDefinition : ConnectorInteractionDefinition) : Sequence(ConnectorInteractionDefinition) =
+	if (aDefinition.oclIsKindOf(ConnectorInteractionPortReference)) then
+		Sequence { aDefinition }
+	else if (aDefinition.oclIsKindOf(ConnectorInteractionNestedDefinition)) then
+		Sequence { aDefinition }
+			->union(aDefinition.oclAsType(ConnectorInteractionNestedDefinition).subInteractions
+				->collect(all())
+			)
+	else
+		 Sequence {  }
+	endif endif
+/]
+
+
+[query private indexIn(aDefinition : ConnectorInteractionDefinition, aTopDefinition : ConnectorInteractionDefinition) : Integer =
+	all(aTopDefinition)->indexOf(aDefinition)
+/]
+
+[query private topDefinition(aDefinition : ConnectorInteractionDefinition) : ConnectorInteractionDefinition =
+	if (aDefinition.eContainer().oclIsKindOf(ConnectorType)) then
+		aDefinition
+	else if (aDefinition.eContainer().oclIsKindOf(ConnectorInteractionDefinition)) then
+		aDefinition.eContainer().oclAsType(ConnectorInteractionDefinition).topDefinition()
+	else
+		aDefinition
+	endif endif
+/]
+
+[query private index(aDefinition : ConnectorInteractionDefinition) : Integer = aDefinition.indexIn(aDefinition.topDefinition()) /]
+
+[query private triggerVariable(aDefinition : ConnectorInteractionDefinition) : String =
+	'__trigger_' + aDefinition.index()
+/]
+
+[query private booleanVariable(aDefinition : ConnectorInteractionDefinition) : String =
+	'__tree_' + aDefinition.index()
+/]
+
+[query private booleanVariable(aPort : ConnectorPortParameterDeclaration) : String =
+	'__port_' + aPort.name
+/]
+
+[template private generate(aDefinition : ConnectorInteractionNestedDefinition)]
+([for (aDef : ConnectorInteractionDefinition | aDefinition.subInteractions)][aDef.generate()/][if (aDef.quoted)]'[/if][/for])
+[/template]
+
+[template private generate(aDefinition : ConnectorInteractionPortReference)]
+[aDefinition.port.name/]
+[/template]
+
+[template private generate(aDefinition : ConnectorInteractionDefinition)]
+// SHOULD NOT BE CALLED! Invalid generation of defined interactions for [aDefinition/]
+[/template]
+
+[template private generateComputationOfDefinedInteractions(aConnectorType : ConnectorType) ? (aConnectorType.isRendezVous())]
+definedInteractions.push_back(new [aConnectorType.interactionClassName()/](*this[aConnectorType.interactCtorInitList(aConnectorType.ports->asOrderedSet())/]));
+[/template]
+
+[template private generateComputationOfDefinedInteractions(aConnectorType : ConnectorType) ? (not aConnectorType.isRendezVous())]
+int __tree_1 = 1;
+[generateComputationOfDefinedInteractions(aConnectorType.interactionDefinition.all(), aConnectorType.generateNewInteraction())/]
+[/template]
+[comment aConnectorType.interactionDefinition.generateComputationOfDefinedInteractions('body')/]
+
+[template private generateNewInteraction(aConnectorType : ConnectorType)]
+definedInteractions.push_back(new [aConnectorType.interactionClassName()/](*this, [for (p : ConnectorPortParameterDeclaration | aConnectorType.ports) separator(', ')][p.booleanVariable()/] == 1[/for]));
+[/template]
+
+[template private generateComputationOfDefinedInteractions(definitions : Sequence(ConnectorInteractionDefinition), aBody : String) ?(definitions->size() > 1)]
+[definitions->first().generateLoopDefinedInteractions(generateComputationOfDefinedInteractions(definitions->subSequence(2, definitions->size()), aBody))/]
+[/template]
+
+[template private generateComputationOfDefinedInteractions(definitions : Sequence(ConnectorInteractionDefinition), aBody : String) ?(definitions->size() = 1)]
+[definitions->first().generateLoopDefinedInteractions(aBody)/]
+[/template]
+
+[template private generateComputationOfDefinedInteractions(definitions : Sequence(ConnectorInteractionDefinition), aBody : String) ?(definitions->size() = 0)]
+[aBody/]
+[/template]
+
+[template private generateLoopDefinedInteractions(aDefinition : ConnectorInteractionPortReference, aBody : String)]
+int [aDefinition.port.booleanVariable()/] = [aDefinition.booleanVariable()/];
+[aBody/]
+[/template]
+
+[template private generateLoopDefinedInteractions(aDefinition : ConnectorInteractionNestedDefinition, aBody : String) ?(aDefinition.triggers()->isEmpty())]
+// tree #[aDefinition.index()/]: [aDefinition.generate()/]
+[for (aDef : ConnectorInteractionDefinition | aDefinition.subInteractions)]
+int [aDef.booleanVariable()/] = [aDefinition.booleanVariable()/];
+[/for]
+[aBody/]
+[/template]
+
+[template private generateLoopDefinedInteractions(aDefinition : ConnectorInteractionNestedDefinition, aBody : String) ?(not aDefinition.triggers()->isEmpty())]
+// tree #[aDefinition.index()/]: [aDefinition.generate()/]
+for (int [aDefinition.triggerVariable()/] = 0 ; [aDefinition.triggerVariable()/] <= (([aDefinition.booleanVariable()/] == 0) ? 0 : [aDefinition.triggers()->size() - 1 /]) ; ++[aDefinition.triggerVariable()/]) {
+[for (aDef : ConnectorInteractionDefinition | aDefinition.subInteractions)]
+[if (aDef.quoted)]
+for (int [aDef.booleanVariable()/] = (([aDefinition.booleanVariable()/] == 0 || [aDefinition.triggerVariable()/] > [aDefinition.triggers()->indexOf(aDef) - 1/]) ? 0 : 1) ; [aDef.booleanVariable()/] >= (([aDefinition.triggerVariable()/] == [aDefinition.triggers()->indexOf(aDef) - 1/]) ? [aDefinition.booleanVariable()/] : 0) ; --[aDef.booleanVariable()/]) {
+[else]
+for (int [aDef.booleanVariable()/] = [aDefinition.booleanVariable()/] ; [aDef.booleanVariable()/] >= 0 ; --[aDef.booleanVariable()/]) {
+[/if]
+[/for]
+[aBody/]
+[for (aDef : ConnectorInteractionDefinition | aDefinition.subInteractions)]
+}
+[/for]
+}
+[/template]
+
+[template private generateLoopDefinedInteractions(aDefinition : ConnectorInteractionDefinition, aBody : String)]
+// SHOULD NOT BE CALLED! Invalid generation of defined interactions for [aDefinition/]
+[/template]
+
+
+  [query private interactionPorts(aConnectorType : ConnectorType, seq : Sequence(ConnectorPortParameterDeclaration)) : Sequence(String) =
+   aConnectorType.ports->select(pd : ConnectorPortParameterDeclaration | seq->includes(pd))->collect(e : ConnectorPortParameterDeclaration | e.name) /]
+[comment]
+		definedInteractions(aConnectorType, prefix, suffix->subOrderedSet(1, suffix->size()-1))
+			->union(definedInteractions(aConnectorType, prefix->append(suffix->first()), suffix->subOrderedSet(1, suffix->size()-1)))
+[/comment]
+[template public generateCMakeBody(aConnectorType : ConnectorType) post(trim())]
+[for (extra_src : String | aConnectorType.getUserExtraSrc())
+      before('# @cpp(src="") annotation\n')]
+list(APPEND EXTRA_SRC [extra_src/])
+[/for]
+[/template]
+
+[template private generateDowns(aConnectorType : ConnectorType, theConnInteractions : OrderedSet(ConnectorInteractionAction), localInPortValue : Boolean)]
+[if (theConnInteractions->reject(c : ConnectorInteractionAction | c.down->isEmpty())->size()> 0)]
+assert(dynamic_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue) != NULL);
+[if (not (isOptimEnabled('rdvconnector') and aConnectorType.isRendezVous()))]
+const [aConnectorType.interactionClassName() /] *c_interaction [unusedAttr()/] = static_cast<const [aConnectorType.interactionClassName() /] *>(&(interactionValue.interaction()));
+[/if]
+const [aConnectorType.interactionValueClassName() /] *c_interaction_v [unusedAttr()/] = static_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue);
+[/if]
+[for (cia : ConnectorInteractionAction | theConnInteractions->reject(c : ConnectorInteractionAction | c.down->isEmpty())) separator(' else ')]
+[if (isOptimEnabled('rdvconnector') and aConnectorType.isRendezVous())]
+#ifndef NDEBUG
+const [aConnectorType.interactionClassName() /] *c_interaction [unusedAttr()/] = static_cast<const [aConnectorType.interactionClassName() /] *>(&(interactionValue.interaction()));
+assert(c_interaction->isDefined());
+#endif
+[else]
+if(*c_interaction == *[iVarName(cia.onPorts)/]) [/if]{
+[for (expr : Expression | cia.down)]
+[expr.gtc()/]
+    [expr.generateExpression(false, 'c_interaction_v')/];
+[/for]
+}[/for]
+[/template]
+
+[template private generateUps(aConnectorType : ConnectorType, theConnInteractions : OrderedSet(ConnectorInteractionAction))]
+assert(dynamic_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue) != NULL);
+const [aConnectorType.interactionValueClassName() /] *c_interaction_v [unusedAttr()/] = static_cast<const [aConnectorType.interactionValueClassName()/] *>(&interactionValue);
+const [aConnectorType.interactionClassName() /] *c_interaction [unusedAttr()/] = &(c_interaction_v->mInteraction);
+[aConnectorType.exportedPortDeclaration.portType.portValueClassName()/] *cpv [unusedAttr()/]= &(c_interaction_v->mExportedPortValue);
+
+[for (cia : ConnectorInteractionAction | theConnInteractions) before('// first\n') separator(' else ')]
+[if (isOptimEnabled('rdvconnector') and aConnectorType.isRendezVous())]
+assert(c_interaction->isDefined());
+[else]
+if(*c_interaction == *[iVarName(cia.onPorts)/]) [/if]{
+[for (expr : Expression | cia.up)]
+    [expr.generateExpression(true, 'c_interaction_v')/];
+[/for]
+}[/for]
+[/template]
+
+
+[comment
+    Calls sub-template for creating classes for Interaction and InteractionValue.
+/]
+[template public generateSubClasses(aConnectorType : ConnectorType, aCMakeList : String, disableSerialization: Boolean)]
+[aConnectorType.generateConnectorInteraction(aCMakeList) /]
+[aConnectorType.generateConnectorInteractionValue(aCMakeList) /]
+
+[/template]
+
+[comment /local/jcombaz/bip2/wifi-connected/output/Wifi/src/Wifi/Wifi__ConnT_TransChanConnect.cpp:71:
+BIG FAT WARNING
+
+If you change this name, you **MUST** take care of porting this change in the template
+responsible for the expression handling for portdecl.data (see connector/expression.mtl file).
+/]
+[query private varName(aConnPortParamDecl : ConnectorPortParameterDeclaration) : String =
+    aConnPortParamDecl.name
+/]
+
+[query private varName(aConnectorExportedPortDeclaration : ConnectorExportedPortDeclaration) : String =
+    aConnectorExportedPortDeclaration.name
+/]
+[query private portQPRTypesWithRelPath(aConnectorType : ConnectorType) : Set(String) =
+    aConnectorType.ports->collect(e:ConnectorPortParameterDeclaration|
+        relHppFilePath(e.portType, e.portType.quotedReferenceClassName()))->asSet()
+/]
+
+[query private portValueTypesWithRelPath(aConnectorType : ConnectorType) : Set(String) =
+    aConnectorType.ports->collect(e:ConnectorPortParameterDeclaration|
+        relHppFilePath(e.portType, e.portType.portValueClassName()))->asSet()
+/]
+
+[template private interactCtorInitList(aConnectorType : ConnectorType, thePorts : OrderedSet(ConnectorPortParameterDeclaration)) post(trim())]
+[for (aCPPD : ConnectorPortParameterDeclaration | aConnectorType.ports) before(', ') separator(', ')]
+[if (thePorts->collect(p : ConnectorPortParameterDeclaration | p.name)->includes(aCPPD.name))]true[else]false[/if][/for]
+[/template]
+
+[template private genListQPRDecl(aConnectorType : ConnectorType) post(trim())]
+[for (pdecl : ConnectorPortParameterDeclaration | aConnectorType.ports) separator(', ')]
+[pdecl.portType.quotedReferenceClassName()/] &[pdecl.varName()/][/for]
+[/template]
+
+[template private genCtorProto(aConnectorType : ConnectorType) post(trim())]
+[aConnectorType.className()/](const string &name, [genListQPRDecl(aConnectorType)/][if (aConnectorType.exportedPortDeclaration->notEmpty())]
+, [aConnectorType.exportedPortDeclaration.portType.connectorExportClassName()/] &[aConnectorType.exportedPortDeclaration.varName()/][/if])
+[/template]
+
+[template private genCtorInit(aConnectorType : ConnectorType) post(trim())]
+ Connector(name)[for (paramDecl : ConnectorPortParameterDeclaration | aConnectorType.ports) 
+                     before(', ') 
+                     separator(', ')]
+[paramDecl.varName()/]([paramDecl.varName()/])[/for][if (aConnectorType.exportedPortDeclaration->notEmpty())]
+, [aConnectorType.exportedPortDeclaration.varName()/]([aConnectorType.exportedPortDeclaration.varName()/])[/if][if (isOptimEnabled('poolci'))]
+, pool_ci_size(0)[/if][if (isOptimEnabled('poolciv'))]
+, pool_civ_size(0)[/if]
+
+[/template]
+
+[template private iVarName(thePorts : OrderedSet(PortDeclaration)) post(trim())]
+_i__[for (aPD : PortDeclaration | thePorts) separator('_')][aPD.name/][/for]
+[/template]
+

@@ -1,0 +1,99 @@
+package dining_philo_flat
+ // 117485 reachable states, 2 deadlocks, and 0 error in 0 state
+ port type Port()
+
+ atom type DiningPhiloFlat()
+   port Port take_left1(), take_left2(), take_left3(), take_left4(), take_left5(), take_left6(), take_left7(), take_left8(),
+             take_right1(), take_right2(), take_right3(), take_right4(), take_right5(), take_right6(), take_right7(), take_right8(),
+             release_left1(), release_left2(), release_left3(), release_left4(), release_left5(), release_left6(), release_left7(), release_left8(),
+             release_right1(), release_right2(), release_right3(), release_right4(), release_right5(), release_right6(), release_right7(), release_right8()
+
+   place F_WAIT1, F_WAIT2, F_WAIT3, F_WAIT4, F_WAIT5, F_WAIT6, F_WAIT7, F_WAIT8,
+         F_USED1, F_USED2, F_USED3, F_USED4, F_USED5, F_USED6, F_USED7, F_USED8,
+         P_WAIT1, P_WAIT2, P_WAIT3, P_WAIT4, P_WAIT5, P_WAIT6, P_WAIT7, P_WAIT8,
+         P_EAT1, P_EAT2, P_EAT3, P_EAT4, P_EAT5, P_EAT6, P_EAT7, P_EAT8,
+         P_TOOK_LEFT1, P_TOOK_LEFT2, P_TOOK_LEFT3, P_TOOK_LEFT4, P_TOOK_LEFT5, P_TOOK_LEFT6, P_TOOK_LEFT7, P_TOOK_LEFT8,
+         P_TOOK_RIGHT1, P_TOOK_RIGHT2, P_TOOK_RIGHT3, P_TOOK_RIGHT4, P_TOOK_RIGHT5, P_TOOK_RIGHT6, P_TOOK_RIGHT7, P_TOOK_RIGHT8,
+         P_RELEASED_LEFT1, P_RELEASED_LEFT2, P_RELEASED_LEFT3, P_RELEASED_LEFT4, P_RELEASED_LEFT5, P_RELEASED_LEFT6, P_RELEASED_LEFT7, P_RELEASED_LEFT8,
+         P_RELEASED_RIGHT1, P_RELEASED_RIGHT2, P_RELEASED_RIGHT3, P_RELEASED_RIGHT4, P_RELEASED_RIGHT5, P_RELEASED_RIGHT6, P_RELEASED_RIGHT7, P_RELEASED_RIGHT8
+
+   initial to F_WAIT1, F_WAIT2, F_WAIT3, F_WAIT4, F_WAIT5, F_WAIT6, F_WAIT7, F_WAIT8,
+              P_WAIT1, P_WAIT2, P_WAIT3, P_WAIT4, P_WAIT5, P_WAIT6, P_WAIT7, P_WAIT8
+
+   on take_left1 from F_WAIT1, P_WAIT1 to F_USED1, P_TOOK_LEFT1
+   on take_left2 from F_WAIT2, P_WAIT2 to F_USED2, P_TOOK_LEFT2
+   on take_left3 from F_WAIT3, P_WAIT3 to F_USED3, P_TOOK_LEFT3
+   on take_left4 from F_WAIT4, P_WAIT4 to F_USED4, P_TOOK_LEFT4
+   on take_left5 from F_WAIT5, P_WAIT5 to F_USED5, P_TOOK_LEFT5
+   on take_left6 from F_WAIT6, P_WAIT6 to F_USED6, P_TOOK_LEFT6
+   on take_left7 from F_WAIT7, P_WAIT7 to F_USED7, P_TOOK_LEFT7
+   on take_left8 from F_WAIT8, P_WAIT8 to F_USED8, P_TOOK_LEFT8
+
+   on take_left1 from F_WAIT1, P_TOOK_RIGHT1 to F_USED1, P_EAT1
+   on take_left2 from F_WAIT2, P_TOOK_RIGHT2 to F_USED2, P_EAT2
+   on take_left3 from F_WAIT3, P_TOOK_RIGHT3 to F_USED3, P_EAT3
+   on take_left4 from F_WAIT4, P_TOOK_RIGHT4 to F_USED4, P_EAT4
+   on take_left5 from F_WAIT5, P_TOOK_RIGHT5 to F_USED5, P_EAT5
+   on take_left6 from F_WAIT6, P_TOOK_RIGHT6 to F_USED6, P_EAT6
+   on take_left7 from F_WAIT7, P_TOOK_RIGHT7 to F_USED7, P_EAT7
+   on take_left8 from F_WAIT8, P_TOOK_RIGHT8 to F_USED8, P_EAT8
+
+   on take_right1 from F_WAIT2, P_WAIT1 to F_USED2, P_TOOK_RIGHT1
+   on take_right2 from F_WAIT3, P_WAIT2 to F_USED3, P_TOOK_RIGHT2
+   on take_right3 from F_WAIT4, P_WAIT3 to F_USED4, P_TOOK_RIGHT3
+   on take_right4 from F_WAIT5, P_WAIT4 to F_USED5, P_TOOK_RIGHT4
+   on take_right5 from F_WAIT6, P_WAIT5 to F_USED6, P_TOOK_RIGHT5
+   on take_right6 from F_WAIT7, P_WAIT6 to F_USED7, P_TOOK_RIGHT6
+   on take_right7 from F_WAIT8, P_WAIT7 to F_USED8, P_TOOK_RIGHT7
+   on take_right8 from F_WAIT1, P_WAIT8 to F_USED1, P_TOOK_RIGHT8
+
+   on take_right1 from F_WAIT2, P_TOOK_LEFT1 to F_USED2, P_EAT1
+   on take_right2 from F_WAIT3, P_TOOK_LEFT2 to F_USED3, P_EAT2
+   on take_right3 from F_WAIT4, P_TOOK_LEFT3 to F_USED4, P_EAT3
+   on take_right4 from F_WAIT5, P_TOOK_LEFT4 to F_USED5, P_EAT4
+   on take_right5 from F_WAIT6, P_TOOK_LEFT5 to F_USED6, P_EAT5
+   on take_right6 from F_WAIT7, P_TOOK_LEFT6 to F_USED7, P_EAT6
+   on take_right7 from F_WAIT8, P_TOOK_LEFT7 to F_USED8, P_EAT7
+   on take_right8 from F_WAIT1, P_TOOK_LEFT8 to F_USED1, P_EAT8
+
+   on release_left1 from F_USED1, P_EAT1 to F_WAIT1, P_RELEASED_LEFT1
+   on release_left2 from F_USED2, P_EAT2 to F_WAIT2, P_RELEASED_LEFT2
+   on release_left3 from F_USED3, P_EAT3 to F_WAIT3, P_RELEASED_LEFT3
+   on release_left4 from F_USED4, P_EAT4 to F_WAIT4, P_RELEASED_LEFT4
+   on release_left5 from F_USED5, P_EAT5 to F_WAIT5, P_RELEASED_LEFT5
+   on release_left6 from F_USED6, P_EAT6 to F_WAIT6, P_RELEASED_LEFT6
+   on release_left7 from F_USED7, P_EAT7 to F_WAIT7, P_RELEASED_LEFT7
+   on release_left8 from F_USED8, P_EAT8 to F_WAIT8, P_RELEASED_LEFT8
+
+   on release_left1 from F_USED1, P_RELEASED_RIGHT1 to F_WAIT1, P_WAIT1
+   on release_left2 from F_USED2, P_RELEASED_RIGHT2 to F_WAIT2, P_WAIT2
+   on release_left3 from F_USED3, P_RELEASED_RIGHT3 to F_WAIT3, P_WAIT3
+   on release_left4 from F_USED4, P_RELEASED_RIGHT4 to F_WAIT4, P_WAIT4
+   on release_left5 from F_USED5, P_RELEASED_RIGHT5 to F_WAIT5, P_WAIT5
+   on release_left6 from F_USED6, P_RELEASED_RIGHT6 to F_WAIT6, P_WAIT6
+   on release_left7 from F_USED7, P_RELEASED_RIGHT7 to F_WAIT7, P_WAIT7
+   on release_left8 from F_USED8, P_RELEASED_RIGHT8 to F_WAIT8, P_WAIT8
+
+   on release_right1 from F_USED2, P_EAT1 to F_WAIT2, P_RELEASED_RIGHT1
+   on release_right2 from F_USED3, P_EAT2 to F_WAIT3, P_RELEASED_RIGHT2
+   on release_right3 from F_USED4, P_EAT3 to F_WAIT4, P_RELEASED_RIGHT3
+   on release_right4 from F_USED5, P_EAT4 to F_WAIT5, P_RELEASED_RIGHT4
+   on release_right5 from F_USED6, P_EAT5 to F_WAIT6, P_RELEASED_RIGHT5
+   on release_right6 from F_USED7, P_EAT6 to F_WAIT7, P_RELEASED_RIGHT6
+   on release_right7 from F_USED8, P_EAT7 to F_WAIT8, P_RELEASED_RIGHT7
+   on release_right8 from F_USED1, P_EAT8 to F_WAIT1, P_RELEASED_RIGHT8
+
+   on release_right1 from F_USED2, P_RELEASED_LEFT1 to F_WAIT2, P_WAIT1
+   on release_right2 from F_USED3, P_RELEASED_LEFT2 to F_WAIT3, P_WAIT2
+   on release_right3 from F_USED4, P_RELEASED_LEFT3 to F_WAIT4, P_WAIT3
+   on release_right4 from F_USED5, P_RELEASED_LEFT4 to F_WAIT5, P_WAIT4
+   on release_right5 from F_USED6, P_RELEASED_LEFT5 to F_WAIT6, P_WAIT5
+   on release_right6 from F_USED7, P_RELEASED_LEFT6 to F_WAIT7, P_WAIT6
+   on release_right7 from F_USED8, P_RELEASED_LEFT7 to F_WAIT8, P_WAIT7
+   on release_right8 from F_USED1, P_RELEASED_LEFT8 to F_WAIT1, P_WAIT8
+ end
+
+ compound type DiningPhilo()
+   component DiningPhiloFlat diningPhiloFlat()
+ end
+end

@@ -1,0 +1,4 @@
+antlr-3.2.jar : used for generating java code from bip.g
+antlr3_task.jar : used by ant to invoke antlr
+
+

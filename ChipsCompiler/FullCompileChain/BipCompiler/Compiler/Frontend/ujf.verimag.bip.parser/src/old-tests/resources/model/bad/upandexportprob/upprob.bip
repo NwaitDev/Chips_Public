@@ -1,0 +1,24 @@
+package upprob
+
+  port type Port_t()
+  port type Port_dt(int x)
+
+  connector type missingUpButOk(Port_t p1, Port_t p2) 
+  export port Port_t e()
+  define p1 p2
+  end
+
+  connector type missingUpNotOk(Port_t p1, Port_t p2)
+  data int x
+  export port Port_dt e(x)
+  define p1 p2
+  end
+
+  connector type missingUpNotOkb(Port_t p1, Port_t p2)
+  data int x
+  export port Port_dt e(x)
+  define p1 p2
+  on p1 p2 up {x=3;}
+  end
+
+end

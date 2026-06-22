@@ -1,0 +1,21 @@
+<project name="ujf.verimag.bip.backend.example" default="compile">
+	<property file="build.properties" />
+	<target name="compile" depends="compile-java,compile-acceleo" />
+
+	<target name="compile-java" depends="resolve" description="--> compile the project">
+	  <mkdir dir="${classes.dir}" />
+	  <javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="lib.path.id" debug="${compile.debug}" target="${compile.target}" source="${compile.source}" encoding="${compile.encoding}"/>
+	</target>
+
+	<target name="compile-acceleo" depends="resolve">
+	  <taskdef name="acceleo" classname="acceleo.standalone.compiler.AcceleoStandaloneCompiler"
+		   classpathref="lib.path.id"/>
+	  <acceleo sourceFolder="${src.dir}"
+		   outputFolder="${classes.dir}"
+		   binaryResource="true"
+		   dependencies=""
+		   packagesToRegister="" />
+	</target>
+
+	<import file="${distribution.dir}/common.xml" />
+</project>

@@ -1,0 +1,24 @@
+* text=auto !eol
+ujf.verimag.bip.error/.classpath -text
+ujf.verimag.bip.error/.project -text
+ujf.verimag.bip.error/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.error/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.error/build.properties -text
+ujf.verimag.bip.error/build.xml -text
+ujf.verimag.bip.error/ivy.xml -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/error/AbstractErrorStringifier.java -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/error/GenericError.java -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/error/message/ErrorCodeEnum.java -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/error/message/ErrorMessage.java -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/error/message/ErrorSeverity.java -text
+ujf.verimag.bip.error/src/main/java/ujf/verimag/bip/exception/CompilerErrorException.java -text
+ujf.verimag.bip.error/src/main/resources/ujf/verimag/bip/error/message/english-strings.properties -text
+ujf.verimag.bip/.classpath -text
+ujf.verimag.bip/.project -text
+ujf.verimag.bip/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip/build.properties -text
+ujf.verimag.bip/build.xml -text
+ujf.verimag.bip/externals/jopt-simple-3.2.jar -text svneol=unset#unset
+ujf.verimag.bip/ivy.xml -text
+ujf.verimag.bip/src/main/java/ujf/verimag/bip/Configurable.java -text

@@ -1,0 +1,29 @@
+[comment encoding = UTF-8 /]
+[module commonBip('http://bip2/1.0')/]
+
+[query public qualifiedName(fromPackage : BipPackage, usedType : BipType) : String =
+if fromPackage = usedType.eContainer(BipPackage) then
+    usedType.name
+else
+    usedType.eContainer(BipPackage).name + '.' + usedType.name
+endif 
+/]
+
+
+[query public qualifiedName(fromPackage : BipPackage, usedType : DataType) : String =
+if fromPackage = usedType.eContainer(BipPackage) then
+    usedType.name
+else
+    usedType.eContainer(BipPackage).name + '.' + usedType.name
+endif 
+/]
+
+
+[query public qualifiedName(fromType : BipType, usedType : BipType) : String =
+qualifiedName(fromType.eContainer(BipPackage), usedType)
+/]
+
+
+[query public qualifiedName(fromType : BipType, usedType : DataType) : String =
+qualifiedName(fromType.eContainer(BipPackage), usedType)
+/]

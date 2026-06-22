@@ -1,0 +1,35 @@
+[comment encoding = UTF-8 /]
+[module generateConnectorType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::bip::templates::generatePortDeclaration /]
+[import ujf::verimag::bip::backend::bip::templates::connectorInteractionDefinition /]
+[import ujf::verimag::bip::backend::acceleo::templates::expressions /]
+[import ujf::verimag::bip::backend::bip::templates::commonBip /]
+
+[query public getPortDecls(aConnectorType : ConnectorType) : Sequence(ConnectorPortParameterDeclaration) =
+aConnectorType.ports /]
+
+[template public generateConnectorType(aConnectorType : ConnectorType)]
+connector type [aConnectorType.name /] ([for (param : PortDeclaration | aConnectorType.getPortDecls()) separator(', ')][qualifiedName(aConnectorType, param.portType)/] [param.name/][/for])
+[for (dd : DataDeclaration | aConnectorType.dataDeclarations)]
+    data [if (dd.const)]const [/if][qualifiedName(aConnectorType, dd.dataType)/] [dd.name/][if (not dd.value->isEmpty())] = [dd.value.generateExpression()/][/if]
+[/for]
+[if (aConnectorType.exportedPortDeclaration <> null)]
+    export port [aConnectorType.exportedPortDeclaration.generatePortDeclaration(aConnectorType) /]
+[/if]
+    define [aConnectorType.interactionDefinition.generateInteractionDefinition()/]
+
+[for (cia : ConnectorInteractionAction | aConnectorType.interactions)]
+    on [for (onPort : ConnectorPortParameterDeclaration | cia.onPorts) separator(' ')][onPort.name/][/for]
+    [if (cia.guard->notEmpty())]
+        provided ([cia.guard.generateExpression()/])
+    [/if]
+    [for (e : Expression | cia.up) before ('        up {\n') after('        }\n') ]
+            [e.generateExpression() /][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+    [for (e : Expression | cia.down) before ('        down {\n') after('        }\n') ]
+            [e.generateExpression() /][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+[/for]
+end
+[/template]

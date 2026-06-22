@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="bip2runtime"
+    nsURI="http://bip2runtime" nsPrefix="bip2runtime">
+  <eClassifiers xsi:type="ecore:EClass" name="Component" abstract="true" interface="true">
+    <eAnnotations source="http://engine">
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="Component"/>
+    <eOperations name="execute" lowerBound="1" eType="#//BipError">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+      <eParameters name="portValue" lowerBound="1" eType="#//PortValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="initialize" lowerBound="1" eType="#//BipError">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="#//string"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ports" upperBound="-1"
+        eType="#//Port" changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//ComponentType"
+        changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="data" upperBound="-1" eType="#//Data"
+        changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Atom" abstract="true" interface="true"
+      eSuperTypes="#//Component">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=ATOM"/>
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="Atom"/>
+    <eOperations name="initialize" lowerBound="1" eType="#//BipError">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="execute" lowerBound="1" eType="#//BipError">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+      <eParameters name="portValue" lowerBound="1" eType="#//PortValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="toString" lowerBound="1" eType="#//string">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="internalPorts" upperBound="-1"
+        eType="#//AtomInternalPort" changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ports" upperBound="-1"
+        eType="#//AtomExportPort" changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+        <details key="alsoFills" value="Component::ports"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="data" upperBound="-1" eType="#//AtomExportData"
+        changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+        <details key="alsoFills" value="Component::data"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Compound" abstract="true" eSuperTypes="#//Component">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=COMPOUND"/>
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="Compound"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="components" lowerBound="1"
+        upperBound="-1" eType="#//Component" changeable="false" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ports" upperBound="-1"
+        eType="#//CompoundExportPort" changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+        <details key="alsoFills" value="Component::ports"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="priorities" upperBound="-1"
+        eType="#//Priority" changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="connectors" upperBound="-1"
+        eType="#//Connector" changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="data" upperBound="-1" eType="#//CompoundExportData"
+        changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+        <details key="alsoFills" value="Component::data"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Connector" abstract="true" interface="true">
+    <eAnnotations source="http://engine">
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="Connector"/>
+    <eOperations name="up" lowerBound="1" eType="#//PortValue">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//InteractionValue">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="down">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//InteractionValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+      <eParameters name="portValue" lowerBound="1" eType="#//PortValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="createInteraction" lowerBound="1" eType="#//Interaction">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="createInteraction" lowerBound="1" eType="#//Interaction">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="ports" upperBound="-1" eType="#//Port">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+          <details key="isPointer" value="true"/>
+          <details key="isNotChangeable" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="createInteractionValue" lowerBound="1" eType="#//InteractionValue">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+          <details key="isConst" value="true"/>
+        </eAnnotations>
+      </eParameters>
+      <eParameters name="values" upperBound="-1" eType="#//PortValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+          <details key="isPointer" value="true"/>
+          <details key="isNotChangeable" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="down" lowerBound="1">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//InteractionValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="guard" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" eType="#//InteractionValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+          <details key="isConst" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="releaseInteraction">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="releaseInteractionValue">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interactionValue" lowerBound="1" eType="#//InteractionValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="interactions" ordered="false" upperBound="-1" eType="#//Interaction">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+        <details key="isNotChangeable" value="true"/>
+        <details key="isPointer" value="true"/>
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="canUpOnlyMaximalInteractions" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="#//string"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="ports" lowerBound="1" upperBound="-1"
+        eType="#//QuotedPortReference" changeable="false" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="exportedPort" eType="#//ConnectorExportPort"
+        changeable="false" containment="true">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Port" abstract="true" interface="true">
+    <eOperations name="Port"/>
+    <eOperations name="portValues" upperBound="-1" eType="#//PortValue">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+        <details key="isNotChangeable" value="true"/>
+        <details key="isPointer" value="true"/>
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="hasPortValues" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="#//string"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//ExportType"
+        changeable="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Priority" abstract="true" interface="true">
+    <eAnnotations source="http://engine">
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="guard" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="Priority">
+      <eAnnotations source="http://engine">
+        <details key="isProtected" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="low" eType="#//Interaction"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="high" eType="#//Interaction"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="data" upperBound="-1" eType="#//Data"
+        changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="includesClass" value="true"/>
+        <details key="noMap" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AtomInternalPort" abstract="true" interface="true">
+    <eOperations name="AtomInternalPort"/>
+    <eOperations name="portValue" lowerBound="1" eType="#//PortValue">
+      <eAnnotations source="http://engine">
+        <details key="isReference" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="hasPortValue" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="setPortValue" upperBound="0">
+      <eParameters name="portValue" lowerBound="1" eType="#//PortValue">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="clearPortValue" upperBound="0"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="#//string"
+        changeable="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="CompoundExportPort" abstract="true"
+      interface="true" eSuperTypes="#//Port">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+      <details key="initialize" value="type=COMPOUND_EXPORT"/>
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="CompoundExportPort" lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="forwardPorts" lowerBound="1"
+        upperBound="-1" eType="#//Port" changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="noMap" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EDataType" name="string" instanceClassName="java.lang.String"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="bool" instanceClassName="java.lang.Boolean"/>
+  <eClassifiers xsi:type="ecore:EClass" name="Interaction" abstract="true" interface="true">
+    <eOperations name="Interaction" upperBound="0"/>
+    <eOperations name="recycle" upperBound="0">
+      <eAnnotations source="http://engine">
+        <details key="isPureVirtual" value="true"/>
+        <details key="isVirtual" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="ports" upperBound="-1" eType="#//Port">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+        <details key="isNotChangeable" value="true"/>
+        <details key="isPointer" value="true"/>
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="hasPorts" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="addPort" upperBound="0">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+      </eAnnotations>
+      <eParameters name="port" lowerBound="1" eType="#//Port">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="removePort" upperBound="0">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+      </eAnnotations>
+      <eParameters name="port" lowerBound="1" eType="#//Port">
+        <eAnnotations source="http://engine">
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="isDefined" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="hasSubDefined" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="operator&lt;=" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="operator==" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="operator!=" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="operator&lt;" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eOperations name="nonEmptyIntersection" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+      <eParameters name="interaction" lowerBound="1" eType="#//Interaction">
+        <eAnnotations source="http://engine">
+          <details key="isConst" value="true"/>
+          <details key="isReference" value="true"/>
+        </eAnnotations>
+      </eParameters>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="connector" lowerBound="1"
+        eType="#//Connector" changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ConnectorExportPort" eSuperTypes="#//Port">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+      <details key="initialize" value="type=CONNECTOR_EXPORT"/>
+    </eAnnotations>
+    <eOperations name="ConnectorExportPort"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="PortValue" abstract="true" interface="true">
+    <eOperations name="PortValue" lowerBound="1"/>
+    <eOperations name="toString" lowerBound="1" eType="#//string">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="InteractionValue" abstract="true" interface="true">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+    </eAnnotations>
+    <eOperations name="InteractionValue" upperBound="0"/>
+    <eOperations name="recycle" upperBound="0">
+      <eAnnotations source="http://engine">
+        <details key="isPureVirtual" value="true"/>
+        <details key="isVirtual" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="interaction" lowerBound="1" eType="#//Interaction">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+        <details key="isReference" value="true"/>
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="portValues" upperBound="-1" eType="#//PortValue">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+        <details key="isNotChangeable" value="true"/>
+        <details key="isPointer" value="true"/>
+        <details key="isReference" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eOperations name="hasPortValues" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isVirtual" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AtomExportPort" abstract="true" interface="true"
+      eSuperTypes="#//Port">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+      <details key="initialize" value="type=ATOM_EXPORT"/>
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="AtomExportPort" lowerBound="1"/>
+    <eOperations name="isReset" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+      </eAnnotations>
+    </eOperations>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="internalPorts" upperBound="-1"
+        eType="#//AtomInternalPort" changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="noMap" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="QuotedPortReference">
+    <eOperations name="QuotedPortReference" lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="port" lowerBound="1" eType="#//Port"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="trigger" lowerBound="1"
+        eType="#//bool" changeable="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ComponentType">
+    <eLiterals name="ATOM"/>
+    <eLiterals name="COMPOUND" value="1"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ExportType">
+    <eLiterals name="ATOM_EXPORT"/>
+    <eLiterals name="COMPOUND_EXPORT" value="1"/>
+    <eLiterals name="CONNECTOR_EXPORT" value="2"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ErrorType">
+    <eLiterals name="NO_ERROR"/>
+    <eLiterals name="NON_DETERMINISTIC_PETRI_NET" value="1" literal="NON_DETERMINISTIC_PETRI_NET"/>
+    <eLiterals name="NON_ONE_SAFE_PETRI_NET" value="2" literal="NON_ONE_SAFE_PETRI_NET"/>
+    <eLiterals name="CYCLE_IN_PRIORITIES" value="3"/>
+    <eLiterals name="CYCLE_IN_ATOM_PRIORITIES" value="4"/>
+    <eLiterals name="ATOM_INVARIANT_VIOLATION" value="5" literal="ATOM_INVARIANT_VIOLATION"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="BipError" abstract="true" interface="true">
+    <eOperations name="BipError"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//ErrorType"
+        changeable="false" defaultValueLiteral="">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NonOneSafePetriNetError" eSuperTypes="#//BipError">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=NON_ONE_SAFE_PETRI_NET"/>
+    </eAnnotations>
+    <eOperations name="NonOneSafePetriNetError"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="port" eType="#//AtomInternalPort"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="atom" lowerBound="1" eType="#//Atom"
+        changeable="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NonDeterministicPetriNetError" eSuperTypes="#//BipError">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=NON_DETERMINISTIC_PETRI_NET"/>
+    </eAnnotations>
+    <eOperations name="NonDeterministicPetriNetError"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="atom" lowerBound="1" eType="#//Atom"
+        changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="port" eType="#//AtomInternalPort"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="CycleInPrioritiesError" eSuperTypes="#//BipError">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=CYCLE_IN_PRIORITIES"/>
+    </eAnnotations>
+    <eOperations name="CycleInPrioritiesError"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="cycle" upperBound="-1"
+        eType="#//Interaction">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="CycleInAtomPrioritiesError" eSuperTypes="#//BipError">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=CYCLE_IN_ATOM_PRIORITIES"/>
+    </eAnnotations>
+    <eOperations name="CycleInAtomPrioritiesError"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="cycle" upperBound="-1"
+        eType="#//AtomInternalPort">
+      <eAnnotations source="http://engine">
+        <details key="isConst" value="true"/>
+        <details key="noMap" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Data" abstract="true" interface="true">
+    <eOperations name="Data" lowerBound="1"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="#//string"
+        changeable="false" defaultValueLiteral=""/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="type" lowerBound="1" eType="#//ExportType"
+        changeable="false"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AtomExportData" eSuperTypes="#//Data">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+      <details key="initialize" value="type=ATOM_EXPORT"/>
+      <details key="isFriendDeploy" value="true"/>
+    </eAnnotations>
+    <eOperations name="AtomExportData"/>
+    <eOperations name="isReset" lowerBound="1" eType="#//bool">
+      <eAnnotations source="http://engine">
+        <details key="isConstOperation" value="true"/>
+        <details key="isPureVirtual" value="true"/>
+        <details key="isVirtual" value="true"/>
+      </eAnnotations>
+    </eOperations>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="CompoundExportData" eSuperTypes="#//Data">
+    <eAnnotations source="http://engine">
+      <details key="isVirtualInheritance" value="true"/>
+      <details key="initialize" value="type=COMPOUND_EXPORT"/>
+    </eAnnotations>
+    <eOperations name="CompoundExportData"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="forwardData" lowerBound="1"
+        eType="#//Data" changeable="false">
+      <eAnnotations source="http://engine">
+        <details key="noMap" value="true"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AtomInvariantViolationError" eSuperTypes="#//BipError">
+    <eAnnotations source="http://engine">
+      <details key="initialize" value="type=NON_ONE_SAFE_PETRI_NET"/>
+    </eAnnotations>
+    <eOperations name="AtomInvariantViolationError"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="invariantName" lowerBound="1"
+        eType="#//string" changeable="false"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="atom" lowerBound="1" eType="#//Atom"
+        changeable="false"/>
+  </eClassifiers>
+</ecore:EPackage>

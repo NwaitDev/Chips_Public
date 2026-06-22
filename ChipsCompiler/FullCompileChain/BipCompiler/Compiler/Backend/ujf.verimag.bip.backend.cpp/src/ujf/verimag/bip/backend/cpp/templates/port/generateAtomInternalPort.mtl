@@ -1,0 +1,136 @@
+[comment encoding = UTF-8 /]
+[module generateAtomInternalPort('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+
+[template public generateAtomIPort(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.atomInternalClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.atomInternalClassName());
+        aipCN : String = aPortType.atomInternalClassName();
+    }
+]
+
+[comment 
+    IMPLEMENTATION FILE
+ /]
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[aPortType.relHppFilePath(aipCN)/]>
+
+[aipCN/]::[aPortType.genCtorProto()/] : AtomInternalPort(name),
+    mIsEnabled(false),
+    mIsDisabledByPriorities(false)[if (isOptimEnabled('ports-reset'))],
+    mIsPreviouslyEnabled(false)[/if] {
+}
+
+[aipCN/]::~[aipCN/]() {
+}
+[/file]
+
+[comment 
+    HEADER FILE
+ /]
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <AtomInternalPort.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+#include <[aPortType.relHppFilePath(aPortType.portValueClassName())/]>
+
+class [aipCN/] : public AtomInternalPort {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[aipCN/]();
+
+    PortValue &portValue() const;
+    bool hasPortValue() const;
+    void setPortValue(PortValue &portValue);
+    void clearPortValue();
+
+    bool isEnabled() const;
+    void setIsEnabled(bool b);
+    bool isDisabledByPriorities() const;
+    void setIsDisabledByPriorities(bool b);
+[if (isOptimEnabled('ports-reset'))]
+    bool isPreviouslyEnabled() const;
+    void setIsPreviouslyEnabled(bool b);
+[/if]
+
+protected:
+    [aPortType.portValueClassName()/] *mPortValue;
+
+private:
+    bool mIsEnabled;
+    bool mIsDisabledByPriorities;
+[if (isOptimEnabled('ports-reset'))]
+    bool mIsPreviouslyEnabled;
+[/if]
+}; 
+
+inline
+PortValue &[aipCN/]::portValue() const {
+    return *mPortValue;
+}
+
+inline
+bool [aipCN/]::hasPortValue() const {
+    return mPortValue != NULL;
+}
+
+inline
+void [aipCN/]::setPortValue(PortValue &portValue) {
+    assert(dynamic_cast<[aPortType.portValueClassName()/] *>(&portValue) != NULL);
+    mPortValue = static_cast<[aPortType.portValueClassName()/] *> (&portValue);
+}
+inline
+void [aipCN/]::clearPortValue() {
+    mPortValue = NULL;
+}
+
+inline
+bool [aipCN/]::isEnabled() const {
+    return mIsEnabled;
+}
+
+inline
+void [aipCN/]::setIsEnabled(bool b) {
+    mIsEnabled = b;
+}
+
+inline
+bool [aipCN/]::isDisabledByPriorities() const {
+    return mIsDisabledByPriorities;
+}
+
+inline
+void [aipCN/]::setIsDisabledByPriorities(bool b) {
+    mIsDisabledByPriorities = b;
+}
+[if (isOptimEnabled('ports-reset'))]
+
+inline
+bool [aipCN/]::isPreviouslyEnabled() const {
+    return mIsPreviouslyEnabled;
+}
+
+inline
+void [aipCN/]::setIsPreviouslyEnabled(bool b) {
+    mIsPreviouslyEnabled = b;
+}
+[/if]
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.atomInternalClassName()/](const string &name)
+[/template]
