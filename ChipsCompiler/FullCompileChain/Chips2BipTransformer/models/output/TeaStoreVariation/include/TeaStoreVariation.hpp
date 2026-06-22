@@ -1,7 +1,0 @@
-#ifndef TEASTOREVARIATION_HPP_
-#define TEASTOREVARIATION_HPP_
-
-#include <string>
-
-
-#endif // TEASTOREVARIATION_HPP_
