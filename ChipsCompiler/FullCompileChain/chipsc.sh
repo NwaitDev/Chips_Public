@@ -153,17 +153,21 @@ echo ""
 # (Replace the echo / placeholder blocks below with real compiler calls.)
 # ---------------------------------------------------------------------------
 
-# # Step 1 — CHIPS-XMI
-# echo "[1/3] Parsing '$INPUT_FILE' → CHIPS-XMI..."
-# # TODO: invoke the actual CHIPS-XMI tool here, e.g.:
-# #   chipsparser "$INPUT_FILE" -o "${OUTPUT_FILE}.chips.xmi"
-# echo "      (CHIPS-XMI step completed)"
+CHIPSPARSER="../Chips_Parser/build/chipsparser"
 
-# if [[ "$STOP_STEP" == "chips-xmi" ]]; then
-#     echo ""
-#     echo "Stopped after CHIPS-XMI step as requested."
-#     exit 0
-# fi
+# Step 1 — CHIPS-XMI
+echo "[1/3] Parsing '$INPUT_FILE' → CHIPS-XMI..."
+# TODO: invoke the actual CHIPS-XMI tool here, e.g.:
+#   chipsparser "$INPUT_FILE" -o "${OUTPUT_FILE}.chips.xmi"
+$CHIPSPARSER "$INPUT_FILE"
+
+echo "      (CHIPS-XMI step completed)"
+
+if [[ "$STOP_STEP" == "chips-xmi" ]]; then
+    echo ""
+    echo "Stopped after CHIPS-XMI step as requested."
+    exit 0
+fi
 
 # Step 2 — BIP-XMI
 echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
@@ -172,7 +176,7 @@ echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
 java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
     emftvm $CHIPSC_PATH/metamodels/chips1.1.ecore \
     $CHIPSC_PATH/metamodels/BIP.ecore  \
-    "${INPUT_FILE}" \
+    "${OUTPUT_FILE}.chips.xmi" \
     $CHIPSC_PATH/transformations/chips2bip.atl \
     "${OUTPUT_FILE}.bip.xmi"
 
@@ -188,10 +192,10 @@ fi
 echo "[3/3] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
 mkdir -p ${OUTPUT_FILE}/build
 if [[ "$GENERATE_MODE" == "cpp" ]]; then
-    bipc --xmi "${OUTPUT_FILE}.chips.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
+    $BIPC_PATH/bipc.sh --xmi "${OUTPUT_FILE}.bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
     echo "      (C++ generation completed)"
 else
-    bipc --xmi "${OUTPUT_FILE}.chips.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
+    $BIPC_PATH/bipc.sh --xmi "${OUTPUT_FILE}.bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
     echo "      (BIP generation completed)"
 fi
 
