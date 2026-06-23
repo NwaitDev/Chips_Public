@@ -5,3 +5,5 @@ ChipsCompiler/Chips Parser/build
 ChipsCompiler/Chips Parser/generated
 ChipsCompiler/Chips Parser/.antlr
 ChipsCompiler/ATL Chips2BIP/models/TeaStoreVariation.xmi
+ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/output/TeaStoreVariation.bip
+ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariation.bip.xmi

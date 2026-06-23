@@ -893,11 +893,7 @@ public class Runner {
             }
             // Package name can change but should be the same as the xmi file name
             if (options.valuesOf(ospecs.get("xmi")).size() == 1){
-                rootPackageName = options.valueOf(ospecs.get("xmi"))
-                                        .substring(
-                                            0,
-                                            options.valueOf(ospecs.get("xmi")).length()-3
-                                        );
+                rootPackageName = options.valueOf(ospecs.get("xmi"));
                 xmiMode = true;
             } else {
                 if (options.valuesOf(ospecs.get("xmi")).size() == 0)

@@ -136,7 +136,7 @@ if [ "${SKIP_COMPILER_BUILD}" == "0" ]; then
 
     ant -Dprogram.version="$V" -lib lib clean publish-local-all && \
 	mkdir -p $DISTRIB_COMPILER/{bin,lib} && \
-	cp -r $USER_UI_SCRIPT/cli-lib/bipc_.sh $DISTRIB_COMPILER/bin/bipc.sh && chmod u+x $DISTRIB_COMPILER/bin/bipc.sh && cp -r $USER_UI_SCRIPT/cli-lib/* $DISTRIB_COMPILER/lib/ && \
+	cp -r $USER_UI_SCRIPT/cli-lib/bipc_.sh $DISTRIB_COMPILER/bin/bipc && chmod u+x $DISTRIB_COMPILER/bin/bipc && cp -r $USER_UI_SCRIPT/cli-lib/* $DISTRIB_COMPILER/lib/ && \
 	cp -r $USER_UI_SCRIPT/cli-build/*jar $DISTRIB_COMPILER/lib
 
     if [ "$?" == "0" ]; then
