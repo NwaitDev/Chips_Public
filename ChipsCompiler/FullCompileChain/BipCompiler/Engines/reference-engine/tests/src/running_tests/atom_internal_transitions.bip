@@ -1,0 +1,33 @@
+package atom_internal_transitions
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+ 
+  atom type AT(int max)
+    data int counter
+
+    export port Port incr()
+
+    place TEST, INCR, STOPPED
+
+    initial to TEST
+      do { counter = 0; }
+
+    internal from TEST to STOPPED
+      provided (counter == max)
+
+    internal from TEST to INCR
+      provided (counter < max)
+
+    on incr from INCR to TEST
+      do { counter = counter + 1; }
+ end
+ 
+  compound type CT()
+    component AT c(5)
+
+    connector Single single(c.incr)
+  end
+end

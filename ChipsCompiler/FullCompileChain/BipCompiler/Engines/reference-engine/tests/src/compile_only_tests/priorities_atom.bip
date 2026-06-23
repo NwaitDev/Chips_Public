@@ -1,0 +1,35 @@
+package priorities_atom
+
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type Atom()
+    data int x
+
+    export port Port p(), q()
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on p from LOOP to LOOP
+      do { x = x + 1; }
+
+    on q from LOOP to LOOP
+      do { x = x + 1; }
+
+    priority myPriopq p < q provided (x % 2 == 0)
+    priority myPrioqp p < q provided (x % 2 == 1)
+  end
+
+  compound type MyCompound()
+    component Atom A()
+
+    connector Singleton sp(A.p)
+    connector Singleton sq(A.q)
+  end
+end

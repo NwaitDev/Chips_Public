@@ -1,0 +1,17 @@
+[comment encoding = UTF-8 /]
+[module connectorInteractionDefinition('http://bip2/1.0')]
+
+[template public generateInteractionDefinition(intr : ConnectorInteractionPortReference)]
+[intr.port.name/][if (intr.quoted)]'[/if]
+[/template]
+
+[template public generateInteractionDefinition(intr : ConnectorInteractionNestedDefinition)]
+([for (ch : ConnectorInteractionDefinition | intr.subInteractions) separator(' ')]
+[ch.generateInteractionDefinition()/]
+[/for]
+)[if (intr.quoted)]'[/if]
+[/template]
+
+[template public generateInteractionDefinition(intr : ConnectorInteractionDefinition)]
+THIS TEMPLATE SHOULD NOT BE INVOKED. bip/connectorInteractionDefinition.mtl
+[/template]

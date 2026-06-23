@@ -1,0 +1,45 @@
+package periodic_tick
+
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  connector type RendezVous(Port p, Port q)
+    define p q
+  end
+
+  atom type Periodic(int P)
+    data int x
+
+    export port  Port tick()
+    export port  Port period()
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on tick from LOOP to LOOP
+      provided (x < P)
+      do { x = x + 1; }
+
+    on period from LOOP to LOOP
+      provided (x == P)
+      do { x = 0; }
+  end
+
+  compound type MyCompound()
+    component Periodic  A(1)
+    component Periodic  B(2)
+
+    connector RendezVous Tick(A.tick, B.tick)
+
+    connector Singleton CA(A.period)
+    connector Singleton CB(B.period)
+
+    priority prio CB:B.period < CA:A.period
+  end
+
+end

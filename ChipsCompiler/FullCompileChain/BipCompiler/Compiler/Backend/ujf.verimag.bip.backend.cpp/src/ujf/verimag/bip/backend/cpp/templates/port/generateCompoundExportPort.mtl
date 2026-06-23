@@ -1,0 +1,58 @@
+[comment encoding = UTF-8 /]
+[module generateCompoundExportPort('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+
+[template public generateCompoundEPort(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.compoundExportClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.compoundExportClassName());
+        cepCN : String = aPortType.compoundExportClassName();
+    }
+]
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[relHppFilePath(aPortType, cepCN)/]>
+
+#include <[relHppFilePath(aPortType, aPortType.portValueClassName())/]>
+
+[cepCN/]::[aPortType.genCtorProto()/] :
+    PortItf(name, COMPOUND_EXPORT),
+    Port(name, COMPOUND_EXPORT),
+    CompoundExportPort(name),
+    [aPortType.className()/](name, COMPOUND_EXPORT) {
+}
+
+[cepCN/]::~[cepCN/]() {
+}
+[/file]
+
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <CompoundExportPort.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [cepCN/] :
+    public virtual Port,
+    public CompoundExportPort,
+    public [aPortType.className()/] {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[cepCN/]();
+}; 
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /] 
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.compoundExportClassName()/](const string &name)
+[/template]

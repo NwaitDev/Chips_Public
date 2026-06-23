@@ -1,0 +1,55 @@
+[comment encoding = UTF-8 /]
+[module generateConnectorExportPort('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[template public generateConnectorEPort(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.connectorExportClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.connectorExportClassName());
+        cpCN : String = aPortType.connectorExportClassName();
+    }
+]
+
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[aPortType.relHppFilePath(cpCN)/]>
+
+[cpCN/]::[aPortType.genCtorProto()/] : 
+    PortItf(name, CONNECTOR_EXPORT),
+    Port(name, CONNECTOR_EXPORT),
+    ConnectorExportPort(name),
+    [aPortType.className()/](name, CONNECTOR_EXPORT) {
+}
+
+[cpCN/]::~[cpCN/]() {
+}
+[/file]
+
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <ConnectorExportPort.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [cpCN/] : public virtual Port,
+                public ConnectorExportPort,
+                public [aPortType.className()/] {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[cpCN/]();
+}; 
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.connectorExportClassName()/](const string &name)
+[/template]

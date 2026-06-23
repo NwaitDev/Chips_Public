@@ -1,0 +1,21 @@
+package duplicatedAtomTypeDefinition
+ port type Port_t()
+
+ atom type AT()
+  port Port_t p()
+
+  place S1
+  initial to S1
+  on p from S1 to S1
+ end
+
+ // BAD: duplicated type
+ atom type AT()
+  port Port_t p()
+
+  place S1
+  initial to S1
+  on p from S1 to S1
+ end
+
+end

@@ -1,0 +1,27 @@
+<project name="ujf.verimag.bip.userinterface.cli" default="compile">
+	<property file="build.properties" />
+
+	<import file="${distribution.dir}/common.xml" />
+
+	<property name="program.version" value="DEV" />
+
+	<target name="compile" depends="resolve" description="--> compile the project">
+		<mkdir dir="${classes.dir}" />
+
+
+		<property name="generated.src.dir" location="${basedir}/target/generated-sources/java" />
+		<echo file="${src.dir}/ujf/verimag/bip/userinterface/cli/Version.java">
+package ujf.verimag.bip.userinterface.cli; 
+/** Generated in ANT 
+  * IF YOU SEE THIS IN THE DIFF BEFORE COMMITING: STOP, YOU SHOULD *NOT* PROCEED
+  * => *NEVER* EVER COMMIT THIS FILE
+  * If you happen to read this from an already commited version,
+  * use "svn annotate" and BLAME the one who has commited it !
+  */ 
+public class Version { 
+ public static final String VERSION = "${program.version}"; 
+} 
+</echo>
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="lib.path.id" debug="${compile.debug}" target="${compile.target}" source="${compile.source}" encoding="${compile.encoding}"/>
+	</target>
+</project>

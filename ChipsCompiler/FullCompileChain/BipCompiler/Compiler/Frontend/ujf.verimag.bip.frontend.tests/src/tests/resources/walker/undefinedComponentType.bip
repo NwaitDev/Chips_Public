@@ -1,0 +1,8 @@
+package undefinedComponentType
+ port type Port_t()
+
+ compound type CT()
+   // BAD: undefined component type
+   component AT c1()
+ end
+end

@@ -1,0 +1,43 @@
+[comment encoding = UTF-8 /]
+[module generateDeployed('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::aseba::templates::atom /]
+
+[import ujf::verimag::bip::backend::aseba::templates::connector /]
+
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+
+[query public toXMLentity(aString : String) : String =
+aString.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+/]
+
+
+[template public generateDeployed(aCompoundInstance : CompoundInstance, fileName : String, delay : String)]
+
+[comment @main /]
+[file (fileName, false, 'UTF-8')]
+<!DOCTYPE aesl-source>
+<network>
+
+<!--list of global events-->
+[for (connI : ConnectorInstance | aCompoundInstance.subConnectorInstances)]
+<event size="[connI.eventSize()/]" name="[connI.eventNameFromConnector() /]" />
+[/for]
+
+[if (not delay.equalsIgnoreCase('-1'))]
+<event size="0" name="start" />
+[/if]
+
+<!--list of constants-->
+<!-- Empty, for the moment -->
+
+[for (anAtomInstance : AtomInstance | aCompoundInstance.atomInstancesFromAnnot('aseba', 'node'))]
+<!--source code of node [anAtomInstance.declaration.getAnnotation('aseba', 'node') /] -->
+<node name=[anAtomInstance.declaration.getAnnotation('aseba', 'node') /]>
+[anAtomInstance.generateBehavior(anAtomInstance.relatedConnectors(aCompoundInstance.subConnectorInstances), delay).toXMLentity() /]
+</node>
+[/for]
+
+</network>
+[/file]
+
+[/template]

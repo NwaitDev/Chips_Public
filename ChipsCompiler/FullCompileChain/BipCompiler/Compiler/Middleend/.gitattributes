@@ -1,0 +1,29 @@
+* text=auto !eol
+ujf.verimag.bip.middleend.example/.classpath -text
+ujf.verimag.bip.middleend.example/.project -text
+ujf.verimag.bip.middleend.example/build.properties -text
+ujf.verimag.bip.middleend.example/build.xml -text
+ujf.verimag.bip.middleend.example/ivy.xml -text
+ujf.verimag.bip.middleend.example/src/main/java/ujf/verimag/bip/middleend/example/ExampleFilter.java -text
+ujf.verimag.bip.middleend.flattening/.classpath -text
+ujf.verimag.bip.middleend.flattening/.project -text
+ujf.verimag.bip.middleend.flattening/build.properties -text
+ujf.verimag.bip.middleend.flattening/build.xml -text
+ujf.verimag.bip.middleend.flattening/ivy.xml -text svneol=unset#application/xml
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/EmfDebug.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/ExpressionEvaluator.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/ExpressionTreeTransformer.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/ExpressionTreeWalker.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/FlatteningFilter.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/StatementPrinter.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/StatementTransformer.java -text
+ujf.verimag.bip.middleend.flattening/src/main/java/ujf/verimag/bip/middleend/flattening/StatementWalker.java -text
+ujf.verimag.bip.middleend/.classpath -text
+ujf.verimag.bip.middleend/.project -text
+ujf.verimag.bip.middleend/build.properties -text
+ujf.verimag.bip.middleend/build.xml -text
+ujf.verimag.bip.middleend/ivy.xml -text
+ujf.verimag.bip.middleend/src/main/java/ujf/verimag/bip/middleend/FilterStatus.java -text
+ujf.verimag.bip.middleend/src/main/java/ujf/verimag/bip/middleend/FilterStatusEnum.java -text
+ujf.verimag.bip.middleend/src/main/java/ujf/verimag/bip/middleend/Filterable.java -text
+ujf.verimag.bip.middleend/src/main/java/ujf/verimag/bip/middleend/error/FilterGenericError.java -text

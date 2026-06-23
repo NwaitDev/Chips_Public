@@ -1,0 +1,70 @@
+@cpp(include="stdio.h")
+package HelloPackage
+  extern function printf(string, int, int)
+
+  port type HelloPort_t(int d)
+
+  atom type HelloAtom(int id)
+    data int active
+    export port HelloPort_t p(active)
+
+    place LOOP
+
+    initial to LOOP
+      do { active = 1; }
+
+    on p from LOOP to LOOP
+      provided (active == 1)
+      do { printf("I'm %d, active=%d\n", id, active); }
+  end
+
+  connector type Plus(HelloPort_t r1, HelloPort_t r2)
+    data int number_of_active
+    export port HelloPort_t ep(number_of_active)
+    define r1' r2'
+    
+    on r1 r2
+      up { number_of_active = r1.d + r2.d; }
+      down { r1.d = number_of_active; r2.d = number_of_active; }
+
+    on r1
+      up { number_of_active = r1.d; }
+      down { r1.d = number_of_active; }
+
+    on r2
+      up { number_of_active = r2.d; }
+      down { r2.d = number_of_active; }
+  end
+
+  connector type Filter(HelloPort_t r)
+    define r
+    on r provided (r.d <= 4) down { r.d = 0; }
+  end
+
+  compound type Layer1(int first)
+    component HelloAtom A(first), B(first + 1)
+
+    connector Plus plus12(A.p, B.p)
+    export port plus12.ep as ep
+  end
+
+  compound type Layer2(int first)
+    component Layer1 L11(first), L12(first + 2)
+
+    connector Plus plus12(L11.ep, L12.ep)
+    export port plus12.ep as ep
+  end
+
+  compound type Layer3()
+    component Layer2 L21(1), L22(5)
+
+    connector Plus plus12(L21.ep, L22.ep)
+    export port plus12.ep as ep
+  end
+
+  compound type HelloCompound()
+    component Layer3 A12345678()
+
+    connector Filter filter(A12345678.ep)
+  end
+end

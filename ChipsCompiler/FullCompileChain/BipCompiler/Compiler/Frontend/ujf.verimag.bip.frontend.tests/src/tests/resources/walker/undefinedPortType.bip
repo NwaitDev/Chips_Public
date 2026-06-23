@@ -1,0 +1,11 @@
+package undefinedPortType
+
+  atom type AT()
+   // BAD: UPT is not defined
+   port UPT p()
+   place S1
+   initial to S1
+   on p from S1 to S1
+  end
+
+end

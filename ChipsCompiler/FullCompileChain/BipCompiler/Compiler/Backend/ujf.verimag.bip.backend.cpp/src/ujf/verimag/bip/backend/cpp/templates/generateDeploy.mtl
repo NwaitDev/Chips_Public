@@ -1,0 +1,579 @@
+[comment encoding = UTF-8 /]
+[module generateDeploy('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::gcc /]
+[import ujf::verimag::bip::backend::cpp::templates::cmake /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::behaviorAnalyzer /]
+[import ujf::verimag::bip::backend::cpp::templates::generateAtomType /]
+[import ujf::verimag::bip::backend::cpp::templates::generatePortType /]
+[import ujf::verimag::bip::backend::cpp::templates::generateCompoundType /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomInternalPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateCompoundExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateQuotedPortReference /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateConnectorExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::generateConnectorInteraction /]
+[import ujf::verimag::bip::backend::cpp::templates::priority::generatePriorityType /]
+[import ujf::verimag::bip::backend::cpp::templates::priority::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::deploy::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::atom::marshalling /]
+
+[query public getNamespaceName(nothing : OclAny) : String = 'staticallocated' /]
+
+[query public getDeployHppFName(nothing : OclAny) : String = nothing.getDeployFName().concat('.hpp') /]
+[query public getDeployCppFName(nothing : OclAny) : String = nothing.getDeployFName().concat('.cpp') /]
+
+[query public getAllTypesHppFName(nothing : OclAny) : String = 'DeployTypes.hpp' /]
+
+[query public getDeployFName(nothing : OclAny) : String = 'Deploy' /]
+
+[comment][query public joinString(aSetOfString : Sequence(String)) : String = 
+    if (aSetOfString->size() = 1) then
+        aSetOfString->first()
+    else
+        aSetOfString->first() + '+' + joinString(aSetOfString->subSequence(2, aSetOfString->size()))
+    endif
+/][/comment]
+
+
+[comment][query public joinSize(aSetOfInstances : Sequence(AtomInstance)) : String = 
+    if (aSetOfInstances->isEmpty()) then
+       '0'
+    else
+        if (aSetOfInstances->size() = 1) then
+            aSetOfInstances->first().getMarshallingSize()
+        else
+            aSetOfInstances->first().getMarshallingSize() + '+' + joinSize(aSetOfInstances->subSequence(2, aSetOfInstances->size()))
+        endif
+    endif
+/]
+
+[query public joinSize(aSetOfInstances : Sequence(CompoundInstance)) : String = 
+    if (aSetOfInstances->isEmpty()) then
+        '0'
+    else
+        if (aSetOfInstances->size() = 1) then
+            aSetOfInstances->first().computeMarshallingSize()
+        else
+            aSetOfInstances->first().computeMarshallingSize() + ' + ' + joinSize(aSetOfInstances->subSequence(2, aSetOfInstances->size()))
+        endif
+    endif
+/]
+
+[query public computeMarshallingSize(aCompoundInstance : CompoundInstance) : String =
+    let atomInstances : OrderedSet(AtomInstance) = aCompoundInstance.subAtomInstances, 
+        compoundInstances : OrderedSet(CompoundInstance) = aCompoundInstance.subCompoundInstances in 
+    joinSize(atomInstances->asSequence()) + ' + ' + joinSize(compoundInstances->asSequence())
+/][/comment]
+
+[comment][template public genMarshallingSizeA(atomInstances : OrderedSet(AtomInstance)) post(trim())]
+[for (ai : AtomInstance | atomInstances) separator(' + ')][ai.genMarshallingSize()/][/for]
+[/template]
+
+[template public genMarshallingSizeC(compoundInstances : OrderedSet(CompoundInstance)) post(trim())]
+[for (ci : CompoundInstance | compoundInstances) separator(' + ')][ci.genMarshallingSize()/][/for]
+[/template]
+
+[template public genMarshallingSize(aCompoundInstance : CompoundInstance) 
+{
+     needSep : Boolean = (aCompoundInstance.subAtomInstances->notEmpty() and aCompoundInstance.subCompoundInstances->notEmpty());
+     atoms : OrderedSet(AtomInstance) = aCompoundInstance.subAtomInstances;
+     compounds : OrderedSet(CompoundInstance) = aCompoundInstance.subCompoundInstances;
+}]
+[genMarshallingSizeA(atoms)/][if (needSep)] + [/if][genMarshallingSizeC(compounds)/]
+[/template][/comment]
+
+[query public getAllAtoms(aCompoundInstance : CompoundInstance) : Set(AtomInstance) =
+    aCompoundInstance.subAtomInstances->union(aCompoundInstance.subCompoundInstances->collect(getAllAtoms())->asSet())
+/]
+
+
+[comment]
+    The guard is used to make sure the template is applied only on top level instance. 
+[/comment]
+[template public generateDeploy(aComponentInstance : ComponentInstance,
+	disableMain : Boolean) ? (aComponentInstance.eContainer().oclIsUndefined()) 
+{
+    allAtoms : Set(AtomInstance) = aComponentInstance.oclAsType(CompoundInstance).getAllAtoms();
+}
+]
+[comment @main /]
+
+[file (aComponentInstance.getAllTypesHppFName(), false, 'UTF-8')]
+// All Types used in deployed system
+[/file]
+
+[file (aComponentInstance.getDeployHppFName(), false, 'UTF-8')]
+// here we should have includes for all used types
+// from all packages.
+#include "DeployTypes.hpp"
+
+Component* deploy(int argc, char **argv);
+bool isSerializeEnabled();
+void serialize(char **buf, size_t *len);
+void deserialize(const char *buf, size_t len);
+
+namespace [aComponentInstance.getNamespaceName() /]{
+[/file]
+
+
+[file (aComponentInstance.getDeployCppFName(), false, 'UTF-8')]
+#include "Deploy.hpp"
+
+#include <Launcher.hpp>
+
+/*
+ * The "static" includes (the one we use inconditionnaly)
+ */
+
+[if (not disableMain)]
+int main(int argc, char **argv) {
+    int ret = EXIT_SUCCESS;
+
+    // deploy the system corresponding to the root component
+    Component &component = *deploy(argc, argv);
+
+    // create an engine launcher
+    Launcher launcher(argc, argv, component);
+
+    // initialize the launcher (components, etc.)
+    ret = launcher.initialize();
+
+    // run the engine
+    if (ret == EXIT_SUCCESS) {
+      ret = launcher.launch();
+    }
+
+    return ret;
+}
+[/if]
+
+Component* deploy(int argc [unusedAttr()/], char **argv [unusedAttr()/]){
+    // Top is [aComponentInstance.varName() /]
+[/file]
+
+    [aComponentInstance.generateComponentInstance() /]
+
+[file (aComponentInstance.getDeployHppFName(), true, 'UTF-8')]
+// End of namespace.
+};
+[/file]
+
+[file (aComponentInstance.getDeployCppFName(), true, 'UTF-8')]
+    // Finished: [aComponentInstance.varName() /]
+    return &([aComponentInstance.getNamespaceName() /]::[aComponentInstance.varName() /]);
+}
+
+bool isSerializeEnabled() {
+[if (isMarshEnabled())]
+    return true;
+[else]
+    return false;
+[/if]
+}
+
+void serialize(char **cbuf [unusedAttr()/], size_t *clen [unusedAttr()/]){
+[if (isMarshEnabled())]
+    size_t len = 0;
+    char *buf;
+[for (ai : AtomInstance | allAtoms)]
+    len += [aComponentInstance.getNamespaceName() /]::[ai.varName()/].bytesSize();
+[/for]
+    len += [allAtoms->size()/] * sizeof(size_t); // for size interleaving
+    buf = new char['['/] len [']'/];
+    *cbuf = buf;
+    *clen = len;
+
+    // do the actual serialization
+[for (ai : AtomInstance | allAtoms)]
+    [aComponentInstance.getNamespaceName() /]::[ai.varName()/].toBytes(buf+sizeof(size_t), (size_t*)buf);
+    buf += *((size_t*)buf) + sizeof(size_t);
+[/for]
+[else]
+    assert(false);
+[/if]
+}
+
+void deserialize(const char *buf [unusedAttr()/], size_t len [unusedAttr()/]){
+[if (isMarshEnabled())]
+[for (ai : AtomInstance | allAtoms)]
+    [aComponentInstance.getNamespaceName() /]::[ai.varName()/].fromBytes(buf+sizeof(size_t), *((size_t*)buf));
+    buf += *((size_t*)buf) + sizeof(size_t);
+[/for]
+[else]
+    assert(false);
+[/if]
+}
+[/file]
+[/template]
+
+[template private portInstanceListToCInteractInit(aPrioInstance : CompoundPriorityInstance, low : Boolean) post(trim())]
+[if (low)]
+[for (pi : PortInstance | aPrioInstance.lowConnector.portParamInstances) separator(', ')]
+[comment if low and no ports (C:*), generate maximal interaction see #127 /]
+[if (aPrioInstance.lowPorts->isEmpty() or aPrioInstance.lowPorts->includes(pi))]
+true[else]
+false[/if]
+[/for]
+[else]
+[for (pi : PortInstance | aPrioInstance.highConnector.portParamInstances) separator(', ')]
+[if (aPrioInstance.highPorts->includes(pi))]
+true[else]
+false[/if]
+[/for]
+[/if]
+[/template]
+
+[template private involvedComponentInstances(aPrioInstance : CompoundPriorityInstance) post(trim())
+    {
+        decl : CompoundPriorityDeclaration = aPrioInstance.declaration;
+        container : CompoundInstance = aPrioInstance.eContainer(CompoundInstance);
+    }
+]
+[if (decl.guard->notEmpty())]
+[for (cdecl : ComponentDeclaration | decl.guard.getInvolvedCompDecl()) before(', ') separator(', ')]
+[container.getComponentInstance(cdecl.name).varName()/][/for]
+[/if]
+[/template]
+
+[query private getReferencedData(expr : ValuedExpression) : Set(SubDataDeclarationReference) =
+	if (expr.oclIsKindOf(BinaryOpExpression)) then
+		expr.oclAsType(BinaryOpExpression).left.getReferencedData()
+			->union(expr.oclAsType(BinaryOpExpression).right.getReferencedData())
+	else if (expr.oclIsKindOf(UnaryOpExpression)) then
+		expr.oclAsType(UnaryOpExpression).operand.getReferencedData()
+	else if (expr.oclIsKindOf(SubDataDeclarationReferenceExpression)) then
+		Set { expr.oclAsType(SubDataDeclarationReferenceExpression).subDataDeclarationRef }
+	else if (expr.oclIsKindOf(FunctionCallExpression)) then
+		expr.oclAsType(FunctionCallExpression).parameters->collect(p : ValuedExpression | p.getReferencedData())
+			->asSet()
+	else Set {}
+	endif endif endif endif
+/]
+
+[query private getInstance(ref : SubDataDeclarationReference, compound : CompoundInstance) : DataInstance =
+	compound.getComponentInstance(ref.componentDeclaration.name).getDataInstance(ref.forwardDataDeclaration.name)
+/]
+
+
+[query private getReferencedData(aPrioInstance : CompoundPriorityInstance) : Set(DataInstance) =
+	if (aPrioInstance.declaration.guard->isEmpty()) then
+		Set { }
+	else
+		aPrioInstance.declaration.guard.getReferencedData()->collect(ref : SubDataDeclarationReference | ref.getInstance(aPrioInstance.eContainer(CompoundInstance)))
+			->asSet()
+	endif
+/]
+
+[template public generateCompoundPriorityInstance(aPrioInstance : CompoundPriorityInstance)
+    {
+        container : CompoundType = aPrioInstance.declaration.eContainer(CompoundType);
+        decl : CompoundPriorityDeclaration = aPrioInstance.declaration;
+        pCN : String = aPrioInstance.declaration.className();
+    }
+]
+[comment
+    Nothing, connector should have already included the needed files
+/]
+[file (aPrioInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[container.relHppFilePath(pCN)/]>
+[if (decl.high->notEmpty())]
+#include <[decl.high.connectorDeclaration.type.relHppFilePath(decl.high.connectorDeclaration.type.interactionClassName())/]>
+[/if]
+[if (decl.low->notEmpty())]
+#include <[decl.low.connectorDeclaration.type.relHppFilePath(decl.low.connectorDeclaration.type.interactionClassName())/]>
+[/if]
+[/file]
+
+[file (aPrioInstance.getDeployHppFName(), true, 'UTF-8')]
+[if (decl.high->notEmpty() and decl.low->notEmpty())]
+    [decl.high.connectorDeclaration.type.interactionClassName()/] [aPrioInstance.highInteractionVarName()/]([aPrioInstance.highConnector.varName()/],[aPrioInstance.portInstanceListToCInteractInit(false)/]);
+    [decl.low.connectorDeclaration.type.interactionClassName()/] [aPrioInstance.lowInteractionVarName()/]([aPrioInstance.lowConnector.varName()/], [aPrioInstance.portInstanceListToCInteractInit(true)/]);
+    [decl.className()/] [aPrioInstance.varName()/]([aPrioInstance.lowInteractionVarName()/], [aPrioInstance.highInteractionVarName()/][aPrioInstance.involvedComponentInstances()/]);
+[elseif (decl.high->isEmpty() and decl.low->notEmpty())]
+    [decl.low.connectorDeclaration.type.interactionClassName()/] [aPrioInstance.lowInteractionVarName()/]([aPrioInstance.lowConnector.varName()/], [aPrioInstance.portInstanceListToCInteractInit(true)/]);
+    [decl.className()/] [aPrioInstance.varName()/]([aPrioInstance.lowInteractionVarName()/][aPrioInstance.involvedComponentInstances()/]);
+[else]
+    [decl.high.connectorDeclaration.type.interactionClassName()/] [aPrioInstance.highInteractionVarName()/]([aPrioInstance.highConnector.varName()/],[aPrioInstance.portInstanceListToCInteractInit(false)/]);
+    [decl.className()/] [aPrioInstance.varName()/]([aPrioInstance.highInteractionVarName()/][aPrioInstance.involvedComponentInstances()/]);
+[/if]
+[/file]
+
+[file (aPrioInstance.getDeployCppFName(), true, 'UTF-8') ]
+    // Runtime init for Priority: [aPrioInstance.varName() /]
+    // [aPrioInstance.getNamespaceName()/]::[aPrioInstance.varName()/]
+[for (aDataInstance : DataInstance | aPrioInstance.getReferencedData())]
+    [aPrioInstance.getNamespaceName()/]::[aPrioInstance.varName() /].addData([aPrioInstance.getNamespaceName()/]::[aDataInstance.varName()/]);
+[/for]
+[/file]
+[/template]
+
+[template public generateComponentInstance(aComponentInstance : ComponentInstance)]
+// If you read this in the generated code, then there is a bug
+// in the code generator
+#error Bug in the code generator
+[/template]
+
+[template public generateCompoundExportPortInstance(aCEP : ExportedPortInstance)]
+
+[file (aCEP.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[aCEP.declaration.portType.relHppFilePath(aCEP.declaration.portType.compoundExportClassName())/]>
+[/file]
+
+[file (aCEP.getDeployHppFName(), true, 'UTF-8')]
+[aCEP.declaration.portType.compoundExportClassName()/] [aCEP.varName()/]("[aCEP.declaration.name/]");
+[/file]
+
+[file (aCEP.getDeployCppFName(), true, 'UTF-8') ]
+[for (fp : PortInstance | aCEP.referencedPorts)]
+[comment Wow, this should be handled by polymorphims, but it looks like it does not work in this case /]
+    [if (fp.oclIsKindOf(ConnectorPortInstance))]
+    [aCEP.getNamespaceName() /]::[aCEP.varName()/].addForwardPort([aCEP.getNamespaceName()/]::[fp.oclAsType(ConnectorPortInstance).varName()/]);
+    [elseif (fp.oclIsKindOf(ExportedPortInstance))]
+    [aCEP.getNamespaceName() /]::[aCEP.varName()/].addForwardPort([aCEP.getNamespaceName()/]::[fp.oclAsType(ExportedPortInstance).varName()/]);
+    [/if]
+[/for]
+[/file]
+[/template]
+
+[template public generateCompoundExportDataInstance(aCEDI : DataInstance) {
+	aCompoundType : CompoundType = aCEDI.eContainer(CompoundInstance).declaration.type.oclAsType(CompoundType);
+	className : String = aCEDI.declaration.dataType.exportDataClassName(aCompoundType);
+}]
+
+[file (aCEDI.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[aCompoundType.relHppFilePath(className)/]>
+[/file]
+
+[file (aCEDI.getDeployHppFName(), true, 'UTF-8')]
+    [className/] [aCEDI.varName()/]([aCEDI.proxyLink.varName()/], "[aCEDI.declaration.name/]");
+[/file]
+[/template]
+
+
+[template public generateQPRInstance(aConnectorInstance : ConnectorInstance, aConnectorPortParamInstance : PortInstance)]
+[file (aConnectorInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[aConnectorPortParamInstance.declaration.portType.relHppFilePath(aConnectorPortParamInstance.declaration.portType.quotedReferenceClassName())/]>
+[/file]
+
+[file (aConnectorInstance.getDeployHppFName(), true, 'UTF-8')]
+    [aConnectorPortParamInstance.declaration.portType.quotedReferenceClassName()/] [aConnectorPortParamInstance.quotedReferenceVarName(aConnectorInstance)/]([aConnectorPortParamInstance.varName()/], false);
+[/file]
+
+[file (aConnectorInstance.getDeployCppFName(), true, 'UTF-8') ]
+[/file]
+
+[/template]
+
+[template public generateConnPortInstance(aConnectorPortInstance : ConnectorPortInstance)
+    {
+        pt : PortType = aConnectorPortInstance.declaration.portType;
+    }
+]
+
+[file (aConnectorPortInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[pt.relHppFilePath(pt.connectorExportClassName())/]>
+[/file]
+
+[file (aConnectorPortInstance.getDeployHppFName(), true, 'UTF-8')]
+    [pt.connectorExportClassName()/] [aConnectorPortInstance.varName()/]("[aConnectorPortInstance.declaration.name/]");
+[/file]
+
+[file (aConnectorPortInstance.getDeployCppFName(), true, 'UTF-8') ]
+[/file]
+[/template]
+
+[template public generateConnectorInstance(aConnectorInstance : ConnectorInstance)]
+
+[for (connp : PortInstance | aConnectorInstance.portParamInstances)]
+   [aConnectorInstance.generateQPRInstance(connp)/]
+[/for]
+
+[if (aConnectorInstance.exportedPort->notEmpty())]
+    [aConnectorInstance.exportedPort.generateConnPortInstance()/]
+[/if]
+
+[file (aConnectorInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[aConnectorInstance.declaration.type.relHppFilePath()/]>
+[/file]
+
+[file (aConnectorInstance.getDeployHppFName(), true, 'UTF-8')]
+    [aConnectorInstance.declaration.type.className()/] [aConnectorInstance.varName()/](
+        "[aConnectorInstance.declaration.name/]",
+        [for (qpr : ConnectorPortParameterDeclaration | aConnectorInstance.declaration.type.ports) separator(', ')][qpr.quotedReferenceVarName(aConnectorInstance)/][/for]
+        [if (aConnectorInstance.exportedPort->notEmpty())], [aConnectorInstance.exportedPort.varName()/][/if]
+        );
+[/file]
+
+[file (aConnectorInstance.getDeployCppFName(), true, 'UTF-8') ]
+[/file]
+[/template]
+
+[template private generateParameterValuationVariables(aComponentInstance : ComponentInstance)]
+[for (cdpd : ComponentDataParameterDeclaration | aComponentInstance.declaration.type.dataParameterDeclarations)]
+[cdpd.dataType.typeName() /] [cdpd.varName(aComponentInstance)/] = [aComponentInstance.eContainer(CompoundInstance).generateCpndDeployExpression(aComponentInstance.declaration.parameters->at(aComponentInstance.declaration.type.dataParameterDeclarations->indexOf(cdpd)))/];
+[/for]
+[/template]
+
+[template public getParamValuationListForCtor(aComponentInstance : ComponentInstance) post(trim())]
+[for (cdpd : ComponentDataParameterDeclaration | aComponentInstance.declaration.type.dataParameterDeclarations) before(', ') separator(', ')]
+[cdpd.varName(aComponentInstance)/][/for]
+[/template]
+
+[template public generateComponentInstance(aCompoundInstance : CompoundInstance) ]
+
+[file (aCompoundInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[aCompoundInstance.declaration.type.relHppFilePath()/]>
+[/file]
+
+[file (aCompoundInstance.getDeployHppFName(), true, 'UTF-8')]
+    // data param for [aCompoundInstance.varName()/]./
+    [aCompoundInstance.generateParameterValuationVariables() /]
+[/file]
+
+[aCompoundInstance.subAtomInstances.generateComponentInstance() /]
+
+[aCompoundInstance.subCompoundInstances.generateComponentInstance() /]
+
+[aCompoundInstance.exportedPorts.generateCompoundExportPortInstance() /]
+
+[aCompoundInstance.subDataInstances.generateCompoundExportDataInstance() /]
+
+[aCompoundInstance.subConnectorInstances.generateConnectorInstance()/]
+
+[aCompoundInstance.subPriorities.generateCompoundPriorityInstance() /]
+
+
+[file (aCompoundInstance.getDeployHppFName(), true, 'UTF-8')]
+    // static init for Compound: [aCompoundInstance.varName() /]
+
+    [aCompoundInstance.declaration.type.className()/] [aCompoundInstance.varName()/](
+      "[aCompoundInstance.declaration.name/]"
+     [for (anAtomInstance : AtomInstance | aCompoundInstance.subAtomInstances) before(', ') separator(', ') ][anAtomInstance.varName()/][/for]
+     [for (aCompoundInstance : CompoundInstance | aCompoundInstance.subCompoundInstances) before(', ') separator(', ') ][aCompoundInstance.varName()/][/for]
+     [for (aConnectorInstance : ConnectorInstance | aCompoundInstance.subConnectorInstances) before(', ') separator(', ') ][aConnectorInstance.varName()/][/for]
+     [for (aPrioInstance : CompoundPriorityInstance | aCompoundInstance.subPriorities) before(', ') separator(', ') ][aPrioInstance.varName()/][/for]
+     [for (aPortInstance : ExportedPortInstance | aCompoundInstance.exportedPorts) before(', ') separator(', ') ][aPortInstance.varName()/][/for]
+     [for (aDataInstance : DataInstance | aCompoundInstance.subDataInstances) before(', ') separator(', ') ][aDataInstance.varName()/][/for]
+     [aCompoundInstance.getParamValuationListForCtor()/]
+    );
+
+[/file]
+
+[file (aCompoundInstance.getDeployCppFName(), true, 'UTF-8')]
+    // Runtime init for Compound: [aCompoundInstance.varName() /]
+    // [aCompoundInstance.getNamespaceName()/]::[aCompoundInstance.varName()/]
+[/file]
+[/template]
+
+
+[template public generateInstance(anAIPI : AtomInternalPortInstance)]
+
+[file (anAIPI.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[anAIPI.declaration.portType.relHppFilePath(anAIPI.declaration.portType.atomInternalClassName())/]>
+[/file]
+
+[file (anAIPI.getDeployHppFName(), true, 'UTF-8')]
+    [anAIPI.declaration.portType.atomInternalClassName()/] [anAIPI.varName()/]("[anAIPI.declaration.name/]");
+[/file]
+
+[file (anAIPI.getDeployCppFName(), true, 'UTF-8') post(trim())]
+[/file]
+
+[/template]
+
+[template public generateExternalInstance(anAEPI : AtomExternalPortInstance) {
+	decl : AtomExternalPortDeclaration = anAEPI.declaration.oclAsType(AtomExternalPortDeclaration);
+}]
+[file (anAEPI.getAllTypesHppFName(), true, 'UTF-8')]
+[if (decl.backendName->isEmpty())]#include <[anAEPI.declaration.portType.relHppFilePath(anAEPI.declaration.portType.atomExternalClassName())/]>[/if]
+[/file]
+
+[file (anAEPI.getDeployHppFName(), true, 'UTF-8')]
+    [decl.atomExternalClassName()/] [anAEPI.varName()/]("[anAEPI.declaration.name/]", [generateEventConsumptionPolicy(decl.policy)/]); // [decl.backendName/]
+[/file]
+
+[file (anAEPI.getDeployCppFName(), true, 'UTF-8') post(trim())]
+[/file]
+
+[/template]
+
+[template private generateEventConsumptionPolicy(aPolicy : EventConsumptionPolicy)]
+[if (aPolicy = EventConsumptionPolicy::remember)]REMEMBER[elseif (aPolicy = EventConsumptionPolicy::ignore)]IGNORE[elseif (aPolicy = EventConsumptionPolicy::error)]ERROR[else]
+#error: unsupported event consumption policy [aPolicy/][/if]
+[/template]
+
+[template public generateAtomExportInstance(anAEPI : ExportedPortInstance) {
+	portDeclaration : AtomExportPortDeclaration = anAEPI.declaration.oclAsType(AtomExportPortDeclaration);
+}]
+
+[file (anAEPI.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[anAEPI.declaration.portType.relHppFilePath(anAEPI.declaration.portType.atomExportClassName())/]>
+[/file]
+
+[file (anAEPI.getDeployHppFName(), true, 'UTF-8')]
+    [anAEPI.declaration.portType.atomExportClassName()/] [anAEPI.varName()/]("[anAEPI.declaration.name/]", [if (isOptimEnabled('early-update') and hasEarlyUpdate(portDeclaration))]true[else]false[/if]);
+[/file]
+[file (anAEPI.getDeployCppFName(), true, 'UTF-8')]
+[for (it : PortInstance | anAEPI.referencedPorts)]
+    [anAEPI.getNamespaceName()/]::[anAEPI.varName()/].addInternalPort([anAEPI.getNamespaceName()/]::[it.oclAsType(AtomInternalPortInstance).varName()/]);
+[/for]
+[/file]
+[/template]
+
+[query public getAtomExportDataInstances(anAtomInstance : AtomInstance) : OrderedSet(DataInstance) =
+	anAtomInstance.subDataInstances->select(declaration.oclAsType(AtomInternalDataDeclaration).exported)
+/]
+
+[template public generateAtomExportDataInstance(anAEDI : DataInstance) {
+	anAtomType : AtomType = anAEDI.eContainer(AtomInstance).declaration.type.oclAsType(AtomType);
+	className : String = anAEDI.declaration.dataType.exportDataClassName(anAtomType);
+	dataDeclaration : AtomInternalDataDeclaration = anAEDI.declaration.oclAsType(AtomInternalDataDeclaration);
+}]
+
+[file (anAEDI.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[anAtomType.relHppFilePath(className)/]>
+[/file]
+
+[file (anAEDI.getDeployHppFName(), true, 'UTF-8')]
+    [className/] [anAEDI.varName()/]("[anAEDI.declaration.name/]", [if (isOptimEnabled('early-update') and hasEarlyUpdate(dataDeclaration))]true[else]false[/if]);
+[/file]
+[/template]
+
+[template public generateComponentInstance(anAtomInstance : AtomInstance)]
+
+[file (anAtomInstance.getAllTypesHppFName(), true, 'UTF-8')]
+#include <[anAtomInstance.declaration.type.relHppFilePath()/]>
+[/file]
+
+[anAtomInstance.internalPorts.generateInstance()/]
+
+[anAtomInstance.externalPorts.generateExternalInstance()/]
+
+[anAtomInstance.exportedPorts.generateAtomExportInstance() /]
+
+[anAtomInstance.getAtomExportDataInstances().generateAtomExportDataInstance()/]
+
+[file (anAtomInstance.getDeployHppFName(), true, 'UTF-8')]
+    // static init for Atom: [anAtomInstance.varName() /]
+    [anAtomInstance.generateParameterValuationVariables() /]
+
+    [anAtomInstance.declaration.type.className()/] [anAtomInstance.varName()/](
+     "[anAtomInstance.declaration.name/]"
+     [for (anIPI : AtomInternalPortInstance | anAtomInstance.internalPorts) before(', ') separator(', ')][anIPI.varName()/][/for]
+     [for (anEPI : AtomExternalPortInstance | anAtomInstance.externalPorts) before(', ') separator(', ')][anEPI.varName()/][/for]
+     [for (anEPI : ExportedPortInstance | anAtomInstance.exportedPorts) before(', ') separator(', ') ][anEPI.varName()/][/for]
+     [for (anEDI : DataInstance | anAtomInstance.getAtomExportDataInstances()) before(', ') separator(', ') ][anEDI.varName()/][/for]
+     [anAtomInstance.getParamValuationListForCtor()/]
+    );
+
+[/file]
+
+[file (anAtomInstance.getDeployCppFName(), true, 'UTF-8')]
+    // Runtime init for Atom: [anAtomInstance.varName() /]
+    // [anAtomInstance.getNamespaceName()/]::[anAtomInstance.varName()/]
+
+[/file]
+[/template]

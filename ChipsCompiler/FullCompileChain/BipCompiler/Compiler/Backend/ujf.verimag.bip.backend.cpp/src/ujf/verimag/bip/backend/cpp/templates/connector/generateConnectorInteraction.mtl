@@ -1,0 +1,436 @@
+[comment encoding = UTF-8 /]
+[module generateConnectorInteraction('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::connector::utils /]
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+
+[query public getPortCount(aConnectorType : ConnectorType) : Integer = aConnectorType.ports->size() /]
+
+[query public getPortNames(aConnectorType : ConnectorType) : OrderedSet(String) =
+aConnectorType.ports->collect(name)->asOrderedSet() /]
+
+[query private isTrigger(aPort : ConnectorPortParameterDeclaration, interactionDef : ConnectorInteractionDefinition) : Boolean =
+	interactionDef.support()
+		->exists(p : ConnectorInteractionPortReference | p.port = aPort and p.quoted)
+/]
+
+[query private triggerStatus(aConnectorType : ConnectorType) : Sequence(Integer) =
+ aConnectorType.ports->collect(p : ConnectorPortParameterDeclaration
+| if (p.isTrigger(aConnectorType.interactionDefinition)) then 1 else 0 endif) /]
+
+[query private getIndex(aPort : ConnectorInteractionPortReference, aConnectorType : ConnectorType) : Integer =
+	aConnectorType.ports->indexOf(aPort.port) - 1
+/]
+
+[query private support(aDefinition : ConnectorInteractionDefinition) : OrderedSet(ConnectorInteractionPortReference) =
+	if (aDefinition.oclIsKindOf(ConnectorInteractionPortReference)) then
+		OrderedSet { aDefinition.oclAsType(ConnectorInteractionPortReference) }
+	else if (aDefinition.oclIsKindOf(ConnectorInteractionNestedDefinition)) then
+		aDefinition.oclAsType(ConnectorInteractionNestedDefinition).subInteractions
+			->collect(aSubDef : ConnectorInteractionDefinition | support(aSubDef))
+			->asOrderedSet()
+	else
+		OrderedSet { }
+	endif endif
+/]
+
+[template private generateIsEmptyExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionDefinition)]
+[for (aPort : ConnectorInteractionPortReference | support(aDefinition)) separator(' && ')]
+!en([aPort.getIndex(aConnectorType)/])[/for]
+[/template]
+
+[template private generateIsDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionDefinition)]
+// INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ConnectorInteractionDefinition'
+[/template]
+
+[template private generateIsDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionPortReference)]
+en([aDefinition.getIndex(aConnectorType)/])
+[/template]
+
+
+[template private generateIsDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionNestedDefinition) ? (aDefinition.subInteractions->exists(quoted))]
+([for (aSubDef : ConnectorInteractionDefinition | aDefinition.subInteractions) separator(' && ')](([generateIsDefinedExpression(aConnectorType, aSubDef)/]) || ([generateIsEmptyExpression(aConnectorType, aSubDef)/]))[/for]) &&
+([for (aSubDef : ConnectorInteractionDefinition | aDefinition.subInteractions->select(quoted)) separator(' || ')]([generateIsDefinedExpression(aConnectorType, aSubDef)/])[/for])
+[/template]
+
+[template private generateIsDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionNestedDefinition) ? (not aDefinition.subInteractions->exists(quoted))]
+[for (aSubDef : ConnectorInteractionDefinition | aDefinition.subInteractions) separator(' && ')]([generateIsDefinedExpression(aConnectorType, aSubDef)/])[/for]
+[/template]
+
+[template private generateHasSubDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionDefinition)]
+// INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ConnectorInteractionDefinition'
+[/template]
+
+[template private generateHasSubDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionPortReference)]
+en([aDefinition.getIndex(aConnectorType)/])
+[/template]
+
+
+[template private generateHasSubDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionNestedDefinition) ? (aDefinition.subInteractions->exists(quoted))]
+[for (aSubDef : ConnectorInteractionDefinition | aDefinition.subInteractions->select(quoted)) separator(' || ')]([generateHasSubDefinedExpression(aConnectorType, aSubDef)/])[/for]
+[/template]
+
+[template private generateHasSubDefinedExpression(aConnectorType : ConnectorType, aDefinition : ConnectorInteractionNestedDefinition) ? (not aDefinition.subInteractions->exists(quoted))]
+[for (aSubDef : ConnectorInteractionDefinition | aDefinition.subInteractions) separator(' && ')]([generateHasSubDefinedExpression(aConnectorType, aSubDef)/])[/for]
+[/template]
+
+
+
+[template public generateConnectorInteraction(aConnectorType : ConnectorType, aCMakeList : String)
+    {
+        container : BipPackage = aConnectorType.eContainer(BipPackage);
+        fullCpp : String = aConnectorType.fullCppFilePath(aConnectorType.interactionClassName());
+        fullHpp : String = aConnectorType.fullHppFilePath(aConnectorType.interactionClassName());
+        aciCN : String = aConnectorType.interactionClassName();
+    }
+]
+
+[comment 
+    IMPLEMENTATION FILE
+ /]
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+
+#include <[aConnectorType.relHppFilePath(aciCN)/]>
+#include <[aConnectorType.relHppFilePath()/]>
+
+[if (aConnectorType.isRendezVous())]
+const bitset<[aConnectorType.getPortCount()/]> [aciCN/]::predefined(string("[for (i : Integer | Sequence{1 .. aConnectorType.getPortCount()}->reverse())]1[/for]"));
+[elseif (aConnectorType.isFlat())]
+const bitset<[aConnectorType.getPortCount()/]> [aciCN/]::predefined(string("[for (i : Integer | aConnectorType.triggerStatus()->reverse())][i/][/for]"));
+[/if]
+
+[if (not aConnectorType.isRendezVous())]
+[aciCN/]::[aConnectorType.genCtorProtoEmpty()/] : Interaction(connector), port_vector_fresh(false) {
+    recycle();
+}
+
+[aciCN/]::[aConnectorType.genCtorProto3()/] : Interaction(connector) {
+    involvedPorts.reset();
+
+[for (aCPPD : String | aConnectorType.getPortNames())]
+  involvedPorts.set([i - 1/], [aCPPD/]);
+[/for]
+ 
+    port_vector_fresh = false;
+    refresh_defined = true;
+    mPorts.reserve([aConnectorType.getPortCount()/]);
+}
+[else]
+[aciCN/]::[aConnectorType.genCtorProtoEmpty()/] : Interaction(connector) {
+    involvedPorts.reset();
+    port_vector_fresh = true;
+    defined = false;
+    refresh_defined = false;
+    mPorts.reserve([aConnectorType.getPortCount()/]);
+}
+
+[aciCN/]::[aConnectorType.genCtorProto3()/] : Interaction(connector) {
+    involvedPorts.reset();
+
+    defined = true;
+    refresh_defined = false;
+	port_vector_fresh = false;
+
+[for (aCPPD : String | aConnectorType.getPortNames())]
+    involvedPorts.set([i - 1/], [aCPPD/]);
+[/for]
+
+    defined = [for (aCPPD : String | aConnectorType.getPortNames()) separator (' && ')][aCPPD/][/for];
+    mPorts.reserve([aConnectorType.getPortCount()/]);
+}
+[/if]
+
+[aciCN/]::[aConnectorType.genCtorProto()/] : Interaction(connector), port_vector_fresh(false) {
+    commonRecycle(ports);
+    mPorts.reserve([aConnectorType.getPortCount()/]);
+}
+
+[aciCN/]::~[aciCN/](){
+}
+
+// This one is 'const' but its only role
+// is to set mPorts correctly (ie. its only role is to modify the object)
+void [aciCN/]::refreshPorts() const {
+    const vector<QuotedPortReference *> &parent_ports = this->connector().ports();
+    mPorts.clear();
+    mPorts.reserve([aConnectorType.getPortCount()/]);
+
+[comment i is an undocumented feature which stores the index of the current iteration /]
+[for (OrderedSet {1 .. aConnectorType.getPortCount()})]
+    if (involvedPorts.test([i - 1/])) {
+         mPorts.push_back(&(parent_ports['['/][i - 1/][']'/]->port()));
+    }
+[/for]
+    port_vector_fresh = true;
+}
+
+vector<Port*>& [aciCN/]::ports() {
+    if (!port_vector_fresh){
+        refreshPorts();
+    }
+
+    return mPorts;
+}
+
+const vector<Port *> & [aciCN/]::ports() const {
+    if (!port_vector_fresh){
+        refreshPorts();
+    }
+
+    return mPorts;
+}
+
+bool [aciCN/]::operator==(const Interaction &interaction) const {
+    bool ret = false;
+
+    // check if interaction values are from the same connector
+    if (&connector() == &interaction.connector()) {
+        assert(dynamic_cast<const [aciCN/] *>(&interaction) != NULL);
+        const [aciCN/] *other = static_cast<const [aciCN/] *>(&interaction);
+        ret = (involvedPorts == other->involvedPorts);
+    }
+    return ret;
+}
+
+bool [aciCN/]::operator<=(const Interaction &interaction) const {
+    bool ret = false;
+
+    // check if interaction values are from the same connector
+    if (&connector() == &interaction.connector()) {
+        assert(dynamic_cast<const [aciCN/] *>(&interaction) != NULL);
+        const [aciCN/] *other = static_cast<const [aciCN/] *>(&interaction);
+        ret = ((involvedPorts & other->involvedPorts) == involvedPorts);
+    }
+
+    return ret;
+}
+
+bool [aciCN/]::operator<(const Interaction &interaction) const {
+    bool ret = false;
+
+    // check if interaction values are from the same connector
+    if (&connector() == &interaction.connector()) {
+        assert(dynamic_cast<const [aciCN/] *>(&interaction) != NULL);
+        const [aciCN/] *other = static_cast<const [aciCN/] *>(&interaction);
+        ret = (((involvedPorts &  other->involvedPorts) == involvedPorts) &&
+                (involvedPorts != other->involvedPorts));
+    }
+
+    return ret;
+}
+
+void [aciCN/]::recycle() {
+    Interaction::recycle();
+    mPorts.clear();
+    port_vector_fresh = true;
+    defined = false;
+    refresh_defined = false;
+    involvedPorts.reset();
+}
+
+void [aciCN/]::recycle(const vector<Port *> &ports) {
+    Interaction::recycle();
+    commonRecycle(ports);
+}
+
+void [aciCN/]::commonRecycle(const vector<Port *> &ports){
+    involvedPorts.reset();
+
+    for (vector<Port *>::const_iterator portIt = ports.begin() ;
+         portIt != ports.end() ;
+         ++portIt) {
+        const vector<Port *>::size_type post_shift = findPort(*portIt);
+
+        involvedPorts.set(post_shift);
+    }
+
+    port_vector_fresh = false;
+    refresh_defined = true;
+}
+[/file]
+
+[comment 
+    HEADER FILE
+ /]
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <Interaction.hpp>
+#include <Connector.hpp>
+
+#include <bitset>
+
+class Port;
+class [aConnectorType.className() /];
+
+[for (portType : PortType | aConnectorType.ports->collect(p : ConnectorPortParameterDeclaration | p.portType)->asSet())]
+class [portType.className()/];
+[/for]
+
+class [aciCN/] :  public Interaction {
+public:
+    virtual ~[aciCN/]();
+
+    // Implementation for get/set declared pure virtual in interface
+    virtual const vector<Port *> &ports() const;
+    virtual bool hasPorts() const;
+    virtual void addPort(Port &port);
+    virtual void removePort(Port &port);
+
+    [aConnectorType.genCtorProtoEmpty()/];
+    [aConnectorType.genCtorProto()/];
+    [aConnectorType.genCtorProto3()/];
+
+    virtual void recycle();
+    void recycle(const vector<Port *> &ports);
+
+    bool operator<=(const Interaction &interaction) const;
+    bool operator==(const Interaction &interaction) const;
+    bool operator!=(const Interaction &interaction) const;
+    bool operator<(const Interaction &interaction) const;
+    bool nonEmptyIntersection(const Interaction &interaction) const;
+
+    bool isDefined() const;
+    bool hasSubDefined() const;
+
+protected:
+    // Implementation for get/set declared pure virtual in interface
+    virtual vector<Port *> &ports();
+    void refreshPorts() const ;
+    mutable bool port_vector_fresh;
+    mutable vector<Port *> mPorts;
+
+    bitset<[aConnectorType.getPortCount()/]> involvedPorts;
+[if (isOptimEnabled('ports-index') and  aConnectorType.getPortCount() >= 4)]
+    mutable map<const Port *, vector<Port *>::size_type> portsIndex;
+[/if]
+
+    mutable bool defined;
+    mutable bool refresh_defined;
+
+private:
+    vector<Port *>::size_type findPort(const Port *p) const;
+    void commonRecycle(const vector<Port *> &ports);
+    bool en(size_t index) const;
+
+[if (aConnectorType.isRendezVous() or aConnectorType.isFlat())]
+    static const bitset<[aConnectorType.getPortCount()/]> predefined;
+[/if]
+};
+
+inline
+vector<Port *>::size_type [aciCN/]::findPort(const Port *p) const {
+    vector<Port *>::size_type idx;
+[if (isOptimEnabled('ports-index') and  aConnectorType.getPortCount() >= 4)]
+    map<const Port *,vector<Port *>::size_type>::iterator it = portsIndex.find(p);
+    if (it != portsIndex.end()) return it->second;
+[/if]
+
+    idx = 0;
+    for (vector<QuotedPortReference *>::const_iterator i = connector().ports().begin();
+         i != connector().ports().end();
+         i++, idx++) {
+         if (p == &((*i)->port())) {
+             break;
+         }
+    }
+    assert(idx < connector().ports().size()); // means we couldn't find the corresponding port.
+[if (isOptimEnabled('ports-index') and  aConnectorType.getPortCount() >= 4)]
+    portsIndex['['/]p[']'/] = idx;
+[/if]
+    return idx;
+}
+
+inline bool [aciCN/]::en(size_t index) const {
+    return involvedPorts.test(index);
+}
+
+inline bool [aciCN/]::isDefined() const {
+    if (refresh_defined) {
+        refresh_defined = false;
+[if (aConnectorType.isRendezVous())]
+        defined = involvedPorts == predefined;
+[elseif (aConnectorType.isFlat())]
+        defined = (involvedPorts & predefined).any();
+[else]
+        defined = ([generateIsDefinedExpression(aConnectorType, aConnectorType.interactionDefinition)/]);
+[/if]
+    }
+    return defined;
+}
+
+inline bool [aciCN/]::hasSubDefined() const {
+[if (aConnectorType.isFlat())]
+    return isDefined();
+[else]
+    return [generateHasSubDefinedExpression(aConnectorType, aConnectorType.interactionDefinition)/];
+[/if]
+}
+
+inline
+bool [aciCN/]::hasPorts() const {
+    return involvedPorts.any();
+}
+
+inline
+void [aciCN/]::addPort(Port &port){
+    const vector<Port *>::size_type post_shift = findPort(&port);
+
+    if (!(involvedPorts.test(post_shift))) {
+        involvedPorts.set(post_shift);
+        port_vector_fresh = false;
+        refresh_defined = true;
+    }
+}
+
+inline
+void [aciCN/]::removePort(Port &port){
+    const vector<Port *>::size_type post_shift = findPort(&port);
+
+    if (involvedPorts.test(post_shift)) {
+        involvedPorts.reset(post_shift);
+        port_vector_fresh = false;
+        refresh_defined = true;
+    }
+}
+
+inline
+bool [aciCN/]::operator!=(const Interaction &interaction) const {
+    return ! (*this == interaction);
+}
+
+inline
+bool [aciCN/]::nonEmptyIntersection(const Interaction &interaction) const {
+    bool ret = false;
+
+    // check if interactions are from the same connector
+    if (&connector() == &interaction.connector()) {
+        assert(dynamic_cast<const [aciCN/] *>(&interaction) != NULL);
+        const [aciCN/] *other = static_cast<const [aciCN/] *>(&interaction);
+        ret = ((involvedPorts & other->involvedPorts).any());
+    }
+    return ret;
+}
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /] 
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProtoEmpty(aConnectorType : ConnectorType) post(trim())]
+[aConnectorType.interactionClassName()/](const [aConnectorType.className()/] &connector)
+[/template]
+
+[template private genCtorProto(aConnectorType : ConnectorType) post(trim())]
+[aConnectorType.interactionClassName()/](const [aConnectorType.className()/] &connector, const vector<Port *> &ports)
+[/template]
+
+[template private genCtorProto3(aConnectorType : ConnectorType) post(trim())]
+[aConnectorType.interactionClassName()/](const [aConnectorType.className()/] &connector, [for (aCPPD : String | aConnectorType.getPortNames()) separator(', ')]
+bool [aCPPD/][/for])
+[/template]

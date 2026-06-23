@@ -1,0 +1,6 @@
+<project name="acceleo.standalone.compiler" default="compile">
+	<property file="build.properties" />
+
+	<import file="${distribution.dir}/common.xml" />
+	
+</project>

@@ -1,0 +1,15 @@
+package sample
+
+ port type P_t()
+
+ atom type test()
+  port P_t test()
+
+  place U
+  initial to U
+
+  on test from U to U
+  on test from BADSTATE to U
+  on test from U to ALSOBADSTATE
+ end
+end

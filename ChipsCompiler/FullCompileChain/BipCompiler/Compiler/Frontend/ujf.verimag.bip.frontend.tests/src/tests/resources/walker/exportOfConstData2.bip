@@ -1,0 +1,28 @@
+package exportOfConstData2
+  const data int answer = 42
+
+  port type Port(int p)
+  
+  connector type WrongConnector(Port p)
+    data int y
+   
+    export port Port exp(answer)   // incorrect!
+    
+    define p
+    
+    on p up { y = 0; }  
+  end
+
+  atom type AtomExportParam(int param)
+    data int x
+    export port Port p(x)
+    
+    place L
+    initial to L
+    on p from L to L
+  end
+  
+  compound type System()
+    component AtomExportParam A(10)
+  end
+end

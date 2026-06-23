@@ -1,0 +1,8 @@
+[comment encoding = UTF-8 /]
+[module annotations('http://bip2/1.0')/]
+
+[template public genAnnotations(anAnnotatedElt : AnnotatedElement) post(trim())]
+[for (an : StringToAnnotationMapEntry | anAnnotatedElt.bipAnnotations)]
+@[an.key/][for (it : StringToStringMapEntry | an.value.parameters) before('(') separator(', ') after(')')][it.key/]=[it.value/][/for]
+[/for]
+[/template]

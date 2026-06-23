@@ -1,0 +1,9 @@
+package duplicatedExportPortInConnector
+  port type Port_t()
+
+  connector type CT(Port_t p1, Port_t p2)
+  export port Port_t ep()
+  export port Port_t ep()
+  define p1 p2
+  end
+end

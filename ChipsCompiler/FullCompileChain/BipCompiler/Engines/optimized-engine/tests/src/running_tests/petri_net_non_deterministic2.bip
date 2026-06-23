@@ -1,0 +1,16 @@
+package petri_net_non_deterministic2
+  atom type MyAtomType()
+    data int x
+    place INIT1, INIT2, END
+
+    initial to INIT1, INIT2 do { x = 0; }
+
+    internal from INIT1 to END provided (x == 0)
+
+    internal from INIT2 to END provided (x % 42 == 0)
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+  end
+end

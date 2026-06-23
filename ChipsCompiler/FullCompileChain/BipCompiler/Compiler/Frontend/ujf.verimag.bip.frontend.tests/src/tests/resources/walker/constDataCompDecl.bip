@@ -1,0 +1,19 @@
+package constDataCompDecl
+  const data int x = 3
+  const data int y = x + 1
+
+  port type Port_t()
+
+  atom type AT(int param1)
+    data int md1
+    port Port_t p1()
+    place S1
+    initial to S1 do { md1 = param1 ;}
+    on p1 from S1 to S1
+  end
+
+  compound type CT()
+    component AT test(x)
+  end
+
+end

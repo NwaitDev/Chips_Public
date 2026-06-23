@@ -1,0 +1,33 @@
+package checkDownWhenNoDataInConnectorPort
+  extern function g()
+
+  port type Port_nodata()
+  port type Port_data(int x)
+
+  // BAD : not connecting any port with data + down : WARNING
+  connector type CT1(Port_nodata p1, Port_nodata p2)
+  define p1 p2
+  on p1 p2 down { g(); }
+  end
+
+  // this is ok
+  connector type CT2(Port_nodata p1, Port_data p2)
+  define p1 p2
+  on p1 p2 down { g(); }
+  end
+
+  // this is ok
+  connector type CT3(Port_data p1, Port_nodata p2)
+  define p1 p2
+  on p1 p2 down { g(); }
+  end
+
+  // this is BAD, multiple times!
+  connector type CT4(Port_nodata p1, Port_nodata p2, Port_nodata p3)
+  define p1' p2 p3
+  on p1 provided (g())
+  on p1 p2 down { g(); }
+  on p1 p3 down { g(); }
+  on p1 p2 p3 down { g(); }
+  end
+end

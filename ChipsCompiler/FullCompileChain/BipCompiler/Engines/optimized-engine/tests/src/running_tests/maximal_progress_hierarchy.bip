@@ -1,0 +1,34 @@
+package maximal_progress_hierarchy
+  port type Port()
+  port type IP(int x)
+
+
+  connector type BD1(Port p, Port q)
+    export port Port xp()
+    define p' q'
+  end
+
+
+  connector type BD2(Port p, Port q)
+    define p' q'
+  end
+
+  atom type A()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type System()
+    component A a()
+    component A b()
+    component A c()
+
+    connector BD1 bd1(a.p, b.p)
+    connector BD2 bd2(bd1.xp, c.p) 
+  end
+end

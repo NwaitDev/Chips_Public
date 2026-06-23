@@ -1,0 +1,4 @@
+// package MUST define at least one type
+
+package this.is.a.pack
+end

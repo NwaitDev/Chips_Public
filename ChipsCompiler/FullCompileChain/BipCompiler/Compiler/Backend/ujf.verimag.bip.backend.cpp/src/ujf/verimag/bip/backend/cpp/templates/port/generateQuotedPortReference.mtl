@@ -1,0 +1,49 @@
+[comment encoding = UTF-8 /]
+[module generateQuotedPortReference('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[template public generateQuotedPortReference(aPortType : PortType, aCMakeList : String)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.quotedReferenceClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.quotedReferenceClassName());
+        qprCN : String = aPortType.quotedReferenceClassName();
+    }
+]
+
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[aPortType.relHppFilePath(qprCN)/]>
+
+[qprCN/]::[aPortType.genCtorProto()/] : QuotedPortReference(port, trigger) {
+}
+
+[qprCN/]::~[qprCN/](){
+}
+[/file]
+
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <QuotedPortReference.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [qprCN /] : public QuotedPortReference {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[qprCN/]();
+}; 
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.quotedReferenceClassName()/]([aPortType.className()/] &port, const bool &trigger)
+[/template]

@@ -1,0 +1,10 @@
+package this.is.a.pack
+
+ port type Port_t()
+
+ // wrong data parameters declaration
+ atom type Atom_t(int x,y,z)
+  // missing body
+ end
+
+end

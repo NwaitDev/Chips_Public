@@ -1,0 +1,16 @@
+package duplicatedDataDeclarationInAtom
+ port type Port_t()
+
+ atom type AT()
+  // BAD: duplicated type
+  data int x,x
+  port Port_t p()
+
+  place S1
+  initial to S1
+  on p from S1 to S1
+ end
+
+
+
+end

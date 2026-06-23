@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Acceleo Generator Module Runtime Plug-in
+Bundle-SymbolicName: ujf.verimag.bip.engines.generator
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: ujf.verimag.bip.engines.generator.Activator
+Bundle-Vendor: Eclipse Modeling Project
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.emf.ecore,
+ org.eclipse.emf.ecore.xmi,
+ org.eclipse.ocl,
+ org.eclipse.ocl.ecore,
+ org.eclipse.acceleo.common;bundle-version="3.1.0",
+ org.eclipse.acceleo.parser;bundle-version="3.1.0",
+ org.eclipse.acceleo.model;bundle-version="3.1.0",
+ org.eclipse.acceleo.profiler;bundle-version="3.1.0",
+ org.eclipse.acceleo.engine;bundle-version="3.1.0",
+ org.eclipse.core.resources;bundle-version="3.7.100"
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-ActivationPolicy: lazy
+Eclipse-LazyStart: true
+Export-Package: ujf.verimag.bip.engines.generator.files

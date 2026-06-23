@@ -1,0 +1,21 @@
+package duplicatedConnectorDeclaration
+ port type Port_t()
+
+ atom type AT()
+  export port Port_t p()
+
+  place S1
+  initial to S1
+  on p from S1 to S1
+ end
+
+ connector type CoT(Port_t p1, Port_t p2)
+ define p1 p2
+ end
+
+ compound type CT()
+  component AT c1(), c2()
+  connector CoT conn1(c1.p, c2.p), conn1(c1.p, c2.p)
+ end
+
+end

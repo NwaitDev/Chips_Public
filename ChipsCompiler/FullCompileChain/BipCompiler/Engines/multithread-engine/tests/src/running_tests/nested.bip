@@ -1,0 +1,44 @@
+package nested
+  extern function int min(int, int)
+  extern function int rand()
+
+  port type Port(int d)
+
+  connector type Conn(Port p, Port q, Port r)
+    define (p' q') r
+    on p q r down {r.d = min(q.d, p.d);}
+    on p r down {r.d = p.d; }
+    on q r down {r.d = q.d; }
+  end
+
+  atom type Random(int mcount)
+    data int x
+    data int cnt
+    export port Port p(x)
+
+    place PROD, END
+
+    initial to PROD do { x = rand(); cnt = 0; }
+
+    on p from PROD to PROD provided (cnt < mcount)
+      do { x = rand(); cnt = cnt + 1;}
+    on p from PROD to END provided (cnt >= mcount)
+  end
+
+  atom type Sink()
+    data int v
+    export port Port s(v)
+
+    place STATE
+
+    initial to STATE
+    on s from STATE to STATE
+  end
+    
+  compound type MyCompoundType()
+    component Random r1(10), r2(20)
+    component Sink snk()
+
+    connector Conn sel(r1.p, r2.p, snk.s)
+  end
+end

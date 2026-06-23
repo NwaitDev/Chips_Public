@@ -1,0 +1,9 @@
+package badFunctionCallExpression
+  port type Port_t(int x)
+
+  connector type C(Port_t p, Port_t q)
+    define p q
+    
+    on p q down { (p+q).x = 0; } // BAD
+  end
+end

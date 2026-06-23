@@ -1,0 +1,33 @@
+package priority_rules_guard
+  port type Port()
+
+  connector type RendezVous(Port p, Port q)
+    define p q
+  end
+
+  atom type MyAtomType()
+    export data int i
+    export port Port p()
+
+    place LOOP, END
+
+    initial to LOOP
+      do { i = 0; }
+
+    on p from LOOP to LOOP provided (i<4)
+      do { i = i + 1; }
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1()
+    component MyAtomType myAtom2()
+    component MyAtomType myAtom3()
+    component MyAtomType myAtom4()
+
+    connector RendezVous rdv1(myAtom1.p, myAtom2.p)
+    connector RendezVous rdv2(myAtom3.p, myAtom4.p)
+
+    priority myPrio1 rdv1:* < rdv2:* provided (myAtom3.i <= myAtom1.i)
+    priority myPrio2 rdv2:* < rdv1:* provided (myAtom1.i <  myAtom3.i)
+  end
+end

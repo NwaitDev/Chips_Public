@@ -1,0 +1,178 @@
+* text=auto !eol
+acceleo.standalone.compiler/.classpath -text
+acceleo.standalone.compiler/.project -text
+acceleo.standalone.compiler/build.properties -text
+acceleo.standalone.compiler/build.xml -text
+acceleo.standalone.compiler/externals/ant-1.8.0.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/lpg.runtime.java_2.0.17.v201004271640.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.acceleo.common_3.6.6.201610060831.jar -text
+acceleo.standalone.compiler/externals/org.eclipse.acceleo.model_3.6.6.201610060831.jar -text
+acceleo.standalone.compiler/externals/org.eclipse.acceleo.parser_3.6.6.201610060831.jar -text
+acceleo.standalone.compiler/externals/org.eclipse.core.contenttype_3.4.200.v20120523-2004.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.core.jobs_3.5.200.v20120521-2346.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.core.runtime_3.8.0.v20120521-2346.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.equinox.app_1.3.100.v20120522-1841.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.equinox.common_3.6.100.v20120522-1841.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.equinox.preferences_3.5.0.v20120522-1841.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.ocl.ecore_3.2.0.v20120522-1637.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/org.eclipse.ocl_3.2.0.v20120611-1210.jar -text svneol=unset#unset
+acceleo.standalone.compiler/externals/runtime_registry_compatibility.jar -text svneol=unset#unset
+acceleo.standalone.compiler/ivy.xml -text
+acceleo.standalone.compiler/src/main/java/acceleo/standalone/compiler/AcceleoStandaloneCompiler.java -text
+ujf.verimag.bip.backend.aseba/.classpath -text
+ujf.verimag.bip.backend.aseba/.project -text
+ujf.verimag.bip.backend.aseba/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.aseba/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend.aseba/build.acceleo -text
+ujf.verimag.bip.backend.aseba/build.properties -text
+ujf.verimag.bip.backend.aseba/build.xml -text
+ujf.verimag.bip.backend.aseba/ivy.xml -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/AsebaBackend.java -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/templates/GenerateDeployed.java -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/templates/atom.mtl -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/templates/connector.mtl -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/templates/expressions.mtl -text
+ujf.verimag.bip.backend.aseba/src/main/java/ujf/verimag/bip/backend/aseba/templates/generateDeployed.mtl -text
+ujf.verimag.bip.backend.bip/.classpath -text
+ujf.verimag.bip.backend.bip/.project -text
+ujf.verimag.bip.backend.bip/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.bip/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend.bip/META-INF/MANIFEST.MF -text
+ujf.verimag.bip.backend.bip/build.acceleo -text
+ujf.verimag.bip.backend.bip/build.properties -text
+ujf.verimag.bip.backend.bip/build.xml -text
+ujf.verimag.bip.backend.bip/ivy.xml -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/acceleo/templates/annotations.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/acceleo/templates/expressions.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/BipBackend.java -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/GeneratePackage.java -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/annotations.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/commonBip.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/connectorInteractionDefinition.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generateAtomType.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generateCompoundType.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generateConnectorType.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generatePackage.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generatePortDeclaration.mtl -text
+ujf.verimag.bip.backend.bip/src/ujf/verimag/bip/backend/bip/templates/generatePortType.mtl -text
+ujf.verimag.bip.backend.c/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.c/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/CBackend.java -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/GeneratePackage.java -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/bitset.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/common.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/generateAtom.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/generateConnector.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/generateExpression.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/generatePackage.mtl -text
+ujf.verimag.bip.backend.c/src/ujf/verimag/bip/backend/c/templates/naming.mtl -text
+ujf.verimag.bip.backend.cpp/.classpath -text
+ujf.verimag.bip.backend.cpp/.project -text
+ujf.verimag.bip.backend.cpp/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.cpp/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend.cpp/META-INF/MANIFEST.MF -text
+ujf.verimag.bip.backend.cpp/build.acceleo -text
+ujf.verimag.bip.backend.cpp/build.properties -text
+ujf.verimag.bip.backend.cpp/build.xml -text
+ujf.verimag.bip.backend.cpp/ivy.xml -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/acceleo/templates/annotations.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/CppBackend.java -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/Cmake.java -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/GenerateDeploy.java -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/GeneratePackage.java -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/atom/expressions.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/atom/marshalling.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/behaviorAnalyzer.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/cmake.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/commonBip.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/connector/expressions.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/connector/generateConnectorInteraction.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/connector/generateConnectorInteractionValue.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/connector/utils.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/constData/expressions.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/deploy/expressions.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/gcc.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateAtomType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateBipType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateCompoundType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateConnectorType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateDeploy.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generateExportData.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generatePackage.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/generatePortType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/naming.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateAtomExportPort.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateAtomExternalPort.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateAtomInternalPort.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateCompoundExportPort.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateConnectorExportPort.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generatePortValue.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/port/generateQuotedPortReference.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/priority/expressions.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/priority/generatePriorityType.mtl -text
+ujf.verimag.bip.backend.cpp/src/ujf/verimag/bip/backend/cpp/templates/traceBip.mtl -text
+ujf.verimag.bip.backend.example/.classpath -text
+ujf.verimag.bip.backend.example/.project -text
+ujf.verimag.bip.backend.example/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.example/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend.example/build.properties -text
+ujf.verimag.bip.backend.example/build.xml -text
+ujf.verimag.bip.backend.example/ivy.xml -text
+ujf.verimag.bip.backend.example/src/main/java/ujf/verimag/bip/backend/example/ExampleBackend.java -text
+ujf.verimag.bip.backend.tests/.classpath -text
+ujf.verimag.bip.backend.tests/.project -text
+ujf.verimag.bip.backend.tests/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend.tests/build.properties -text
+ujf.verimag.bip.backend.tests/build.xml -text
+ujf.verimag.bip.backend.tests/ivy.xml -text
+ujf.verimag.bip.backend.tests/src/tests/java/ujf/verimag/bip/backend/tests/AbstractBackendTests.java -text
+ujf.verimag.bip.backend.tests/src/tests/java/ujf/verimag/bip/backend/tests/aseba/AbstractAsebaBackendTests.java -text
+ujf.verimag.bip.backend.tests/src/tests/java/ujf/verimag/bip/backend/tests/bip/BipBackendTests.java -text
+ujf.verimag.bip.backend.tests/src/tests/java/ujf/verimag/bip/backend/tests/cpp/CppBackendTests.java -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/big/sample/another_pack.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/big/sample/someone_else.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/big/use_creation.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/const_data.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/hierarchy.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/hierarchy_annotated.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/internal_port.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/modulo8.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/periodic_tick.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/priorities_atom.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/priorities_wildcard.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/simple.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/bip/tempcontrol.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/const_data.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/hierarchy.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/ifthenelse.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/include_annotation.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/internal_port.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/periodic_tick.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/priorities_atom.bip -text
+ujf.verimag.bip.backend.tests/src/tests/resources/cpp/priorities_wildcard.bip -text
+ujf.verimag.bip.backend/.classpath -text
+ujf.verimag.bip.backend/.project -text
+ujf.verimag.bip.backend/.settings/org.eclipse.core.resources.prefs -text
+ujf.verimag.bip.backend/.settings/org.eclipse.jdt.core.prefs -text
+ujf.verimag.bip.backend/.settings/org.eclipse.jdt.ui.prefs -text
+ujf.verimag.bip.backend/build.acceleo -text
+ujf.verimag.bip.backend/build.properties -text
+ujf.verimag.bip.backend/build.xml -text
+ujf.verimag.bip.backend/externals/com.google.collect_1.0.0.v201105210816.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/lpg.runtime.java_2.0.17.v201004271640.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/org.eclipse.acceleo.common_3.6.6.201610060831.jar -text
+ujf.verimag.bip.backend/externals/org.eclipse.acceleo.engine_3.6.6.201610060831.jar -text
+ujf.verimag.bip.backend/externals/org.eclipse.acceleo.model_3.6.6.201610060831.jar -text
+ujf.verimag.bip.backend/externals/org.eclipse.acceleo.profiler_3.6.6.201610060831.jar -text
+ujf.verimag.bip.backend/externals/org.eclipse.equinox.registry_3.5.200.v20120522-1841.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/org.eclipse.ocl.common_1.0.0.v20120516-1543.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/org.eclipse.ocl.ecore_3.2.0.v20120522-1637.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/org.eclipse.ocl_3.2.0.v20120611-1210.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/externals/org.eclipse.osgi_3.8.0.v20120529-1548.jar -text svneol=unset#unset
+ujf.verimag.bip.backend/ivy.xml -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/BackendStatus.java -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/BackendStatusEnum.java -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/Backendable.java -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/acceleo/templates/annotations.mtl -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/acceleo/templates/expressions.mtl -text
+ujf.verimag.bip.backend/src/main/java/ujf/verimag/bip/backend/error/BackendGenericError.java -text

@@ -1,0 +1,56 @@
+package typeCheckAssignments
+  extern data type e_type
+  extern function e_type init()
+  
+  const data int   i = 0.0 // NOT OK!  float not convertible to int
+  const data float j = 0   // OK!      0 is an int literal convertible to float
+
+  port type Port_t()
+  port type Port_td(int x)
+
+  atom type AtomTypeToCheck()
+    data bool b
+    data int x
+    data float f
+    data string str
+    data e_type e
+    export port Port_t p()
+  
+    place State
+    
+    initial to State
+      do {
+        b = false;              // OK!  false is a bool literal
+        x = 0;                  // OK!  0 is an int literal
+        f = 0.0;                // OK!  0.0 is a float literal
+        f = 0;                  // OK!  0 is an int literal convertible to float
+        str = "Hello BIP!\n";   // OK!  "Hello BIP!\n" is a string literal
+        e = init();
+      }
+      
+    on p from State to State
+      do {
+        b = x;    // NOT OK!  int not convertible to bool
+        b = f;    // NOT OK!  float not convertible to bool
+        b = str;  // NOT OK!  string not convertible to bool
+        b = e;    // NOT OK!  e_type not convertible to bool
+        x = b;    // NOT OK!  bool   not convertible to int
+        x = f;    // NOT OK!  float  not convertible to int
+        x = str;  // NOT OK!  string not convertible to int
+        x = e;    // NOT OK!  e_type not convertible to int
+        f = b;    // NOT OK!  bool not convertible to float
+        f = str;  // NOT OK!  string not convertible to float
+        f = e;    // NOT OK!  e_type not convertible to float
+        str = b;  // NOT OK!  bool not convertible to string
+        str = x;  // NOT OK!  int not convertible to string
+        str = f;  // NOT OK!  float not convertible to string
+        str = e;  // NOT OK!  e_type not convertible to string
+        e = b;    // NOT OK!  bool not convertible to e_type
+        e = x;    // NOT OK!  int not convertible to e_type
+        e = f;    // NOT OK!  float not convertible to e_type
+        e = str;  // NOT OK!  string not convertible to e_type
+        
+        f = x;    // OK!      int convertible to float
+      }
+  end
+end

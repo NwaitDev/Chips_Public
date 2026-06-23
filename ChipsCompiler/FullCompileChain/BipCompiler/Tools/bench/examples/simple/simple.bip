@@ -1,0 +1,22 @@
+package simple
+
+   port type Pt1()
+
+   connector type Conn1(Pt1 p1, Pt1 p2)
+   define p1 p2
+   end
+
+   atom type At1()
+      export port Pt1 p()
+      
+      place S1,S2
+      initial to S1
+      on p from S1 to S2
+   end
+
+   compound type Ct1()
+      component At1 c1(), c2()
+      connector Conn1 conn(c1.p, c2.p)
+   end
+
+end

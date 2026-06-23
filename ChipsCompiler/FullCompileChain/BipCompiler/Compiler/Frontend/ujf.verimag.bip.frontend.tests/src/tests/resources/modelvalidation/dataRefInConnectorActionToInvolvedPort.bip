@@ -1,0 +1,18 @@
+package dataRefInConnectorActionToInvolvedPort
+  port type Port_t(int x)
+  
+  connector type CoT(Port_t p1, Port_t p2)
+  data int x
+  export port Port_t ep(x)
+  define p1' p2'
+
+  // BAD: p1 not involved
+  on p2 up { x = 3;} down { p1.x = 3; }
+
+  // BAD: p2 not involved
+  on p1 up { x = p2.x; }
+
+  on p1 p2 up { x =3;}
+  end
+
+end

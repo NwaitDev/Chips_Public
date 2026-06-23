@@ -1,0 +1,1847 @@
+@cpp(include="tempcontrol-print.hpp,stdio.h", src="tempcontrol-print.cpp")
+package tempcontrol
+  extern function print(string)
+  extern function string print_position(int)
+  extern function string print_command(int)
+  extern function print(int, int, string, string, string, string)
+
+  port type Port()
+  port type ePort_temperature(int x)
+  port type ePort_pos1(int x)
+  port type ePort_pos2(int x)
+  port type ePort_command1(int x)
+  port type ePort_command2(int x)
+  port type iPort()
+  port type _Tick()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  connector type RDV_temperature(ePort_temperature p1, ePort_temperature p2)
+    define  p1 p2
+    on p1 p2
+    down {
+      p1.x = p2.x;
+    }
+  end
+
+  connector type RDV_pos1(ePort_pos1 p1, ePort_pos1 p2)
+    define  p1 p2
+    on p1 p2
+    down {
+      p1.x = p2.x;
+    }
+  end
+
+  connector type RDV_pos2(ePort_pos2 p1, ePort_pos2 p2)
+    define  p1 p2
+    on p1 p2
+    down {
+      p1.x = p2.x;
+    }
+  end
+
+  connector type RDV_command1(ePort_command1 p1, ePort_command1 p2)
+    define  p1 p2
+    on p1 p2
+    down {
+      p1.x = p2.x;
+    }
+  end
+
+  connector type RDV_command2(ePort_command2 p1, ePort_command2 p2)
+    define  p1 p2
+    on p1 p2
+    down {
+      p1.x = p2.x;
+    }
+  end
+
+  connector type _TickSynchro_10(_Tick p_0, _Tick p_1, _Tick p_2, _Tick p_3, _Tick p_4, _Tick p_5, _Tick p_6, _Tick p_7, _Tick p_8, _Tick p_9)
+    define p_0 p_1 p_2 p_3 p_4 p_5 p_6 p_7 p_8 p_9
+  end
+
+  atom type Reactor()
+    data int tmpw_temperature
+    data int tmpr_pos1
+    data int tmpr_pos2
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int x
+    export data int write_temperature_urgency
+    export data int read_pos1_urgency
+    export data int read_pos2_urgency
+    export data int compute_urgency
+    export data bool write_temperature_dis
+    export data bool read_pos1_dis
+    export data bool read_pos2_dis
+    export data bool compute_dis
+    export port ePort_temperature write_temperature(tmpw_temperature)
+    export port ePort_pos1 read_pos1(tmpr_pos1)
+    export port ePort_pos2 read_pos2(tmpr_pos2)
+    export port Port compute()
+    export port _Tick _tick()
+
+    place S1, S2, S3, S4, S5, S6
+    
+    initial to S1
+      do {
+        tmpw_temperature=100;
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+
+        write_temperature_urgency=2;
+        read_pos1_urgency=0;
+        read_pos2_urgency=0;
+        compute_urgency=0;
+        write_temperature_dis=false;
+        read_pos1_dis=false;
+        read_pos2_dis=false;
+        compute_dis=false;
+      }
+
+    on write_temperature
+      from S1 to S3
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+      do {
+        x = 0;
+        read_pos1_urgency = 2;
+      }
+
+    on read_pos1
+      from S3 to S4
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_pos2_urgency = 2;
+      }
+
+    on read_pos2
+      from S4 to S5
+      provided (((0<=x)&&(x<=0)) && (x==period-1))
+      do {
+        compute_urgency = 1;
+        compute_dis = true;
+      }
+
+    on read_pos2
+      from S4 to S5
+      provided (((0<=x)&&(x<=0)) && (x!=period-1))
+      do {
+        compute_urgency = 1;
+        compute_dis = false;
+      }
+
+    on compute
+      from S5 to S6
+      provided (((0<=x)&&(x<=period-1)) && ((tmpr_pos1==0)||(tmpr_pos2==0)))
+      do {
+        tmpw_temperature = tmpw_temperature-2;
+        write_temperature_urgency = 2;
+      }
+
+    on compute
+      from S5 to S6
+      provided (((0<=x)&&(x<=period-1)) && !((tmpr_pos1==0)||(tmpr_pos2==0)))
+      do {
+        tmpw_temperature = tmpw_temperature+1;
+        write_temperature_urgency = 2;
+      }
+
+    on write_temperature
+      from S6 to S3
+      provided ((period<=x)&&(x<=period))
+      do {
+        x = 0;
+        read_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        write_temperature_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+
+    on _tick
+      from S3 to S3
+      do {
+        x = x+1;
+        read_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S4 to S4
+      do {
+        x = x+1;
+        read_pos2_urgency = 2;
+      }
+
+    on _tick
+      from S5 to S5
+      provided (x==period-2)
+      do {
+        x = x+1;
+        compute_urgency = 1;
+        compute_dis = true;
+      }
+
+    on _tick
+      from S5 to S5
+      provided (x!=period-2)
+      do {
+        x = x+1;
+        compute_urgency = 1;
+        compute_dis = false;
+      }
+
+    on _tick
+      from S6 to S6
+      do {
+        x = x+1;
+        write_temperature_urgency = 2;
+      }
+  end
+
+  atom type Rod1()
+    data int tmpw_pos1
+    data int tmpr_command1
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int x
+    export data int write_pos1_urgency
+    export data int read_command1_urgency
+    export data int compute_ready_urgency
+    export data int compute_down_urgency
+    export data int compute_rest_urgency
+    export data bool write_pos1_dis
+    export data bool read_command1_dis
+    export data bool compute_ready_dis
+    export data bool compute_down_dis
+    export data bool compute_rest_dis
+    export port ePort_pos1 write_pos1(tmpw_pos1)
+    export port ePort_command1 read_command1(tmpr_command1)
+    export port Port compute_ready()
+    export port Port compute_down()
+    export port Port compute_rest()
+    export port _Tick _tick()
+
+    place S1, S2, S3, S4, S5, REST
+
+    initial to S1
+      do {
+        tmpw_pos1=2;
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        write_pos1_urgency=2;
+        read_command1_urgency=0;
+        compute_ready_urgency=0;
+        compute_down_urgency=0;
+        compute_rest_urgency=0;
+        write_pos1_dis=false;
+        read_command1_dis=false;
+        compute_ready_dis=false;
+        compute_down_dis=false;
+        compute_rest_dis=false;
+      }
+
+    on write_pos1
+      from S1 to S3
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+      do {
+        x = 0;
+        read_command1_urgency = 2;
+      }
+
+    on read_command1
+      from S3 to S4
+      provided ((0<=x)&&(x<=0) && ((tmpw_pos1==2)&&(x==period-1)))
+      do {
+        compute_ready_urgency = 1;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = true;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on read_command1
+      from S3 to S4
+      provided ((0<=x)&&(x<=0) && ((tmpw_pos1==0)&&(x==period-1)))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 1;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = true;
+        compute_rest_dis = false;
+      }
+
+    on read_command1
+      from S3 to S4
+      provided ((0<=x)&&(x<=0) && ((tmpw_pos1==1)&&(x==(period*3600-1))))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 1;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = true;
+      }
+
+    on read_command1
+      from S3 to S4
+      provided (!(((0<=x)&&(x<=0) && ((tmpw_pos1==2)&&(x==period-1))) || ((0<=x)&&(x<=0) && ((tmpw_pos1==0)&&(x==(period-1)))) || ((0<=x)&&(x<=0) && ((tmpw_pos1==1)&&(x==(period*3600-1))))))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on compute_ready
+      from S4 to S5
+      provided ((tmpw_pos1==2)&&((0<=x)&&(x<=period-1)) && (tmpr_command1==1))
+      do {
+        tmpw_pos1 = 0;
+        write_pos1_urgency = 2;
+      }
+
+    on compute_ready
+      from S4 to S5
+      provided ((tmpw_pos1==2)&&((0<=x)&&(x<=period-1)) && (tmpr_command1!=1))
+      do {
+        write_pos1_urgency = 2;
+      }
+
+
+    on compute_down
+      from S4 to S5
+      provided ((tmpw_pos1==0)&&((0<=x)&&(x<=period-1)) && (tmpr_command1==0))
+      do {
+        tmpw_pos1 = 1;
+        write_pos1_urgency = 2;
+      }
+
+    on compute_down
+      from S4 to S5
+      provided ((tmpw_pos1==0)&&((0<=x)&&(x<=period-1)) && (tmpr_command1!=0))
+      do {
+        write_pos1_urgency = 2;
+      }
+
+
+    on write_pos1
+      from S5 to S3
+      provided ((period<=x)&&(x<=period))
+      do {
+        x = 0;
+        read_command1_urgency = 2;
+      }
+
+    on compute_rest
+      from S4 to REST
+      provided ((tmpw_pos1==1)&&((0<=x)&&(x<=(period*3600-1))))
+      do {
+        tmpw_pos1 = 2;
+        write_pos1_urgency = 2;
+      }
+
+    on write_pos1
+      from REST to S3
+      provided (((period*3600)<=x)&&(x<=(period*3600)))
+      do {
+        x = 0;
+        read_command1_urgency = 2;
+      }
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        write_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+
+    on _tick
+      from S3 to S3
+      do {
+        x = x+1;
+        read_command1_urgency = 2;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos1==2)&&(x==period-2))
+      do {
+        x = x+1;
+        compute_ready_urgency = 1;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = true;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos1==0)&&(x==period-2))
+      do {
+        x = x+1;
+        compute_ready_urgency = 0;
+        compute_down_urgency = 1;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = true;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos1==1)&&(x==(period*3600-2)))
+      do {
+        x = x+1;
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 1;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = true;
+      }
+
+    on _tick
+      from S4 to S4 provided (!(((tmpw_pos1==2)&&(x==period-2)) || ((tmpw_pos1==0)&&(x==period-2)) || ((tmpw_pos1==1)&&(x==(period*3600-2)))))
+      do {
+        x = x+1;
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S5 to S5
+      do {
+        x = x+1;
+        write_pos1_urgency = 2;
+      }
+
+    on _tick
+      from REST to REST
+      do {
+        x = x+1;
+        write_pos1_urgency = 2;
+      }
+  end
+
+  atom type Rod2()
+    data int tmpw_pos2
+    data int tmpr_command2
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int x
+    export data int write_pos2_urgency
+    export data int read_command2_urgency
+    export data int compute_ready_urgency
+    export data int compute_down_urgency
+    export data int compute_rest_urgency
+    export data bool write_pos2_dis
+    export data bool read_command2_dis
+    export data bool compute_ready_dis
+    export data bool compute_down_dis
+    export data bool compute_rest_dis
+    export port ePort_pos2 write_pos2(tmpw_pos2)
+    export port ePort_command2 read_command2(tmpr_command2)
+    export port Port compute_ready()
+    export port Port compute_down()
+    export port Port compute_rest()
+    export port _Tick _tick()
+    place S1, S2, S3, S4, S5, REST
+
+    initial to S1
+      do {
+        tmpw_pos2=2;
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        write_pos2_urgency=2;
+        read_command2_urgency=0;
+        compute_ready_urgency=0;
+        compute_down_urgency=0;
+        compute_rest_urgency=0;
+        write_pos2_dis=false;
+        read_command2_dis=false;
+        compute_ready_dis=false;
+        compute_down_dis=false;
+        compute_rest_dis=false;
+      }
+
+    on write_pos2
+      from S1 to S3
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+      do {
+        x = 0;
+        read_command2_urgency = 2;
+      }
+
+    on read_command2
+      from S3 to S4
+      provided ((0<=x)&&(x<=0)&&(tmpw_pos2==2)&&(x==period-1))
+      do {
+        compute_ready_urgency = 1;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = true;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+     on read_command2
+      from S3 to S4
+      provided ((0<=x)&&(x<=0)&&(tmpw_pos2==0)&&(x==period-1))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 1;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = true;
+        compute_rest_dis = false;
+      }
+
+     on read_command2
+      from S3 to S4
+      provided ((0<=x)&&(x<=0)&&(tmpw_pos2==1)&&(x==(period*3600-1)))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 1;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = true;
+      }
+
+     on read_command2
+      from S3 to S4
+      provided ((0<=x)&&(x<=0) && !(((tmpw_pos2==2)&&(x==period-1)) || ((tmpw_pos2==0)&&(x==period-1)) || ((tmpw_pos2==1)&&(x==(period*3600-1)))))
+      do {
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on compute_ready
+      from S4 to S5
+      provided ((tmpw_pos2==2)&&((0<=x)&&(x<=period-1)) && (tmpr_command2!=1))
+      do {
+        write_pos2_urgency = 2;
+      }
+
+    on compute_ready
+      from S4 to S5
+      provided ((tmpw_pos2==2)&&((0<=x)&&(x<=period-1)) && (tmpr_command2==1))
+      do {
+        tmpw_pos2 = 0;
+        write_pos2_urgency = 2;
+      }
+
+    on compute_down
+      from S4 to S5
+      provided ((tmpw_pos2==0)&&((0<=x)&&(x<=period-1)) && (tmpr_command2!=0))
+      do {
+        write_pos2_urgency = 2;
+      }
+
+    on compute_down
+      from S4 to S5
+      provided ((tmpw_pos2==0)&&((0<=x)&&(x<=period-1)) && (tmpr_command2==0))
+      do {
+        tmpw_pos2 = 1;
+        write_pos2_urgency = 2;
+      }
+
+    on write_pos2
+      from S5 to S3
+      provided ((period<=x)&&(x<=period))
+      do {
+        x = 0;
+        read_command2_urgency = 2;
+      }
+
+    on compute_rest
+      from S4 to REST
+      provided ((tmpw_pos2==1)&&((0<=x)&&(x<=(period*3600-1))))
+      do {
+        tmpw_pos2 = 2;
+        write_pos2_urgency = 2;
+      }
+
+    on write_pos2
+      from REST to S3
+      provided (((period*3600)<=x)&&(x<=(period*3600)))
+      do {
+        x = 0;
+        read_command2_urgency = 2;
+      }
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        write_pos2_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+
+    on _tick
+      from S3 to S3
+      do {
+        x = x+1;
+        read_command2_urgency = 2;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos2==2)&&(x==period-2))
+      do {
+        x = x+1;
+        compute_ready_urgency = 1;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = true;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos2==0)&&(x==period-2))
+      do {
+        x = x+1;
+        compute_ready_urgency = 0;
+        compute_down_urgency = 1;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = true;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S4 to S4 provided ((tmpw_pos2==1)&&(x==(period*3600-2)))
+      do {
+        x = x+1;
+        compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 1;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = true;
+      }
+
+    on _tick
+      from S4 to S4 provided (!(((tmpw_pos2==2)&&(x==period-2)) || ((tmpw_pos2==0)&&(x==period-2)) || ((tmpw_pos2==1)&&(x==(period*3600-2)))))
+      do {
+        x = x+1;compute_ready_urgency = 0;
+        compute_down_urgency = 0;
+        compute_rest_urgency = 0;
+
+        compute_ready_dis = false;
+        compute_down_dis = false;
+        compute_rest_dis = false;
+      }
+
+    on _tick
+      from S5 to S5
+      do {
+        x = x+1;
+        write_pos2_urgency = 2;
+      }
+
+    on _tick
+      from REST to REST
+      do {
+        x = x+1;
+        write_pos2_urgency = 2;
+      }
+
+
+
+
+
+
+
+  end
+
+  atom type Controller()
+    data int tmpw_command1
+    data int tmpw_command2
+    data int tmpr_temperature
+    data int tmpr_pos1
+    data int tmpr_pos2
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int x
+    export data int write_command1_urgency
+    export data int write_command2_urgency
+    export data int read_temperature_urgency
+    export data int read_pos1_urgency
+    export data int read_pos2_urgency
+    export data int compute_low_urgency
+    export data int advance_urgency
+    export data int compute_high_urgency
+    export data int compute_shutdown_urgency
+    export data bool write_command1_dis
+    export data bool write_command2_dis
+    export data bool read_temperature_dis
+    export data bool read_pos1_dis
+    export data bool read_pos2_dis
+    export data bool compute_low_dis
+    export data bool compute_high_dis
+    export data bool compute_shutdown_dis
+    export data bool advance_dis
+    export port ePort_command1 write_command1(tmpw_command1)
+    export port ePort_command2 write_command2(tmpw_command2)
+    export port ePort_temperature read_temperature(tmpr_temperature)
+    export port ePort_pos1 read_pos1(tmpr_pos1)
+    export port ePort_pos2 read_pos2(tmpr_pos2)
+    export port Port compute_low()
+    export port Port compute_high()
+    export port Port compute_shutdown()
+    export port Port advance()
+    export port _Tick _tick()
+    place S1, S2, S3, S4, S5, S6, LOW, HIGH, HIGH_WRITE1, HIGH_WRITE2, HIGH_LATENCY, SHUTDOWN1, SHUTDOWN2
+
+    initial to S1
+      do {
+        tmpw_command1=0;
+        tmpw_command2=0;
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        write_command1_urgency=2;
+        write_command2_urgency=0;
+        read_temperature_urgency=0;
+        read_pos1_urgency=0;
+        read_pos2_urgency=0;
+        compute_low_urgency=0;
+        advance_urgency=0;
+        compute_high_urgency=0;
+        compute_shutdown_urgency=0;
+        write_command1_dis=false;
+        write_command2_dis=false;
+        read_temperature_dis=false;
+        read_pos1_dis=false;
+        read_pos2_dis=false;
+        compute_low_dis=false;
+        compute_high_dis=false;
+        compute_shutdown_dis=false;
+        advance_dis=false;
+      }
+
+    on write_command1
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+      do {
+        x = 0;
+        write_command2_urgency = 2;
+      }
+
+    on write_command2
+      from S2 to S3
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_temperature_urgency = 2;
+      }
+
+    on read_temperature
+      from S3 to S4
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_pos1_urgency = 2;
+      }
+
+    on read_pos1
+      from S4 to S5
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_pos2_urgency = 2;
+      }
+
+    on read_pos2
+      from S5 to S6
+      provided (((0<=x)&&(x<=0)) && (tmpr_temperature<=(100+(2*2)) && (x==period-1)))
+      do {
+        compute_low_urgency = 1;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = true;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on read_pos2
+      from S5 to S6
+      provided (((0<=x)&&(x<=0)) && (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&(x==period-1)))
+      do {
+        compute_low_urgency = 0;
+        compute_high_urgency = 1;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = true;
+        compute_shutdown_dis = false;
+      }
+
+    on read_pos2
+      from S5 to S6
+      provided (((0<=x)&&(x<=0)) && ((tmpr_temperature>(100+(2*2)))&&(tmpr_temperature<(1000-2))))
+      do {
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 2;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on read_pos2
+      from S5 to S6
+      provided (((0<=x)&&(x<=0)) && ((((tmpr_temperature>=(1000-2))&&(tmpr_pos1!=2))&&(tmpr_pos2!=2))&&(x==period-1)))
+      do {
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 1;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = true;
+      }
+
+    on read_pos2
+      from S5 to S6
+      provided (((0<=x)&&(x<=0)) && !((tmpr_temperature<=(100+(2*2)) && (x==period-1)) || (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&(x==period-1)) || ((tmpr_temperature>(100+(2*2)))&&(tmpr_temperature<(1000-2))) || ((((tmpr_temperature>=(1000-2))&&(tmpr_pos1!=2))&&(tmpr_pos2!=2))&&(x==period-1))))
+      do {
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on compute_low
+      from S6 to LOW
+      provided ((tmpr_temperature<=(100+(2*2)))&&((0<=x)&&(x<=period-1)) && (tmpr_pos1==0))
+      do {
+        tmpw_command1 = 0;
+        tmpw_command2 = 0;
+        write_command1_urgency = 2;
+        write_command2_urgency = 0;
+        advance_urgency = 0;
+      }
+
+    on compute_low
+      from S6 to LOW
+      provided ((tmpr_temperature<=(100+(2*2)))&&((0<=x)&&(x<=period-1)) && (tmpr_pos2==0))
+      do {
+        tmpw_command1 = 0;
+        tmpw_command2 = 0;
+        write_command1_urgency = 0;
+        write_command2_urgency = 2;
+        advance_urgency = 0;
+      }
+
+    on compute_low
+      from S6 to LOW
+      provided ((tmpr_temperature<=(100+(2*2)))&&((0<=x)&&(x<=period-1)) && ((tmpr_pos1!=0)&&(tmpr_pos2!=0)))
+      do {
+        tmpw_command1 = 0;
+        tmpw_command2 = 0;
+        write_command1_urgency = 0;
+        write_command2_urgency = 0;
+        advance_urgency = 2;
+      }
+
+    on compute_low
+      from S6 to LOW
+      provided ((tmpr_temperature<=(100+(2*2)))&&((0<=x)&&(x<=period-1)) && !((tmpr_pos1==0) || (tmpr_pos2==0) || ((tmpr_pos1!=0)&&(tmpr_pos2!=0))))
+      do {
+        tmpw_command1 = 0;
+        tmpw_command2 = 0;
+        write_command1_urgency = 0;
+        write_command2_urgency = 0;
+        advance_urgency = 0;
+      }
+
+    on write_command1
+      from LOW to S3
+      provided ((tmpr_pos1==0)&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        read_temperature_urgency = 2;
+      }
+
+    on write_command2
+      from LOW to S3
+      provided ((tmpr_pos2==0)&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        read_temperature_urgency = 2;
+      }
+
+    on advance
+      from LOW to S3
+      provided (((tmpr_pos1!=0)&&(tmpr_pos2!=0))&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        read_temperature_urgency = 2;
+      }
+
+    on compute_high
+      from S6 to HIGH
+      provided (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&((0<=x)&&(x<=period-1)) && (tmpr_pos1==2))
+      do {
+        tmpw_command1 = 1;
+        write_command1_urgency = 2;
+        write_command2_urgency = 0;
+      }
+
+    on compute_high
+      from S6 to HIGH
+      provided (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&((0<=x)&&(x<=period-1)) && (tmpr_pos1!=2) && (tmpr_pos2==2))
+      do {
+        tmpw_command2 = 1;
+        write_command1_urgency = 0;
+        write_command2_urgency = 2;
+      }
+
+    on compute_high
+      from S6 to HIGH
+      provided (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&((0<=x)&&(x<=period-1) && (tmpr_pos1!=2) && (tmpr_pos2!=2)))
+
+    on write_command1
+      from HIGH to HIGH_LATENCY
+      provided ((tmpr_pos1==2)&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        advance_urgency = 2;
+      }
+
+    on write_command2
+      from HIGH to HIGH_LATENCY
+      provided (((tmpr_pos1!=2)&&(tmpr_pos2==2))&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        advance_urgency = 2;
+      }
+
+    on advance
+      from HIGH_LATENCY to S3
+      provided (((3*period)<=x)&&(x<=(3*period)))
+      do {
+        x = 0;
+        read_temperature_urgency = 2;
+      }
+
+    on advance
+      from S6 to S3
+      provided (((tmpr_temperature>(100+(2*2)))&&(tmpr_temperature<(1000-2)))&&((period<=x)&&(x<=period)))
+      do {
+        x = 0;
+        read_temperature_urgency = 2;
+      }
+
+    on compute_shutdown
+      from S6 to SHUTDOWN1
+      provided ((((tmpr_temperature>=(1000-2))&&(tmpr_pos1!=2))&&(tmpr_pos2!=2))&&((0<=x)&&(x<=period-1)))
+      do {
+        tmpw_command1 = 2;
+        tmpw_command2 = 2;
+        write_command1_urgency = 2;
+      }
+
+    on write_command1
+      from SHUTDOWN1 to SHUTDOWN2
+      provided ((period<=x)&&(x<=period))
+      do {
+        x = 0;
+        write_command2_urgency = 2;
+      }
+
+    on write_command2
+      from SHUTDOWN2 to SHUTDOWN1
+      provided ((0<=x)&&(x<=0))
+      do {
+        write_command1_urgency = 2;
+      }
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        write_command1_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+        write_command2_urgency = 2;
+      }
+
+    on _tick
+      from S3 to S3
+      do {
+        x = x+1;
+        read_temperature_urgency = 2;
+      }
+
+    on _tick
+      from S4 to S4
+      do {
+        x = x+1;
+        read_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S5 to S5
+      do {
+        x = x+1;
+        read_pos2_urgency = 2;
+      }
+
+    on _tick
+      from S6 to S6 provided ((tmpr_temperature<=(100+(2*2)))&&(x==period-2))
+      do {
+        x = x+1;
+        compute_low_urgency = 1;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = true;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on _tick
+      from S6 to S6 provided (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&(x==period-2))
+      do {
+        x = x+1;
+        compute_low_urgency = 0;
+        compute_high_urgency = 1;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = true;
+        compute_shutdown_dis = false;
+      }
+
+    on _tick
+      from S6 to S6 provided ((tmpr_temperature>(100+(2*2)))&&(tmpr_temperature<(1000-2)))
+      do {
+        x = x+1;
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 2;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on _tick
+      from S6 to S6 provided (((tmpr_temperature>=(1000-2))&&(tmpr_pos1!=2))&&(tmpr_pos2!=2)&&(x==period-2))
+      do {
+        x = x+1;
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 1;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = true;
+      }
+
+    on _tick
+      from S6 to S6 provided (!(((tmpr_temperature<=(100+(2*2)))&&(x==period-2)) || (((tmpr_temperature>=(1000-2))&&((tmpr_pos1==2)||(tmpr_pos2==2)))&&(x==period-2)) || ((((tmpr_temperature>=(1000-2))&&(tmpr_pos1!=2))&&(tmpr_pos2!=2))&&(x==period-2)) || ((tmpr_temperature>(100+(2*2)))&&(tmpr_temperature<(1000-2)))))
+      
+      do {
+        x = x+1;
+        compute_low_urgency = 0;
+        compute_high_urgency = 0;
+        advance_urgency = 0;
+        compute_shutdown_urgency = 0;
+
+        compute_low_dis = false;
+        compute_high_dis = false;
+        compute_shutdown_dis = false;
+      }
+
+    on _tick
+      from LOW to LOW provided (tmpr_pos1==0)
+      do {
+        x = x+1;
+        write_command1_urgency = 2;
+        write_command2_urgency = 0;
+        advance_urgency = 0;
+      }
+
+    on _tick
+      from LOW to LOW provided (tmpr_pos2==0)
+      do {
+        x = x+1;
+        write_command1_urgency = 0;
+        write_command2_urgency = 2;
+        advance_urgency = 0;
+      }
+
+    on _tick
+      from LOW to LOW provided ((tmpr_pos1!=0) && (tmpr_pos2!=0))
+      do {
+        x = x+1;
+        write_command1_urgency = 0;
+        write_command2_urgency = 0;
+        advance_urgency = 2;
+      }
+
+    on _tick
+      from HIGH to HIGH provided (tmpr_pos1==2)
+      do {
+        x = x+1;
+        write_command1_urgency = 2;
+        write_command2_urgency = 0;
+      }
+
+    on _tick
+      from HIGH to HIGH provided ((tmpr_pos1!=2)&&(tmpr_pos2==2))
+      do {
+        x = x+1;
+        write_command1_urgency = 0;
+        write_command2_urgency = 2;
+      }
+
+    on _tick
+      from HIGH to HIGH provided ((tmpr_pos1!=2)&&(tmpr_pos2!=2))
+      do {
+        x = x+1;
+        write_command1_urgency = 0;
+        write_command2_urgency = 0;
+      }
+
+    on _tick
+      from HIGH_WRITE1 to HIGH_WRITE1
+      do {
+        x = x+1;
+      }
+
+    on _tick
+      from HIGH_WRITE2 to HIGH_WRITE2
+      do {
+        x = x+1;
+      }
+
+    on _tick
+      from HIGH_LATENCY to HIGH_LATENCY
+      do {
+        x = x+1;
+        advance_urgency = 2;
+      }
+
+    on _tick
+      from SHUTDOWN1 to SHUTDOWN1
+      do {
+        x = x+1;
+        write_command1_urgency = 2;
+      }
+
+    on _tick
+      from SHUTDOWN2 to SHUTDOWN2
+      do {
+        x = x+1;
+        write_command2_urgency = 2;
+      }
+  end
+
+  atom type Monitor()
+    data int tmpr_temperature
+    data int tmpr_pos1
+    data int tmpr_pos2
+    data int tmpr_command1
+    data int tmpr_command2
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int counter
+    data int first
+    data int x
+    export data int start_urgency
+    export data int read_pos1_urgency
+    export data int read_pos2_urgency
+    export data int read_command1_urgency
+    export data int read_command2_urgency
+    export data int read_temperature_urgency
+    export data int compute_urgency
+    export data int advance_urgency
+    export data bool read_temperature_dis
+    export data bool read_pos1_dis
+    export data bool read_pos2_dis
+    export data bool read_command1_dis
+    export data bool read_command2_dis
+    export data bool start_dis
+    export data bool compute_dis
+    export data bool advance_dis
+    export port ePort_temperature read_temperature(tmpr_temperature)
+    export port ePort_pos1 read_pos1(tmpr_pos1)
+    export port ePort_pos2 read_pos2(tmpr_pos2)
+    export port ePort_command1 read_command1(tmpr_command1)
+    export port ePort_command2 read_command2(tmpr_command2)
+    export port Port start()
+    export port Port compute()
+    export port Port advance()
+    export port _Tick _tick()
+
+    place S1, S2, S3, S4, S5, S6, S7, S8, DEADLOCK
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=2;
+        R=(initTime-phase)%period;
+        counter=1;
+        first=1;
+        x=0;
+        start_urgency=2;
+        read_pos1_urgency=0;
+        read_pos2_urgency=0;
+        read_command1_urgency=0;
+        read_command2_urgency=0;
+        read_temperature_urgency=0;
+        compute_urgency=0;
+        advance_urgency=0;
+        read_temperature_dis=false;
+        read_pos1_dis=false;
+        read_pos2_dis=false;
+        read_command1_dis=false;
+        read_command2_dis=false;
+        start_dis=false;
+        compute_dis=false;
+        advance_dis=false;
+        print("# STEP Reactor/Temp Rod1/Pos Rod2/pos Control/cmd1 Control/cmd2\n");
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+      do {
+        x = 0;
+        read_pos1_urgency = 2;
+      }
+
+    on read_pos1
+      from S2 to S3
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_pos2_urgency = 2;
+      }
+
+    on read_pos2
+      from S3 to S4
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_command1_urgency = 2;
+      }
+
+    on read_command1
+      from S4 to S5
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_command2_urgency = 2;
+      }
+
+    on read_command2
+      from S5 to S6
+      provided ((0<=x)&&(x<=0))
+      do {
+        read_temperature_urgency = 2;
+      }
+
+    on read_temperature
+      from S6 to S7
+      provided ((0<=x)&&(x<=0)&&(x==period-1))
+      do {
+        compute_urgency = 1;
+        compute_dis = true;
+      }
+
+    on read_temperature
+      from S6 to S7
+      provided ((0<=x)&&(x<=0)&&(x!=period-1))
+      do {
+        compute_urgency = 1;
+        compute_dis = false;
+      }
+
+    on compute
+      from S7 to S8
+      provided ((0<=x)&&(x<=period-1)&&(!((tmpr_command1==2)&&(tmpr_command2==2))))
+      do {
+        advance_urgency = 2;
+
+        print(counter, tmpr_temperature, print_position(tmpr_pos1), print_position(tmpr_pos2), print_command(tmpr_command1), print_command(tmpr_command2));
+
+        counter = counter+1;
+      }
+
+    on compute
+      from S7 to DEADLOCK
+      provided ((0<=x)&&(x<=period-1)&&(tmpr_command1==2)&&(tmpr_command2==2))
+
+    on advance
+      from S8 to S2
+      provided ((period<=x)&&(x<=period))
+      do {
+        x = 0;
+        read_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+        read_pos1_urgency = 2;
+      }
+
+    on _tick
+      from S3 to S3
+      do {
+        x = x+1;
+        read_pos2_urgency = 2;
+      }
+
+    on _tick
+      from S4 to S4
+      do {
+        x = x+1;
+        read_command1_urgency = 2;
+      }
+
+    on _tick
+      from S5 to S5
+      do {
+        x = x+1;
+        read_command2_urgency = 2;
+      }
+
+    on _tick
+      from S6 to S6
+      do {
+        x = x+1;
+        read_temperature_urgency = 2;
+      }
+
+    on _tick
+      from S7 to S7 provided ((x==period-2)&&(!((tmpr_command1==2)&&(tmpr_command2==2))))
+      do {
+        x = x+1;
+        compute_urgency = 1;
+        compute_dis = true;
+      }
+
+    on _tick
+      from S7 to S7 provided ((x!=period-2)&&(!((tmpr_command1==2)&&(tmpr_command2==2))))
+      do {
+        x = x+1;
+        compute_urgency = 1;
+        compute_dis = false;
+      }
+
+    on _tick
+      from S8 to S8
+      do {
+        x = x+1;
+        advance_urgency = 2;
+      }
+  end
+
+  atom type temperature()
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int tmpw
+    data int tmpr
+    data int x
+    export data int start_urgency
+    export data bool write_dis
+    export data bool read_dis
+    export data bool start_dis
+    export port ePort_temperature write(tmpw)
+    export port ePort_temperature read(tmpr)
+    export port Port start()
+    export port _Tick _tick()
+
+    place S1, S2
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        start_urgency=2;
+        write_dis=false;
+        read_dis=false;
+        start_dis=false;
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+
+    on write
+      from S2 to S2
+      do {
+        tmpr = tmpw;
+      }
+
+    on read
+      from S2 to S2
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+  end
+
+  atom type pos1()
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int tmpw
+    data int tmpr
+    data int x
+    export data int start_urgency
+    export data bool write_dis
+    export data bool read_dis
+    export data bool start_dis
+    export port ePort_pos1 write(tmpw)
+    export port ePort_pos1 read(tmpr)
+    export port Port start()
+    export port _Tick _tick()
+
+    place S1, S2
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        start_urgency=2;
+        write_dis=false;
+        read_dis=false;
+        start_dis=false;
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+
+    on write
+      from S2 to S2
+      do {
+        tmpr = tmpw;
+      }
+
+    on read
+      from S2 to S2
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+  end
+
+  atom type pos2()
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int tmpw
+    data int tmpr
+    data int x
+    export data int start_urgency
+    export data bool write_dis
+    export data bool read_dis
+    export data bool start_dis
+    export port ePort_pos2 write(tmpw)
+    export port ePort_pos2 read(tmpr)
+    export port Port start()
+    export port _Tick _tick()
+
+    place S1, S2
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        start_urgency=2;
+        write_dis=false;
+        read_dis=false;
+        start_dis=false;
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+
+    on write
+      from S2 to S2
+      do {
+        tmpr = tmpw;
+      }
+
+    on read
+      from S2 to S2
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+  end
+
+  atom type command1()
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int tmpw
+    data int tmpr
+    data int x
+    export data int start_urgency
+    export data bool write_dis
+    export data bool read_dis
+    export data bool start_dis
+    export port ePort_command1 write(tmpw)
+    export port ePort_command1 read(tmpr)
+    export port Port start()
+    export port _Tick _tick()
+
+    place S1, S2
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        start_urgency=2;
+        write_dis=false;
+        read_dis=false;
+        start_dis=false;
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+
+    on write
+      from S2 to S2
+      do {
+        tmpr = tmpw;
+      }
+
+    on read
+      from S2 to S2
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+  end
+
+  atom type command2()
+    data int period
+    data int phase
+    data int initTime
+    data int S
+    data int R
+    data int tmpw
+    data int tmpr
+    data int x
+    export data int start_urgency
+    export data bool write_dis
+    export data bool read_dis
+    export data bool start_dis
+    export port ePort_command2 write(tmpw)
+    export port ePort_command2 read(tmpr)
+    export port Port start()
+    export port _Tick _tick()
+
+    place S1, S2
+
+    initial to S1
+      do {
+        period=1;
+        phase=0;
+        initTime=10;
+        S=1;
+        R=(initTime-phase)%period;
+        x=0;
+        start_urgency=2;
+        write_dis=false;
+        read_dis=false;
+        start_dis=false;
+      }
+
+    on start
+      from S1 to S2
+      provided ((((S*period)-R)<=x)&&(x<=((S*period)-R)))
+
+    on write
+      from S2 to S2
+      do {
+        tmpr = tmpw;
+      }
+
+    on read
+      from S2 to S2
+
+    on _tick
+      from S1 to S1
+      do {
+        x = x+1;
+        start_urgency = 2;
+      }
+
+    on _tick
+      from S2 to S2
+      do {
+        x = x+1;
+      }
+  end
+
+  compound type Top()
+    component Reactor Reactor_instance()
+    component Rod1 Rod1_instance()
+    component Rod2 Rod2_instance()
+    component Controller Controller_instance()
+    component Monitor Monitor_instance()
+    component temperature temperature_instance()
+    component pos1 pos1_instance()
+    component pos2 pos2_instance()
+    component command1 command1_instance()
+    component command2 command2_instance()
+    connector Singleton reactor_compute(Reactor_instance.compute)
+    connector Singleton rod1_compute_ready(Rod1_instance.compute_ready)
+    connector Singleton rod1_compute_down(Rod1_instance.compute_down)
+    connector Singleton rod1_compute_rest(Rod1_instance.compute_rest)
+    connector Singleton rod2_compute_ready(Rod2_instance.compute_ready)
+    connector Singleton rod2_compute_down(Rod2_instance.compute_down)
+    connector Singleton rod2_compute_rest(Rod2_instance.compute_rest)
+    connector Singleton controller_advance(Controller_instance.advance)
+    connector Singleton controller_compute_low(Controller_instance.compute_low)
+    connector Singleton controller_compute_high(Controller_instance.compute_high)
+    connector Singleton controller_compute_shutdown(Controller_instance.compute_shutdown)
+    connector Singleton monitor_start(Monitor_instance.start)
+    connector Singleton monitor_compute(Monitor_instance.compute)
+    connector Singleton monitor_advance(Monitor_instance.advance)
+    connector Singleton temperature_start(temperature_instance.start)
+    connector Singleton pos1_start(pos1_instance.start)
+    connector Singleton pos2_start(pos2_instance.start)
+    connector Singleton command1_start(command1_instance.start)
+    connector Singleton command2_start(command2_instance.start)
+    connector RDV_temperature write_Reactor_temperature(temperature_instance.write, Reactor_instance.write_temperature)
+    connector RDV_pos1 write_Rod1_pos1(pos1_instance.write, Rod1_instance.write_pos1)
+    connector RDV_pos2 write_Rod2_pos2(pos2_instance.write, Rod2_instance.write_pos2)
+    connector RDV_command1 write_Controller_command1(command1_instance.write, Controller_instance.write_command1)
+    connector RDV_command2 write_Controller_command2(command2_instance.write, Controller_instance.write_command2)
+    connector RDV_pos1 read_Reactor_pos1(Reactor_instance.read_pos1, pos1_instance.read)
+    connector RDV_pos2 read_Reactor_pos2(Reactor_instance.read_pos2, pos2_instance.read)
+    connector RDV_command1 read_Rod1_command1(Rod1_instance.read_command1, command1_instance.read)
+    connector RDV_command2 read_Rod2_command2(Rod2_instance.read_command2, command2_instance.read)
+    connector RDV_temperature read_Controller_temperature(Controller_instance.read_temperature, temperature_instance.read)
+    connector RDV_pos1 read_Controller_pos1(Controller_instance.read_pos1, pos1_instance.read)
+    connector RDV_pos2 read_Controller_pos2(Controller_instance.read_pos2, pos2_instance.read)
+    connector RDV_temperature read_Monitor_temperature(Monitor_instance.read_temperature, temperature_instance.read)
+    connector RDV_pos1 read_Monitor_pos1(Monitor_instance.read_pos1, pos1_instance.read)
+    connector RDV_pos2 read_Monitor_pos2(Monitor_instance.read_pos2, pos2_instance.read)
+    connector RDV_command1 read_Monitor_command1(Monitor_instance.read_command1, command1_instance.read)
+    connector RDV_command2 read_Monitor_command2(Monitor_instance.read_command2, command2_instance.read)
+    connector _TickSynchro_10 _tickSynchro(Reactor_instance._tick, Rod1_instance._tick, Rod2_instance._tick, Controller_instance._tick, Monitor_instance._tick, temperature_instance._tick, pos1_instance._tick, pos2_instance._tick, command1_instance._tick, command2_instance._tick)
+    priority prio_Reactor_pos1 read_Reactor_pos1:* < write_Rod1_pos1:*
+    priority prio_Controller_pos1 read_Controller_pos1:* < write_Rod1_pos1:*
+    priority prio_Monitor_pos1 read_Monitor_pos1:* < write_Rod1_pos1:*
+    priority prio_Reactor_pos2 read_Reactor_pos2:* < write_Rod2_pos2:*
+    priority prio_Controller_pos2 read_Controller_pos2:* < write_Rod2_pos2:*
+    priority prio_Monitor_pos2 read_Monitor_pos2:* < write_Rod2_pos2:*
+    priority prio_Monitor_temperature read_Monitor_temperature:* < write_Reactor_temperature:*
+    priority prio_Controller_temperature read_Controller_temperature:* < write_Reactor_temperature:*
+    priority prio_Rod1_command1 read_Rod1_command1:* < write_Controller_command1:*
+    priority prio_Monitor_command1 read_Monitor_command1:* < write_Controller_command1:*
+    priority prio_Rod2_command2 read_Rod2_command2:* < write_Controller_command2:*
+    priority prio_Monitor_command2 read_Monitor_command2:* < write_Controller_command2:*
+    priority _urg_reactor_compute _tickSynchro:* < reactor_compute:* provided (((Reactor_instance.compute_urgency==1)&&Reactor_instance.compute_dis)||(Reactor_instance.compute_urgency==2))
+    priority _urg_rod1_compute_ready _tickSynchro:* < rod1_compute_ready:* provided (((Rod1_instance.compute_ready_urgency==1)&&Rod1_instance.compute_ready_dis)||(Rod1_instance.compute_ready_urgency==2))
+    priority _urg_rod1_compute_down _tickSynchro:* < rod1_compute_down:* provided (((Rod1_instance.compute_down_urgency==1)&&Rod1_instance.compute_down_dis)||(Rod1_instance.compute_down_urgency==2))
+    priority _urg_rod1_compute_rest _tickSynchro:* < rod1_compute_rest:* provided (((Rod1_instance.compute_rest_urgency==1)&&Rod1_instance.compute_rest_dis)||(Rod1_instance.compute_rest_urgency==2))
+    priority _urg_rod2_compute_ready _tickSynchro:* < rod2_compute_ready:* provided (((Rod2_instance.compute_ready_urgency==1)&&Rod2_instance.compute_ready_dis)||(Rod2_instance.compute_ready_urgency==2))
+    priority _urg_rod2_compute_down _tickSynchro:* < rod2_compute_down:* provided (((Rod2_instance.compute_down_urgency==1)&&Rod2_instance.compute_down_dis)||(Rod2_instance.compute_down_urgency==2))
+    priority _urg_rod2_compute_rest _tickSynchro:* < rod2_compute_rest:* provided (((Rod2_instance.compute_rest_urgency==1)&&Rod2_instance.compute_rest_dis)||(Rod2_instance.compute_rest_urgency==2))
+    priority _urg_controller_advance _tickSynchro:* < controller_advance:* provided (((Controller_instance.advance_urgency==1)&&Controller_instance.advance_dis)||(Controller_instance.advance_urgency==2))
+    priority _urg_controller_compute_low _tickSynchro:* < controller_compute_low:* provided (((Controller_instance.compute_low_urgency==1)&&Controller_instance.compute_low_dis)||(Controller_instance.compute_low_urgency==2))
+    priority _urg_controller_compute_high _tickSynchro:* < controller_compute_high:* provided (((Controller_instance.compute_high_urgency==1)&&Controller_instance.compute_high_dis)||(Controller_instance.compute_high_urgency==2))
+    priority _urg_controller_compute_shutdown _tickSynchro:* < controller_compute_shutdown:* provided (((Controller_instance.compute_shutdown_urgency==1)&&Controller_instance.compute_shutdown_dis)||(Controller_instance.compute_shutdown_urgency==2))
+    priority _urg_monitor_start _tickSynchro:* < monitor_start:* provided (((Monitor_instance.start_urgency==1)&&Monitor_instance.start_dis)||(Monitor_instance.start_urgency==2))
+    priority _urg_monitor_compute _tickSynchro:* < monitor_compute:* provided (((Monitor_instance.compute_urgency==1)&&Monitor_instance.compute_dis)||(Monitor_instance.compute_urgency==2))
+    priority _urg_monitor_advance _tickSynchro:* < monitor_advance:* provided (((Monitor_instance.advance_urgency==1)&&Monitor_instance.advance_dis)||(Monitor_instance.advance_urgency==2))
+    priority _urg_temperature_start _tickSynchro:* < temperature_start:* provided (((temperature_instance.start_urgency==1)&&temperature_instance.start_dis)||(temperature_instance.start_urgency==2))
+    priority _urg_pos1_start _tickSynchro:* < pos1_start:* provided (((pos1_instance.start_urgency==1)&&pos1_instance.start_dis)||(pos1_instance.start_urgency==2))
+    priority _urg_pos2_start _tickSynchro:* < pos2_start:* provided (((pos2_instance.start_urgency==1)&&pos2_instance.start_dis)||(pos2_instance.start_urgency==2))
+    priority _urg_command1_start _tickSynchro:* < command1_start:* provided (((command1_instance.start_urgency==1)&&command1_instance.start_dis)||(command1_instance.start_urgency==2))
+    priority _urg_command2_start _tickSynchro:* < command2_start:* provided (((command2_instance.start_urgency==1)&&command2_instance.start_dis)||(command2_instance.start_urgency==2))
+    priority _urg_write_Reactor_temperature _tickSynchro:* < write_Reactor_temperature:* provided (((Reactor_instance.write_temperature_urgency==1)&&(temperature_instance.write_dis||Reactor_instance.write_temperature_dis))||(Reactor_instance.write_temperature_urgency==2))
+    priority _urg_write_Rod1_pos1 _tickSynchro:* < write_Rod1_pos1:* provided (((Rod1_instance.write_pos1_urgency==1)&&(pos1_instance.write_dis||Rod1_instance.write_pos1_dis))||(Rod1_instance.write_pos1_urgency==2))
+    priority _urg_write_Rod2_pos2 _tickSynchro:* < write_Rod2_pos2:* provided (((Rod2_instance.write_pos2_urgency==1)&&(pos2_instance.write_dis||Rod2_instance.write_pos2_dis))||(Rod2_instance.write_pos2_urgency==2))
+    priority _urg_write_Controller_command1 _tickSynchro:* < write_Controller_command1:* provided (((Controller_instance.write_command1_urgency==1)&&(command1_instance.write_dis||Controller_instance.write_command1_dis))||(Controller_instance.write_command1_urgency==2))
+    priority _urg_write_Controller_command2 _tickSynchro:* < write_Controller_command2:* provided (((Controller_instance.write_command2_urgency==1)&&(command2_instance.write_dis||Controller_instance.write_command2_dis))||(Controller_instance.write_command2_urgency==2))
+    priority _urg_read_Reactor_pos1 _tickSynchro:* < read_Reactor_pos1:* provided (((Reactor_instance.read_pos1_urgency==1)&&(Reactor_instance.read_pos1_dis||pos1_instance.read_dis))||(Reactor_instance.read_pos1_urgency==2))
+    priority _urg_read_Reactor_pos2 _tickSynchro:* < read_Reactor_pos2:* provided (((Reactor_instance.read_pos2_urgency==1)&&(Reactor_instance.read_pos2_dis||pos2_instance.read_dis))||(Reactor_instance.read_pos2_urgency==2))
+    priority _urg_read_Rod1_command1 _tickSynchro:* < read_Rod1_command1:* provided (((Rod1_instance.read_command1_urgency==1)&&(Rod1_instance.read_command1_dis||command1_instance.read_dis))||(Rod1_instance.read_command1_urgency==2))
+    priority _urg_read_Rod2_command2 _tickSynchro:* < read_Rod2_command2:* provided (((Rod2_instance.read_command2_urgency==1)&&(Rod2_instance.read_command2_dis||command2_instance.read_dis))||(Rod2_instance.read_command2_urgency==2))
+    priority _urg_read_Controller_temperature _tickSynchro:* < read_Controller_temperature:* provided (((Controller_instance.read_temperature_urgency==1)&&(Controller_instance.read_temperature_dis||temperature_instance.read_dis))||(Controller_instance.read_temperature_urgency==2))
+    priority _urg_read_Controller_pos1 _tickSynchro:* < read_Controller_pos1:* provided (((Controller_instance.read_pos1_urgency==1)&&(Controller_instance.read_pos1_dis||pos1_instance.read_dis))||(Controller_instance.read_pos1_urgency==2))
+    priority _urg_read_Controller_pos2 _tickSynchro:* < read_Controller_pos2:* provided (((Controller_instance.read_pos2_urgency==1)&&(Controller_instance.read_pos2_dis||pos2_instance.read_dis))||(Controller_instance.read_pos2_urgency==2))
+    priority _urg_read_Monitor_temperature _tickSynchro:* < read_Monitor_temperature:* provided (((Monitor_instance.read_temperature_urgency==1)&&(Monitor_instance.read_temperature_dis||temperature_instance.read_dis))||(Monitor_instance.read_temperature_urgency==2))
+    priority _urg_read_Monitor_pos1 _tickSynchro:* < read_Monitor_pos1:* provided (((Monitor_instance.read_pos1_urgency==1)&&(Monitor_instance.read_pos1_dis||pos1_instance.read_dis))||(Monitor_instance.read_pos1_urgency==2))
+    priority _urg_read_Monitor_pos2 _tickSynchro:* < read_Monitor_pos2:* provided (((Monitor_instance.read_pos2_urgency==1)&&(Monitor_instance.read_pos2_dis||pos2_instance.read_dis))||(Monitor_instance.read_pos2_urgency==2))
+    priority _urg_read_Monitor_command1 _tickSynchro:* < read_Monitor_command1:* provided (((Monitor_instance.read_command1_urgency==1)&&(Monitor_instance.read_command1_dis||command1_instance.read_dis))||(Monitor_instance.read_command1_urgency==2))
+    priority _urg_read_Monitor_command2 _tickSynchro:* < read_Monitor_command2:* provided (((Monitor_instance.read_command2_urgency==1)&&(Monitor_instance.read_command2_dis||command2_instance.read_dis))||(Monitor_instance.read_command2_urgency==2))
+  end
+end

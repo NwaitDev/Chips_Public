@@ -1,0 +1,133 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') /]
+
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[query public varName(aData : ConnectorDataDeclaration) : String =
+    '_id__' + aData.name
+/]
+
+[template public getData(aData : DataDeclaration, interactionValue : String) post(trim())]
+#error THIS SHOULD NOT HAPPEN. UNSUPPORTED DATA DECLARATION IN CONNECTOR TYPE.
+[/template]
+
+[template public getData(aData : ConstDataDeclaration, interactionValue : String) post(trim())]
+[aData.varName()/]
+[/template]
+
+[template public getData(aData : ConnectorDataDeclaration, interactionValue : String) post(trim())]
+[interactionValue/]->cget_[aData.name/]()
+[/template]
+
+[template public setData(aData : DataDeclaration, rhsString : String, interactionValue : String) post(trim())]
+#error THIS SHOULD NOT HAPPEN. UNSUPPORTED DATA DECLARATION IN CONNECTOR TYPE.
+[/template]
+
+[template public setData(aData : ConstDataDeclaration, rhsString : String, interactionValue : String) post(trim())]
+[aData.varName()/] = [rhsString/]
+[/template]
+
+[template public setData(aData : ConnectorDataDeclaration, rhsString : String, interactionValue : String) post(trim())]
+[interactionValue/]->cset_[aData.name/]([rhsString/])
+[/template]
+
+[template private setRemoteData(anExpression : SubDataDeclarationReferenceExpression, rhsString : String) post(trim())]
+get_[anExpression.subDataDeclarationRef.portDeclaration.name /]([anExpression.subDataDeclarationRef.portDeclaration.name/], *c_interaction_v)->set_[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]([rhsString/])
+[/template]
+
+[template public getRemoteData(anExpression : SubDataDeclarationReferenceExpression) post(trim())]
+get_[anExpression.subDataDeclarationRef.portDeclaration.name/]([anExpression.subDataDeclarationRef.portDeclaration.name/], *c_interaction_v)->get_[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]()
+[/template]
+
+[template public generateExpression(anExpression : AssignmentExpression, isUp : Boolean, interactionValue : String)
+	? (anExpression.lhs.oclIsKindOf(DirectDataDeclarationReferenceExpression)) post(trim())]
+[anExpression.lhs.oclAsType(DirectDataDeclarationReferenceExpression).dataDeclaration.setData(anExpression.rhs.generateExpression(isUp, interactionValue), interactionValue) /]
+[/template]
+
+[template public generateExpression(anExpression : AssignmentExpression, isUp : Boolean, interactionValue : String)
+	? (anExpression.lhs.oclIsKindOf(SubDataDeclarationReferenceExpression)) post(trim())]
+[if (isUp)]
+#error THIS SHOULD NOT HAPPEN. NO INDIRECT REF IN LHS DURING UP. ONLY DIRECT DATA REF.
+[else]
+[anExpression.lhs.oclAsType(SubDataDeclarationReferenceExpression).setRemoteData(anExpression.rhs.generateExpression(isUp, interactionValue))/]
+[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectDataDeclarationReferenceExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.dataDeclaration.getData(interactionValue)/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : BinaryOpExpression, isUp : Boolean, interactionValue : String) post(trim())]
+([anExpression.left.generateExpression(isUp, interactionValue) /]) [' ' + anExpression.operator + ' '/] ([anExpression.right.generateExpression(isUp, interactionValue) /])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : FunctionCallExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression(isUp, interactionValue) /][/for])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : UnaryOpExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.operator /] ([anExpression.operand.generateExpression(isUp, interactionValue) /])
+[/template]
+
+[template public generateExpression(anExpression : IfThenElseExpression, isUp : Boolean, interactionValue : String) post(trim())]
+if ([anExpression.condition.generateExpression(isUp, interactionValue)/]) {
+    [for (e : Expression | anExpression._then) ]
+    [e.generateExpression(isUp, interactionValue)/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}[if (anExpression._else->notEmpty())] else {
+    [for (e : Expression | anExpression._else) ]
+    [e.generateExpression(isUp, interactionValue)/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}
+[/if]
+[/template]
+
+[comment
+for <compdecl>.<datadecl>
+/]
+[template public generateExpressionWithoutCast(anExpression : SubDataDeclarationReferenceExpression, isUp : Boolean, interactionValue : String) ? (anExpression.subDataDeclarationRef.componentDeclaration <> null)]
+#error THIS SHOULD NEVER HAPPEN (no component.data reference)
+[comment][anExpression.subDataDeclarationRef.componentDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /][/comment]
+[/template]
+
+[query private getCIVClassNameFromSDDRE(aPortDataRef : SubDataDeclarationReferenceExpression) : String =
+    aPortDataRef.subDataDeclarationRef.portDeclaration.eContainer(ConnectorType).interactionValueClassName()
+/]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[template public generateExpressionWithoutCast(anExpression : SubDataDeclarationReferenceExpression, isUp : Boolean, interactionValue : String) ? (anExpression.subDataDeclarationRef.portDeclaration <> null) post(trim())]
+[anExpression.getRemoteData()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectBooleanExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectIntegerExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectFloatExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectStringExpression, isUp : Boolean, interactionValue : String) post(trim())]
+[anExpression.value/]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpressionWithoutCast(anExpression : ValuedExpression, isUp : Boolean, interactionValue : String)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression'
+[/template]
+
+[template public generateExpression(anExpression : ValuedExpression, isUp : Boolean, interactionValue : String)]
+[generateCast(anExpression.getType(), anExpression.getExpectedType(), generateExpressionWithoutCast(anExpression, isUp, interactionValue))/]
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateExpression(anExpression : Expression, isUp : Boolean, interactionValue : String)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression'
+[/template]
+

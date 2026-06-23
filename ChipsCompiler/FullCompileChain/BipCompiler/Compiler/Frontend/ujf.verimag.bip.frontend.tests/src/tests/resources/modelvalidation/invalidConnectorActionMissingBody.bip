@@ -1,0 +1,12 @@
+package invalidConnectorActionMissingBody
+
+ port type Port_t()
+
+ connector type RDV(Port_t p, Port_t q)
+   define p q
+
+   // BAD: this is not a correct action   
+   on p q
+  end
+
+end

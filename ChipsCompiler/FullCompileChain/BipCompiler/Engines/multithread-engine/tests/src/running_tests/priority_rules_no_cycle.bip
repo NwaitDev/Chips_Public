@@ -1,0 +1,30 @@
+package priority_rules_no_cycle
+  port type Port()
+
+  connector type RDV(Port p, Port q, Port r)
+    define p q r
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType A1()
+    component MyAtomType A2()
+    component MyAtomType A3()
+
+    connector RDV rdv(A1.p, A2.p, A3.p)
+
+    priority prio1 rdv:A1.p,A2.p,A3.p < *:*
+    priority prio2 rdv:* < *:*
+    priority prio3 *:* < rdv:A1.p,A2.p,A3.p
+    priority prio4 *:* < rdv:*
+  end
+end

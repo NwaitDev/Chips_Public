@@ -1,0 +1,7 @@
+package flatquoted
+  port type Port_t()
+
+  connector type CT(Port_t p1, Port_t p2)
+    define p1 p2'
+  end
+end

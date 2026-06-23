@@ -1,0 +1,95 @@
+package dining_philo
+ // 117485 reachable states, 2 deadlocks, and 0 error in 0 state
+ port type Port()
+ 
+ connector type RDV(Port p1, Port p2)
+   define p1 p2
+ end
+
+ atom type Fork()
+  export port Port take()
+  export port Port release()
+
+  place WAIT, USED
+
+  initial to WAIT
+
+  on take from WAIT to USED
+
+  on release from USED to WAIT
+ end
+
+ atom type Philosopher()
+   export port Port take_left(), take_right()
+   export port Port release_left(), release_right()
+
+   place WAIT, EAT, TOOK_LEFT, TOOK_RIGHT, RELEASED_LEFT, RELEASED_RIGHT
+
+   initial to WAIT
+
+   on take_left from WAIT to TOOK_LEFT
+
+   on take_right from WAIT to TOOK_RIGHT
+
+   on take_left from TOOK_RIGHT to EAT
+
+   on take_right from TOOK_LEFT to EAT
+
+   on release_left from EAT to RELEASED_LEFT
+
+   on release_right from EAT to RELEASED_RIGHT
+
+   on release_left from RELEASED_RIGHT to WAIT
+
+   on release_right from RELEASED_LEFT to WAIT
+ end
+
+ 
+ 
+ 
+ compound type DiningPhilo()
+  component Fork f1(), f2(), f3(), f4(), f5(), f6(), f7(), f8()
+  component Philosopher p1(), p2(), p3(), p4(), p5(), p6(), p7(), p8()
+
+  connector RDV f1take1   (f1.take,    p1.take_left)
+  connector RDV f1take2   (f1.take,    p8.take_right)
+  connector RDV f1release1(f1.release, p1.release_left)
+  connector RDV f1release2(f1.release, p8.release_right)
+
+  connector RDV f2take1   (f2.take,    p2.take_left)
+  connector RDV f2take2   (f2.take,    p1.take_right)
+  connector RDV f2release1(f2.release, p2.release_left)
+  connector RDV f2release2(f2.release, p1.release_right)
+
+  connector RDV f3take1   (f3.take,    p3.take_left)
+  connector RDV f3take2   (f3.take,    p2.take_right)
+  connector RDV f3release1(f3.release, p3.release_left)
+  connector RDV f3release2(f3.release, p2.release_right)
+
+  connector RDV f4take1   (f4.take,    p4.take_left)
+  connector RDV f4take2   (f4.take,    p3.take_right)
+  connector RDV f4release1(f4.release, p4.release_left)
+  connector RDV f4release2(f4.release, p3.release_right)
+
+  connector RDV f5take1   (f5.take,    p5.take_left)
+  connector RDV f5take2   (f5.take,    p4.take_right)
+  connector RDV f5release1(f5.release, p5.release_left)
+  connector RDV f5release2(f5.release, p4.release_right)
+
+  connector RDV f6take1   (f6.take,    p6.take_left)
+  connector RDV f6take2   (f6.take,    p5.take_right)
+  connector RDV f6release1(f6.release, p6.release_left)
+  connector RDV f6release2(f6.release, p5.release_right)
+
+  connector RDV f7take1   (f7.take,    p7.take_left)
+  connector RDV f7take2   (f7.take,    p6.take_right)
+  connector RDV f7release1(f7.release, p7.release_left)
+  connector RDV f7release2(f7.release, p6.release_right)
+
+  connector RDV f8take1   (f8.take,    p8.take_left)
+  connector RDV f8take2   (f8.take,    p7.take_right)
+  connector RDV f8release1(f8.release, p8.release_left)
+  connector RDV f8release2(f8.release, p7.release_right)
+ end
+
+end

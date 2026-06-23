@@ -1,0 +1,79 @@
+[comment encoding = UTF-8 /]
+[module generateExportData('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::gcc /]
+
+[template public generateExportData(anAtomType : AtomType, aDataType : DataType, aCMakeList : String) {
+	pcontainer : BipPackage = anAtomType.eContainer(BipPackage);
+	className : String = aDataType.exportDataClassName(anAtomType);
+	fullCpp : String = anAtomType.fullCppFilePath(className);
+	fullHpp : String = anAtomType.fullHppFilePath(className);
+}]
+
+[file (pcontainer.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <[pcontainer.relPackageHppFilePath()/]>
+
+#include <AtomExportData.hpp>
+
+class [className/] : public AtomExportData {
+public:
+    [className/](const string &name, bool hasEarlyUpdate);
+    virtual ~[className/]() { }
+
+    virtual bool isReset() const { return mIsReset; }
+    void setIsReset(bool b) { mIsReset = b; };
+
+protected:
+    bool mIsReset;
+};
+
+inline [className/]::[className/](const string &name, bool hasEarlyUpdate) :
+    DataItf(name, ATOM_EXPORT),
+    Data(name, ATOM_EXPORT),
+    AtomExportData(name, hasEarlyUpdate),
+    mIsReset(true) {
+}
+[endHeaderGuard(fullHpp)/]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullHpp /])
+[/file]
+[/template]
+
+[template public generateExportData(aCompoundType : CompoundType, aDataType : DataType, aCMakeList : String) {
+	pcontainer : BipPackage = aCompoundType.eContainer(BipPackage);
+	className : String = aDataType.exportDataClassName(aCompoundType);
+	fullCpp : String = aCompoundType.fullCppFilePath(className);
+	fullHpp : String = aCompoundType.fullHppFilePath(className);
+}]
+
+[file (pcontainer.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <[pcontainer.relPackageHppFilePath()/]>
+
+#include <CompoundExportData.hpp>
+
+class [className/] : public CompoundExportData {
+public:
+    [className/](Data &forwardData, const string &name);
+    virtual ~[className/]() { }
+};
+
+inline [className/]::[className/](Data &forwardData, const string &name) :
+    DataItf(name, COMPOUND_EXPORT),
+    Data(name, COMPOUND_EXPORT),
+    CompoundExportData(forwardData, name) {
+}
+[endHeaderGuard(fullHpp)/]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullHpp /])
+[/file]
+[/template]
+
+

@@ -1,0 +1,62 @@
+package broadcast_up_down
+  port type PortInt(int d)
+
+  connector type Broadcast(PortInt p, PortInt q, PortInt r)
+    data int x
+
+    export port PortInt xport(x)
+
+    define p' q r
+
+    on p q r provided (false) up { x = 0; }
+    on p q   provided (true)  up { x = p.d + q.d; } down { p.d = x+1; }
+    on p r   provided (true)  up { x = p.d + r.d; } down { p.d = x+3; }
+    on p     provided (false) up { x = 0; }
+  end
+
+  connector type Divider(PortInt p)
+    define p
+    on p down { p.d = p.d / 2; }
+  end
+
+  connector type Display(PortInt p)
+    define p
+  end
+
+  atom type MyAtomType1(int init)
+    data int x
+    export port PortInt p(x), q(x)
+
+    place INIT, DISPLAY, END
+
+    initial to INIT
+      do { x = init; }
+
+    on p from INIT to DISPLAY
+    on q from DISPLAY to END
+  end
+
+  atom type MyAtomType2(int init)
+    data int x
+    export port PortInt p(x)
+
+    place INIT, END
+
+    initial to INIT
+      do { x = init; }
+
+    on p from INIT to END
+  end
+
+  
+
+  compound type MyCompoundType()
+    component MyAtomType1 myAtom1(12)
+    component MyAtomType2 myAtom2(42)
+    component MyAtomType2 myAtom3(58)
+
+    connector Broadcast brd(myAtom1.p, myAtom2.p, myAtom3.p)
+    connector Divider   div(brd.xport)
+    connector Display   disp(myAtom1.q)
+  end
+end

@@ -1,0 +1,113 @@
+[comment encoding = UTF-8 /]
+[module expressions('http://bip2/1.0') /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[query public exportedVarName(aDataDecl : DataDeclaration) : String =
+    '_edata_decl__' + aDataDecl.name
+/]
+
+[query public varName(aData : DataDeclaration) : String =
+	if (aData.oclIsKindOf(ComponentDataParameterDeclaration)) then
+    	'_comp_param__' + aData.name
+	else if (aData.oclIsKindOf(AtomInternalDataDeclaration)) then
+		'_id__' + aData.name
+	else if (aData.oclIsKindOf(ConstDataDeclaration)) then
+		aData.oclAsType(ConstDataDeclaration).varName()
+	else
+		'#error Internal Compiler error : data ' + aData.name + 'not internal data, nor comp param nor package constant'
+	endif endif endif
+/]
+
+[comment
+The following set of template simply generates back the input expression without
+any modification.
+/]
+[template public generateExpression(anExpression : AssignmentExpression)
+	? (anExpression.lhs.oclIsKindOf(DirectDataDeclarationReferenceExpression) or
+		anExpression.lhs.oclIsKindOf(SubDataDeclarationReferenceExpression)) post(trim())]
+[anExpression.lhs.generateExpression() /] = [anExpression.rhs.generateExpression() /]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectDataDeclarationReferenceExpression) post(trim())]
+[anExpression.dataDeclaration.varName()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : BinaryOpExpression) post(trim())]
+([anExpression.left.generateExpression() /]) [' ' + anExpression.operator + ' '/] ([anExpression.right.generateExpression() /])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : FunctionCallExpression) post(trim())]
+[anExpression.functionName /]([for (ve : ValuedExpression | anExpression.parameters) separator(', ')][ve.generateExpression() /][/for])
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : UnaryOpExpression) post(trim())]
+[anExpression.operator /] ([anExpression.operand.generateExpression() /])
+[/template]
+
+[template public generateExpression(anExpression : IfThenElseExpression) post(trim())]
+if ([anExpression.condition.generateExpression()/]) {
+    [for (e : Expression | anExpression._then) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}[if (anExpression._else->notEmpty())] else {
+    [for (e : Expression | anExpression._else) ]
+    [e.generateExpression()/][if (not e.oclIsTypeOf(IfThenElseExpression))];[/if]
+    [/for]
+}
+[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectBooleanExpression) post(trim())]
+[if (anExpression.value)]true[else]false[/if]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectIntegerExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectFloatExpression) post(trim())]
+[anExpression.value.toString()/]
+[/template]
+
+[template public generateExpressionWithoutCast(anExpression : DirectStringExpression) post(trim())]
+[anExpression.value/]
+[/template]
+
+
+[comment
+for <compdecl>.<datadecl>
+/]
+[template public generateExpressionWithoutCast(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.componentDeclaration <> null)]
+[anExpression.subDataDeclarationRef.componentDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template]
+
+[comment
+for <portdecl>.<datadecl>
+/]
+[template public generateExpression(anExpression : SubDataDeclarationReferenceExpression) ? (anExpression.subDataDeclarationRef.portDeclaration <> null)]
+[anExpression.subDataDeclarationRef.portDeclaration.name /].[anExpression.subDataDeclarationRef.forwardDataDeclaration.name /]
+[/template]
+
+[comment THIS IS ANOTHER DEFAULT THAT SHOULD NEVER BE USED /]
+[template public generateExpressionWithoutCast(anExpression : ValuedExpression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'ValuedExpression' : [anExpression/]
+[/template]
+
+[template public generateExpression(anExpression : ValuedExpression)]
+[generateCast(anExpression.getType(), anExpression.getExpectedType(), generateExpressionWithoutCast(anExpression))/]
+[/template]
+
+[comment THIS IS THE DEFAULT TEMPLATE THAT SHOULD NEVER BE USED. /]
+[template public generateExpression(anExpression : Expression)]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'Expression' [anExpression/]
+[/template]
+
+[template public generateInstruction(anExpression : ValuedExpression)]
+[generateExpressionWithoutCast(anExpression)/]
+[/template]
+
+[template public generateInstruction(anExpression : Expression)]
+[generateExpression(anExpression)/]
+[/template]
+
+

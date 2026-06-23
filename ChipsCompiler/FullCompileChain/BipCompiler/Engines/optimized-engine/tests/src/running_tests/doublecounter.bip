@@ -1,0 +1,34 @@
+package doublecounter
+
+ port type Port_t(int c)
+ 
+ atom type AT()
+  data int count1
+  data int count2
+
+  port Port_t p(count1), q(count2)
+
+  place COUNTING, STOPPED
+
+  initial to COUNTING
+    do {
+      count1 = 0;
+      count2 = 0;
+    }
+
+  on p from COUNTING to COUNTING provided (count1 < 100) 
+    do {
+      count1 = count1 + 1;
+    }
+
+  on q from COUNTING to COUNTING provided (count2 < 100)
+    do {
+      count2 = count2 + 1;
+  }
+ end
+ 
+ compound type CT()
+  component AT c()
+ end
+
+end

@@ -1,0 +1,15 @@
+package atomPriorityInvolvingUndeclaredPort1
+ port type Port_t()
+	
+ atom type AT()
+  port Port_t p1(), p2()
+
+  place S1,S2
+  initial to S1
+  on p1 from S1 to S2
+  on p2 from S1 to S2
+  
+  priority badPrio p1 < p
+ end
+
+end

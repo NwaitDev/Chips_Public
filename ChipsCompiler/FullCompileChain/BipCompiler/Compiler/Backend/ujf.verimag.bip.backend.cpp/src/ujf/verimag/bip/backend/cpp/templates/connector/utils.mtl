@@ -1,0 +1,18 @@
+[comment encoding = UTF-8 /]
+[module utils('http://bip2/1.0') /]
+
+[query private isNested(aDef : ConnectorInteractionDefinition) : Boolean = aDef.oclIsKindOf(ConnectorInteractionNestedDefinition) /]
+
+[query private isFlatSynchron(aDef : ConnectorInteractionDefinition) : Boolean =
+       (not aDef.isNested()) or aDef.oclAsType(ConnectorInteractionNestedDefinition).subInteractions->select(p : ConnectorInteractionDefinition | p.quoted or p.isNested())->isEmpty()
+ /]
+
+[query private isFlatD(aDef : ConnectorInteractionDefinition) : Boolean =
+       (not aDef.isNested()) or aDef.oclAsType(ConnectorInteractionNestedDefinition).subInteractions->select(p : ConnectorInteractionDefinition | p.isNested())->isEmpty()
+ /]
+
+[query public isFlat(aConnectorType : ConnectorType) : Boolean = isFlatD(aConnectorType.interactionDefinition) /]
+
+[query public isRendezVous(aConnectorType : ConnectorType) : Boolean =
+ aConnectorType.interactionDefinition.isFlatSynchron()
+/]

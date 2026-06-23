@@ -1,0 +1,27 @@
+package petri_net_non_deterministic
+  port type Port()
+
+  connector type Singleton(Port p)
+    define p
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT1, INIT2, END1, END2
+
+    initial to INIT1, INIT2
+
+    on p from INIT1 to END1
+
+    on p from INIT2 to END2
+
+    internal from END1, END2 to INIT1, INIT2
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+
+    connector Singleton single(myAtom.p)
+  end
+end

@@ -1,0 +1,5 @@
+package a.b..missingend
+
+port type Port_t()
+
+end

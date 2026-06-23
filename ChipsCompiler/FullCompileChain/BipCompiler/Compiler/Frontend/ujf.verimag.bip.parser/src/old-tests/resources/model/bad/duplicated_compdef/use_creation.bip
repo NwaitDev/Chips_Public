@@ -1,0 +1,141 @@
+package use_creation
+ use sample.another_pack
+
+ extern data type a_type
+
+ port type Port_t()
+ port type Port_t2(int x, float y)
+ port type Port_t3()
+
+ atom type Atom_simple ()
+      data int internal_x
+      export data int ex
+      export port Port_t p1(), p2(), p3()
+
+      place S1,S2,S3
+      initial to S1
+      on p1 from S1 to S2
+      on p2 from S2 to S3
+      on p3 from S3 to S1
+ end
+
+ atom type Atom_simple2 (int x)
+      data int internal_x
+      export data int ex
+      export port Port_t p1(), p2(), p3()
+
+      place S1,S2,S3
+      initial to S1
+      on p1 from S1 to S2
+      on p2 from S2 to S3
+      on p3 from S3 to S1
+ end
+
+
+ atom type Atom_t(int param1)
+    data int dx
+    data float fx
+    data a_type a_variable
+
+    export data int y
+    export port Port_t x()
+    export port Port_t3 xx()
+
+    port Port_t2 x2(dx, fx)
+    port Port_tt testpackageport()
+
+    port Port_t p1(),p2()
+    port Port_t p3()
+    export port Port_t ep1(),ep2()
+    export port Port_t ep3()
+
+    place S1,S2,S3,S4,S5
+    initial to S2,S3 do {
+		    dx = 1 + fx;
+ 		    fx = 4%dx;
+		    this_is_a_funcall(dx+6);
+                  }
+    on p1 from S1 to S2 provided (dx == antoher_fcall(1)) do {dx = 1 + ya_fcall(dx);} 
+    on p2 from S2 to S1 do {dx = 18;}
+
+ end
+
+ compound type Compound_param(int x)
+  component Atom_t parametrizedAtom(x)
+ end
+
+
+ compound type Compound_simple()
+ 
+      component Atom_simple a1(), a2()
+      component Atom_t parametrizedAtom(1+1)
+      component Compound_param paramCompound(99)
+      
+      export port a1.p1 as p
+      export port a2.p2 as p3
+
+      export data a1.ex as de
+ end
+
+ compound type Compound_simple()
+ 
+      component Atom_simple a1(), a2()
+      component Atom_t parametrizedAtom(1+1)
+      component Compound_param paramCompound(99)
+      
+      export port a1.p1 as p
+      export port a2.p2 as p3
+
+      export data a1.ex as de
+ end
+
+ connector type Conn_t3 (Port_t2 p1, Port_t p2)
+   data int x,y
+   define p1 p2
+   
+   on p1 provided (1==2) up {
+        x = 3 + 4;
+	y = (p1.x + 1) * 18 / p1.y;
+   } down {
+     	p1.x = 3 + 4;
+	p1.y = x % y;
+   }
+
+
+ end
+
+ connector type Conn_t(Port_t p1, Port_t p2)
+   data int x,y,z
+   data float pouet
+
+   export port Port_t p()
+
+   define p1' p2'
+
+ end
+
+
+ connector type Conn_t2(Port_t p1, Port_t p2)
+ data int dx
+ data float fx
+ export port Port_t2 p(dx, fx)
+ define p1' p2'
+ end
+
+ compound type Compound_t(int param1)
+    component Atom_t c1(1), c2(2), c3(3+4*param1-"topto")
+
+    connector Conn_t conn1(c1.x, c2.x), conn2(c1.x, c2.x)
+    
+
+    priority toto  conn1: c1.x,c2.x < conn2:c1.x, c2.x provided (c1.y < 1 * 2 * 3 * 4 - 1 + c2.y && 1>2)
+    priority toto2 conn1: c1.x,c2.x < *
+
+
+    export port c1.x as y
+    export port c2.x as z
+    export port conn1.p as ep1
+    export data c1.y as dy
+ end
+
+end

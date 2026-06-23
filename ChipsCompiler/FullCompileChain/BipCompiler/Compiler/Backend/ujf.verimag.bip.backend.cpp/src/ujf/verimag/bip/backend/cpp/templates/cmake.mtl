@@ -1,0 +1,176 @@
+[comment encoding = UTF-8 /]
+[module cmake('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[query public getCMakeList(aBipPackage : BipPackage) : String = aBipPackage.dirName() + '/CMakeLists.txt' /]
+
+[query private dependencyDepthTo(aBipPackage : BipPackage, rootBipPackage : BipPackage) : Integer =
+	if aBipPackage = rootBipPackage then
+		0
+	else if rootBipPackage.used_packages->size() > 0 then
+		rootBipPackage.used_packages->collect(pack : BipPackage | aBipPackage.dependencyDepthTo(pack))
+			->sortedBy(i : Integer | i)
+			->last()
+			+ 1
+	else
+		-1
+    endif endif
+/]
+
+[comment
+    This template is responsible for calling every sub-cmake process for every
+    package. It also (if needed) add the necessary commands for gluing
+    everything together in a single executable (need to compile from
+    the instance graph).
+    The resulting executable is always called "system".
+
+    Current conventions:
+     - BIP2_ENGINE_GENERIC_DIR must point to the include directory for generic files
+     - BIP2_ENGINE_SPECIFIC_DIR must point to the include directory for specific files
+     - BIP2_ENGINE_LIB_DIR must point to the directory containing the compiled library for the engine (libengine.a)
+/]
+[template public generateMasterCMakeLists(theRootPackage:BipPackage, theRoot:String, 
+                                          theUsedPackages : Sequence(BipPackage), fromInstance : Boolean,
+                                          userIncludeDirs : Sequence(String),
+                                          userLibs : Sequence(String),
+                                          userLibsDirs: Sequence(String),
+                                          userExtraSrcs : Sequence(String),
+                                          userExtraObjs : Sequence(String),
+                                          userExtraCcOpts : Sequence(String),
+                                          userExtraLdOpts : Sequence(String))]
+[comment @main /]
+[file ('CMakeLists.txt', false, 'UTF-8')]
+cmake_minimum_required(VERSION 2.8)
+# 2.8.3 has "CMAKE_CURRENT_LIST_DIR" variable. We have 2.8.2 deployed, 
+# so using "CMAKE_SOURCE_DIR" instead.
+set(GEN_ROOT ${CMAKE_SOURCE_DIR})
+
+# Select flags.
+SET(CMAKE_CXX_FLAGS "-Wall -std=c++0x [for (s : String | userExtraCcOpts) separator(' ')][s/][/for]")
+SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -std=c++0x [for (s : String | userExtraCcOpts) separator(' ')][s/][/for]")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -std=c++0x [for (s : String | userExtraCcOpts) separator(' ')][s/][/for]")
+SET(CMAKE_CXX_FLAGS_DEBUG  "-O0 -g -std=c++0x [for (s : String | userExtraCcOpts) separator(' ')][s/][/for]")
+SET(CMAKE_EXE_LINKER_FLAGS "[for (s : String | userExtraLdOpts) separator(' ')][s/][/for]")
+
+SET(CMAKE_CXX_FLAGS_PROFILING "-O0 -g -pg")
+SET(CMAKE_EXE_LINKER_FLAGS_PROFILING "-pg [for (s : String | userExtraLdOpts) separator(' ')][s/][/for]")
+
+# if none provided elsewhere, defaults to
+# values from environment variables
+IF(NOT BIP2_ENGINE_GENERIC_DIR)
+  SET(BIP2_ENGINE_GENERIC_DIR $ENV{BIP2_ENGINE_GENERIC_DIR})
+ENDIF()
+
+IF(NOT BIP2_ENGINE_SPECIFIC_DIR)
+  SET(BIP2_ENGINE_SPECIFIC_DIR $ENV{BIP2_ENGINE_SPECIFIC_DIR})
+ENDIF()
+
+IF(NOT BIP2_ENGINE_LIB_DIR)
+  SET(BIP2_ENGINE_LIB_DIR $ENV{BIP2_ENGINE_LIB_DIR})
+ENDIF()
+
+include_directories(${BIP2_ENGINE_GENERIC_DIR})
+include_directories(${BIP2_ENGINE_SPECIFIC_DIR})
+
+[for (userIncludeDir : String | userIncludeDirs)
+      before('# user include dir\n')]
+include_directories([userIncludeDir/])
+[/for]
+
+[for (pack : BipPackage | theUsedPackages) separator('\n')]
+# For package [pack.name/]
+include_directories(${GEN_ROOT}/[pack.dirName()/]/include)
+[/for]
+
+[for (pack : BipPackage | theUsedPackages) separator('\n')]
+add_subdirectory(${GEN_ROOT}/[pack.dirName()/])
+[/for]
+
+set(CUSTOM_LIB_DIRS )
+[for (userLibDir : String | userLibsDirs)
+       before('# user library search paths\n')]
+list(APPEND CUSTOM_LIB_DIRS [userLibDir/])
+[/for]
+
+# Following only for building from instances.
+[if (fromInstance)]
+find_library(libengine_path engine ${BIP2_ENGINE_LIB_DIR} ${CUSTOM_LIB_DIRS})
+
+[for (userLib : String | userLibs)
+      before('# user lib\n')]
+find_library([userLib.toUpper() + '_path'/] [userLib/] PATHS ${CUSTOM_LIB_DIRS})
+[/for]
+
+set(USER_EXTRA_SRC)
+[for (extra_src : String | userExtraSrcs)]
+list(APPEND USER_EXTRA_SRC [extra_src/])
+[/for]
+
+set(USR_EXTRA_OBJ)
+[for (extra_obj : String | userExtraObjs)]
+list(APPEND USER_EXTRA_OBJ [extra_obj/])
+[/for]
+
+add_executable(system
+  ${GEN_ROOT}/Deploy/Deploy.cpp
+  ${USER_EXTRA_SRC}
+  ${USER_EXTRA_OBJ})
+
+target_link_libraries(system 
+  [for (pack : BipPackage | theUsedPackages->sortedBy(dependencyDepthTo(theRootPackage))) separator(' ')][pack.libName()/][/for] ${libengine_path}
+  [for (userLib : String | userLibs)]
+  ${[userLib.toUpper() + '_path'/]}
+  [/for]
+)
+[/if]
+[/file]
+[/template]
+
+[comment 
+    The following 2 templates are used by packages to start / stop their
+    respective CMakeLists.txt file. No magic here.
+ /]
+[template public startPackageCmake(aPackage : BipPackage, userIncludeDirs : Sequence(String),
+                                   extraSrcs: Sequence(String),
+                                   extraObjs: Sequence(String),) post(trim())]
+[file (getCMakeList(aPackage), false, 'UTF-8')]
+#start
+cmake_minimum_required(VERSION 2.8)
+
+##set(ATOM_FILES)
+##set(COMPOUND_FILES)
+set(PORT_FILES)
+set(TYPE_FILES)
+##set(CONNECTOR_FILES)
+
+set(EXTRA_SRC)
+set(EXTRA_OBJ)
+
+[for (userIncludeDir : String | userIncludeDirs)
+      before('# user include dir\n')]
+include_directories([userIncludeDir/])
+[/for]
+
+[for (extraSrc : String | extraSrcs) before ('# for @cpp(src="...") extra files\n')]
+list(APPEND EXTRA_SRC [extraSrc/])
+[/for]
+
+[for (extraObj : String | extraObjs) before ('# for @cpp(obj="...") extra files\n')]
+list(APPEND EXTRA_OBJ [extraObj/])
+[/for]
+
+[/file]
+[/template]
+
+[template public endPackageCmake(aPackage : BipPackage) post(trim())]
+[file (getCMakeList(aPackage), true, 'UTF-8')]
+include_directories("include")
+add_library([aPackage.libName()/] 
+                      ${TYPE_FILES}
+                      ${PORT_FILES}
+                      ${EXTRA_SRC}
+                      ${EXTRA_OBJ})
+[/file]
+[/template]

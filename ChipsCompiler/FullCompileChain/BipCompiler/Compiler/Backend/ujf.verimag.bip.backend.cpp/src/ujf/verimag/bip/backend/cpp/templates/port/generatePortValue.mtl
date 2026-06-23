@@ -1,0 +1,116 @@
+[comment encoding = UTF-8 /]
+[module generatePortValue('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+
+[query public varName(dataParam : PortDataParameterDeclaration) : String =
+    'm_' + dataParam.name/]
+
+[template public generatePortValue(aPortType : PortType, aCMakeList : String, disableSerialization: Boolean)
+    {
+        container : BipPackage = aPortType.eContainer(BipPackage);
+        fullCpp : String = aPortType.fullCppFilePath(aPortType.portValueClassName());
+        fullHpp : String = aPortType.fullHppFilePath(aPortType.portValueClassName());
+        pvCN : String = aPortType.portValueClassName();
+    }
+]
+
+[file (container.cppRoot() + '/' + fullCpp, false, 'UTF-8')]
+#include <[aPortType.relHppFilePath(pvCN)/]>
+
+[if (not disableSerialization) ]
+#include <iostream>
+#include <sstream>
+[/if]
+
+[pvCN/]::[aPortType.genCtorProto()/] : PortValue()[aPortType.genCtorInit()/] {
+}
+
+[if (not disableSerialization) ]
+string [pvCN/]::toString() const {
+    ostringstream oss;
+
+    [for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations)]
+    oss << "[datadecl.name/]=" << [datadecl.varName()/] << ';';
+    [/for]
+    return oss.str();
+}
+[/if]
+
+[pvCN/]::~[pvCN/]() {
+}
+
+
+[/file]
+
+[file (container.hppRoot() + '/' + fullHpp, false, 'UTF-8')]
+[startHeaderGuard(fullHpp) /]
+#include <PortValue.hpp>
+
+#include <[aPortType.relHppFilePath()/]>
+
+class [pvCN/] : public PortValue {
+public:
+    [aPortType.genCtorProto()/];
+    virtual ~[pvCN/]();
+
+    [if (not disableSerialization)]
+    virtual string toString() const;
+    [/if]
+
+    [for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations)
+         before('\n    // get/set for data.\n')
+         separator('\n')]
+    const [datadecl.dataType.typeName()/]& get_[datadecl.name/]() const;
+    [if (not datadecl.const)]
+    [datadecl.dataType.typeName()/]& get_[datadecl.name/]();
+    void set_[datadecl.name/](const [datadecl.dataType.typeName()/] &_[datadecl.varName()/]);
+    [/if]
+    [/for]
+
+private:
+    [for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations)
+         before('    // data fields from Port type.\n')]
+    [if (datadecl.const)]const [/if][datadecl.dataType.typeName()/] &[datadecl.varName()/];
+    [/for]
+}; 
+
+
+[for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations)
+     before('\n    // get/set for data.\n')
+     separator('\n')]
+inline
+const [datadecl.dataType.typeName()/]& [pvCN/]::get_[datadecl.name/]() const {
+    return [datadecl.varName()/];
+}
+[if (not datadecl.const)]
+inline
+[datadecl.dataType.typeName()/]& [pvCN/]::get_[datadecl.name/]() {
+    return [datadecl.varName()/];
+}
+inline
+void [pvCN/]::set_[datadecl.name/](const [datadecl.dataType.typeName()/] &_[datadecl.varName()/]) {
+    [datadecl.varName()/] = _[datadecl.varName()/];
+}
+[/if]
+[/for]
+
+
+[endHeaderGuard(fullHpp) /]
+[/file]
+
+[file (aCMakeList, true, 'UTF-8')]
+list (APPEND PORT_FILES [fullCpp /]
+                        [fullHpp /])
+[/file]
+[/template]
+
+[template private genCtorProto(aPortType : PortType) post(trim())]
+[aPortType.portValueClassName()/]([for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations) separator(', ')][if (datadecl.const)]const [/if][datadecl.dataType.typeName()/] &_[datadecl.varName()/][/for])
+[/template]
+
+
+[template private genCtorInit(aPortType : PortType) post(trim())]
+[for (datadecl : PortDataParameterDeclaration | aPortType.dataParameterDeclarations) before(', ') separator(', ')] [datadecl.varName()/](_[datadecl.varName()/])[/for]
+[/template]

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<configurations>
+    <conf name="Linux.i386" />
+    <conf name="Linux.i686" />
+    <conf name="Linux.x86_64" />
+    <conf name="Darwin.i386" />
+    <conf name="Darwin.i686" />
+    <conf name="Darwin.x86_64" />
+</configurations>

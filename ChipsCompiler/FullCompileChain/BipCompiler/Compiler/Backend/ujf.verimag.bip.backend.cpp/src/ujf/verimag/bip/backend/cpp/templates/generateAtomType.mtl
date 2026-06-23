@@ -1,0 +1,1544 @@
+[comment encoding = UTF-8 /]
+[module generateAtomType('http://bip2/1.0')/]
+
+[import ujf::verimag::bip::backend::cpp::templates::commonBip /]
+[import ujf::verimag::bip::backend::cpp::templates::naming /]
+[import ujf::verimag::bip::backend::cpp::templates::behaviorAnalyzer /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomExportPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generateAtomInternalPort /]
+[import ujf::verimag::bip::backend::cpp::templates::port::generatePortValue /]
+[import ujf::verimag::bip::backend::cpp::templates::generateExportData /]
+[import ujf::verimag::bip::backend::cpp::templates::traceBip /]
+[import ujf::verimag::bip::backend::cpp::templates::atom::expressions /]
+[import ujf::verimag::bip::backend::cpp::templates::gcc /]
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+
+
+[comment
+    Returns the variable name (scope: the class corresponding to the Atom Type being handled)
+    for the port declaration given as parameter.
+    In most cases, this name is the same as the one of the declaration. Exception
+    when the implicit internal port syntax is used (export port PT_t p()). In this
+    case, a prefix is added to the variable.
+/]
+[query public varName(anInternalDecl : AtomInternalExternalPortDeclaration) : String =
+    '_iport_decl__' + anInternalDecl.name
+/]
+
+[query private varName(anExportDecl : AtomExportPortDeclaration) : String =
+    '_eport_decl__' + anExportDecl.name
+/]
+
+[comment 
+    Returns the variable name corresponding to the PortValue associated with
+    the given internal port declaration.
+/]
+[query public getPVVarName(anAtomInternalDecl : AtomInternalPortDeclaration) : String = '_iport_decl_pv__' + anAtomInternalDecl.name /]
+
+[query public getIsEnabledVarName(anAtomInternalDecl : AtomInternalPortDeclaration) : String = '_iport_decl_isEnabled__' + anAtomInternalDecl.name /]
+
+[query public getIsPreviouslyEnabledVarName(anAtomInternalDecl : AtomInternalPortDeclaration) : String = '_iport_decl_isPreviouslyEnabled__' + anAtomInternalDecl.name /]
+
+[query public getIsEnabledByTransitionsVarName(anAtomInternalDecl : AtomInternalPortDeclaration) : String = '_iport_decl_isEnabledByTransitions__' + anAtomInternalDecl.name /]
+
+[query public pguardVarName(anAtomPrioDecl : AtomPriorityDeclaration) : String = '_prioguard__' + anAtomPrioDecl.name /]
+
+[query public penabledVarName(anAtomPrioDecl : AtomPriorityDeclaration) : String = '_prioenabled__' + anAtomPrioDecl.name /]
+
+[query public enabledVarName(path : Sequence(AtomPriorityDeclaration)) : String =
+	let atom : AtomType = path->first().eContainer(AtomType) in
+		'_priopathenabled' +
+		path->iterate(p : AtomPriorityDeclaration ; ret : String = '' | ret + '__' + atom.priorities->indexOf(p))
+/]
+
+[comment 
+    Returns a varname that uniquely identify a transition within
+    the atom.
+ /]
+[query public index(aTransition : Transition) : Integer = 
+    let pn : PetriNet = aTransition.eContainer(PetriNet) in
+        pn.transitions->indexOf(aTransition)
+/]
+
+[query public uniqueVarName(aTransition : Transition) : String = 
+    let pn : PetriNet = aTransition.eContainer(PetriNet) in
+        '_transguard__' + index(aTransition)
+/]
+
+[comment
+    Returns true if the atom has custom data type for at least one of its data
+/]
+[query private usesCustomDataTypes(anAtomType : AtomType) : Boolean = 
+    anAtomType.allDataDeclarations()->select(s:DataDeclaration| not s.dataType.native)->notEmpty()
+/]
+
+[query public internalPorts(atom : AtomType) : OrderedSet(AtomInternalPortDeclaration) =
+	atom.internalPortDeclarations
+/]
+
+[query public externalPorts(atom : AtomType) : OrderedSet(AtomExternalPortDeclaration) =
+	atom.externalPortDeclarations
+/]
+
+[query public transitions(atom : AtomType) : OrderedSet(Transition) =
+	atom.behavior.transitions
+/]
+
+[query public internalTransitions(atom : AtomType) : OrderedSet(Transition) =
+	atom.behavior.transitions->select(t : Transition | t.triggerPort->isEmpty())
+/]
+
+[query public portTransitions(atom : AtomType) : OrderedSet(Transition) =
+	atom.behavior.transitions->select(t : Transition | t.triggerPort->notEmpty())
+/]
+
+[query public internalPortTransitions(atom : AtomType) : OrderedSet(Transition) =
+	atom.behavior.transitions
+		->select(t : Transition | t.triggerPort->notEmpty())
+		->select(t : Transition | t.triggerPort.oclIsKindOf(AtomInternalPortDeclaration))
+/]
+
+[query public externalPortTransitions(atom : AtomType) : OrderedSet(Transition) =
+	atom.behavior.transitions
+		->select(t : Transition | t.triggerPort->notEmpty())
+		->select(t : Transition | t.triggerPort.oclIsKindOf(AtomExternalPortDeclaration))
+/]
+
+[query public transitions(port : AtomInternalExternalPortDeclaration) : OrderedSet(Transition) =
+	port.eContainer(AtomType).behavior.transitions
+		->select(t : Transition | t.triggerPort = port)
+/]
+
+[query public transitions(port : AtomExportPortDeclaration) : Set(Transition) =
+	port.portDeclarationReferences
+		->iterate(p : AtomInternalPortDeclaration ;
+			ret : Set(Transition) = Set { } |
+				ret->union(transitions(p)))
+/]
+
+[query public isExported(aData : DataDeclaration) : Boolean =
+	if (aData.oclIsKindOf(AtomInternalDataDeclaration)) then
+		aData.oclAsType(AtomInternalDataDeclaration).exported
+	else
+		false
+	endif
+/]
+
+[query public exportedData(anAtomType : AtomType) : OrderedSet(AtomInternalDataDeclaration) =
+	anAtomType.internalDataDeclarations
+		->select(dd : AtomInternalDataDeclaration | dd.exported)
+/]
+
+[query public exportedDataTypes(anAtomType : AtomType) : Set(DataType) =
+	anAtomType.exportedData()->collect(dataType)->asSet()
+/]
+
+[query public allDataDeclarations(anAtomType : AtomType) : Sequence(DataDeclaration) =
+	anAtomType.dataParameterDeclarations
+		->asSequence()
+		->union(anAtomType.internalDataDeclarations->asSequence())
+/]
+
+[template public generateHeaderBody(anAtomType : AtomType, disableSerialization : Boolean)
+    {
+        cl : String = anAtomType.className();
+        internalExportedData : Collection(AtomInternalDataDeclaration) = anAtomType.internalDataDeclarations->select(d:AtomInternalDataDeclaration| d.exported);
+        internalBasicData : Collection(DataDeclaration) = anAtomType.allDataDeclarations()->select(ddd:DataDeclaration| ddd.dataType.native);
+        internalNotBasicData : Collection(DataDeclaration) = anAtomType.allDataDeclarations()->select(ddd:DataDeclaration|not ddd.dataType.native);
+    }]
+#include <Atom.hpp>
+
+[for (userInclude : String | anAtomType.getUserIncludes()) before('// User include given in @cpp annotation\n')]
+#include <[userInclude/]>
+[/for]
+
+[for (classNameWithPath : String | anAtomType.aIPTypesWithRelPath())]
+#include <[classNameWithPath/]>
+[/for]
+
+[for (classNameWithPath : String | anAtomType.aExternalPTypesWithRelPath())]
+#include <[classNameWithPath/]>
+[/for]
+
+[for (classNameWithPath : String | anAtomType.aEPTypesWithRelPath())]
+#include <[classNameWithPath/]>
+[/for]
+
+[for (classNameWithPath : String | anAtomType.pVTypesWithRelPath())]
+#include <[classNameWithPath/]>
+[/for]
+
+[for (aDataType : DataType | anAtomType.exportedDataTypes())]
+#include <[relHppFilePath(anAtomType, aDataType.exportDataClassName(anAtomType))/]>
+[/for]
+
+[if (isMarshEnabled())]
+// for memcpy
+#include <string.h>
+// for marshalling, need BipError
+#include <CycleInAtomPrioritiesError.hpp>
+#include <NonDeterministicPetriNetError.hpp>
+#include <NonOneSafePetriNetError.hpp>
+[/if]
+
+class [cl /] : public Atom {
+private:
+[for (decl : AtomInternalPortDeclaration | internalPorts(anAtomType)) before ('   // internal ports & associated port values\n')]
+    [decl.portType.atomInternalClassName()/] &[decl.varName() /];
+    [decl.portType.portValueClassName()/] [decl.getPVVarName() /];
+[/for]
+[for (decl : AtomExternalPortDeclaration | externalPorts(anAtomType)) before ('   // external ports\n')]
+    [decl.atomExternalClassName()/] &[decl.varName() /];
+[/for]
+[for (decl : AtomExportPortDeclaration | anAtomType.exportPortDeclarations) before('\n    // exported ports\n')]
+    [decl.portType.atomExportClassName()/] &[decl.varName()/];
+[/for][for (decl : DataDeclaration | anAtomType.exportedDataDeclarations) before('\n    // exported data\n')]
+    [decl.dataType.exportDataClassName(anAtomType)/] &[decl.exportedVarName()/];
+[/for]
+public:
+    [anAtomType.genCtorProto()/];
+    virtual ~[cl /]();
+
+    virtual BipError& execute(PortValue &portValue);
+    virtual BipError& execute(AtomExternalPort &portValue);
+    virtual BipError& initialize();
+[if (not disableSerialization)]
+    virtual string toString() const;
+[/if]
+
+[for (ddecl : AtomInternalDataDeclaration | internalExportedData)
+      before('    // getters for exported data\n')]
+    const [ddecl.dataType.typeName()/] & get_[ddecl.name/]() const;
+[/for]
+[if (isMarshEnabled())]
+    size_t bytesSize() const;
+    char* toBytes(char*buf, size_t *len) const;
+    bool fromBytes(const char *buf, size_t len);
+    bool disposeBytes(const char *buf) const;
+[/if]
+protected:
+    BipError& update();
+[if (isOptimEnabled('transitions-update'))]
+    BipError& update_all();
+    BipError& update_initial();
+[for (t : Transition | anAtomType.behavior.transitions)]
+    BipError& update_[index(t)/]();
+[/for]
+[/if]
+
+    BipError& executeInternalTransitions();
+    BipError& checkInvariants();
+
+    const static size_t bvector_size = [anAtomType.numStates()/]/(8*sizeof(int))+(([anAtomType.numStates()/]%(8*sizeof(int))) > 0 ? 1 : 0);
+    int __statesbv['['/] bvector_size [']'/];
+    [for (dd : DataDeclaration | anAtomType.allDataDeclarations()) before('\n    // component data declarations\n')]
+    [if (dd.const)]const [/if][dd.dataType.typeName()/] [dd.varName()/];
+    [/for]
+    [for (t : Transition | anAtomType.behavior.transitions) before('\n    // enabledness of transitions\n')]
+    bool [t.uniqueVarName()/];
+    [/for]
+    [for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // guards of priorities\n')]
+    bool [p.pguardVarName()/];
+    [/for]
+    [for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // enabledness of priorities\n')]
+    bool [p.penabledVarName()/];
+    [/for]
+    [for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // enabledness of priority paths\n') separator('\n')]
+    [for (path : Sequence(AtomPriorityDeclaration) | paths(p))]
+    bool [enabledVarName(path)/];
+    [/for]
+    [/for]
+
+    // index of the latest executed transition
+    int __previous;
+
+[for (aState : State | anAtomType.behavior.states)]
+    bool at[aState.name/]() const;
+    bool to[aState.name/]();
+    bool from[aState.name/]();
+[/for]
+};
+[for (ddecl : AtomInternalDataDeclaration | internalExportedData)
+    before('\n// getters\n') separator('\n')]
+inline
+const [ddecl.dataType.typeName()/] & [cl/]::get_[ddecl.name/]() const {
+    return [ddecl.varName()/];
+}
+[/for]
+[if (isMarshEnabled())]
+
+inline size_t [cl/]::bytesSize() const {
+    size_t size = ([anAtomType.sizeOfBasicData()/]) + // basic data
+                  ([anAtomType.sizeOfInternals()/]) + // internals
+                  ([anAtomType.sizeOfNotBasicData()/]); // non basic
+    [comment][for (dd : AtomInternalDataDeclaration | internalNotBasicData)]
+    [dd.dataType.typeName()/]_sizeof([dd.varName()/]);
+    [/for][/comment]
+    return size;
+}
+
+inline char * [cl/]::toBytes(char *buf, size_t *len) const{
+    char *c; 
+    *len = bytesSize();
+    if (buf == NULL) {
+        c = new char['['/] *len [']'/];
+    } else {
+        c = buf;
+    }
+
+    size_t idx = 0;
+    // store pnet state
+    memcpy(c+idx, __statesbv, bvector_size*sizeof(int));
+    idx += bvector_size*sizeof(int);
+
+    [for (dd : DataDeclaration | internalBasicData) before('    // copy basic data\n')]
+    [if (dd.dataType.name = 'string')]
+    memcpy(c+idx, [dd.varName()/].c_str(), [dd.varName()/].size() + 1);
+    idx += [dd.varName()/].size() + 1;
+    [else]
+    memcpy(c+idx, &[dd.varName()/], sizeof([dd.dataType.typeName()/]));
+    idx += sizeof([dd.dataType.typeName()/]);
+    [/if]
+    [/for]
+
+    [for (dd : DataDeclaration | internalNotBasicData) before('    // copy non basic data\n')]
+    //memcpy(c+idx, &[dd.varName()/], sizeof([dd.dataType.typeName()/]));
+    [dd.dataType.functionNameForMarshallingNBD()/](c+idx, &[dd.varName()/]);
+    idx += [dd.dataType.functionNameForSizeOfNBD()/]([dd.varName()/]);
+    [/for]
+    assert(*len == idx);
+    return c;
+}
+
+inline bool [cl/]::fromBytes(const char *buf, size_t len) {
+    const char *c = buf;
+    size_t idx = 0;
+    // restore pnet state
+    memcpy(__statesbv, c, bvector_size*sizeof(int));
+    c+= bvector_size*sizeof(int);
+    idx += bvector_size*sizeof(int);
+    [for (dd : DataDeclaration | internalBasicData) before('    // basic data\n')]
+    [if (dd.dataType.name = 'string')]
+    [dd.varName()/] = std::string(c);
+    c += [dd.varName()/].size()+1;
+    idx += [dd.varName()/].size()+1;
+    [else]
+    memcpy(&[dd.varName()/], c, sizeof([dd.dataType.typeName()/]));
+    idx += sizeof([dd.dataType.typeName()/]);
+    c += sizeof([dd.dataType.typeName()/]);
+    [/if]
+    [/for]
+
+    [for (dd : DataDeclaration | internalNotBasicData) before('    // non basic data\n')]
+    // memcpy(&[dd.varName()/], c, sizeof([dd.dataType.typeName()/]));
+    [dd.dataType.functionNameForUnmarshallingNBD()/](&[dd.varName()/], c);
+    idx += [dd.dataType.functionNameForSizeOfNBD()/]([dd.varName()/]);
+    c += [dd.dataType.functionNameForSizeOfNBD()/]([dd.varName()/]);
+    [/for]
+    assert(len == idx);
+
+    // disable check of previous transition
+    __previous = -1;
+
+    // execute internal transitions
+    BipError *ret = &executeInternalTransitions();
+
+    if (ret->type() != NO_ERROR) return false;
+
+    return (update().type() != NO_ERROR);
+}
+
+inline bool [cl/]::disposeBytes(const char *buf) const {
+    delete['[]'/] buf;
+    return true;
+}
+[/if]
+[/template]
+
+
+[comment
+    if prio has the form XXXX < p1, then simply check if the port p1 has a port value
+    if prio has the form WWWW < *, then check if any other port (ie. <> WWWW) has a port value
+/]
+[template public isUpStateRuleEnabled(aPrioDecl : AtomPriorityDeclaration) post(trim())]
+[if (aPrioDecl.high->notEmpty())]
+this->[aPrioDecl.high.varName()/].isEnabled()
+[else]
+([for (aPortDecl : AtomInternalPortDeclaration | aPrioDecl.eContainer(AtomType).internalPortDeclarations->select(p:AtomInternalPortDeclaration| p<> aPrioDecl.low))
+      separator(' || ')]
+this->[aPortDecl.varName()/].isEnabled()[/for])
+[/if]
+[/template]
+
+[template private genCondition(path : Sequence(AtomPriorityDeclaration)) post(trim())]
+([for (prio : AtomPriorityDeclaration | path) separator(' && ')]
+[prio.pguardVarName()/][/for] && [path->last().isUpStateRuleEnabled()/])
+[/template]
+
+[template private genComment(path : Sequence(AtomPriorityDeclaration)) post(trim())]
+[for (p : AtomPriorityDeclaration | path) separator(', ')][p.name/][/for]
+[/template]
+
+[template private genComment(port : AtomInternalPortDeclaration, path : Sequence(AtomPriorityDeclaration)) post(trim())]
+[port.name/][for (p : AtomPriorityDeclaration | path) before(' < ') separator(' < ')]
+[if (p.high->notEmpty())][p.high.name/][else]*[/if][/for]
+[/template]
+
+[template private generatePriorityCondition(port : AtomInternalPortDeclaration,
+	paths : Set(Sequence(AtomPriorityDeclaration)),
+	tab : String)
+	post(trim()) {
+	orderedPaths : Sequence(Sequence(AtomPriorityDeclaration)) = paths->asSequence();
+}]
+[for (path : Sequence(AtomPriorityDeclaration) | orderedPaths)]
+[tab/][enabledVarName(path)/][if (orderedPaths->indexOf(path) < paths->size())] ||[/if] // [genComment(port, path)/]
+[/for]
+[/template]
+
+[template private generateUpdateGuardsOfPriorities(priorities : Set(AtomPriorityDeclaration)) post(trim())]
+[for (prio : AtomPriorityDeclaration | priorities) before('\n// update guards of priorities\n')]
+[if (prio.guard->notEmpty())][prio.guard.gtc()/][/if]
+[prio.pguardVarName()/] = [if (prio.guard->notEmpty())][prio.guard.generateExpression()/][else]true[/if];
+[/for]
+[/template]
+
+[template private generateCheckForCyclesInPriorities(atom : AtomType, priorities : Set(AtomPriorityDeclaration)) post(trim())]
+[for (cycle : Set(AtomPriorityDeclaration) |
+		cycles(atom)->select(c : Set(AtomPriorityDeclaration) |
+			c->intersection(priorities)->notEmpty()))
+      before ('// check for cycles in priorities\nif (') 
+      separator(' || \n    ') 
+      after(')\n    return *(new CycleInAtomPrioritiesError());\n')]
+[for (prio : AtomPriorityDeclaration | cycle) before('(') separator(' && ') after(')') ]
+[prio.pguardVarName()/][/for]
+[/for]
+[/template]
+
+[template private generatePriorities(atom : AtomType,
+	transitions : Set(Transition),
+	priorities : Set(AtomPriorityDeclaration),
+	errorVarName : String)
+	post(trim()) {
+	ports : Set(AtomInternalPortDeclaration) =
+		atom.internalPortDeclarations
+			->select(p : AtomInternalPortDeclaration |
+				p.isResetBy(transitions, priorities));
+}]
+[generateUpdateGuardsOfPriorities(priorities)/]
+
+[generateCheckForCyclesInPriorities(atom, priorities)/]
+[for (port : AtomInternalPortDeclaration | ports) before('\n') separator('\n')]
+[generatePriorities(port, transitions, priorities)/]
+[/for]
+[/template]
+
+[template private generatePriorities(port : AtomInternalPortDeclaration,
+	transitions : Set(Transition),
+	priorities : Set(AtomPriorityDeclaration)) post(trim()) {
+	modifiedPaths : Set(Sequence(AtomPriorityDeclaration)) =
+		paths(port)
+			->select(path : Sequence(AtomPriorityDeclaration) |
+				isResetBy(path, transitions, priorities));
+	stablePaths : Set(Sequence(AtomPriorityDeclaration)) =
+		paths(port) - modifiedPaths;
+}]
+// recompute modified priority paths
+[for (path : Sequence(AtomPriorityDeclaration) | modifiedPaths)]
+[enabledVarName(path)/] = [genCondition(path)/]; // [genComment(path)/]
+[/for]
+
+// applies priorities to port [port.name/]
+[if (modifiedPaths->notEmpty())]if ([port.generatePriorityCondition(modifiedPaths, '    ')/]
+    ) {
+    // disable port [port.name/]
+    [port.varName()/].setIsDisabledByPriorities(true);
+}
+else [if (stablePaths->notEmpty())]if ([port.generatePriorityCondition(stablePaths, '    ')/]
+    ) {
+    // disable port [port.name/]
+    [port.varName()/].setIsDisabledByPriorities(true);
+}
+else [/if]{
+    [port.varName()/].setIsDisabledByPriorities(false);
+}
+[/if]
+[/template]
+
+[template private genEnabled(aPrio : AtomPriorityDeclaration) ? (appliesHigh(aPrio)->isEmpty())]
+[aPrio.pguardVarName()/]
+[/template]
+
+[template private genEnabled(aPrio : AtomPriorityDeclaration) ? (appliesHigh(aPrio)->notEmpty())]
+[aPrio.pguardVarName()/] && ([for (p : AtomInternalPortDeclaration | appliesHigh(aPrio)) separator(' || ')][p.varName()/].isEnabled()[/for])
+[/template]
+
+[template private sizeOfInternals(anAtomType : AtomType) post(trim())]
+(bvector_size*sizeof(int))
+[/template]
+
+[template private sizeOfBasicData(anAtomType : AtomType) post(trim())
+{
+        cl : String = anAtomType.className();
+        internalBasicData : Collection(DataDeclaration) = anAtomType.allDataDeclarations()->select(ddd:DataDeclaration| ddd.dataType.native);
+    }
+]
+0 [for (dd : DataDeclaration | internalBasicData) before('+ ') separator('+')][if (dd.dataType.name = 'string')][dd.varName()/].size()+1[else]sizeof([dd.dataType.typeName()/])[/if][/for]
+[/template]
+
+[template private functionNameForSizeOfNBD(aNonBasicDataType : DataType) post(trim())]
+[aNonBasicDataType.name/]_sizeof
+[/template]
+
+[template private functionNameForMarshallingNBD(aNonBasicDataType : DataType) post(trim())]
+[aNonBasicDataType.name/]_marshalling
+[/template]
+
+[template private functionNameForUnmarshallingNBD(aNonBasicDataType : DataType) post(trim())]
+[aNonBasicDataType.name/]_unmarshalling
+[/template]
+
+[template private sizeOfNotBasicData(anAtomType : AtomType) post(trim())
+{
+        cl : String = anAtomType.className();
+        internalNotBasicData : Collection(DataDeclaration) = anAtomType.allDataDeclarations()->select(ddd:DataDeclaration| not ddd.dataType.native);
+    }
+]
+0 [for (dd : DataDeclaration | internalNotBasicData) before('+ ') separator('+')][dd.dataType.functionNameForSizeOfNBD()/]([dd.varName()/])[/for]
+[/template]
+
+[template public generateImplemBody(anAtomType : AtomType, disableSerialization: Boolean)
+    {
+        cl : String = anAtomType.className();
+    }]
+[if (not disableSerialization)]
+#include <iostream>
+#include <sstream>
+[/if]
+
+#include <CycleInAtomPrioritiesError.hpp>
+#include <NonDeterministicPetriNetError.hpp>
+#include <NonOneSafePetriNetError.hpp>
+#include <AtomInvariantViolationError.hpp>
+
+[for (aState : State | anAtomType.behavior.states)]
+
+bool [cl/]::at[aState.name/] () const {
+    return __statesbv['['/] [aState.cindex() /]/(8*sizeof(int))[']'/] & 1<< ([aState.cindex()/]%(8*sizeof(int)));
+}
+
+bool [cl/]::to[aState.name/] () {
+    if (at[aState.name/]()) return false;
+    __statesbv['['/] [aState.cindex() /]/(8*sizeof(int))[']'/] |= 1<< ([aState.cindex()/]%(8*sizeof(int)));
+    return true;
+}
+
+bool [cl/]::from[aState.name/] () {
+    if (!at[aState.name/]()) return false;
+    __statesbv['['/] [aState.cindex() /]/(8*sizeof(int))[']'/] &= ~(1<< ([aState.cindex()/]%(8*sizeof(int))));
+    return true;
+}
+[/for]
+
+[cl/]::[anAtomType.genCtorProto()/] :  ComponentItf(name, ATOM), Atom(name) [anAtomType.genCtorInit()/] {
+[for (decl : AtomInternalPortDeclaration | internalPorts(anAtomType)) separator('\n    // link data internal to internal port\n')]
+    this->addInternalPort([decl.varName()/]);
+[/for][for (decl : AtomExternalPortDeclaration | externalPorts(anAtomType)) separator('\n    // link data external to internal port\n')]
+    this->addExternalPort([decl.varName()/]);
+[/for]
+[for (decl : AtomExportPortDeclaration | anAtomType.exportPortDeclarations) before('    // export port\n')]
+    this->addPort([decl.varName()/]);
+[/for]
+[for (decl : AtomInternalDataDeclaration | anAtomType.exportedData()) before('    // export data\n')]
+    this->addData([decl.exportedVarName()/]);
+[/for]
+}
+
+BipError& [cl/]::execute(PortValue &portValue) {
+    BipError *ret = &BipError::NoError;
+
+#ifndef NDEBUG
+    bool something_happened = false;
+#endif
+
+    // find the right transitions to execute
+[for (t : Transition | internalPortTransitions(anAtomType)) before('    ') separator(' else ')]
+if ((&[t.triggerPort.oclAsType(AtomInternalPortDeclaration).getPVVarName()/] == &portValue) && [t.uniqueVarName()/]) {
+        // check consistency (enabledness, port values, ...)
+        assert([t.triggerPort.oclAsType(AtomInternalPortDeclaration).varName()/].hasPortValue());
+        assert(&[t.triggerPort.oclAsType(AtomInternalPortDeclaration).varName()/].portValue() == &portValue);
+
+        // check at most one transitions is executed
+        assert(!something_happened);
+[if (isOptimEnabled('ports-reset'))]
+
+        // reset ports exporting variables modified by transition execution
+		[for (aep : AtomExportPortDeclaration | anAtomType.exportPortDeclarations)]
+        [if (exportedVariables(aep)->intersection(writtenVariables(t))->notEmpty())]
+        [aep.varName()/].setIsReset(true);
+		[else]
+        [aep.varName()/].setIsReset(false);
+		[/if]
+		[/for]
+[/if]
+        [for (aidd : AtomInternalDataDeclaration | anAtomType.exportedData()) before('\n        // reset exported data\n')]
+[if (isOptimEnabled('ports-reset'))]
+        [if (writtenVariables(t)->includes(aidd))]
+        [aidd.exportedVarName()/].setIsReset(true);
+        [else]
+        [aidd.exportedVarName()/].setIsReset(false);
+		[/if]
+[else]
+        [aidd.exportedVarName()/].setIsReset(true);
+[/if]
+		[/for]
+
+[generateTransitionExecution(t, '        ')/]
+        
+#ifndef NDEBUG
+        something_happened = true;
+#endif
+    }[/for]
+
+    if (ret->type() != NO_ERROR) return *ret;
+
+    // check that at least one transition has been executed
+    assert(something_happened);
+
+    // execute internal transitions
+    ret = &executeInternalTransitions();
+
+    if (ret->type() != NO_ERROR) return *ret;
+
+    return update();
+}
+
+BipError& [cl/]::execute(AtomExternalPort &port) {
+   BipError *ret = &BipError::NoError;
+
+#ifndef NDEBUG
+    bool something_happened = false;
+#endif
+
+[for (decl : AtomExternalPortDeclaration | externalPorts(anAtomType)) separator('\n')]
+    if (&port == &[decl.varName()/]) {
+        // make sure that '[decl.name/]' needs to be executed
+        assert ([decl.varName()/].waiting() && [decl.varName()/].hasEvent());
+        [for (param : DataDeclarationReferenceDataParameter | decl.dataParameters) before('\n        // synchronize external data with internal data\n') after('\n')]
+        [param.dataDeclarationReference.varName()/] = [decl.varName()/].lastEvent_get_[param.parameterDeclaration.name/]();
+        [/for]
+        [for (t : Transition | externalPortTransitions(anAtomType)->select(t : Transition | t.triggerPort = decl))
+    	    before('        // find the right transition to execute\n') separator('\n')]
+        if ([t.uniqueVarName()/]) {
+            assert(!something_happened);
+
+[generateTransitionExecution(t, '            ')/]
+
+            // pop event
+            [decl.varName()/].popEvent();
+
+#ifndef NDEBUG
+            something_happened = true;
+#endif
+        }
+[/for]
+    }
+[/for]
+    if (ret->type() != NO_ERROR) return *ret;
+
+    // check that at least one transition has been executed
+    assert(something_happened);
+
+    // execute internal transitions
+    ret = &executeInternalTransitions();
+
+    if (ret->type() != NO_ERROR) return *ret;
+
+    return update();
+}
+
+BipError& [cl/]::initialize() {
+    BipError *ret = &BipError::NoError;
+    
+[for (decl : AtomInternalPortDeclaration | internalPorts(anAtomType)) before('    // reset status of ports\n')]
+    [decl.varName()/].clearPortValue();
+[/for]
+
+[for (t : Transition | transitions(anAtomType)) before('    // reset status of transitions\n')]
+    [t.uniqueVarName()/] = false;
+[/for]
+[for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // reset status of guards of priorities\n')]
+    [p.pguardVarName()/] = true;
+[/for]
+[for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // reset status of enabledness of priorities\n')]
+    [p.penabledVarName()/] = true;
+[/for]
+[for (p : AtomPriorityDeclaration | anAtomType.priorities) before('\n    // reset status of enabledness of priority paths\n') separator('\n')]
+[for (path : Sequence(AtomPriorityDeclaration) | paths(p))]
+    [enabledVarName(path)/] = true;
+[/for]
+[/for]
+
+    // initialize to empty marking
+    for (unsigned int idx = 0; idx < bvector_size; idx++){
+        __statesbv['['/]idx[']'/] = 0;
+    }
+
+[generateInitialTransitionExecution(anAtomType.behavior, '    ')/]
+
+    if (ret->type() != NO_ERROR) return *ret;
+
+    // execute (initial) internal transitions
+    ret = &executeInternalTransitions();
+
+    if (ret->type() != NO_ERROR) return *ret;
+
+    return update();
+}
+[if (not disableSerialization)]
+
+string [cl/]::toString() const {
+    ostringstream oss;
+    bool first=true;
+    [for (state : State | anAtomType.behavior.states)]
+    if (at[state.name/]()) {
+      if (!first) oss << ", ";
+      else {
+        first = false;
+        oss << "at ";
+      }
+      oss << "[state.name/]";
+    }
+    [/for]
+
+    [for (dd : DataDeclaration | anAtomType.allDataDeclarations())]
+    if (first) first = false;
+    else oss << std::endl;
+    oss << "[dd.name/]=" << [dd.varName()/];
+    [/for]
+
+    return oss.str(); 
+}
+[/if]
+
+BipError& [cl/]::update() {
+    BipError *ret = &BipError::NoError;
+
+[if (isOptimEnabled('transitions-update'))]
+    switch (__previous) {
+       case -1:
+         ret = &update_all();
+         break;
+
+       case 0:
+         ret = &update_initial();
+         break;
+    [for (t : Transition | transitions(anAtomType)) before('\n') separator('\n')]
+       case [index(t)/]:
+         ret = &update_[index(t)/]();
+         break; 
+    [/for]
+
+        default:
+          assert(false);
+    }
+[else]
+    [generateUpdateFromScratch(anAtomType)/]
+[/if]
+[if (isOptimEnabled('ports-reset'))]
+
+    if (__previous == -1) {
+        // values of variables associated to ports may have changed
+        [for (decl : AtomExportPortDeclaration | anAtomType.exportPortDeclarations)]
+        [decl.varName()/].setIsReset(true);
+        [/for]
+    }
+[/if]
+
+    return *ret;
+}
+[if (isOptimEnabled('transitions-update'))]
+BipError& [cl/]::update_all() {
+    BipError *ret = &BipError::NoError;
+
+    [generateUpdateFromScratch(anAtomType)/]
+
+    return *ret;
+}
+
+BipError& [cl/]::update_initial() {
+    BipError *ret = &BipError::NoError;
+
+    [generateUpdateFromInitial(anAtomType)/]
+
+    return *ret;
+}
+
+[for (previous : Transition | transitions(anAtomType))]
+BipError& [cl/]::update_[index(previous)/]() {
+    BipError *ret = &BipError::NoError;
+
+    [generateUpdate(anAtomType, previous)/]
+
+    return *ret;
+}
+
+[/for]
+[/if]
+
+BipError &[cl/]::executeInternalTransitions() {
+    BipError &ret = BipError::NoError;
+
+    // used to record the enabled internal transition
+    int __enabled_internal = 0;
+
+    do {
+[if (isOptimEnabled('transitions-update'))]
+        // recompute the enabled internal transition(s)
+        switch (__previous) {
+          case -1:
+            [for (t : Transition | internalTransitions(anAtomType))]
+            if ([t.testSources()/]
+[if (t.guard->notEmpty())][t.gtc()/][/if]
+                [t.testGuard('&&')/]) {
+                [t.uniqueVarName()/] = true;
+
+                if (__enabled_internal == 0) {
+                    __enabled_internal = [index(t)/];
+                }
+                else {
+                    NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+                    return *r;
+                }
+            }
+            else {
+                [t.uniqueVarName()/] = false;
+            }
+
+            [/for]
+            break;
+
+          case 0:
+            [for (t : Transition |
+				internalTransitions(anAtomType)
+					->intersection(transitionsToUpdateAfterInitial(anAtomType)))]
+            if ([t.testSources()/]
+[if (t.guard->notEmpty())][t.gtc()/][/if]
+                [t.testGuard('&&')/]) {
+                [t.uniqueVarName()/] = true;
+
+                if (__enabled_internal == 0) {
+                    __enabled_internal = [index(t)/];
+                }
+                else {
+                    NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+                    return *r;
+                }
+            }
+            else {
+                [t.uniqueVarName()/] = false;
+            }
+
+            [/for]
+            break;
+          [for (previous : Transition | transitions(anAtomType)) before('\n') separator('\n')]
+          [let transitionsToUpdateAfterPrevious : OrderedSet(Transition) = resetTransitions(anAtomType, Set { Sequence { previous } }, Set { }, Set { })]
+          [let transitionsEnabledAfterPrevious : OrderedSet(Transition) = enabledTransitions(anAtomType, Set { Sequence { previous } }, Set { })]
+          [let transitionsDisabledAfterPrevious : OrderedSet(Transition) = disabledTransitions(anAtomType, Set { Sequence { previous } }, Set { })]
+          case [index(previous)/]:
+            [if (previous.triggerPort->isEmpty())]
+            assert(__previous == __enabled_internal);
+
+            [/if]
+            [if (transitionsToUpdateAfterPrevious->includes(previous))]
+            // reset enabled internal transition
+            __enabled_internal = 0;
+
+            [/if]
+            [for (t : Transition |
+				internalTransitions(anAtomType)
+					->intersection(transitionsToUpdateAfterPrevious))]
+            [if (transitionsEnabledAfterPrevious
+					->includes(t))]
+            [t.uniqueVarName()/] = true;
+			[elseif (transitionsEnabledAfterPrevious
+					->includes(t))]
+            [t.uniqueVarName()/] = false;
+			[else]
+            [t.uniqueVarName()/] = ([t.testSources()/]
+[if (t.guard->notEmpty())][t.gtc()/][/if]
+                [t.testGuard('&&')/]);
+			[/if]
+
+            if ([t.uniqueVarName()/]) {
+                [t.uniqueVarName()/] = true;
+
+                if (__enabled_internal == 0) {
+                   __enabled_internal = [index(t)/];
+                }
+                else {
+                    NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+                    return *r;
+                }
+            }
+
+            [/for]
+            break;
+          [/let]
+          [/let]
+          [/let]
+          [/for]
+
+        default:
+          assert(false);
+        }
+[else]
+        // recompute enabled internal transitions
+        __enabled_internal = 0;
+
+        [for (t : Transition | internalTransitions(anAtomType))]
+        if ([t.testSources()/]
+[if (t.guard->notEmpty())][t.gtc()/][/if]
+            [t.testGuard('&&')/]) {
+            [t.uniqueVarName()/] = true;
+
+            if (__enabled_internal == 0) {
+                __enabled_internal = [index(t)/];
+            }
+            else {
+                NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+                return *r;
+            }
+        }
+        else {
+            [t.uniqueVarName()/] = false;
+        }
+        [/for]
+[/if]
+
+        // execute the enabled internal transition if exist
+        if (__enabled_internal != 0) {
+            switch (__enabled_internal) {
+              [for (t : Transition | internalTransitions(anAtomType))]
+              case [index(t)/]:
+                // enabled internal transition should be enabled
+                assert([t.uniqueVarName()/]);
+
+                // execute internal transition
+[generateTransitionExecution(t, '                ')/]
+
+                [if (isOptimEnabled('ports-reset'))]
+                // reset exported ports if exported data are modified
+                [for (p : AtomExportPortDeclaration | anAtomType.exportPortDeclarations->select(p : AtomExportPortDeclaration | exportedVariables(p)->intersection(writtenVariables(t))->notEmpty()))]
+                [p.varName()/].setIsReset(true);
+                [/for]
+                [/if]
+                break;
+
+              [/for]
+
+              default:
+                assert(false);
+            }
+        }
+    } while (__enabled_internal != 0);
+
+    return ret;
+}
+
+[cl /]::~[cl /]() {
+}
+[/template]
+
+[template private generateRecomputePort(port : AtomExportPortDeclaration) ? (isOptimEnabled('ports-reset')) post(trim())]
+// check whether status of [port.name/] has changed
+if ([for (iport : AtomInternalPortDeclaration | port.portDeclarationReferences) separator(' && ')][iport.varName()/].hasPortValue() == false && [iport.varName()/].isPreviouslyEnabled() == false[/for]) {
+    [port.varName()/].setIsReset(false);
+}
+else if ([for (iport : AtomInternalPortDeclaration | port.portDeclarationReferences) separator(' || ')][iport.varName()/].hasPortValue() != [iport.varName()/].isPreviouslyEnabled()[/for]) {
+    // force recomputation of connectors involving [port.name/]
+    [port.varName()/].setIsReset(true);
+
+    [generateRecomputePortValues(port)/]
+}
+[/template]
+
+[template private generateRecomputePort(port : AtomExportPortDeclaration) ? (not isOptimEnabled('ports-reset')) post(trim())]
+// force recomputation of connectors involving [port.name/]
+[port.varName()/].setIsReset(true);
+
+[generateRecomputePortValues(port)/]
+[/template]
+
+[template private generateRecomputePortValues(port : AtomExportPortDeclaration) post(trim())]
+// recompute port values of [port.name/] from scratch
+this->[port.varName()/].portValues().clear();
+
+[for (iport : AtomInternalPortDeclaration | port.portDeclarationReferences) separator('\n')]
+// check port value of [iport.name/] exported by [port.name/]
+if (this->[iport.varName()/].hasPortValue()) {
+    this->[port.varName()/].addPortValue([iport.getPVVarName()/]);
+}
+[/for]
+[/template]
+
+[template private generateRecomputePortValue(port : AtomInternalPortDeclaration) post(trim())]
+[if (isOptimEnabled('ports-reset'))]
+// keep track of the previous status of [port.name/]
+this->[port.varName()/].setIsPreviouslyEnabled(this->[port.varName()/].hasPortValue());
+
+[/if]
+// update port value of [port.name/]
+if (this->[port.varName()/].isEnabled() && !this->[port.varName()/].isDisabledByPriorities()) {
+    this->[port.varName()/].setPortValue([port.getPVVarName()/]);
+}
+else {
+    this->[port.varName()/].clearPortValue();
+}
+[/template]
+
+[template private generateResetPort(port : AtomInternalExternalPortDeclaration, stableTransitions : Set(Transition)) post(trim()) ]
+INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'AtomInternalExternalPortDeclaration'
+[/template]
+
+[template private generateResetPort(port : AtomInternalPortDeclaration, stableTransitions : Set(Transition)) post(trim())]
+[if (stableTransitions->isEmpty())]
+this->[port.varName()/].setIsEnabled(false);
+[else]
+this->[port.varName()/].setIsEnabled([for (t : Transition | stableTransitions) separator(' || ')][t.uniqueVarName()/][/for]);
+[/if]
+[/template]
+
+[template private generateResetPort(port : AtomExternalPortDeclaration, stableTransitions : Set(Transition)) post(trim())]
+[if (stableTransitions->isEmpty())]
+this->[port.varName()/].setWaiting(false);
+[else]>intersection(writtenVariables(transition
+this->[port.varName()/].setWaiting([for (t : Transition | stableTransitions) separator(' || ')][t.uniqueVarName()/][/for]);
+[/if]
+[/template]
+
+[template private generateActivatePort(port : AtomInternalExternalPortDeclaration) post(trim())]
+#error INCOMPLETE, MISSING TEMPLATE FOR A SUBTYPE OF 'AtomInternalExternalPortDeclaration' for [port.name/]
+[/template]
+
+[template private generateActivatePort(port : AtomInternalPortDeclaration) post(trim())]
+if ([port.varName()/].isEnabled()) {
+    NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+    r->setPort([port.varName()/]);
+
+    return *r;
+}
+
+[port.varName()/].setIsEnabled(true);
+[/template]
+
+[template private generateActivatePort(port : AtomExternalPortDeclaration) post(trim())]
+if ([port.varName()/].waiting()) {
+    NonDeterministicPetriNetError *r = new NonDeterministicPetriNetError(*this);
+    // FIXME: not the right type! r->setPort([port.varName()/]);
+    // it is the caller's responsibility to handle memory.
+    // there need to be a 'delete' somewhere. 
+    return *r;
+}
+
+[port.varName()/].setWaiting(true);
+[/template]
+
+[template private generateUpdatePort(port : AtomInternalExternalPortDeclaration,
+	transitions : Set(Transition),
+	enabledTransitions : Set(Transition),
+	disabledTransitions : Set(Transition)) post(trim()) {
+	stableTransitions : Set(Transition) = transitions(port) - transitions;
+}]
+// reset status of port [port.name/]
+[generateResetPort(port, stableTransitions)/]
+
+[for (t : Transition | enabledTransitions)]
+[if (t.guard->isEmpty())]
+[t.uniqueVarName()/] = true;
+
+[generateActivatePort(t.triggerPort)/]
+[else]
+[t.uniqueVarName()/] = [t.guard.generateExpression()/];
+
+if ([t.uniqueVarName()/]) {
+    [generateActivatePort(t.triggerPort)/]
+}
+[/if]
+[/for]
+[for (t : Transition | disabledTransitions)]
+[t.uniqueVarName()/] = false;
+[/for]
+[for (t : Transition | (transitions - enabledTransitions) - disabledTransitions)]
+[t.uniqueVarName()/] = ([t.testSources()/]
+[if (t.guard->notEmpty())][t.gtc()/][/if]
+            [t.testGuard('&&')/]);
+
+if ([t.uniqueVarName()/]) {
+    [generateActivatePort(t.triggerPort)/]
+}
+[/for]
+[/template]
+
+[template private generateUpdateFromScratch(atom : AtomType) post(trim())]
+[generateUpdate(atom, atom.behavior.transitions, OrderedSet { }, OrderedSet { }, atom.priorities)/]
+[/template]
+
+[template private generateUpdateFromInitial(atom : AtomType) post(trim()) {
+	earlyUpdatedPorts : Set(AtomExportPortDeclaration) =
+		if isOptimEnabled('early-update') then
+			atom.exportPortDeclarations
+			-
+			unstablePortsAfterInitialTo(atom)
+		else
+			Set { }
+		endif;
+
+	transitions : Set(Transition) =
+		transitionsToUpdateAfterInitial(atom)
+		-
+		transitions(earlyUpdatedPorts);
+
+	enabledTransitions : Set(Transition) =
+		transitionsEnabledAfterInitial(atom)
+			->intersection(transitions);
+
+	priorities : OrderedSet(AtomPriorityDeclaration) =
+		prioritiesToUpdateAfterInitial(atom);
+}]
+[generateUpdate(atom, transitions, enabledTransitions, OrderedSet { }, atom.priorities)/]
+[/template]
+
+[template private generateUpdate(atom : AtomType, transition : Transition) ? (transition.triggerPort->isEmpty()) post(trim()) {
+	transitions : Set(Transition) =
+		transitionsToUpdateAfter(transition);
+
+	enabledTransitions : Set(Transition) =
+		transitionsEnabledAfter(transition)
+			->intersection(transitions);
+
+	disabledTransitions : Set(Transition) =
+		transitionsDisabledAfter(transition)
+			->intersection(transitions);
+
+	priorities : Set(AtomPriorityDeclaration) =
+		prioritiesToUpdateAfter(transition);
+}]
+[generateUpdate(atom, transitions, enabledTransitions, disabledTransitions, priorities)/]
+[/template]
+
+[template private generateUpdate(atom : AtomType, transition : Transition) ? (transition.triggerPort->notEmpty()) post(trim()) {
+	earlyUpdatedPorts : Set(AtomExportPortDeclaration) =
+		if isOptimEnabled('early-update') then
+			atom.exportPortDeclarations
+			-
+			unstablePortsAfterFromTo(transition)
+		else
+			Set { }
+		endif;
+
+	transitions : Set(Transition) =
+		transitionsToUpdateAfter(transition)
+		-
+		transitions(earlyUpdatedPorts);
+
+	enabledTransitions : Set(Transition) =
+		transitionsEnabledAfter(transition)
+			->intersection(transitions);
+
+	disabledTransitions : Set(Transition) =
+		transitionsDisabledAfter(transition)
+			->intersection(transitions);
+
+	priorities : OrderedSet(AtomPriorityDeclaration) =
+		prioritiesToUpdateAfter(transition);
+}]
+[generateUpdate(atom, transitions, enabledTransitions, disabledTransitions, priorities)/]
+[/template]
+
+[query public hasEarlyUpdate(port : AtomExportPortDeclaration) : Boolean =
+	let atom : AtomType = port.eContainer(AtomType) in
+		if isOptimEnabled('early-update') then
+			not unstablePortsAfterInitialTo(atom)->includes(port) or
+			atom.behavior.transitions->exists(transition : Transition |
+				not unstablePortsAfterFromTo(transition)->includes(port))
+		else
+			false
+		endif
+/]
+
+[query public hasEarlyUpdate(variable : AtomInternalDataDeclaration) : Boolean =
+	let atom : AtomType = variable.eContainer(AtomType) in
+		if isOptimEnabled('early-update') then
+			not unstableVariablesAfterInitialTo(atom)->includes(variable) or
+			atom.behavior.transitions->exists(transition : Transition |
+				not unstableVariablesAfterFromTo(transition)->includes(variable))
+		else
+			false
+		endif
+/]
+
+[template private generateEarlyUpdateFromInitial(atom : AtomType) post(trim()) {
+	ports : Set(AtomExportPortDeclaration) =
+		atom.exportPortDeclarations
+		-
+		unstablePortsAfterInitialTo(atom);
+
+	transitions : Set(Transition) =		
+		transitionsToUpdateAfterInitial(atom)
+			->intersection(transitions(ports));	
+
+	enabledTransitions : Set(Transition) =
+		transitionsEnabledAfterInitial(atom)
+			->intersection(transitions);
+
+	variables : Set(AtomInternalDataDeclaration) =
+		exportedData(atom)
+		-
+		unstableVariablesAfterInitialTo(atom);
+
+	priorities : Set(AtomPriorityDeclaration) =
+		prioritiesToUpdateAfterInitial(atom)
+		-
+		unstablePrioritiesAfterInitialTo(atom);
+}]
+[generateUpdate(atom, transitions, enabledTransitions, OrderedSet { }, priorities)/]
+[generatePortsReady(ports)/]
+[generateVariablesReady(variables)/]
+[/template]
+
+[template private generateEarlyUpdate(atom : AtomType, transition : Transition) post(trim()) {
+	ports : Set(AtomExportPortDeclaration) =
+		atom.exportPortDeclarations
+		-
+		unstablePortsAfterFromTo(transition);
+
+	transitions : Set(Transition) =
+		transitionsToUpdateAfter(transition)
+			->intersection(transitions(ports));
+
+	enabledTransitions : Set(Transition) =
+		transitionsEnabledAfter(transition)
+			->intersection(transitions);
+
+	disabledTransitions : Set(Transition) =		
+		transitionsDisabledAfter(transition)
+			->intersection(transitions);
+
+	variables : Set(AtomInternalDataDeclaration) =
+		exportedData(atom)
+		-
+		unstableVariablesAfterFromTo(transition);
+
+	priorities : Set(AtomPriorityDeclaration) =
+		prioritiesToUpdateAfter(transition)
+		-
+		unstablePrioritiesAfterFromTo(transition);
+}]
+[generateUpdate(atom, transitions, enabledTransitions, disabledTransitions, priorities)/]
+[generatePortsReady(ports)/]
+[generateVariablesReady(variables)/]
+[/template]
+
+[template private generatePortReady(port : AtomExportPortDeclaration) post(trim())]
+if (![port.varName()/].isReady()) [port.varName()/].setReady();
+[/template]
+
+[template private generatePortsReady(ports : Set(AtomExportPortDeclaration)) post(trim())]
+[for (port : AtomExportPortDeclaration | ports)]
+[generatePortReady(port)/]
+[/for]
+[/template]
+
+[template private generateVariableReady(variable : AtomInternalDataDeclaration) post(trim())]
+if (![variable.exportedVarName()/].isReady()) [variable.exportedVarName()/].setReady();
+[/template]
+
+[template private generateVariablesReady(variables : Set(AtomInternalDataDeclaration)) post(trim())]
+[for (var : AtomInternalDataDeclaration | variables)]
+[generateVariableReady(var)/]
+[/for]
+[/template]
+
+[template private generateUpdate(atom : AtomType,
+	transitions : Set(Transition),
+	enabledTransitions : Set(Transition),
+	disabledTransitions : Set(Transition),
+	priorities : Set(AtomPriorityDeclaration)) post(trim())]
+[for (p : AtomInternalExternalPortDeclaration |
+		atom.internalPortDeclarations->union(atom.externalPortDeclarations)
+			->select(p : AtomInternalExternalPortDeclaration | p.isResetBy(transitions)))
+	before('\n// update status of internal/external ports w.r.t. transitions\n')
+	separator('\n')]
+[generateUpdatePort(p,
+	transitions->intersection(transitions(p)),
+	enabledTransitions->intersection(transitions(p)),
+	disabledTransitions->intersection(transitions(p)))/]
+[/for]
+[generatePriorities(transitions, priorities, 'ret')/]
+[for (port : AtomInternalPortDeclaration |
+		atom.internalPortDeclarations
+			->select(p : AtomInternalPortDeclaration | p.isResetBy(transitions, priorities)))
+	before('\n')
+	separator('\n')]
+[generateRecomputePortValue(port)/]
+[/for]
+[for (port : AtomExportPortDeclaration |
+		atom.exportPortDeclarations
+			->select(p : AtomExportPortDeclaration |
+				p.portDeclarationReferences->exists(intP : AtomInternalPortDeclaration |
+					intP.isResetBy(transitions, priorities))))
+	before('\n')
+	separator('\n')]
+[if (isOptimEnabled('early-update'))]
+if (![port.varName()/].isReady()) {
+  [generateRecomputePort(port)/]
+}
+[else]
+[generateRecomputePort(port)/]
+[/if]
+[/for]
+[/template]
+
+[template private generateInitialTransitionExecution(pn : PetriNet, tab : String) {
+	atom : AtomType = pn.eContainer(AtomType);
+	hasModifiedInvariants : Boolean = invariantsToUpdateAfterInitial(atom)->notEmpty();
+}]
+[tab/]// marking must be initialized to empty
+[tab/]assert([for (s : State | pn.states) separator(' && ')](!at[s.name/]())[/for]);
+[for (ts : State | pn.initStates) before('\n' + tab + '// update initial places\n')]
+[tab/]to[ts.name/]();
+[/for]
+
+[tab/]// record the index of the latest executed transition
+[tab/]__previous = 0;
+[if (isOptimEnabled('early-update'))]
+
+[tab/]// early update of ports, variables and invariants
+[tab/][generateEarlyUpdateFromInitial(pn.eContainer(AtomType))/]
+
+[/if]
+[for (exp : Expression | pn.initialActions)
+	before('\n' + tab + '// execute transition actions\n')
+	after('\n' + tab + '// end of execute transition actions\n')]
+[exp.gtc()/]
+[tab/][exp.generateInstruction()/];
+[/for]
+
+[if (hasModifiedInvariants or not isOptimEnabled('transitions-update'))]
+[generateCheckInvariants(atom.invariants, atom, tab)/]
+[/if]
+[/template]
+
+[template private generateTransitionExecution(t : Transition, tab : String) {
+	atom : AtomType = t.eContainer(PetriNet).eContainer(AtomType);
+	hasModifiedInvariants : Boolean = invariantsToUpdateAfter(t)->notEmpty();
+}]
+[tab/]// the transition should be enabled by places
+[tab/]assert([t.testSources()/]);
+[for (ts : State | t.sources) before('\n' + tab + '// update input places\n')]
+[tab/]from[ts.name/]();
+[/for]
+
+[tab/]// check one-safetyness
+[tab/]if ([for (s : State | t.destinations) separator(' || ')]at[s.name/]()[/for]) {
+[tab/]    NonOneSafePetriNetError *r = new NonOneSafePetriNetError(*this);
+[tab/]    [if (t.triggerPort->notEmpty())][if (t.triggerPort.oclIsKindOf(AtomInternalPortDeclaration))]r->setPort([t.triggerPort.varName() /]);[/if][/if]
+[tab/]    return *r;
+[tab/]}
+[for (ts : State | t.destinations) before('\n' + tab + '// update output places\n')]
+[tab/]to[ts.name/]();
+[/for]
+
+[tab/]// record the index of the latest executed transition
+[tab/]__previous = [t.eContainer(PetriNet).transitions->indexOf(t)/];
+[if (isOptimEnabled('early-update'))]
+
+[tab/]// early update of ports, variables and invariants
+[tab/][generateEarlyUpdate(t.eContainer(PetriNet).eContainer(AtomType), t)/]
+
+[/if]
+[for (exp : Expression | t.actions)
+	before('\n' + tab + '// execute transition actions\n')
+	after('\n' + tab + '// end of execute transition actions\n')]
+[exp.gtc()/]
+[tab/][exp.generateInstruction()/];
+[/for]
+[t.gtc()/]
+
+[if (hasModifiedInvariants or not isOptimEnabled('transitions-update'))]
+[generateCheckInvariants(atom.invariants, atom, tab)/]
+[/if]
+[/template]
+
+[template private generateCheckInvariants(invariants : OrderedSet(AtomInvariant), anAtomType : AtomType, tab : String)]
+[for (invariant : AtomInvariant | invariants) before('\n') separator('\n') after('\n')]
+[tab/]// check invariant '[invariant.name/]'
+[tab/]if ([invariant.testSources()/][if (invariant.guard->notEmpty())] && !([invariant.guard.generateExpression()/])[/if]) {
+[tab/]    AtomInvariantViolationError *r = new AtomInvariantViolationError("[invariant.name/]", *this);
+[tab/]
+[tab/]    return *r;
+[tab/]}
+[/for]
+[/template]
+
+
+[template public generateCMakeBody(anAtomType : AtomType) post(trim())]
+[for (extra_src : String | anAtomType.getUserExtraSrc())
+      before('# @cpp(src="") annotation\n')]
+list(APPEND EXTRA_SRC [extra_src/])
+[/for]
+[/template]
+
+[comment 
+*************************************
+         PRIVATE PART BELOW
+*************************************
+ /]
+
+[comment 
+    Builds a set of HPP file names to include for atom internal ports types.
+/]
+[query private aIPTypesWithRelPath(anAtomType : AtomType) : Set(String) =
+    internalPorts(anAtomType)->collect(e:AtomInternalPortDeclaration | relHppFilePath(e.portType, e.portType.atomInternalClassName()))->asSet()
+/]
+
+[comment 
+    Builds a set of HPP file names to include for atom external ports types.
+/]
+[query private aExternalPTypesWithRelPath(anAtomType : AtomType) : Set(String) =
+    externalPorts(anAtomType)
+		->select(e:AtomExternalPortDeclaration | e.backendName->isEmpty())
+		->collect(e:AtomExternalPortDeclaration | relHppFilePath(e.portType, e.portType.atomExternalClassName()))->asSet()
+/]
+
+[comment 
+    Builds a set of HPP file names to include for port values
+/]
+[query private pVTypesWithRelPath(anAtomType : AtomType) : Set(String) =
+    internalPorts(anAtomType)->collect(e:AtomInternalPortDeclaration | relHppFilePath(e.portType, e.portType.portValueClassName()))->asSet()
+/][comment 
+    Builds a set of HPP file names to include for exported ports
+/]
+
+[query private aEPTypesWithRelPath(anAtomType : AtomType) : Set(String) =
+    anAtomType.exportPortDeclarations->collect(e:AtomExportPortDeclaration | relHppFilePath(e.portType, e.portType.atomExportClassName()))->asSet()
+/]
+
+[comment
+    Checks if there exist an exported port with the name 'anInternalName'.
+    It is used to check for name collision in case the following syntax is used:
+    export port PT_t a_port()
+    this implicitly declares an internal port with the same name ('a_port').
+    This case must be clearly identified to avoid name duplication in the CPP code.
+/]
+[query private findExportFromName(anAtomType : AtomType, anInternalName: String) : Boolean =
+    anAtomType.exportPortDeclarations->select(e:AtomExportPortDeclaration| 
+                   e.portDeclarationReferences->select(i:AtomInternalPortDeclaration| 
+                             i.name.equalsIgnoreCase(anInternalName))->notEmpty() and e.name.equalsIgnoreCase(anInternalName))->notEmpty()
+/]
+
+[comment
+    Returns the variable name for the exported port declaration.
+/]
+
+
+[query public numStates(anAtomType : AtomType) : Integer = anAtomType.behavior.states->size() /]
+
+[template private testSources(aTransition : Transition) ? (aTransition.sources->notEmpty()) post(trim())]
+[for (s : State | aTransition.sources) before('    ') separator(' && ')]at[s.name/]()[/for]
+[/template]
+
+[template private testSources(aTransition : Transition) ? (aTransition.sources->isEmpty()) post(trim())]
+true
+[/template]
+
+[template private testSources(anInvariant : AtomInvariant) ? (anInvariant.exactState) post(trim())]
+[for (s : State | anInvariant.eContainer(AtomType).behavior.states) before('    ') separator(' && ')][if (not anInvariant.sources->includes(s))]![/if]at[s.name/]()[/for]
+[/template]
+
+[template private testSources(anInvariant : AtomInvariant) ? (not anInvariant.exactState and anInvariant.sources->notEmpty()) post(trim())]
+[for (s : State | anInvariant.sources) before('    ') separator(' && ')]at[s.name/]()[/for]
+[/template]
+
+[template private testSources(anInvariant : AtomInvariant) ? (not anInvariant.exactState and anInvariant.sources->isEmpty()) post(trim())]
+true
+[/template]
+
+[template private testGuard(aTransition : Transition) post(trim())]
+[if (aTransition.guard->notEmpty())]([aTransition.guard.generateExpression()/])[/if]
+[/template]
+
+[template private testGuard(aTransition : Transition, aPrefix : String) post(trim())]
+[if (aTransition.guard->notEmpty())] [aPrefix/] ([aTransition.guard.generateExpression()/])[/if]
+[/template]
+
+[query public cindex(aState : State) : Integer = 
+    aState.eContainer(PetriNet).states->indexOf(aState)-1
+/]
+
+
+[comment 
+    Following templates creates ',' separated list of declarations. Useful for
+    init list in ctor.
+/]
+[template private genListIPortDecl(anAtomType : AtomType) post(trim())]
+[for (decl : AtomInternalPortDeclaration | internalPorts(anAtomType)) before(', ') separator (', ')]
+[decl.portType.atomInternalClassName() /] &[decl.varName()/][/for]
+[/template]
+
+[template private genListExternalPortDecl(anAtomType : AtomType) post(trim())]
+[for (decl : AtomExternalPortDeclaration | externalPorts(anAtomType)) before(', ') separator (', ')]
+[decl.atomExternalClassName() /] &[decl.varName()/][/for]
+[/template]
+
+[template private genListEPortDecl(anAtomType : AtomType) post(trim())]
+[for (decl : AtomExportPortDeclaration | anAtomType.exportPortDeclarations) before(', ') separator (', ')]
+[decl.portType.atomExportClassName() /] &[decl.varName()/][/for]
+[/template]
+
+[template private genListEDataDecl(anAtomType : AtomType) post(trim())]
+[for (dd : DataDeclaration | anAtomType.exportedDataDeclarations) before(', ') separator(', ')]
+[dd.dataType.exportDataClassName(anAtomType)/] &[dd.exportedVarName()/][/for]
+[/template]
+
+[template private genListDataParamDecl(anAtomType : AtomType) post(trim())]
+[for (cdpd : ComponentDataParameterDeclaration | anAtomType.dataParameterDeclarations) before(', ') separator(', ')]
+[cdpd.dataType.typeName()/] [cdpd.varName()/][/for]
+[/template]
+
+[comment 
+    Creates the prototype of the ctor.
+/]
+[template private genCtorProto(anAtomType : AtomType) post(trim())]
+[anAtomType.className()/](const string &name [anAtomType.genListIPortDecl()/]
+                         [anAtomType.genListExternalPortDecl()/]
+                         [anAtomType.genListEPortDecl()/]
+                         [anAtomType.genListEDataDecl()/]
+                         [anAtomType.genListDataParamDecl()/])
+[/template]
+
+[comment 
+    Creates the init list of the ctor.
+/]
+[template private genCtorInit(anAtomType : AtomType) post(trim())]
+[for (pdecl : AtomInternalPortDeclaration | internalPorts(anAtomType)) before(', ')separator(', ')]
+[pdecl.varName()/]([pdecl.varName()/]), [pdecl.getPVVarName()/]([genPortValueInitialization(pdecl)/])[/for][for (pdecl : AtomExternalPortDeclaration | externalPorts(anAtomType)) before(', ')separator(', ')]
+[pdecl.varName()/]([pdecl.varName()/])[/for][for (pdecl : AtomExportPortDeclaration | anAtomType.exportPortDeclarations) before (', ') separator(', ')]
+[pdecl.varName()/]([pdecl.varName()/])[/for][for (ddecl : DataDeclaration | anAtomType.exportedDataDeclarations) before (', ') separator(', ')]
+[ddecl.exportedVarName()/]([ddecl.exportedVarName()/])[/for][for (cdpd : ComponentDataParameterDeclaration | anAtomType.dataParameterDeclarations) before(', ') separator(', ')]
+[cdpd.varName()/]([cdpd.varName()/])[/for][for (dd : AtomInternalDataDeclaration | anAtomType.internalDataDeclarations->select(d : AtomInternalDataDeclaration | not d.value->isEmpty())) before(', ') separator(', ')]
+[dd.varName()/]([dd.value.generateExpression()/])[/for][for (t : Transition | anAtomType.behavior.transitions) before(', ') separator(', ')]
+[t.uniqueVarName()/](false)[/for][for (p : AtomPriorityDeclaration | anAtomType.priorities) before(', ') separator(', ')]
+[p.pguardVarName()/](false)[/for][for (p : AtomPriorityDeclaration | anAtomType.priorities) before(', ') separator(', ')]
+[p.penabledVarName()/](false)[/for], __previous(-1)
+[/template]
+
+[template private genPortValueInitialization(aPort : AtomInternalPortDeclaration)]
+[for (aParam : DataDeclarationReferenceDataParameter | aPort.dataParameters) separator(', ')][aParam.dataDeclarationReference.oclAsType(AtomInternalDataDeclaration).varName()/][/for]
+[/template]
+
+[template public generateSubClasses(anAtomType : AtomType, aCMakeList : String, disableSerialization: Boolean) post(trim())]
+[for (aType : DataType | anAtomType.exportedDataTypes())]
+[anAtomType.generateExportData(aType, aCMakeList)/]
+[/for]
+[/template]

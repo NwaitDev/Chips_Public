@@ -1,0 +1,13 @@
+package sample
+
+ port type P_t()
+
+ atom type test()
+  port P_t test()
+
+  place U
+  initial to U
+
+  on badport from U to U
+ end
+end

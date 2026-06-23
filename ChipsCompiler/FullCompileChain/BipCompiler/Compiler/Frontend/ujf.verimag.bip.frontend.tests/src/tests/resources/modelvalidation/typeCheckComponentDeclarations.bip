@@ -1,0 +1,30 @@
+package typeCheckComponentDeclarations
+  port type Port()
+
+  atom type Atom(int id, string name)
+    data int myId
+    data string myName
+    port Port p()
+    
+    place L0, L1
+    
+    initial to L0 do {
+      myId = id;
+      myName = name;
+    }
+    
+    on p from L0 to L1
+  end
+  
+  compound type Compound(bool b)
+    component Atom A(0, "my name is A")
+    component Atom B(1+2*(6 + 4), "my name is B")
+    component Atom C(0.0, "my name is C") // NOT OK!
+    component Atom D(1, 1)                // NOT OK!
+  end
+  
+  compound type Compound2()
+    component Compound C(false || true), D(true && true)
+    component Compound E(0)               // NOT OK!
+  end
+end

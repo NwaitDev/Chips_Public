@@ -1,0 +1,76 @@
+[comment encoding = UTF-8 /]
+[module traceBip('http://bip2/1.0')/]
+[import ujf::verimag::bip::backend::acceleo::templates::annotations /]
+
+
+[query public isBipLevelDebugEnabled(any : OclAny) : Boolean = 
+    ('bipc_gencpp-enable_bip_level_debug').getSystemProperty('0') <> '0'
+/]
+
+[query private genLocLine(any : OclAny) : String =
+    if (getSourceURLString()->notEmpty()) then
+        getSourceURLString().replace('file:','') + ':' + getLineStart() +':' + getColStart()
+    else
+        '// From Generated code. FIXME: we should give java location.'
+    endif
+/]
+
+[comment
+    Generate Trace Code for CMake 
+/]
+[template public gtccm(any : OclAny) post(trim())]
+# [any.genLocLine()/]
+[/template]
+
+[comment
+    Generate Trace Code for C++
+/]
+[template public gtc(any : OclAny) post(trim())]
+[if (isBipLevelDebugEnabled() and getSourceURLString()->notEmpty())]
+# [getLineStart()/] "[getSourceURLString().replace('file:','')/]"
+[else]
+// [any.genLocLine()/]
+[/if]
+[/template]
+
+[comment
+    Generate Trace Code for tracking Generator parts (ie. java code)
+    as C++ comments
+/]
+[template public gtgc(any : OclAny)]
+// [any.getGeneratorLocation()/]
+[/template]
+
+[comment
+    Generate Trace Code for tracking Generator parts (ie. java code)
+    as CMake comments
+/]
+[template public gtgccm(any : OclAny)]
+## [any.getGeneratorLocation()/]
+[/template]
+
+
+[query public getLineStart(any: OclAny) : Integer
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getLineStart()', Sequence{}) /]
+
+[query public getSourceURLString(any: OclAny) : String
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getSourceURLString()', Sequence{}) /]
+
+[query public getGeneratorLocation(any: OclAny) : String
+    = invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getGeneratorLocation()', Sequence{}) /]
+
+[comment][query public getSourceStringBuffer(any: OclAny) : StringBuffer
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getSourceStringBuffer()', Sequence{}) /][/comment]
+
+[query public getLineStop(any: OclAny) : Integer
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getLineStop()', Sequence{}) /]
+
+[query public getColStart(any: OclAny) : Integer
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getColStart()', Sequence{}) /]
+
+[query public getColStop(any: OclAny) : Integer
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getColStop()', Sequence{}) /]
+
+[comment][query public getAnnotations(any: OclAny) : Map
+	= invoke('ujf.verimag.bip.metamodel.AnnotatedEObject', 'getAnnotations()', Sequence{}) /][/comment]
+

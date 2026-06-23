@@ -1,0 +1,21 @@
+package flatquoted
+  port type Port_t()
+
+  connector type CT(Port_t a, Port_t b, Port_t c)
+    define a'(b(c))'
+  end
+
+  connector type CT2(Port_t a, Port_t b, Port_t c)
+    define a'(bc)'
+  end
+
+  connector type CT3(Port_t a, Port_t b, Port_t c)
+    define ab(c)
+  end
+
+  connector type CT4(Port_t a, Port_t b, Port_t c, Port_t d, Port_t e,
+  Port_t f, Port_t g, Port_t h, Port_t k)
+    define (ab)((c'(de))((f(gh))'k)')
+  end
+
+end

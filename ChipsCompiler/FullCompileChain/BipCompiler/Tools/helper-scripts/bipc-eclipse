@@ -1,0 +1,25 @@
+#!/bin/bash 
+
+if [ "$ROOT" == "" ]; then
+    echo "Missing ROOT env var"
+    exit 255
+fi
+
+BIP_PARTS="LanguageFactories/C"
+
+for p in $ROOT/Compiler/Backend/* $ROOT/Compiler/Frontend/*; do
+    BIP_PARTS="$BIP_PARTS $p"
+done
+
+unset LOCAL_CP
+
+for p in $BIP_PARTS; do
+    LOCAL_CP="$LOCAL_CP:$p/bin:$p/build/classes"
+    if [ -d $p/externals ]; then
+	for jar in $p/externals/*jar; do
+	    LOCAL_CP="$LOCAL_CP:$jar"
+	done
+    fi
+done
+
+java -cp $CLASSPATH:$LOCAL_CP ujf.verimag.bip.cmdline.CmdLine $* 

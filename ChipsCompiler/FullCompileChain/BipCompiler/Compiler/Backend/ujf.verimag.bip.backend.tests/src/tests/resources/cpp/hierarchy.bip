@@ -1,0 +1,73 @@
+package hierarchy
+
+  port type Port()
+  port type IntPort(int x)
+
+  connector type RDV(IntPort p, IntPort q, IntPort r)
+    define p q r
+
+    on p q r provided (p.x >= 300 && q.x >= 300 && r.x >=300)
+  end
+
+  connector type Synchro(IntPort p, IntPort q, IntPort r)
+    define p' q' r'
+
+    on p q r provided (p.x < 0)  // false
+    on p q   provided (p.x < 0)  // false
+    on p r   provided (p.x < 0)  // false
+    on q r   provided (q.x < 0)  // false
+    on p     provided (p.x < 300)
+    on q     provided (q.x < 300)
+    on r     provided (r.x < 300)
+  end
+
+  connector type SynchroModulo100(IntPort p, IntPort q, IntPort r)
+    data int x
+
+    export port IntPort exp(x)
+
+    define p' q' r'
+    on p q r provided (p.x == 100 && q.x == 100 && r.x == 100) up { x = 300; } down { p.x = 0; q.x = 0; r.x = 0; }
+    on p q   provided (p.x < 100 && q.x < 100) up { x = p.x + q.x; }
+    on p r   provided (p.x < 100 && r.x < 100) up { x = p.x + r.x; }
+    on q r   provided (q.x < 100 && r.x < 100) up { x = q.x + r.x; }
+    on p     provided (p.x < 100)              up { x = p.x; }
+    on q     provided (q.x < 100)              up { x = q.x; }
+    on r     provided (r.x < 100)              up { x = r.x; }
+  end
+
+  atom type Periodic()
+    data int x
+
+    export port IntPort tick(x)
+
+    place LOOP
+
+    initial to LOOP
+      do { x = 0; }
+
+    on tick from LOOP to LOOP
+      do { x = x + 1; }
+  end
+
+  compound type SubCompound()
+    component Periodic  A()
+    component Periodic  B()
+    component Periodic  C()
+
+    connector SynchroModulo100 Tick(A.tick, B.tick, C.tick)
+
+    export port Tick.exp as p
+  end
+
+  compound type MyCompound()
+    component SubCompound A()
+    component SubCompound B()
+    component SubCompound C()
+
+    connector Synchro sync(A.p, B.p, C.p)
+    connector RDV     rdv (A.p, B.p, C.p)
+
+    priority  maxProgress sync:A.p, B.p, C.p < rdv:*
+  end
+end

@@ -1,0 +1,23 @@
+package componentDeclarationHasNoUnconnectedPort
+  port type Port_t()
+
+  atom type AT()
+    export port Port_t p()
+    place S
+    initial to S
+    on p from S to S
+  end
+
+  connector type Ct(Port_t x, Port_t y)
+  define x y
+  end
+
+  compound type Top()
+    // BAD: c4 is not connected, the other comps are.
+    component AT c1(), c2(), c3(), c4()
+
+    connector Ct co1(c1.p, c2.p)
+    export port c3.p as ep
+  end
+
+end

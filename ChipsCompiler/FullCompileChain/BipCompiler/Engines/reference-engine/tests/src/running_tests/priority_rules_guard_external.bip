@@ -1,0 +1,59 @@
+package priority_rules_guard_external
+  port type Port()
+
+  connector type Single(Port p)
+    define p
+  end
+
+  connector type Connector(Port p, Port q)
+    define p q
+  end
+
+  atom type Atom()
+    export port Port p()
+
+    place L0
+
+    initial to L0
+
+    on p from L0 to L0
+  end
+
+  atom type Switch()
+    export data int bit
+    export port Port flip()
+
+    place L0
+
+    initial to L0 do { bit = 0; }
+
+    on flip from L0 to L0 do {
+      if (bit == 0) then bit = 1;
+      else bit = 0;
+      fi
+    }
+  end
+
+  compound type XAtom()
+    component Atom A()
+    export port A.p as p
+  end
+
+  compound type XSwitch()
+    component Switch switch()
+    export port switch.flip as flip
+    export data switch.bit as bit
+  end
+
+  compound type EvilPriorityRules()
+    component XAtom A(), B(), C(), D()
+    component XSwitch switch()
+
+    connector Connector Even(A.p, B.p)
+    connector Connector Odd(C.p, D.p)
+    connector Single    Flip(switch.flip)
+
+    priority prio1 Odd:C.p,D.p  < Even:A.p,B.p provided (switch.bit == 0)
+    priority prio2 Even:A.p,B.p < Odd:C.p,D.p  provided (switch.bit == 1)
+  end
+end

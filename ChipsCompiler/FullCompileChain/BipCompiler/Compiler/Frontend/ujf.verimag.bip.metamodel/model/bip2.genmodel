@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<genmodel:GenModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    xmlns:genmodel="http://www.eclipse.org/emf/2002/GenModel" modelDirectory="/ujf.verimag.bip.metamodel/src/main/emf-generated"
+    modelPluginID="ujf.verimag.bip.metamodel" templateDirectory="" redirection=""
+    modelName="Bip2" rootExtendsInterface="ujf.verimag.bip.metamodel.AnnotatedEObject"
+    rootExtendsClass="ujf.verimag.bip.metamodel.AnnotatedEObjectImpl" codeFormatting="true"
+    importerID="org.eclipse.emf.importer.ecore" complianceLevel="6.0" copyrightFields="false">
+  <foreignModel>bip2.ecore</foreignModel>
+  <genPackages prefix="Bip2" disposableProviderFactory="true" ecorePackage="bip2.ecore#/">
+    <genClasses image="false" ecoreClass="bip2.ecore#//PlaceHolder"/>
+    <nestedGenPackages prefix="Ujf" basePackage="bip2" disposableProviderFactory="true"
+        ecorePackage="bip2.ecore#//ujf">
+      <genClasses ecoreClass="bip2.ecore#//ujf/PlaceHolder"/>
+      <nestedGenPackages prefix="Verimag" basePackage="bip2.ujf" disposableProviderFactory="true"
+          ecorePackage="bip2.ecore#//ujf/verimag">
+        <genClasses ecoreClass="bip2.ecore#//ujf/verimag/PlaceHolder"/>
+        <nestedGenPackages prefix="Bip" basePackage="bip2.ujf.verimag" disposableProviderFactory="true"
+            ecorePackage="bip2.ecore#//ujf/verimag/bip">
+          <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/PlaceHolder"/>
+          <nestedGenPackages prefix="Types" basePackage="bip2.ujf.verimag.bip" disposableProviderFactory="true"
+              ecorePackage="bip2.ecore#//ujf/verimag/bip/types">
+            <genDataTypes ecoreDataType="bip2.ecore#//ujf/verimag/bip/types/InteractionAutomaton"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/types/AtomType">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/AtomType/internalPortDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/AtomType/behavior"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/AtomType/internalDataDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/AtomType/exportPortDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/AtomType/priorities"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/AtomType/getInternalPortDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/AtomType/getInternalPortDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/AtomType/getInternalDataDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/AtomType/getInternalDataDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/AtomType/getPriorityDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/AtomType/getPriorityDeclaration/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/types/ComponentType">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ComponentType/exportedPortDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ComponentType/exportedDataDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ComponentType/dataParameterDeclarations"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getExportedPortDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getExportedPortDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getExportedDataDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getExportedDataDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getDataParameterDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/ComponentType/getDataParameterDeclaration/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/types/CompoundType">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/CompoundType/componentDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/CompoundType/connectorDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/CompoundType/exportPortDeclarations"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/CompoundType/exportDataDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/CompoundType/priorities"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getComponentDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getComponentDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getConnectorDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getConnectorDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getExportPortDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getExportPortDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getExportDataDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getExportDataDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getPriorityDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/CompoundType/getPriorityDeclaration/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/types/ConnectorType">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ConnectorType/exportedPortDeclaration"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ConnectorType/dataDeclarations"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ConnectorType/interactions"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/ConnectorType/interactionDefinition"/>
+              <genFeatures property="Readonly" createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/types/ConnectorType/interactionAutomaton"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ConnectorType/getPortParameterDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/ConnectorType/getPortParameterDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ConnectorType/getDataDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/ConnectorType/getDataDeclaration/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/ConnectorType/getPortNames"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/types/PortType">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/types/PortType/dataParameterDeclarations"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/types/PortType/getDataParameterDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/types/PortType/getDataParameterDeclaration/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/types/BipType">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/types/BipType/name"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Data" basePackage="bip2.ujf.verimag.bip" disposableProviderFactory="true"
+              ecorePackage="bip2.ecore#//ujf/verimag/bip/data">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/data/DataType">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/data/DataType/name"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/data/DataType/basic"/>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/data/DataDeclaration">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/DataDeclaration/dataType"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/data/DataDeclaration/name"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/data/SubDataDeclarationReference">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/SubDataDeclarationReference/forwardDataDeclaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/SubDataDeclarationReference/componentDeclaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/SubDataDeclarationReference/portDeclaration"/>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/data/DataParameter">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/DataParameter/parameterDeclaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/DataParameter/type"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/data/DataDeclarationReferenceDataParameter">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/DataDeclarationReferenceDataParameter/dataDeclarationReference"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/data/DirectValueDataParameter">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/data/DirectValueDataParameter/value"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/data/ConstDataDeclaration">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/data/ConstDataDeclaration/value"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Port" basePackage="bip2.ujf.verimag.bip" disposableProviderFactory="true"
+              ecorePackage="bip2.ecore#//ujf/verimag/bip/port">
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/port/PortDeclaration">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/PortDeclaration/portType"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/port/PortDeclaration/name"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/PortDeclaration/dataParameters"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/port/PortDeclaration/getDataParameter">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/port/PortDeclaration/getDataParameter/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/port/SubPortDeclarationReference">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/SubPortDeclarationReference/forwardPortDeclaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/SubPortDeclarationReference/componentDeclaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/SubPortDeclarationReference/connectorDeclaration"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/port/PortDataParameterDeclaration"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/port/PortDeclarationReferenceParameter">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/PortDeclarationReferenceParameter/parameterDeclaration"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/port/PortDeclarationReferenceParameter/subPortDeclarationReference"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Behavior" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/behavior">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/behavior/PetriNet">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/states"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/initStates"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/transitions"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/initialActions"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/getState">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/behavior/PetriNet/getState/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/behavior/State">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/behavior/State/name"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/behavior/Transition">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/Transition/sources"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/Transition/destinations"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/Transition/triggerPort"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/Transition/actions"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/behavior/Transition/guard"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Priority" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/priority">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/priority/CompoundPriorityDeclaration">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/CompoundPriorityDeclaration/low"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/CompoundPriorityDeclaration/high"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/CompoundPriorityDeclaration/guard"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/priority/CompoundPriorityDeclaration/name"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/priority/ConnectorInteraction">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/ConnectorInteraction/connectorDeclaration"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/ConnectorInteraction/portDeclarationReferences"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/priority/AtomPriorityDeclaration">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/AtomPriorityDeclaration/guard"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/AtomPriorityDeclaration/low"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/priority/AtomPriorityDeclaration/high"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/priority/AtomPriorityDeclaration/name"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Connector" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/connector">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorDeclaration">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorDeclaration/type"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorDeclaration/portParameters"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/connector/ConnectorDeclaration/name"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorPortParameterDeclaration"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorExportedPortDeclaration"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorDataDeclaration"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionAction">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionAction/onPorts"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionAction/up"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionAction/down"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionAction/guard"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionDefinition">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionDefinition/quoted"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionPortReference">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionPortReference/port"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionNestedDefinition">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/connector/ConnectorInteractionNestedDefinition/subInteractions"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Component" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/component">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/ComponentDeclaration">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/component/ComponentDeclaration/name"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/component/ComponentDeclaration/type"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/component/ComponentDeclaration/parameters"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/ComponentDataParameterDeclaration"/>
+            <nestedGenPackages prefix="Atom" basePackage="bip2.ujf.verimag.bip.component"
+                disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/component/atom">
+              <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/atom/AtomInternalPortDeclaration"/>
+              <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/atom/AtomInternalDataDeclaration">
+                <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/component/atom/AtomInternalDataDeclaration/exported"/>
+              </genClasses>
+              <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/atom/AtomExportPortDeclaration">
+                <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                    ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/component/atom/AtomExportPortDeclaration/portDeclarationReferences"/>
+              </genClasses>
+            </nestedGenPackages>
+            <nestedGenPackages prefix="Compound" basePackage="bip2.ujf.verimag.bip.component"
+                disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/component/compound">
+              <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/compound/CompoundExportPortDeclaration">
+                <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/component/compound/CompoundExportPortDeclaration/portDeclarationReferences"/>
+              </genClasses>
+              <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/component/compound/CompoundExportDataDeclaration">
+                <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/component/compound/CompoundExportDataDeclaration/dataDeclarationReference"/>
+              </genClasses>
+            </nestedGenPackages>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Packaging" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/packaging">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/name"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/atomTypes"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/compoundTypes"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/connectorTypes"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/portTypes"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/dataTypes"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/used_packages"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/constData"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getAtomType">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getAtomType/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getCompoundType">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getCompoundType/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getConnectorType">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getConnectorType/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getPortType">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getPortType/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getDataType">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getDataType/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getConstDataDeclaration">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/packaging/BipPackage/getConstDataDeclaration/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/packaging/BipPackageSet">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/packaging/BipPackageSet/packages"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Actionlang" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/actionlang">
+            <genEnums typeSafeEnumCompatible="false" ecoreEnum="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators">
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/addition"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/subtraction"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/multiplication"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/bwise_and"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/bwise_xor"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/bwise_or"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/logical_and"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/logical_or"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/equal"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/not_equal"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/less_than"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/greater_than"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/less_than_or_equal"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/greater_than_or_equal"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/division"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOperators/modulo"/>
+            </genEnums>
+            <genEnums typeSafeEnumCompatible="false" ecoreEnum="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOperators">
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOperators/plus"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOperators/minus"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOperators/logical_not"/>
+              <genEnumLiterals ecoreEnumLiteral="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOperators/bwise_not"/>
+            </genEnums>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOpExpression">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOpExpression/operator"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOpExpression/left"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/BinaryOpExpression/right"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOpExpression">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOpExpression/operator"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/UnaryOpExpression/operand"/>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/ValuedExpression"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/SubDataDeclarationReferenceExpression">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/SubDataDeclarationReferenceExpression/subDataDeclarationRef"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/DirectDataDeclarationReferenceExpression">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/DirectDataDeclarationReferenceExpression/dataDeclaration"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/DirectValueExpression">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/actionlang/DirectValueExpression/value"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/AssignmentExpression">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/AssignmentExpression/lhsIndirect"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/AssignmentExpression/lhsDirect"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/AssignmentExpression/rhs"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/FunctionCallExpression">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/FunctionCallExpression/parameters"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/actionlang/FunctionCallExpression/functionName"/>
+            </genClasses>
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/Expression"/>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/ValuedReferenceExpression">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/ValuedReferenceExpression/expressionReference"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/TrueFalseDirectExpression">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/actionlang/TrueFalseDirectExpression/value"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/actionlang/IfThenElseExpression">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/IfThenElseExpression/condition"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/IfThenElseExpression/then"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/actionlang/IfThenElseExpression/else"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Instance" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/instance">
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/declaration"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/subDataInstances"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/portParamInstances"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/exportedPort"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/getDataInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/ConnectorInstance/getDataInstance/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/DataInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/DataInstance/declaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/DataInstance/proxyLink"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance/declaration"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance/lowConnector"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance/highConnector"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance/lowPorts"/>
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundPriorityInstance/highPorts"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/AtomInstance">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/subDataInstances"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/internalPorts"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/getInternalDataInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/getInternalDataInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/getInternalPortInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/AtomInstance/getInternalPortInstance/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/subPriorities"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/subConnectorInstances"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/subAtomInstances"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/subCompoundInstances"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/subDataInstances"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getComponentInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getComponentInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getAtomInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getAtomInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getCompoundInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getCompoundInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getConnectorInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getConnectorInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getCompoundPriorityInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/CompoundInstance/getCompoundPriorityInstance/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/declaration"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/parameters"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/exportedPorts"/>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getPortInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getPortInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getDataInstance">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getDataInstance/name"/>
+              </genOperations>
+              <genOperations ecoreOperation="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getParameter">
+                <genParameters ecoreParameter="bip2.ecore#//ujf/verimag/bip/instance/ComponentInstance/getParameter/name"/>
+              </genOperations>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/PortInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/PortInstance/declaration"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/ExportedPortInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ExportedPortInstance/referencedPorts"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/AtomInternalPortInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/AtomInternalPortInstance/dataParamInstances"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/instance/ConnectorPortInstance">
+              <genFeatures notify="false" createChild="false" propertySortChoices="true"
+                  ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/instance/ConnectorPortInstance/dataParamInstances"/>
+            </genClasses>
+          </nestedGenPackages>
+          <nestedGenPackages prefix="Annotation" basePackage="bip2.ujf.verimag.bip"
+              disposableProviderFactory="true" ecorePackage="bip2.ecore#//ujf/verimag/bip/annotation">
+            <genClasses image="false" ecoreClass="bip2.ecore#//ujf/verimag/bip/annotation/AnnotatedElement">
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/annotation/AnnotatedElement/bipAnnotations"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/annotation/BipAnnotation">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/annotation/BipAnnotation/name"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/annotation/BipAnnotation/parameters"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/annotation/StringToAnnotationMapEntry">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/annotation/StringToAnnotationMapEntry/key"/>
+              <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference bip2.ecore#//ujf/verimag/bip/annotation/StringToAnnotationMapEntry/value"/>
+            </genClasses>
+            <genClasses ecoreClass="bip2.ecore#//ujf/verimag/bip/annotation/StringToStringMapEntry">
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/annotation/StringToStringMapEntry/key"/>
+              <genFeatures createChild="false" ecoreFeature="ecore:EAttribute bip2.ecore#//ujf/verimag/bip/annotation/StringToStringMapEntry/value"/>
+            </genClasses>
+          </nestedGenPackages>
+        </nestedGenPackages>
+      </nestedGenPackages>
+    </nestedGenPackages>
+  </genPackages>
+</genmodel:GenModel>

@@ -1,0 +1,44 @@
+BIP language:
+- syntax
+- semantic
+
+Tutorial for BIP modeling:
+- bottom/up or top/down ? ;)
+- principles (how to "think" before starting coding?)
+- explain with a "running" (across different sections) example that is enriched step by step
+
+Tools:
+- what is the compiler
+- what is an engine
+- how do they interact ? : the compiler generates code suitable for the engine
+
+Tools internals (dev doc only):
+- modules
+- interface btw frontend/middleend/backend
+- how to load backends
+- EMF meta model : 
+ - type vs instance models
+ - what files ?
+ - how to modify it:
+  - change model
+  - constraints
+  - generating java code with care (keep hand modification, commit correctly)
+
+Using the compiler
+- requirements
+- download & install
+ - quick tour of installation (files, directories, ...)
+- using the frontend to check for correctness
+ - works for type model & instance model
+- using a backend to generate something
+ - general principles
+ - C++ 
+ - Aseba (experimental)
+ - BIP
+
+Using the ref engine:
+- presentation
+- need to generate C++ code from reference backend
+- download & install
+ - quick tour (generic, specific, hpp/cpp)
+- compile & link engine w/ generated code

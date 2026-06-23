@@ -1,0 +1,11 @@
+* text=auto !eol
+/.project -text
+/build.properties -text
+/build.xml -text
+/common.xml -text
+/configurations.xml -text
+externals/junit-4.10.jar -text svneol=unset#unset
+lib/ivy-2.2.0.jar -text svneol=unset#unset
+/setenv.sh -text
+/single-archive-dist.sh -text
+/wrap.sh -text

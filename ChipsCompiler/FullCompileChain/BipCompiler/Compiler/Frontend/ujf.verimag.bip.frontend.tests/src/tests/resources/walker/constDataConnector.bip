@@ -1,0 +1,29 @@
+package constDataConnector
+  const data int x = 3
+  const data int y = x + 1
+
+  port type Port_t()
+  port type Port_tt(int x)
+
+  connector type CoT(Port_t p1, Port_tt p2)
+  data int ld
+  export port Port_tt ep(ld)
+
+  define p1 p2
+  on p1 p2
+provided (x <= 1000)
+     up { ld = y;}
+     down { p2.x = y;}
+     
+  end
+
+  atom type AT()
+    data int md1
+    export port Port_t p()
+
+    place S1
+    initial to S1 
+    on p from S1 to S1 
+  end
+
+end

@@ -1,0 +1,34 @@
+package petri_net_deterministic
+  port type Port(int x)
+
+  connector type Singleton(Port p)
+    define p
+    on p down { p.x = 1; }
+  end
+
+  atom type MyAtomType()
+    data int x
+    data int y
+    export port Port p(x), q(y)
+
+    place INIT, NOT_END, END
+
+    initial to INIT
+      do {
+        x = 0;
+      }
+
+    on p from INIT to END provided (x != 0)
+
+    on p from INIT to NOT_END provided (x == 0)
+
+    on q from NOT_END to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom()
+
+    connector Singleton singleP(myAtom.p)
+    connector Singleton singleQ(myAtom.q)
+  end
+end

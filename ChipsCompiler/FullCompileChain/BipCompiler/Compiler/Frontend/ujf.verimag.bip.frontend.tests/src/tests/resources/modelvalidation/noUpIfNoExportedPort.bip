@@ -1,0 +1,9 @@
+package noUpIfNoExportedPort
+  port type Port_t(int x)
+  
+  connector type CoT(Port_t p1, Port_t p2)
+  data int x
+  define p1 p2
+  on p1 p2 up { x=3; }
+  end
+end

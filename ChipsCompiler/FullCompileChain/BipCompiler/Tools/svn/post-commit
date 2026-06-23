@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+
+use SVN::Notify;
+
+my $notifier = SVN::Notify->new(
+      repos_path => $ARGV[0],
+      revision   => $ARGV[1],
+      to         => 'bip.commit.verimag@imag.fr',
+      handler    => 'HTML::ColorDiff',
+      subject_cx => 1,
+      max_diff_length => "1024",
+      filters    => [ 'Trac' ],
+      trac_url   => 'http://chaillol/bip2/',
+  );
+
+$notifier->prepare;
+$notifier->execute;

@@ -1,0 +1,51 @@
+package broadcast_maximal
+  port type Port()
+
+  connector type Broadcast(Port p, Port q, Port r, Port s, Port t, Port u)
+    define p' q' r' s' t' u'
+
+    on p q r s t u provided (false)
+    on   q r s t u provided (false)
+    on p   r s t u provided (false)
+    on p q   s t u provided (false)
+    on p q r   t u provided (false)
+    on p q r s   u provided (false)
+    on p q r s t   provided (false)
+    on     r s t u provided (false)
+    on   q   s t u provided (false)
+    on   q r   t u provided (false)
+    on   q r s   u provided (false)
+    on   q r s t   provided (false)
+    on p     s t u provided (false)
+    on p   r   t u provided (false)
+    on p   r s   u provided (false)
+    on p   r s t   provided (false)
+    on p q     t u provided (false)
+    on p q   s   u provided (false)
+    on p q   s t   provided (false)
+    on p q r     u provided (false)
+    on p q r   t   provided (false)
+    on p q r s     provided (false)
+  end
+
+  atom type MyAtomType()
+    export port Port p()
+
+    place INIT, END
+
+    initial to INIT
+
+    on p from INIT to END
+  end
+
+  compound type MyCompoundType()
+    component MyAtomType myAtom1()
+    component MyAtomType myAtom2()
+    component MyAtomType myAtom3()
+    component MyAtomType myAtom4()
+    component MyAtomType myAtom5()
+    component MyAtomType myAtom6()
+
+    connector Broadcast myBroadcast(myAtom1.p, myAtom2.p, myAtom3.p, myAtom4.p, myAtom5.p, myAtom6.p)
+  end
+end

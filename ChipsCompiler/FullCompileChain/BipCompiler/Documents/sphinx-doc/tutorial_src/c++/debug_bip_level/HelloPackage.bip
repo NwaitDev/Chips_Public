@@ -1,0 +1,26 @@
+@cpp(src="ext-cpp/HelloPackage.cpp",include="HelloPackage.hpp")
+package HelloPackage
+  extern function my_modify(int)
+  extern function my_print(string, int)
+
+  port type HelloPort_t()
+
+  atom type HelloAtom()
+    data int somedata
+    port HelloPort_t p()
+    place START, S, END
+    initial to START do { 
+      somedata = 0; 
+    }
+    on p from START to S do { 
+      my_modify(somedata); 
+    }
+    on p from S to END do {
+      my_print("Hello World", somedata);
+    }
+  end
+
+  compound type HelloCompound()
+    component HelloAtom c1()
+  end
+end

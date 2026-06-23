@@ -1,0 +1,20 @@
+package checkComponentParameters
+  port type Port()
+
+
+  atom type Atom(int x, float y)
+    port Port p()
+
+    place L
+
+    initial to L
+
+    on p from L to L
+  end
+
+  compound type Compound()
+    component Atom A(0.0, 0)      // WRONG TYPE
+    component Atom B(0)           // MISSING ARGUMENT
+    component Atom C(0, 0.0, "e") // TOO MANY ARGUMENTS
+  end
+end

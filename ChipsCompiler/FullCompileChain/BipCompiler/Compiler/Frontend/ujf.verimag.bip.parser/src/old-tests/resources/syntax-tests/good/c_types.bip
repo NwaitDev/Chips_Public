@@ -1,0 +1,25 @@
+package c.types.tests
+
+// test custom type in port parameters
+port type Port_t(int x, struct_tata z)
+port type Port_t2(char z)
+port type Port_t3(long z)
+port type Port_t4(any_type z)
+
+connector type Conn_t(Port_t p1, Port_t2 p2)
+data struct_toto x,y
+define p1 p2
+end
+
+atom type Atom_t(int x)
+
+  port Port_t p()
+  place S
+  initial to S
+    on p from S to S
+ end
+
+ compound type Comp_t(int z)
+   component Atom_t t(z)
+ end
+end
