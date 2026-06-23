@@ -1,0 +1,352 @@
+#ifndef __chips_statements__
+#define __chips_statements__
+
+#include <vector>
+
+#include "ast_variables.hpp"
+#include "ast_system_specific.hpp"
+
+namespace chips
+{
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a statement in any
+     * Chips code environment.
+     */
+    template <statement_env, recurring_statement>
+    class statement : public ast_node
+    {
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST representing a dataflow declarations in any context.
+     * Only treating generic dataflows, other kinds of variables
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
+    template <dataflow_type dft, statement_env stenv>
+    class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION>
+    {
+    public:
+        using df_variable_type = typename SttEnvToVariableKind<dft, stenv>::type;
+        df_variable_type m_variable;
+
+        dataflow_declaration() = default;
+
+        dataflow_declaration(std::string name) : m_variable(typename SttEnvToVariableKind<dft, stenv>::type(name)) {};
+
+        dataflow_declaration(df_variable_type variable)
+            : m_variable(variable) {}
+
+        inline void set_variable(df_variable_type var) { m_variable = var; }
+        inline df_variable_type get_variable() { return m_variable; }
+
+        inline void accept(visitor &v) { v.visit(*this); }
+        inline void hello()
+        {
+            get_variable().hello();
+            std::cout << ";" << std::endl;
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST representing a dataflow assignements in any context
+     * Only treating generic dataflows, other kinds of variables
+     * (functional blocks, nodes, channels and contextuals)
+     * have their own dedicated nodes
+     */
+    template <dataflow_type dft, statement_env stenv>
+    class dataflow_assignment : public statement<stenv, recurring_statement::ASSIGNMENT>
+    {
+    public:
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
+        lvalue<dft, expr_env> *m_lvalue;
+        rvalue<dft, expr_env> *m_rvalue;
+
+        dataflow_assignment() = default;
+        dataflow_assignment(lvalue<dft, expr_env> *lhs, rvalue<dft, expr_env> *rhs)
+            : m_lvalue(lhs), m_rvalue(rhs) {}
+
+        lvalue<dft, expr_env> *get_lhs() { return m_lvalue; }
+        rvalue<dft, expr_env> *get_rhs() { return m_rvalue; }
+
+        void accept(visitor &v) { v.visit(*this); }
+        void hello()
+        {
+            // std::cout << "DATAFLOW ASSIGNMENT" << std::endl;
+
+            get_lhs()->hello();
+            std::cout << " = ";
+            get_rhs()->hello();
+            std::cout << ";" << std::endl;
+        }
+    };
+
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the ordered list of the statements
+     * that compose the code executed when the condition of an if_statement
+     * is evaluated as true
+     */
+    template <statement_env stenv>
+    class if_section : public ast_node, public statement_fillable<stenv>
+    {
+        public:
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
+        std::vector<statement_type> m_if_statements;
+        if_section(){};
+        inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
+            m_if_statements.push_back(stt);
+        }
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the ordered list of the statements
+     * that compose the code executed when the condition of an if_else_statement
+     * is evaluated as false
+     */
+    template <statement_env stenv>
+    class else_section : public ast_node, public statement_fillable<stenv>
+    {
+        public:
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
+        std::vector<statement_type> m_else_statements;
+        else_section(){}
+        inline void add_statement(typename SttEnvToSttVariant<stenv>::type stt){
+            m_else_statements.push_back(stt);
+        }
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents an if statement.
+     * if (bool rvalue) { if_section }
+     */
+    template <statement_env stenv>
+    class if_statement : public statement<stenv, recurring_statement::IF>
+    {
+        public:
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
+        bool_rvalue_expression_variant<expr_env> m_condition;
+        if_section<stenv> m_if_section;
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents an if_else statement
+     * if (bool rvalue) { if_section } else { else_section }
+     */
+    template <statement_env stenv>
+    class if_else_statement : public if_statement<stenv>
+    {
+        public:
+        else_section<stenv> m_else_section;
+        if_else_statement(){};
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * Generic version only suitable for iterating over dataflow
+     * variables
+     */
+    template <statement_env stenv, dataflow_type dft>
+    class foreach_statement : public statement<stenv, recurring_statement::FOREACH>
+    {
+        public:
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
+        static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
+        dataflow_declaration<dft, stenv> m_iterator;
+        primitive_iterable_variant<expenv> m_iterable_expr;
+        std::vector<statement_type> m_statements;
+
+        foreach_statement(){}
+        foreach_statement(
+            dataflow_declaration<dft, stenv> iterator, 
+            primitive_iterable_variant<expenv> iterable_expr)
+            : m_iterator(iterator), m_iterable_expr(iterable_expr){}
+
+        inline void add_statement(statement_type stt){ m_statements.push_back(stt); }
+
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * System specific version only suitable for iterating
+     * over components variables (logical, physical or objects)
+     */
+    template <block_type bt>
+    class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH>
+    {
+        block_declaration<bt> m_iterator;
+        system_variable_block_expression<bt> m_iterable_expression;
+        std::vector<system_statement_variant> m_statements;
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration
+     * of a component variable (object, physical or logical)
+     */
+    template <block_type bt>
+    class block_declaration : public statement<statement_env::SYSTEM, recurring_statement::DECLARATION>
+    {
+        public:
+        using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
+        using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
+
+        block_definition_t *m_defintion;
+        block_variable_t m_variable;
+
+        block_declaration(){}
+        block_declaration(std::string name) : m_variable(block_variable_t(name)){}
+
+        block_declaration(block_definition_t* definition,
+                          block_variable_t variable)
+            : m_defintion(definition), m_variable(variable){}
+
+        void set_variable(block_variable_t var) { m_variable = var; }
+        block_variable_t get_variable() { return m_variable; }
+
+        block_definition_t* get_definition(){ return m_defintion; }
+
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents some concept that is not
+     * theoretically gounded yet.
+     * Work in progress, do not use.
+     */
+    class implements_statement : public system_statement<recurring_statement::IMPLEMENTS>
+    {
+        void hello();
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a channel output of a component to a channel input
+     * of another component.
+     * Such statement should assert that :
+     * - channel types are compatibles
+     * - connected channels inputs and outputs are not already
+     *   connected
+     */
+    class channel_plugging : public system_statement<recurring_statement::PLUGGING>
+    {
+        // need to perform check on channel types
+        // need to perform check on connectivity
+        // (only connect channels 1-to-1, never 1-to-many or many-to-one)
+
+        public:
+        channel_eater *m_eater;
+        channel_feeder *m_feeder;
+
+        channel_plugging(){}
+        channel_plugging(channel_eater* eat, channel_feeder* feed)
+            : m_eater(eat), m_feeder(feed){}
+
+        void set_eater(channel_eater* eat) { m_eater = eat; }
+        channel_eater* get_eater() { return m_eater; }
+
+        void set_feeder(channel_feeder* feed) { m_feeder = feed; }
+        channel_feeder* get_feeder() { return m_feeder; }
+
+        void hello(){}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a component dataflow output to a component dataflow
+     * parameter.
+     * Such statement should assert that
+     * connected inputs and outputs are not already connected
+     * (unless a collective_cast node is used)
+     */
+    template <dataflow_kind dfk, dataflow_type dft>
+    class feeding_statement : public system_statement<recurring_statement::FEEDING>, public feeder<dfk, dft>
+    {
+        public:
+        eater<dfk, dft> m_eater;
+        feeder<dfk, dft>* m_feeder = nullptr;
+
+        feeding_statement(eater<dfk, dft> eat, feeder<dfk, dft>* feed)
+            : m_eater(eat), m_feeder(feed){}
+
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the physical
+     * dependency of two objects or of a node to a physical block
+     * using the following syntax :
+     * link linkable to support;
+     */
+    class linking_statement : public system_statement<recurring_statement::LINKING>
+    {
+        public:
+        linkable *m_linked_component;
+        support *m_support_node;
+
+        linking_statement(){}
+        linking_statement(linkable* linked_component, support* support_node)
+            : m_linked_component(linked_component), m_support_node(support_node){}
+
+        void hello(){};
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the implementation
+     * of a contextual variable by another contextual variable
+     * or of a channel by another channel.
+     * Work in progress, do not use
+     */
+    template <node_element ne>
+    class aliasing_statement : public implementation_statement<recurring_statement::ALIASING>
+    {
+        void hello() {}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration
+     * of a contextual or of a channel in a with section
+     */
+    template <node_element ne>
+    class node_element_declaration : public node_statement<recurring_statement::DECLARATION>
+    {
+    public:
+        using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
+        node_variable_t m_variable_type; // == type_identifier in case of channel declaration
+        std::string m_declared_name;     // == identifier in case of contextual variable
+        void hello() {}
+        node_element_declaration(node_variable_t type, std::string vname) : m_variable_type(type), m_declared_name(vname) {}
+
+        void set_variable(node_variable_t variable) { m_variable_type = variable; }
+        node_variable_t get_variable() { return m_variable_type; }
+
+        void set_name(std::string name) { m_declared_name = name; }
+        std::string get_name() { return m_declared_name; }
+    };
+}
+
+#endif

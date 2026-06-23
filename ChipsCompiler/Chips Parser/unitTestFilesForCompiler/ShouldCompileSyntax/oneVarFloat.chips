@@ -1,4 +1,0 @@
-
-SYSTEM {
-    float hello = 0.4;
-}

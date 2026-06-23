@@ -1,5 +1,0 @@
-virtual function() then {
-    int i = 4;  
-} -> (1)
-
-SYSTEM dimensions(1){}
