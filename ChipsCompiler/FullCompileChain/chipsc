@@ -167,13 +167,12 @@ echo ""
 
 # Step 2 — BIP-XMI
 echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
-# needs to have the following environment variable set :
-#   CHIPSC_PATH="$CHIPS_PATH"/ChipsCompiler/FullCompileChain/Chips2BipTransformer
-java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
-    emftvm $CHIPSC_PATH/metamodels/chips1.1.ecore \
-    $CHIPSC_PATH/metamodels/BIP.ecore  \
+
+java -cp ".:$CHIPSC_PATH/Chips2BipTransformer:$CHIPSC_PATH/Chips2BipTransformer/lib/*" \
+    emftvm $CHIPSC_PATH/Chips2BipTransformer/metamodels/chips1.1.ecore \
+    $CHIPSC_PATH/Chips2BipTransformer/metamodels/BIP.ecore  \
     "${INPUT_FILE}" \
-    $CHIPSC_PATH/transformations/chips2bip.atl \
+    $CHIPSC_PATH/Chips2BipTransformer/transformations/chips2bip.atl \
     "${OUTPUT_FILE}.bip.xmi"
 
 echo "      (BIP-XMI step completed)"

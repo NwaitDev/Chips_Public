@@ -854,7 +854,7 @@ unique lazy rule MakeMonotypeBufferType{
 			name <- type + '_buffer_t',
 	        native <- false,
 	        exportedPortDeclarations <- Sequence{aepd_in,aepd_out},
-	        dataParameterDeclarations <- Sequence{}, -- should stay empty for this type
+	        dataParameterDeclarations <- Sequence{}, -- should stay empty for that type
 	        internalPortDeclarations <- Sequence{aipd_in,aipd_out},
 	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out),
 	        internalDataDeclarations <- Sequence{aidd},
@@ -1329,7 +1329,7 @@ lazy rule MakeComponentSubPortDeclarationReference{
 unique lazy rule MakePortDeclarationReferenceParameter{
 	from 
 		portdecl:bip!PortDeclaration, -- coming from the definition of the connector
-		subpdrp:bip!SubPortDeclarationReference -- the actual port that gets connected via this declaration
+		subpdrp:bip!SubPortDeclarationReference -- the actual port that gets connected via that declaration
 		
 	to pdrp:bip!PortDeclarationReferenceParameter(
 		parameterDeclaration <- portdecl, 
@@ -1817,7 +1817,23 @@ lazy rule MakeCompoundDeclaration{
 lazy rule MakeDirectBooleanExpression{
 	from exp : Boolean
 
-	to dbe:bip!DirectBooleanExpression(
+	to die:bip!DirectBooleanExpression(
+		value <- exp
+	)
+}
+
+lazy rule MakeDirectFloatExpression{
+	from exp : Real
+
+	to dfe:bip!DirectFloatExpression(
+		value <- exp
+	)
+}
+
+lazy rule MakeDirectIntegerExpression{
+	from exp : Integer
+
+	to dbe:bip!DirectIntegerExpression(
 		value <- exp
 	)
 }
@@ -1924,7 +1940,7 @@ unique lazy rule MakeConstantAtomType{
 }
 
 helper context OclAny def : makeUniqueConstantName() : String = 
-	'cst_'+self.toString()+'__'+thisModule.id.toString()+'__';
+	'cst_'+self.toString().replaceAll('\\.','p')+'__'+thisModule.id.toString()+'__';
 
 unique lazy rule MakeIntegerConstantDeclaration{
 	from 
@@ -1932,12 +1948,9 @@ unique lazy rule MakeIntegerConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('int'),
-		parameters <- Sequence{valued_expression}
-	),
-	
-	valued_expression: bip!DirectDataDeclarationReferenceExpression (
-		--dataDeclaration <- OclUndefined -- TODO
+		parameters <- Sequence{thisModule.MakeDirectIntegerExpression(int)}
 	)
+
 	do {
 		cst_component_decl.name <- int.makeUniqueConstantName();
 		thisModule.id <- thisModule.id+1;
@@ -1952,11 +1965,7 @@ unique lazy rule MakeFloatConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('float'),
-		parameters <- Sequence{valued_expression}
-	),
-	
-	valued_expression: bip!DirectDataDeclarationReferenceExpression (
-		--dataDeclaration <- OclUndefined -- TODO
+		parameters <- Sequence{thisModule.MakeDirectFloatExpression(float)}
 	)
 	do {
 		cst_component_decl.name <- float.makeUniqueConstantName();
@@ -1971,12 +1980,9 @@ unique lazy rule MakeBoolConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		type <- thisModule.MakeConstantAtomType('bool'),
-		parameters <- Sequence{valued_expression}
-	),
-	
-	valued_expression: bip!DirectDataDeclarationReferenceExpression (
-		--dataDeclaration <- OclUndefined -- TODO
+		parameters <- Sequence{thisModule.MakeDirectIntegerExpression(bool)}
 	)
+
 	do {
 		cst_component_decl.name <- bool.makeUniqueConstantName();
 		thisModule.id <- thisModule.id+1;
