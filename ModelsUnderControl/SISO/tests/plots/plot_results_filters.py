@@ -251,9 +251,9 @@ if __name__ == "__main__":
     plot_filter("tests/results/low_pass.csv", "passe-bas (ordre 1)")
     plot_filter("tests/results/low_pass_2.csv", "passe-bas (ordre 2)")
     plot_filter("tests/results/low_pass_4.csv", "passe-bas (ordre 4)")
-    # plot_filter("tests/results/high_pass.csv", "passe-haut")
-    # plot_filter("tests/results/high_low_pass.csv", "passe-haut puis bas", True)
+    plot_filter("tests/results/high_pass.csv", "passe-haut")
+    plot_filter("tests/results/high_low_pass.csv", "passe-haut puis bas", True)
 
-    # plot_filter("tests/results/median.csv", "median")
+    plot_filter("tests/results/median.csv", "median")
 
     plt.show()
