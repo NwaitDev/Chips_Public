@@ -390,7 +390,7 @@ void ChipsToXmiVisitor::visit(system_section_node& node){
     for(auto stt : node.get_statements()){
         std::string segment = "/@system." + std::to_string(system_index++);
         push_ast_path(segment);
-        out() << repeat("\t", nbTab) << "<system\n";
+        out() << repeat("\t", nbTab) << "<system_statements\n";
 
         if(auto* if_stt = std::get_if<system_statement<recurring_statement::IF>*>(&stt)){
             if(auto* if_else_stt = dynamic_cast<if_else_statement<statement_env::SYSTEM>*>(*if_stt)){
@@ -454,7 +454,7 @@ void ChipsToXmiVisitor::visit(system_section_node& node){
             }
         }
 
-        out() << repeat("\t", nbTab) << "</system>\n";
+        out() << repeat("\t", nbTab) << "</system_statements>\n";
         pop_ast_path(segment);
     }
 }
@@ -2240,7 +2240,7 @@ void ChipsToXmiVisitor::visit(linking_statement& node){
 }
 
 void ChipsToXmiVisitor::visit(target_output& node){
-    out() << repeat("\t", nbTab) << "<current_object_output>\n";
+    out() << repeat("\t", nbTab) << "<target_output>\n";
 
     auto expressions = node.get_expressions();
 
@@ -2275,7 +2275,7 @@ void ChipsToXmiVisitor::visit(target_output& node){
         }, expression);
     }
 
-    out() << repeat("\t", nbTab) << "</current_object_output>\n";
+    out() << repeat("\t", nbTab) << "</target_output>\n";
 }
 
 void ChipsToXmiVisitor::visit(default_output& node){
