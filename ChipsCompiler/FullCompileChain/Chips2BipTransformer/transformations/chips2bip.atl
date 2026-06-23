@@ -1063,7 +1063,7 @@ unique lazy rule MakeMany2OneConnectorType{
 	}
 
 	to one : bip!ConnectorType(
-		name<-ordered_types->iterate( iter ; accu_name : String = 'many2one_'| accu_name+iter )+'_t',
+		name <- ordered_types.debug()->iterate( iter ; accu_name : String = 'many2one_'| accu_name+iter )+'_t',
 		ports <- cppd,
 		exportedPortDeclaration <- exported,
 		dataDeclarations <- datadecls,
@@ -1712,14 +1712,16 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 			);
 		
 		exported_inputs : Sequence(bip!CompoundExportPortDeclaration) = 
-			Sequence{
-
-			};
+			thisModule.dictionary
+				->get('InputBufferTypes')
+				->get(all_inputs)
+				->get('einputs');
 
 		exported_outputs : Sequence(bip!CompoundExportPortDeclaration) = 
-			Sequence{
-
-			};
+			thisModule.dictionary
+				->get('OutputBufferTypes')
+				->get(all_outputs)
+				->get('eoutputs');
 
 		-- still need to handle contextuals
 		exportedportdecl : Sequence(bip!CompoundExportPortDeclaration) =
