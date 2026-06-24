@@ -9,3 +9,4 @@ ChipsCompiler/ATL Chips2BIP/models/TeaStoreVariation.xmi
 *.bip.xmi
 *.class
 venv/*
+*.emftvm
