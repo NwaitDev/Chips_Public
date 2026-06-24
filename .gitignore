@@ -6,3 +6,4 @@ ChipsCompiler/Chips_Parser/generated
 ChipsCompiler/Chips_Parser/.antlr
 Report/*
 ChipsCompiler/ATL Chips2BIP/models/TeaStoreVariation.xmi
+*.bip.xmi
