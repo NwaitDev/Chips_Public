@@ -156,9 +156,7 @@ echo ""
 CHIPSPARSER="../Chips_Parser/build/chipsparser"
 
 # Step 1 — CHIPS-XMI
-echo "[1/3] Parsing '$INPUT_FILE' → CHIPS-XMI..."
-# TODO: invoke the actual CHIPS-XMI tool here, e.g.:
-#   chipsparser "$INPUT_FILE" -o "${OUTPUT_FILE}.chips.xmi"
+echo "[1/4] Parsing '$INPUT_FILE' → CHIPS-XMI..."
 $CHIPSPARSER "$INPUT_FILE"
 
 echo "      (CHIPS-XMI step completed)"
@@ -169,8 +167,14 @@ if [[ "$STOP_STEP" == "chips-xmi" ]]; then
     exit 0
 fi
 
+echo "[2/4] Analyze '$OUTPUT_FILE'.chips.xmi for validation..."
+
+python3 xmi_validator.py $CHIPSC_PATH/metamodels/chips1.1.ecore $OUTPUT_FILE.chips.xmi
+
+echo "      (Analyze XMI step completed)"
+
 # Step 2 — BIP-XMI
-echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
+echo "[3/4] Transforming CHIPS-XMI → BIP-XMI..."
 # needs to have the following environment variable set :
 #   CHIPSC_PATH="$CHIPS_PATH"/ChipsCompiler/FullCompileChain/Chips2BipTransformer
 java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
@@ -189,7 +193,7 @@ if [[ "$STOP_STEP" == "bip-xmi" ]]; then
 fi
 
 # Step 3 — Code generation
-echo "[3/3] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
+echo "[4/4] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
 mkdir -p ${OUTPUT_FILE}/build
 if [[ "$GENERATE_MODE" == "cpp" ]]; then
     $BIPC_PATH/bipc.sh --xmi "${OUTPUT_FILE}.bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
