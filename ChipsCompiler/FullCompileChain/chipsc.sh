@@ -157,7 +157,7 @@ CHIPSPARSER="../Chips_Parser/build/chipsparser"
 
 # Step 1 — CHIPS-XMI
 echo "[1/4] Parsing '$INPUT_FILE' → CHIPS-XMI..."
-$CHIPSPARSER "$INPUT_FILE"
+$CHIPSPARSER "$INPUT_FILE" 
 
 echo "      (CHIPS-XMI step completed)"
 
@@ -182,7 +182,7 @@ java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
     $CHIPSC_PATH/metamodels/BIP.ecore  \
     "${OUTPUT_FILE}.chips.xmi" \
     $CHIPSC_PATH/transformations/chips2bip.atl \
-    "${OUTPUT_FILE}.bip.xmi"
+    "${OUTPUT_FILE}bip.xmi"
 
 echo "      (BIP-XMI step completed)"
 
@@ -196,10 +196,10 @@ fi
 echo "[4/4] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
 mkdir -p ${OUTPUT_FILE}/build
 if [[ "$GENERATE_MODE" == "cpp" ]]; then
-    $BIPC_PATH/bipc.sh --xmi "${OUTPUT_FILE}.bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
+    $BIPC_PATH/bipc.sh -v FINEST --xmi "${OUTPUT_FILE}bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
     echo "      (C++ generation completed)"
 else
-    $BIPC_PATH/bipc.sh --xmi "${OUTPUT_FILE}.bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
+    $BIPC_PATH/bipc.sh -v FINEST --xmi "${OUTPUT_FILE}bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
     echo "      (BIP generation completed)"
 fi
 
