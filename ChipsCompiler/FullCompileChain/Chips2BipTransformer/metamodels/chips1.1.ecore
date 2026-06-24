@@ -1440,7 +1440,7 @@
               eType="#//parameters/logical/bool_logical_parameter"/>
         </eClassifiers>
         <eClassifiers xsi:type="ecore:EClass" name="physical_int_eater" eSuperTypes="#//systemspecific/physical_eater">
-          <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
+          <eStructuralFeatures xsi:type="ecore:EReference" name="variable_expression" lowerBound="1"
               eType="#//systemspecific/expressions/physical_variable_expression" containment="true"/>
           <eStructuralFeatures xsi:type="ecore:EReference" name="parameter" lowerBound="1"
               eType="#//parameters/physical/int_physical_parameter"/>
