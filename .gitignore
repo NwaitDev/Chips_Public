@@ -6,3 +6,4 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariat
 */build/*
 */generated/*
 .vscode/*
+*.class
