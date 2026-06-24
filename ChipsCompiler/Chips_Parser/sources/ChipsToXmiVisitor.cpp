@@ -388,7 +388,7 @@ void ChipsToXmiVisitor::visit(system_section_node& node){
     int system_index = 0;
 
     for(auto stt : node.get_statements()){
-        std::string segment = "/@system." + std::to_string(system_index++);
+        std::string segment = "/@system_statements." + std::to_string(system_index++);
         push_ast_path(segment);
         out() << repeat("\t", nbTab) << "<system_statements\n";
 
