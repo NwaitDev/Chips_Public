@@ -50,7 +50,7 @@ void parse(std::istream& input, std::string filename) {
     auto* tree = parser.program();   // parse
     ASTBuilder builder;
 
-    std::string output = "output.xmi";
+    std::string output = "output.chips.xmi";
 
     std::ostringstream body_out;
     ChipsToXmiWriter body_writer(body_out);
