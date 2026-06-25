@@ -1380,7 +1380,7 @@ helper context Sequence(TupleType(iindex:Integer, type:String, buf:bip!Component
 asIBTSequenceOfCompoundExportPortDeclarations() : Sequence(bip!CompoundExportPortDeclaration) =
 	self->collect(t | 
 		thisModule.MakeCompoundExportPortDeclaration(
-			t.type+t.iindex.toString(),
+			t.type+'_input_'+t.iindex.toString(),
 			Sequence{t.type},
 			Sequence{
 				thisModule.MakeComponentSubPortDeclarationReference(
@@ -1398,7 +1398,7 @@ helper context Sequence(TupleType(iindex:Integer, type:String, buf:bip!Component
 asOBTSequenceOfCompoundExportPortDeclarations() : Sequence(bip!CompoundExportPortDeclaration) =
 	self->collect(t | 
 		thisModule.MakeCompoundExportPortDeclaration(
-			t.type+t.iindex.toString(),
+			t.type+'_output_'+t.iindex.toString(),
 			Sequence{t.type},
 			Sequence{
 				thisModule.MakeComponentSubPortDeclarationReference(
@@ -1572,7 +1572,7 @@ unique lazy rule MakeOutputBufferType{
 		dataParameterDeclarations <- Sequence{},
 		componentDeclarations <- indexed_typed_monotype_buffers->collect(t|t.buf),
 		connectorDeclarations <- Sequence{output_connector_decl},
-		exportPortDeclarations <- indexed_typed_monotype_buffers->asOBTSequenceOfCompoundExportPortDeclarations()->append(exported_one).debug()
+		exportPortDeclarations <- indexed_typed_monotype_buffers->asOBTSequenceOfCompoundExportPortDeclarations()->append(exported_one)
 	)
 
 	do {
@@ -1606,10 +1606,10 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		all_inputs : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_inputs;
 		all_outputs : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_outputs;
 
-		all_indexed_input_types : Sequence(TupleType(iindex:Integer,type:String)) =
-			all_inputs->augmentWithIindex()->collect(t | Tuple{type=t.data.type, iindex=t.iindex});
-		all_indexed_output_types : Sequence(TupleType(iindex:Integer,type:String)) =
-			all_outputs->augmentWithIindex()->collect(t | Tuple{type=t.data.type, iindex=t.iindex});
+		all_indexed_inputs : Sequence(TupleType(iindex:Integer,type:String, name:String)) =
+			all_inputs->augmentWithIindex()->collect(t | Tuple{type=t.data.type, iindex=t.iindex, name = t.data.name});
+		all_indexed_outputs : Sequence(TupleType(iindex:Integer,type:String, name:String)) =
+			all_outputs->augmentWithIindex()->collect(t | Tuple{type=t.data.type, iindex=t.iindex, name = t.data.name});
 
 		all_input_ordered_types : Sequence(String) = all_inputs->collect(t|t.type);
 		all_output_ordered_types : Sequence(String) = all_outputs->collect(t|t.type);
@@ -1711,16 +1711,36 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 			);
 		
 		exported_inputs : Sequence(bip!CompoundExportPortDeclaration) = 
-			thisModule.dictionary
-				->get('InputBufferTypes')
-				->get(all_input_ordered_types)
-				->get('einputs');
+			all_indexed_inputs->collect(p | 
+				thisModule.MakeCompoundExportPortDeclaration(
+					p.name+'_input',
+					Sequence{p.type},
+					Sequence{thisModule.MakeComponentSubPortDeclarationReference(
+						thisModule.dictionary
+							->get('InputBufferTypes')
+							->get(all_input_ordered_types)
+							->get('einputs')
+							->get(p.iindex),
+						input_buffer_declaration
+					)}
+				)
+			);
 
 		exported_outputs : Sequence(bip!CompoundExportPortDeclaration) = 
-			thisModule.dictionary
-				->get('OutputBufferTypes')
-				->get(all_output_ordered_types)
-				->get('eoutputs');
+			all_indexed_outputs->collect(p | 
+				thisModule.MakeCompoundExportPortDeclaration(
+					p.name+'_output',
+					Sequence{p.type},
+					Sequence{thisModule.MakeComponentSubPortDeclarationReference(
+						thisModule.dictionary
+							->get('OutputBufferTypes')
+							->get(all_output_ordered_types)
+							->get('eoutputs')
+							->get(p.iindex),
+						output_buffer_declaration
+					)}
+				)
+			);
 
 		-- still need to handle contextuals
 		exportedportdecl : Sequence(bip!CompoundExportPortDeclaration) =
