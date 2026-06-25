@@ -1354,11 +1354,9 @@ lazy rule MakeConnectorDeclaration{
 
 unique lazy rule MakeMany2OneConnectorDeclaration{
 	from 
-		chipsparameters : Sequence(TupleType(type:String,name:String)),
+		types:Sequence(String),
 		portparameters: Sequence(bip!PortDeclarationReferenceParameter)
-	using{
-		types:Sequence(String) = chipsparameters->collect(t | t.type);
-	}
+
 	to conn:bip!ConnectorDeclaration(
 		type<- thisModule.MakeMany2OneConnectorType(types),
 		portParameters <- portparameters,
@@ -1368,11 +1366,9 @@ unique lazy rule MakeMany2OneConnectorDeclaration{
 
 unique lazy rule MakeOne2ManyConnectorDeclaration{
 	from 
-		chipsparameters : Sequence(TupleType(type:String,name:String)),
+		types:Sequence(String),
 		portparameters: Sequence(bip!PortDeclarationReferenceParameter)
-	using{
-		types:Sequence(String) = chipsparameters->collect(t | t.type);
-	}
+
 	to conn:bip!ConnectorDeclaration(
 		type<- thisModule.MakeOne2ManyConnectorType(types),
 		portParameters <- portparameters,
@@ -1380,33 +1376,67 @@ unique lazy rule MakeOne2ManyConnectorDeclaration{
 	)
 }
 
+helper context Sequence(TupleType(iindex:Integer, type:String, buf:bip!ComponentDeclaration)) def : 
+asIBTSequenceOfCompoundExportPortDeclarations() : Sequence(bip!CompoundExportPortDeclaration) =
+	self->collect(t | 
+		thisModule.MakeCompoundExportPortDeclaration(
+			t.type+t.iindex.toString(),
+			Sequence{t.type},
+			Sequence{
+				thisModule.MakeComponentSubPortDeclarationReference(
+					thisModule.dictionary
+						->get('MonotypeBufferTypes')
+						->get(t.type)
+						->get('aepd_in'),
+					t.buf
+				)
+			}
+		)
+	);
+
+helper context Sequence(TupleType(iindex:Integer, type:String, buf:bip!ComponentDeclaration)) def : 
+asOBTSequenceOfCompoundExportPortDeclarations() : Sequence(bip!CompoundExportPortDeclaration) =
+	self->collect(t | 
+		thisModule.MakeCompoundExportPortDeclaration(
+			t.type+t.iindex.toString(),
+			Sequence{t.type},
+			Sequence{
+				thisModule.MakeComponentSubPortDeclarationReference(
+					thisModule.dictionary
+						->get('MonotypeBufferTypes')
+						->get(t.type)
+						->get('aepd_out'),
+					t.buf
+				)
+			}
+		)
+	);
 
 unique lazy rule MakeInputBufferType{
-	from parameters : Sequence(TupleType(type:String,name:String))
+	from ordered_types : Sequence(String)
 
 	using{
-		indexed_named_typed_monotype_buffers 
-		: Sequence(TupleType(iindex:Integer, type:String,name:String,buf:bip!ComponentDeclaration)) = 
-			parameters->augmentWithIindex()
+		indexed_typed_monotype_buffers 
+		: Sequence(TupleType(iindex:Integer, type:String,buf:bip!ComponentDeclaration)) = 
+			ordered_types->augmentWithIindex()
 			->collect(t | 
 				Tuple{
 					iindex = t.iindex,
-					type=t.data.type,
-					name=t.data.name,
-					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data.type,t.data.name)
+					type=t.data,
+					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data,t.data+t.iindex.toString())
 				}
 			);
 
 		connector_type : bip!ConnectorType =
-			thisModule.MakeMany2OneConnectorType(parameters->collect(t | t.type));
+			thisModule.MakeMany2OneConnectorType(ordered_types);
 		
 		
 		input_connector_port_parameters : Sequence(bip!PortDeclarationReferenceParameter) =
-			indexed_named_typed_monotype_buffers->collect(
+			indexed_typed_monotype_buffers->collect(
 				t | thisModule.MakePortDeclarationReferenceParameter(
 					thisModule.dictionary
 						->get('Many2OneConnectorTypes')
-						->get(parameters->collect(t | t.type))
+						->get(ordered_types)
 						->get('cppd')
 						->get(t.iindex),
 					thisModule.MakeComponentSubPortDeclarationReference(
@@ -1421,51 +1451,36 @@ unique lazy rule MakeInputBufferType{
 
 		input_connector_decl : bip!ConnectorDeclaration = 
 			thisModule.MakeMany2OneConnectorDeclaration(
-				parameters,
+				ordered_types,
 				input_connector_port_parameters
 			);
 		
 		exported_one : bip!CompoundExportPortDeclaration = 
 			thisModule.MakeCompoundExportPortDeclaration(
 				'one',
-				indexed_named_typed_monotype_buffers->collect(t|t.type),
+				ordered_types,
 				Sequence{
 					thisModule.MakeConnectorSubPortDeclarationReference(
 						thisModule.dictionary
 							->get('Many2OneConnectorTypes')
-							->get(parameters->collect(t | t.type))
+							->get(ordered_types)
 							->get('epd'),
 						input_connector_decl
 					)
 				}
 			);
-		exported_monotype_inputs : Sequence(bip!CompoundExportPortDeclaration) =
-			indexed_named_typed_monotype_buffers->collect(t | 
-				thisModule.MakeCompoundExportPortDeclaration(
-					t.name.protect()+'_exin',
-					Sequence{t.type},
-					Sequence{
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('MonotypeBufferTypes')
-								->get(t.type)
-								->get('aepd_in'),
-							t.buf
-						)
-					}
-				)
-			);
+		
 	}
 
 	to ibt : bip!CompoundType(
-		name <- parameters->iterate(s ; acc:String = ''| acc+s.type)+'_input_buffer_t',
+		name <- ordered_types->iterate(s ; acc:String = ''| acc+s)+'_input_buffer_t',
         native <- false,
-        exportedPortDeclarations <- exported_monotype_inputs->append(exported_one),
+        exportedPortDeclarations <- indexed_typed_monotype_buffers->asIBTSequenceOfCompoundExportPortDeclarations()->append(exported_one),
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{},
-		componentDeclarations <- indexed_named_typed_monotype_buffers->collect(t|t.buf),
+		componentDeclarations <- indexed_typed_monotype_buffers->collect(t|t.buf),
 		connectorDeclarations <- Sequence{input_connector_decl},
-		exportPortDeclarations <- exported_monotype_inputs->append(exported_one)
+		exportPortDeclarations <- indexed_typed_monotype_buffers->asIBTSequenceOfCompoundExportPortDeclarations()->append(exported_one)
 	)
 
 	do {
@@ -1477,9 +1492,9 @@ unique lazy rule MakeInputBufferType{
 
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
-				parameters,
+				ordered_types,
 				Map{
-					('einputs', exported_monotype_inputs),
+					('einputs', indexed_typed_monotype_buffers->asIBTSequenceOfCompoundExportPortDeclarations()),
 					('eoutput', exported_one)
 				}
 			);
@@ -1491,31 +1506,30 @@ unique lazy rule MakeInputBufferType{
 }
 
 unique lazy rule MakeOutputBufferType{
-	from parameters : Sequence(TupleType(type:String,name:String))
+	from ordered_types : Sequence(String)
 
 	using{
-
-		indexed_named_typed_monotype_buffers 
-		: Sequence(TupleType(iindex:Integer, type:String,name:String,buf:bip!ComponentDeclaration)) = 
-			parameters->augmentWithIindex()
+		indexed_typed_monotype_buffers 
+		: Sequence(TupleType(iindex:Integer, type:String, buf:bip!ComponentDeclaration)) = 
+			ordered_types->augmentWithIindex()
 			->collect(t | 
 				Tuple{
 					iindex = t.iindex,
-					type=t.data.type,
-					name=t.data.name,
-					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data.type,t.data.name)
+					type=t.data,
+					buf = thisModule.MakeMonoTypeBufferComponentDeclaration(t.data,t.data+t.iindex.toString())
 				}
 			);
 
 		connector_type : bip!ConnectorType =
-			thisModule.MakeOne2ManyConnectorType(parameters->collect(t | t.type));
+			thisModule.MakeOne2ManyConnectorType(ordered_types);
+		
 		
 		output_connector_port_parameters : Sequence(bip!PortDeclarationReferenceParameter) =
-			indexed_named_typed_monotype_buffers->collect(
+			indexed_typed_monotype_buffers->collect(
 				t | thisModule.MakePortDeclarationReferenceParameter(
 					thisModule.dictionary
 						->get('One2ManyConnectorTypes')
-						->get(parameters->collect(t | t.type))
+						->get(ordered_types)
 						->get('cppd')
 						->get(t.iindex),
 					thisModule.MakeComponentSubPortDeclarationReference(
@@ -1530,51 +1544,35 @@ unique lazy rule MakeOutputBufferType{
 
 		output_connector_decl : bip!ConnectorDeclaration = 
 			thisModule.MakeOne2ManyConnectorDeclaration(
-				parameters,
+				ordered_types,
 				output_connector_port_parameters
 			);
 		
 		exported_one : bip!CompoundExportPortDeclaration = 
 			thisModule.MakeCompoundExportPortDeclaration(
 				'one',
-				indexed_named_typed_monotype_buffers->collect(t|t.type),
+				ordered_types,
 				Sequence{
 					thisModule.MakeConnectorSubPortDeclarationReference(
 						thisModule.dictionary
 							->get('One2ManyConnectorTypes')
-							->get(parameters->collect(t | t.type))
+							->get(ordered_types)
 							->get('epd'),
 						output_connector_decl
 					)
 				}
 			);
-		exported_monotype_outputs : Sequence(bip!CompoundExportPortDeclaration) =
-			indexed_named_typed_monotype_buffers->collect(t | 
-				thisModule.MakeCompoundExportPortDeclaration(
-					t.name.protect()+'_exout',
-					Sequence{t.type},
-					Sequence{
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('MonotypeBufferTypes')
-								->get(t.type)
-								->get('aepd_out'),
-							t.buf
-						)
-					}
-				)
-			);
 	}
 
 	to obt : bip!CompoundType(
-		name <- parameters->iterate(s ; acc:String = ''| acc+s.type)+'_output_buffer_t',
+		name <- ordered_types->iterate(s ; acc:String = ''| acc+s)+'_output_buffer_t',
         native <- false,
-        exportedPortDeclarations <- exported_monotype_outputs->append(exported_one), -- export the outer port of the connector
+        --exportedPortDeclarations <- indexed_typed_monotype_buffers->asOBTSequenceOfCompoundExportPortDeclarations()->append(exported_one),
         exportedDataDeclarations <- Sequence{},
 		dataParameterDeclarations <- Sequence{},
-		componentDeclarations <- indexed_named_typed_monotype_buffers->collect( t | t.buf),
+		componentDeclarations <- indexed_typed_monotype_buffers->collect(t|t.buf),
 		connectorDeclarations <- Sequence{output_connector_decl},
-		exportPortDeclarations <- exported_monotype_outputs->append(exported_one)
+		exportPortDeclarations <- indexed_typed_monotype_buffers->asOBTSequenceOfCompoundExportPortDeclarations()->append(exported_one).debug()
 	)
 
 	do {
@@ -1586,9 +1584,9 @@ unique lazy rule MakeOutputBufferType{
 
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
-				parameters,
+				ordered_types,
 				Map{
-					('eoutputs', exported_monotype_outputs),
+					('eoutputs', indexed_typed_monotype_buffers->asOBTSequenceOfCompoundExportPortDeclarations()),
 					('einput', exported_one)
 				}
 			);
@@ -1629,13 +1627,13 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		input_buffer_declaration : bip!ComponentDeclaration = 
 			thisModule.MakeBufferCompoundDeclaration(
 				chipsfunction.name+'_input_buffer',
-				thisModule.MakeInputBufferType(all_inputs)
+				thisModule.MakeInputBufferType(all_inputs->collect(t | t.type))
 			);
 
 		output_buffer_declaration : bip!ComponentDeclaration = 
 			thisModule.MakeBufferCompoundDeclaration(
 				chipsfunction.name+'_output_buffer',
-				thisModule.MakeOutputBufferType(all_outputs)
+				thisModule.MakeOutputBufferType(all_outputs->collect(t | t.type))
 			);
 
 		--------------------------------------------
@@ -1655,7 +1653,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('InputBufferTypes')
-								->get(all_inputs)
+								->get(all_input_ordered_types)
 								->get('eoutput'),
 							input_buffer_declaration
 						)
@@ -1704,7 +1702,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('OutputBufferTypes')
-								->get(all_outputs)
+								->get(all_output_ordered_types)
 								->get('einput'),
 							output_buffer_declaration
 						)
@@ -1715,13 +1713,13 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		exported_inputs : Sequence(bip!CompoundExportPortDeclaration) = 
 			thisModule.dictionary
 				->get('InputBufferTypes')
-				->get(all_inputs)
+				->get(all_input_ordered_types)
 				->get('einputs');
 
 		exported_outputs : Sequence(bip!CompoundExportPortDeclaration) = 
 			thisModule.dictionary
 				->get('OutputBufferTypes')
-				->get(all_outputs)
+				->get(all_output_ordered_types)
 				->get('eoutputs');
 
 		-- still need to handle contextuals
@@ -2044,11 +2042,11 @@ rule Program2BipPackage {
 		
 		functional_input_buffer_types : Sequence(bip!CompoundType) =
 			all_chips_function_defs
-			->collect(d | thisModule.MakeInputBufferType(d.all_inputs));
+			->collect(d | thisModule.MakeInputBufferType(d.all_inputs->collect(t | t.type)));
 		
 		functional_output_buffer_types : Sequence(bip!CompoundType) =
 			all_chips_function_defs
-			->collect(d | thisModule.MakeOutputBufferType(d.all_outputs));
+			->collect(d | thisModule.MakeOutputBufferType(d.all_outputs->collect(t | t.type)));
 
 
 		all_exporting_connector_types: Sequence(bip!ConnectorType) =
