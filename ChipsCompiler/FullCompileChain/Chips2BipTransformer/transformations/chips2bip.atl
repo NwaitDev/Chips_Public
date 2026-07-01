@@ -1157,8 +1157,6 @@ unique lazy rule MakeMany2OneConnectorType{
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('Many2OneConnectorTypes', thisModule.temp_dic);
-
-		thisModule.id <- thisModule.id +1;
 		one;
 	}
 }
@@ -1907,7 +1905,7 @@ lazy rule MakeCompoundDeclaration{
 lazy rule MakeDirectBooleanExpression{
 	from exp : Boolean
 
-	to die:bip!DirectBooleanExpression(
+	to dbe:bip!DirectBooleanExpression(
 		value <- exp
 	)
 }
@@ -1923,7 +1921,7 @@ lazy rule MakeDirectFloatExpression{
 lazy rule MakeDirectIntegerExpression{
 	from exp : Integer
 
-	to dbe:bip!DirectIntegerExpression(
+	to die:bip!DirectIntegerExpression(
 		value <- exp
 	)
 }
@@ -2018,35 +2016,56 @@ unique lazy rule MakeConstantAtomType{
 
 unique lazy rule MakeIntegerConstantDeclaration{
 	from 
-		int : Integer, iindex : Integer
+		value : Integer, id : Integer
 
 	to cst_component_decl: bip!ComponentDeclaration(
-		name <- 'cst'+iindex.toString()+'_'+int.toString(),
+		name <- 'cst'+id.toString(),
 		type <- thisModule.MakeConstantAtomType('int'),
-		parameters <- Sequence{thisModule.MakeDirectIntegerExpression(int)}
+		parameters <- Sequence{
+			thisModule.MakeDirectIntegerExpression(value)
+		}
 	)
+	
+	do {
+		thisModule.id <- thisModule.id +1;
+		cst_component_decl;
+	}
 }
 
 unique lazy rule MakeFloatConstantDeclaration{
 	from 
-		float : Real, iindex : Integer
+		value : Real, id : Integer
 
 	to cst_component_decl: bip!ComponentDeclaration(
-		name <- 'cst'+iindex.toString()+'_'+float.toString(),
-		type <- thisModule.MakeConstantAtomType('float'),
-		parameters <- Sequence{thisModule.MakeDirectFloatExpression(float)}
+		name <- 'cst'+id.toString(),
+		type <- thisModule.MakeConstantAtomType('int'),
+		parameters <- Sequence{
+			thisModule.MakeDirectFloatExpression(value)
+		}
 	)
+	
+	do {
+		thisModule.id <- thisModule.id +1;
+		cst_component_decl;
+	}
 }
 
 unique lazy rule MakeBoolConstantDeclaration{
 	from 
-		bool : Boolean, iindex : Integer
+		value : Boolean, id : Integer
 
 	to cst_component_decl: bip!ComponentDeclaration(
-		name <- 'cst'+iindex.toString()+'_'+bool.toString(),
-		type <- thisModule.MakeConstantAtomType('bool'),
-		parameters <- Sequence{thisModule.MakeDirectIntegerExpression(bool)}
+		name <- 'cst'+id.toString(),
+		type <- thisModule.MakeConstantAtomType('int'),
+		parameters <- Sequence{
+			thisModule.MakeDirectBoolExpression(value)
+		}
 	)
+	
+	do {
+		thisModule.id <- thisModule.id +1;
+		cst_component_decl;
+	}
 }
 
 -- helper context Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) def : 
@@ -3451,9 +3470,8 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 		variables = memory.variables
 	};
 
-
 helper context chips!"chips::statements::system::feeding_logical_int" def : 
-	evaluate(memory:TupleType(
+	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
@@ -3465,32 +3483,58 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_logical_output") then
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
+	) = 
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	if expression.dims->get(0) <> 1 then 
+		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+		memory
+	else
+		let name : String = 'direct_expression'+thisModule.id->toString() in
+		let partial_next_mem : TupleType(
+			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+		) =  Tuple{
+			fblocks = memory.fblocks
+				->including(
+					name,
+					Tuple{
+						dimensions = Sequence{1},
+						instances = Sequence{
+							thisModule.MakeIntegerConstantDeclaration(
+								expression.value->get(0),
+								thisModule.id
+							)
+						}
+					}
+				),
+			dataflows = memory.dataflows,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		} in
+		Tuple{
+			fblocks = partial_next_mem.fblocks,
+			dataflows = 
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				partial_next_mem.dataflows->including(
 				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
+					fcomp= name,
+					findex = 0,
+					fparam= 'out',
 					tcomp= self.eater.variable_expression.variable.name,
 					tindex= tindices,
 					tparam= self.eater.parameter.name
 				},
 				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
-					+'_'+findices.toString()+'_'+self.feeder.output.name
+					'from_'+name
 					+'_to_'+self.eater.variable_expression.variable.name->protect()
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'int'}),
 					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
 						thisModule.MakePortDeclarationReferenceParameter(
 							thisModule.dictionary
 								->get('FlowConnectorTypes')
@@ -3498,13 +3542,10 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 								->get('s_port'),
 							thisModule.MakeComponentSubPortDeclarationReference(
 								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
-									.instances->get(findices)
+									->get('ConstantAtomTypes')
+									->get('int')
+									->get('aepd'),
+								partial_next_mem.fblocks->get(name).instances->get(0)
 							)
 						),
 						let fdef :chips!function_definition = 
@@ -3520,29 +3561,325 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 									->get(fdef.name)
 									->get('einputs')
 									->get(self.eater.parameter.name),
-								memory.fblocks
+								partial_next_mem.fblocks
 									->get(self.eater.variable_expression.variable.name->protect())
 									.instances->get(tindices)
 							)
 						)
 					}
 				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+			),
+			nodes = partial_next_mem.nodes,
+			connections = partial_next_mem.connections,
+			variables = partial_next_mem.variables
+		}
+	endif;
+
+
+helper context chips!"chips::statements::system::feeding_logical_float" def : 
+	handleSystemExpressions(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	) = 
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	if expression.dims->get(0) <> 1 then 
+		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+		memory
+	else
+		let name : String = 'direct_expression'+thisModule.id->toString() in
+		let partial_next_mem : TupleType(
+			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+		) =  Tuple{
+			fblocks = memory.fblocks
+				->including(
+					name,
+					Tuple{
+						dimensions = Sequence{1},
+						instances = Sequence{
+							thisModule.MakeFloatConstantDeclaration(
+								expression.value->get(0),
+								thisModule.id
+							)
+						}
+					}
+				),
+			dataflows = memory.dataflows,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		} in
+		Tuple{
+			fblocks = partial_next_mem.fblocks,
+			dataflows = 
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				partial_next_mem.dataflows->including(
+				Tuple{
+					fcomp= name,
+					findex = 0,
+					fparam= 'out',
+					tcomp= self.eater.variable_expression.variable.name,
+					tindex= tindices,
+					tparam= self.eater.parameter.name
+				},
+				thisModule.MakeConnectorDeclaration(
+					'from_'+name
+					+'_to_'+self.eater.variable_expression.variable.name->protect()
+					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+					thisModule.MakeFlowConnectorType(Sequence{'float'}),
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary
+								->get('FlowConnectorTypes')
+								->get(Sequence{'float'})
+								->get('s_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary
+									->get('ConstantAtomTypes')
+									->get('float')
+									->get('aepd'),
+								partial_next_mem.fblocks->get(name).instances->get(0)
+							)
+						),
+						let fdef :chips!function_definition = 
+							self.eater.variable_expression.variable.declaration."def" in
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary
+								->get('FlowConnectorTypes')
+								->get(Sequence{'float'})
+								->get('r_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary
+									->get('FunctionalBlockCompoundTypes')
+									->get(fdef.name)
+									->get('einputs')
+									->get(self.eater.parameter.name),
+								partial_next_mem.fblocks
+									->get(self.eater.variable_expression.variable.name->protect())
+									.instances->get(tindices)
+							)
+						)
+					}
+				)
+			),
+			nodes = partial_next_mem.nodes,
+			connections = partial_next_mem.connections,
+			variables = partial_next_mem.variables
+		}
+	endif;
+
+
+helper context chips!"chips::statements::system::feeding_logical_bool" def : 
+	handleSystemExpressions(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	) = 
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	if expression.dims->get(0) <> 1 then 
+		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+		memory
+	else
+		let name : String = 'direct_expression'+thisModule.id->toString() in
+		let partial_next_mem : TupleType(
+			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+		) =  Tuple{
+			fblocks = memory.fblocks
+				->including(
+					name,
+					Tuple{
+						dimensions = Sequence{1},
+						instances = Sequence{
+							thisModule.MakeBoolConstantDeclaration(
+								expression.value->get(0),
+								thisModule.id
+							)
+						}
+					}
+				),
+			dataflows = memory.dataflows,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		} in
+		Tuple{
+			fblocks = partial_next_mem.fblocks,
+			dataflows = 
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				partial_next_mem.dataflows->including(
+				Tuple{
+					fcomp= name,
+					findex = 0,
+					fparam= 'out',
+					tcomp= self.eater.variable_expression.variable.name,
+					tindex= tindices,
+					tparam= self.eater.parameter.name
+				},
+				thisModule.MakeConnectorDeclaration(
+					'from_'+name
+					+'_to_'+self.eater.variable_expression.variable.name->protect()
+					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary
+								->get('FlowConnectorTypes')
+								->get(Sequence{'bool'})
+								->get('s_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary
+									->get('ConstantAtomTypes')
+									->get('bool')
+									->get('aepd'),
+								partial_next_mem.fblocks->get(name).instances->get(0)
+							)
+						),
+						let fdef :chips!function_definition = 
+							self.eater.variable_expression.variable.declaration."def" in
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary
+								->get('FlowConnectorTypes')
+								->get(Sequence{'bool'})
+								->get('r_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary
+									->get('FunctionalBlockCompoundTypes')
+									->get(fdef.name)
+									->get('einputs')
+									->get(self.eater.parameter.name),
+								partial_next_mem.fblocks
+									->get(self.eater.variable_expression.variable.name->protect())
+									.instances->get(tindices)
+							)
+						)
+					}
+				)
+			),
+			nodes = partial_next_mem.nodes,
+			connections = partial_next_mem.connections,
+			variables = partial_next_mem.variables
+		}
+	endif;
+
+helper context chips!"chips::statements::system::feeding_logical_int" def : 
+	evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	) = 
+	if Sequence{
+			chips!"chips::systemspecific::expressions::feeder::int_logical_output",
+			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+		self->handleSystemExpressions(memory)
+	else
+		Tuple {
+			fblocks = memory.fblocks,
+			dataflows =
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_logical_output") then
+				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				memory.dataflows->including(
+					Tuple{
+						fcomp= self.feeder.variable_expression.variable.name,
+						findex = findices,
+						fparam= self.feeder.output.name,
+						tcomp= self.eater.variable_expression.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+self.feeder.variable_expression.variable.name->protect()
+						+'_'+findices.toString()+'_'+self.feeder.output.name
+						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'int'}),
+						Sequence{
+							let fdef : chips!function_definition = 
+								self.feeder.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'int'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('eoutputs')
+										->get(self.feeder.output.name),
+									memory.fblocks
+										->get(self.feeder.variable_expression.variable.name->protect())
+										.instances->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'int'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.eater.variable_expression.variable.name->protect())
+										.instances->get(tindices)
+								)
+							)
+						}
+					)
+				)
+			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
 				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
-			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_int.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
+			endif,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}
+	endif;
 
 
 helper context chips!"chips::statements::system::feeding_logical_float" def : 
@@ -3558,84 +3895,86 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_logical_output") then 
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
-				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
-					tcomp= self.eater.variable_expression.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
-					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable_expression.variable.name->protect()
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'float'}),
-					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
+	) = 
+	if Sequence{
+			chips!"chips::systemspecific::expressions::feeder::float_logical_output",
+			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+		self->handleSystemExpressions(memory)
+	else
+		Tuple {
+			fblocks = memory.fblocks,
+			dataflows =
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_logical_output") then
+				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				memory.dataflows->including(
+					Tuple{
+						fcomp= self.feeder.variable_expression.variable.name,
+						findex = findices,
+						fparam= self.feeder.output.name,
+						tcomp= self.eater.variable_expression.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+self.feeder.variable_expression.variable.name->protect()
+						+'_'+findices.toString()+'_'+self.feeder.output.name
+						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'float'}),
+						Sequence{
+							let fdef : chips!function_definition = 
+								self.feeder.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
-									.instances->get(findices)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
+									->get('FlowConnectorTypes')
+									->get(Sequence{'float'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('eoutputs')
+										->get(self.feeder.output.name),
+									memory.fblocks
+										->get(self.feeder.variable_expression.variable.name->protect())
+										.instances->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								memory.fblocks
-									->get(self.eater.variable_expression.variable.name->protect())
-									.instances->get(tindices)
+									->get('FlowConnectorTypes')
+									->get(Sequence{'float'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.eater.variable_expression.variable.name->protect())
+										.instances->get(tindices)
+								)
 							)
-						)
-					}
+						}
+					)
 				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
 				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
-			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_float.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
+			endif,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}
+	endif;
 
 
 helper context chips!"chips::statements::system::feeding_logical_bool" def : 
@@ -3651,84 +3990,86 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_logical_output") then
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
-				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
-					tcomp= self.eater.variable_expression.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
-					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable_expression.variable.name->protect()
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
-					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
+	) = 
+	if Sequence{
+			chips!"chips::systemspecific::expressions::feeder::bool_logical_output",
+			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+		self->handleSystemExpressions(memory)
+	else
+		Tuple {
+			fblocks = memory.fblocks,
+			dataflows =
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_logical_output") then
+				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				memory.dataflows->including(
+					Tuple{
+						fcomp= self.feeder.variable_expression.variable.name,
+						findex = findices,
+						fparam= self.feeder.output.name,
+						tcomp= self.eater.variable_expression.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+self.feeder.variable_expression.variable.name->protect()
+						+'_'+findices.toString()+'_'+self.feeder.output.name
+						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'bool'}),
+						Sequence{
+							let fdef : chips!function_definition = 
+								self.feeder.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
-									.instances->get(findices)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('eoutputs')
+										->get(self.feeder.output.name),
+									memory.fblocks
+										->get(self.feeder.variable_expression.variable.name->protect())
+										.instances->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								memory.fblocks
-									->get(self.eater.variable_expression.variable.name->protect())
-									.instances->get(tindices)
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.eater.variable_expression.variable.name->protect())
+										.instances->get(tindices)
+								)
 							)
-						)
-					}
+						}
+					)
 				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
 				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
-			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_bool.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
+			endif,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}
+	endif;
 
 
 
