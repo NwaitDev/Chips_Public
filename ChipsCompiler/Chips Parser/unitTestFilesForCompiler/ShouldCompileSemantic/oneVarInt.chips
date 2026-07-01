@@ -1,3 +1,0 @@
-SYSTEM {
-    int hello = 0;
-}

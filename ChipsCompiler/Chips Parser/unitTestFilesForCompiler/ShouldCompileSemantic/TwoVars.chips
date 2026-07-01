@@ -1,4 +1,0 @@
-SYSTEM {
-    int hello = 0;
-    float hi = 1.5;
-}

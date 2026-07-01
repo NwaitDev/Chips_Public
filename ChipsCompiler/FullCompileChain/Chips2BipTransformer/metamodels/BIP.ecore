@@ -712,7 +712,7 @@
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="DirectFloatExpression" eSuperTypes="#//ujf/verimag/bip/actionlang/ValuedExpression">
             <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"
-                eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"/>
+                eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="DirectStringExpression" eSuperTypes="#//ujf/verimag/bip/actionlang/ValuedExpression">
             <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" lowerBound="1"

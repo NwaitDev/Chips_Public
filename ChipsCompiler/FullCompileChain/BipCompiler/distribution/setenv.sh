@@ -9,9 +9,7 @@ OS=`uname -s`
 : ${ENGINE:="reference-engine"}
 
 export PATH=$PWD/build/bipc-latest/bin/:$PATH
-
 export BIP2_ENGINE_LIB_DIR=$(ls -d $PWD/build/ENGINE-${ENGINE}/_CPack_Packages/${OS}/TGZ/BIP-${ENGINE}-*/lib/static/ 2> /dev/null)
-
 export BIP2_ENGINE_SPECIFIC_DIR=$(ls -d $PWD/build/ENGINE-${ENGINE}/_CPack_Packages/${OS}/TGZ/BIP-${ENGINE}-*/include/specific/ 2> /dev/null)
 export BIP2_ENGINE_GENERIC_DIR=$(ls -d $PWD/build/ENGINE-${ENGINE}/_CPack_Packages/${OS}/TGZ/BIP-${ENGINE}-*/include/generic/ 2> /dev/null)
 

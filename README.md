@@ -38,7 +38,7 @@ The Chips language takes its root in the design of block schema representation o
 
 Before anything, make sure you have all the following software in a recent enough version (who still uses java 1.7 anyway?) installed on your machine:
 ``` 
-git g++ gcc make cmake build-essential curl bash ant java
+git g++ gcc make cmake build-essential curl bash ant java realpath
 ```
 
 Once all these softwares are installed with the method of your choic, open a terminal and run:
@@ -52,8 +52,8 @@ source setenv.sh # Defines Environment variables to run the compiler
 
 ## Running the compiler
 
-The compiler CLI is available in the form of a bash script:
-```<Installation path>/Chips_Public/ChipsCompiler/FullCompileChain/chipsc.sh```.
+The compiler CLI is available in the form of a bash script called ```chipsc```:
+```<Installation path>/Chips_Public/ChipsCompiler/FullCompileChain/chipsc```.
 
 Feel free to make your own alias or simlink for this program.
 

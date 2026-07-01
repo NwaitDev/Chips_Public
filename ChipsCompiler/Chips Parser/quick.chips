@@ -1,7 +1,0 @@
-pure hello(int a) -> (a+1)
-
-pure hello(int a) -> (a+1)
-SYSTEM {
-    int hello = 0.3;
-    float hi = 1.5;
-}

@@ -1,8 +1,0 @@
-pure function() -> ()
-
-SYSTEM {
-    int a = function();
-}
-
-// ne compile pas car function ne 
-// retourne pas un entier

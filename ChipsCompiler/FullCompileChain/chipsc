@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# chipsc.sh — CLI frontend for the CHIPS compiler
+# chipsc — CLI frontend for the CHIPS compiler
 
 # thank you Claude.ai for the skeleton of this script
 
@@ -12,7 +12,7 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: chipsc.sh [OPTIONS] <input.chips> <output>
+Usage: chipsc [OPTIONS] <input.chips> <output>
 
 Compile a .chips source file into the specified output.
 
@@ -33,15 +33,15 @@ OPTIONS:
   -h                  Print this help message and exit
 
 EXAMPLES:
-  chipsc.sh source.chips myapp
-  chipsc.sh -p /tmp/build --generate-cpp source.chips myapp
-  chipsc.sh --bip-xmi -p ./out source.chips myapp
+  chipsc source.chips myapp
+  chipsc -p /tmp/build --generate-cpp source.chips myapp
+  chipsc --bip-xmi -p ./out source.chips myapp
 EOF
 }
 
 die() {
     echo "Error: $*" >&2
-    echo "Run 'chipsc.sh -h' for usage information." >&2
+    echo "Run 'chipsc -h' for usage information." >&2
     exit 1
 }
 
@@ -167,13 +167,12 @@ echo ""
 
 # Step 2 — BIP-XMI
 echo "[2/3] Transforming CHIPS-XMI → BIP-XMI..."
-# needs to have the following environment variable set :
-#   CHIPSC_PATH="$CHIPS_PATH"/ChipsCompiler/FullCompileChain/Chips2BipTransformer
-java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
-    emftvm $CHIPSC_PATH/metamodels/chips1.1.ecore \
-    $CHIPSC_PATH/metamodels/BIP.ecore  \
+
+java -cp ".:$CHIPSC_PATH/Chips2BipTransformer:$CHIPSC_PATH/Chips2BipTransformer/lib/*" \
+    emftvm $CHIPSC_PATH/Chips2BipTransformer/metamodels/chips1.1.ecore \
+    $CHIPSC_PATH/Chips2BipTransformer/metamodels/BIP.ecore  \
     "${INPUT_FILE}" \
-    $CHIPSC_PATH/transformations/chips2bip.atl \
+    $CHIPSC_PATH/Chips2BipTransformer/transformations/chips2bip.atl \
     "${OUTPUT_FILE}.bip.xmi"
 
 echo "      (BIP-XMI step completed)"
