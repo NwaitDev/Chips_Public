@@ -6,7 +6,6 @@
 #include "../controllers/PIDController/PIDController.hpp"
 #include "../../Filters/StatefulFilter/LowPass/LowPassFilter.hpp"
 #include "../../Filters/StatefulFilter/LowPass/LowPassFilterOrder2.hpp"
-#include "../../Filters/StatefulFilter/LowPass/LowPassFilterOrder4.hpp"
 #include "common/FilterLogger.hpp"
 
 #include <cmath>
@@ -23,16 +22,14 @@ int main(){
     const float duration = 1.0f; // DUrée de 1s
     const int num_samples = static_cast<int>(fs * duration);
 
-    const float fc = 50.0f;
+    const float fc = 15.0f;
     const float tau = 1.0 / (2.0 * M_PI * fc);
 
     LowPassFilter filter(tau);
-    LowPassFilterOrder2 filter2(tau);
-    LowPassFilterOrder4 filter4(tau);
+    LowPassFilterOrder2 filter2(fc);
 
     FilterLogger logger("tests/results/low_pass.csv");
     FilterLogger logger2("tests/results/low_pass_2.csv");
-    FilterLogger logger4("tests/results/low_pass_4.csv");
 
     std::vector<float> time_vector(num_samples);
     std::vector<float> noisy_signal(num_samples);
@@ -48,11 +45,9 @@ int main(){
 
         filtered_signal[i] = filter.apply(noisy_signal[i], dt);
         float filtered_2 = filter2.apply(noisy_signal[i], dt);
-        float filtered_4 = filter4.apply(noisy_signal[i], dt);
 
         logger.log(t, noisy_signal[i], filtered_signal[i]);
         logger2.log(t, noisy_signal[i], filtered_2);
-        logger4.log(t, noisy_signal[i], filtered_4);
     }
 
 }

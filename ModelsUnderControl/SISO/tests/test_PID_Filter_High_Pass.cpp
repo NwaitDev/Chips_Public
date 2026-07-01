@@ -1,4 +1,5 @@
 #include "../../Filters/StatefulFilter/HighPass/HighPassFilter.hpp"
+#include "../../Filters/StatefulFilter/HighPass/HighPassFilterOrder2.hpp"
 #include "common/FilterLogger.hpp"
 
 #include <cmath>
@@ -18,7 +19,9 @@ int main(){
     const float tau = 1.0 / (2.0 * M_PI * fc);
 
     HighPassFilter filter(tau);
+    HighPassFilterOrder2 filter2(fc);
     FilterLogger logger("tests/results/high_pass.csv");
+    FilterLogger logger2("tests/results/high_pass_2.csv");
 
     for(int i = 0; i < num_samples; i++){
         float t = i * dt;
@@ -28,7 +31,9 @@ int main(){
         float noisy_signal = signal_pure + noise;
 
         float filtered = filter.apply(noisy_signal, dt);
+        float filtered2 = filter2.apply(noisy_signal, dt);
         logger.log(t, noisy_signal, filtered);
+        logger2.log(t, noisy_signal, filtered2);
     }
 
 }
