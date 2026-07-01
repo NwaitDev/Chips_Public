@@ -40,7 +40,10 @@ def plot_response(title, unit):
     for label, filename in FILES.items():
         path = os.path.join(RESULTS_DIR, filename)
         t, target, measure, _, _, _, _ = load_csv(path)
-        plt.plot(t, measure, label=f"{label} - mesure")
+        if "Sans" in label:
+            plt.plot(t, measure, '--', color='yellow', label=f"{label} - mesure")
+        else:
+            plt.plot(t, measure, label=f"{label} - mesure")
 
     t, target, _, _, _, _, _ = load_csv(os.path.join(RESULTS_DIR, list(FILES.values())[0]))
     plt.plot(t, target, "--", label="Consigne")
@@ -57,7 +60,10 @@ def plot_proportional():
     for label, filename in FILES.items():
         path = os.path.join(RESULTS_DIR, filename)
         t, _, _, _, proportional, _, _ = load_csv(path)
-        plt.plot(t, proportional, label=label)
+        if "Sans" in label:
+            plt.plot(t, proportional, '--', color='yellow', label=label)
+        else:
+            plt.plot(t, proportional, label=label)
 
     plt.xlabel("Temps (s)")
     plt.ylabel("Proportional")
@@ -71,7 +77,10 @@ def plot_integral():
     for label, filename in FILES.items():
         path = os.path.join(RESULTS_DIR, filename)
         t, _, _, _, _, integral, _ = load_csv(path)
-        plt.plot(t, integral, label=label)
+        if "Sans" in label:
+            plt.plot(t, integral, '--', color='yellow', label=label)
+        else:
+            plt.plot(t, integral, label=label)
 
     plt.xlabel("Temps (s)")
     plt.ylabel("Integral")
@@ -85,7 +94,10 @@ def plot_derivative():
     for label, filename in FILES.items():
         path = os.path.join(RESULTS_DIR, filename)
         t, _, _, _, _, _, derivative = load_csv(path)
-        plt.plot(t, derivative, label=label)
+        if "Sans" in label:
+            plt.plot(t, derivative, '--', color='yellow', label=label)
+        else:
+            plt.plot(t, derivative, label=label)
 
     plt.xlabel("Temps (s)")
     plt.ylabel("Derivative")
@@ -101,7 +113,10 @@ def plot_command(title, xlabel, ylabel):
     for label, filename in FILES.items():
         path = os.path.join(RESULTS_DIR, filename)
         t, _, _, command, _, _, _ = load_csv(path)
-        plt.plot(t, command, label=label)
+        if "Sans" in label:
+            plt.plot(t, command, '--', color='yellow', label=label)
+        else:
+            plt.plot(t, command, label=label)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
