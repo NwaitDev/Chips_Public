@@ -153,7 +153,7 @@ echo ""
 # (Replace the echo / placeholder blocks below with real compiler calls.)
 # ---------------------------------------------------------------------------
 
-CHIPSPARSER="../Chips_Parser/build/chipsparser"
+CHIPSPARSER="$CHIPS_PATH/ChipsCompiler/Chips_Parser/build/chipsparser"
 
 # Step 1 — CHIPS-XMI
 echo "[1/4] Parsing '$INPUT_FILE' → CHIPS-XMI..."
@@ -169,7 +169,12 @@ fi
 
 echo "[2/4] Analyze '$OUTPUT_FILE'.chips.xmi for validation..."
 
-python3 xmi_validator.py $CHIPSC_PATH/metamodels/chips1.1.ecore $OUTPUT_FILE.chips.xmi
+if [ ! -d "./p3venv" ]; then
+    python3 -m venv p3venv
+    ./p3venv/bin/pip install pyecore
+fi
+
+./p3venv/bin/python3 $CHIPS_PATH/ChipsCompiler/FullCompileChain/xmi_validator.py $CHIPSC_PATH/metamodels/chips1.1.ecore $OUTPUT_FILE.chips.xmi
 
 echo "      (Analyze XMI step completed)"
 
