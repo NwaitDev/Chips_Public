@@ -2237,7 +2237,8 @@ rule Program2BipPackage {
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 			) = Tuple{fblocks=Map{}, dataflows=Map{}, nodes=Map{}, connections=Set{}, variables=Sequence{}} |
 			stt.evaluate(mem)
-		).debug('\n----------------------memory state------------------------\n') in
+		)--.debug('\n----------------------memory state------------------------\n')
+		in
 		Tuple{
 			components = memory.fblocks->getKeys()->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{}|
@@ -4236,6 +4237,154 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 		}
 	endif;
 
+helper context chips!"chips::rvalues::system::operators::int::mult" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::mult" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::int::div" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) div roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::div" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) / roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
 helper context chips!"chips::rvalues::system::operators::int::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
@@ -4310,6 +4459,129 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 		}
 	endif;
 
+	helper context chips!"chips::rvalues::system::operators::int::mod" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) mod roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on modulo',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on modulo',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::cast_as_float" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	if  (operand.type = 'int') then
+		Tuple{
+			name='cast',
+			type= 'float',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as float') in
+		Tuple{
+			name='cast error',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	if  (operand.type = 'float') then
+		Tuple{
+			name='cast',
+			type= 'int',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as int') in
+		Tuple{
+			name='cast error',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='lt',
+				type= 'bool',
+				dims= Sequence{1},
+				value= Sequence{
+					thisModule.range(loperand.dims)
+						->forAll(i | loperand.value->get(i) < roperand.value->get(i))
+				}
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on <',
+				type= 'bool',
+				dims= Sequence{1},
+				value= Sequence{false}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on <',
+			type= 'bool',
+			dims= Sequence{1},
+			value= Sequence{false}
+		}
+	endif;
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
@@ -4320,35 +4592,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
 	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
-	if  (loperand.type = roperand.type) then
-		if (loperand.dims = roperand.dims) then
-			Tuple{
-				name='lower_than_int',
-				type= 'bool',
-				dims= Sequence{1},
-				value= Sequence{
-					thisModule.range(loperand.dims)
-						->forAll(i | loperand.value->get(i) < roperand.value->get(i))
-				}
-			}
-		else
-			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
-			Tuple{
-				name='wrong dimensions on int <',
-				type= 'bool',
-				dims= Sequence{1},
-				value= Sequence{false}
-			}
-		endif
-	else
-		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
-		Tuple{
-			name='wrong types on int <',
-			type= 'bool',
-			dims= Sequence{1},
-			value= Sequence{false}
-		}
-	endif;
+	thisModule.lt(loperand,roperand,memory);
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
@@ -4359,10 +4603,19 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
 	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.lt(loperand,roperand,memory);
+
+helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
 	if  (loperand.type = roperand.type) then
 		if (loperand.dims = roperand.dims) then
 			Tuple{
-				name='lower_than_float',
+				name='eq',
 				type= 'bool',
 				dims= Sequence{1},
 				value= Sequence{
@@ -4371,23 +4624,57 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 				}
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = OclUndefined.debug('Cannot compare (=) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
-				name='wrong dimensions on float <',
+				name='wrong dimensions on =',
 				type= 'bool',
 				dims= Sequence{1},
 				value= Sequence{false}
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = OclUndefined.debug('Cannot compare (=) values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
-			name='wrong types on float <',
+			name='wrong types on =',
 			type= 'bool',
 			dims= Sequence{1},
 			value= Sequence{false}
 		}
 	endif;
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
 
 helper context chips!"chips::rvalues::system::function" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
