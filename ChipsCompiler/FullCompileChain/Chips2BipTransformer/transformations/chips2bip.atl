@@ -4125,7 +4125,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'int') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
 	else
@@ -4140,7 +4140,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'float') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
 	else
@@ -4155,7 +4155,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'bool') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
 	else

@@ -1,0 +1,552 @@
+
+package Drone
+
+
+
+    
+    extern data type chips_int
+    
+    extern data type chips_float
+    
+    extern data type chips_bool
+
+
+
+
+    
+    port type int_port_t (chips_int v0)
+    
+    port type float_port_t (chips_float v0)
+    
+    port type bool_port_t (chips_bool v0)
+    
+    port type port_t ()
+    
+    port type floatfloat_port_t (chips_float v0, chips_float v1)
+    
+    port type floatfloatfloatfloatfloatfloatfloatfloat_port_t (chips_float v0, chips_float v1, chips_float v2, chips_float v3, chips_float v4, chips_float v5, chips_float v6, chips_float v7)
+
+    
+    connector type many2one_floatfloat_t (float_port_t p0_cppd, float_port_t p1_cppd)
+        data chips_float v0
+        data chips_float v1
+        export port floatfloat_port_t r_exported_port(v0, v1)
+        define (p0_cppd
+         p1_cppd
+        )
+    
+        on p0_cppd p1_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+            }
+    end
+
+    
+    connector type many2one_floatfloatfloatfloatfloatfloatfloatfloat_t (float_port_t p0_cppd, float_port_t p1_cppd, float_port_t p2_cppd, float_port_t p3_cppd, float_port_t p4_cppd, float_port_t p5_cppd, float_port_t p6_cppd, float_port_t p7_cppd)
+        data chips_float v0
+        data chips_float v1
+        data chips_float v2
+        data chips_float v3
+        data chips_float v4
+        data chips_float v5
+        data chips_float v6
+        data chips_float v7
+        export port floatfloatfloatfloatfloatfloatfloatfloat_port_t r_exported_port(v0, v1, v2, v3, v4, v5, v6, v7)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+         p4_cppd
+         p5_cppd
+         p6_cppd
+         p7_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd p4_cppd p5_cppd p6_cppd p7_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+                v3 = p3_cppd.v0;
+                v4 = p4_cppd.v0;
+                v5 = p5_cppd.v0;
+                v6 = p6_cppd.v0;
+                v7 = p7_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_float_t (float_port_t p0_cppd)
+        data chips_float v0
+        export port float_port_t s_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+            }
+    end
+
+    
+    connector type flow_floatfloat_t (floatfloat_port_t s, floatfloat_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+            }
+    end
+
+    
+    connector type flow_floatfloatfloatfloatfloatfloatfloatfloat_t (floatfloatfloatfloatfloatfloatfloatfloat_port_t s, floatfloatfloatfloatfloatfloatfloatfloat_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+                r.v4 = s.v4;
+                r.v5 = s.v5;
+                r.v6 = s.v6;
+                r.v7 = s.v7;
+            }
+    end
+
+    
+    connector type flow_float_t (float_port_t s, float_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type flow_bool_t (bool_port_t s, bool_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type flow_int_t (int_port_t s, int_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    atom type Drone_core (const bool starts)
+    
+        
+        data chips_float u_aidd
+        
+        data chips_float dt_aidd
+        
+        data chips_float m_aidd
+        
+        data chips_float altitude_aidd
+        
+        data chips_float altitude__max_aidd
+        
+        data chips_float velocity_aidd
+        
+        data chips_float prevError_aidd
+        
+        data chips_float GRAVITY_aidd
+        
+        data chips_float KP_aidd
+        
+        data chips_float DRAG__COEFF_aidd
+        
+        data chips_float update_aidd
+        
+        
+        export port float_port_t send_aipd(update_aidd)
+        
+        export port floatfloat_port_t recv_aipd(u_aidd, dt_aidd)
+        
+        port port_t start_aipd()
+        
+        port port_t then_aipd()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            
+            on start_aipd
+                from INIT
+                to RECEIVE
+                provided (true)
+            
+            on start_aipd
+                from INIT
+                to SEND
+                provided (true)
+            
+            on recv_aipd
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_aipd
+                from THEN
+                to SEND
+                provided (true)
+            
+            on send_aipd
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type PID_core (const bool starts)
+    
+        
+        data chips_float target_aidd
+        
+        data chips_float current_aidd
+        
+        data chips_float kp_aidd
+        
+        data chips_float ki_aidd
+        
+        data chips_float kd_aidd
+        
+        data chips_float minOutput_aidd
+        
+        data chips_float maxOutput_aidd
+        
+        data chips_float dt_aidd
+        
+        data chips_float prevError_aidd
+        
+        data chips_float proportional_aidd
+        
+        data chips_float integral_aidd
+        
+        data chips_float derivative_aidd
+        
+        data chips_float correction_aidd
+        
+        
+        export port float_port_t send_aipd(update_aidd)
+        
+        export port floatfloat_port_t recv_aipd(u_aidd, dt_aidd)
+        
+        port port_t start_aipd()
+        
+        port port_t then_aipd()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            
+            on start_aipd
+                from INIT
+                to RECEIVE
+                provided (true)
+            
+            on start_aipd
+                from INIT
+                to SEND
+                provided (true)
+            
+            on recv_aipd
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_aipd
+                from THEN
+                to SEND
+                provided (true)
+            
+            on send_aipd
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type int_buffer_t ()
+    
+        
+        data chips_int int_data
+        
+        
+        export port int_port_t in()
+        
+        export port int_port_t out(int_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_buffer_t ()
+    
+        
+        data chips_float float_data
+        
+        
+        export port int_port_t in()
+        
+        export port int_port_t out(int_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_buffer_t ()
+    
+        
+        data chips_bool bool_data
+        
+        
+        export port int_port_t in()
+        
+        export port int_port_t out(int_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type int_constant_t ()
+    
+        
+        data chips_int int_value_aidd
+        
+        
+        export port int_port_t output_aipd(int_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            
+            on output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_constant_t ()
+    
+        
+        data chips_float float_value_aidd
+        
+        
+        export port int_port_t output_aipd(int_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            
+            on output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_constant_t ()
+    
+        
+        data chips_bool bool_value_aidd
+        
+        
+        export port int_port_t output_aipd(int_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            
+            on output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    compound type Drone_compoundtype (const chips_bool starts_componentdataparameterdeclaration)
+    
+        component Drone_core core (starts_componentdataparameterdeclaration)
+        component floatfloat_input_buffer_t Drone_input_buffer_buffercompounddecl ()
+        component float_output_buffer_t Drone_output_buffer_buffercompounddecl ()
+    
+        connector flow_floatfloat_t input__to__core_cd (Drone_input_buffer_buffercompounddecl.one_cepd, core.recv_aepd)
+        connector flow_float_t core__to__output_cd (core.send_aepd, Drone_output_buffer_buffercompounddecl.one_cepd)
+    
+        export port Drone_input_buffer_buffercompounddecl.float_input_1_cepd as dt_input_cepd
+        export port Drone_input_buffer_buffercompounddecl.float_input_0_cepd as u_input_cepd
+        export port Drone_output_buffer_buffercompounddecl.float_output_0_cepd as update_output_cepd
+    
+    end
+
+    
+    compound type PID_compoundtype (const chips_bool starts_componentdataparameterdeclaration)
+    
+        component PID_core core (starts_componentdataparameterdeclaration)
+        component floatfloatfloatfloatfloatfloatfloatfloat_input_buffer_t PID_input_buffer_buffercompounddecl ()
+        component float_output_buffer_t PID_output_buffer_buffercompounddecl ()
+    
+        connector flow_floatfloatfloatfloatfloatfloatfloatfloat_t input__to__core_cd (PID_input_buffer_buffercompounddecl.one_cepd, core.recv_aepd)
+        connector flow_float_t core__to__output_cd (core.send_aepd, PID_output_buffer_buffercompounddecl.one_cepd)
+    
+        export port PID_input_buffer_buffercompounddecl.float_input_7_cepd as dt_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_5_cepd as minOutput_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_1_cepd as current_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_6_cepd as maxOutput_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_2_cepd as kp_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_4_cepd as kd_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_3_cepd as ki_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_0_cepd as target_input_cepd
+        export port PID_output_buffer_buffercompounddecl.float_output_0_cepd as correction_output_cepd
+    
+    end
+
+    
+    compound type floatfloat_input_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+        component float_buffer_t float1_bd ()
+    
+        connector many2one_floatfloat_t floatfloat_input_connector (float0_bd.exp_out, float1_bd.exp_out)
+    
+        export port float0_bd.exp_in as float_input_0_cepd
+        export port float1_bd.exp_in as float_input_1_cepd
+        export port floatfloat_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type floatfloatfloatfloatfloatfloatfloatfloat_input_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+        component float_buffer_t float1_bd ()
+        component float_buffer_t float2_bd ()
+        component float_buffer_t float3_bd ()
+        component float_buffer_t float4_bd ()
+        component float_buffer_t float5_bd ()
+        component float_buffer_t float6_bd ()
+        component float_buffer_t float7_bd ()
+    
+        connector many2one_floatfloatfloatfloatfloatfloatfloatfloat_t floatfloatfloatfloatfloatfloatfloatfloat_input_connector (float0_bd.exp_out, float1_bd.exp_out, float2_bd.exp_out, float3_bd.exp_out, float4_bd.exp_out, float5_bd.exp_out, float6_bd.exp_out, float7_bd.exp_out)
+    
+        export port float0_bd.exp_in as float_input_0_cepd
+        export port float1_bd.exp_in as float_input_1_cepd
+        export port float2_bd.exp_in as float_input_2_cepd
+        export port float3_bd.exp_in as float_input_3_cepd
+        export port float4_bd.exp_in as float_input_4_cepd
+        export port float5_bd.exp_in as float_input_5_cepd
+        export port float6_bd.exp_in as float_input_6_cepd
+        export port float7_bd.exp_in as float_input_7_cepd
+        export port floatfloatfloatfloatfloatfloatfloatfloat_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type float_output_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+    
+        connector one2many_float_t float_output_connector (float0_bd.exp_in)
+    
+        export port float0_bd.exp_out as float_output_0_cepd
+        export port float_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type SYSTEM_COMPOUND ()
+    
+        component int_constant_t cst3 (0.1)
+        component int_constant_t cst2 (0.0)
+        component int_constant_t cst5 (0.0)
+        component int_constant_t cst4 (5.0)
+        component PID_compoundtype ctrl_1_compounddecl (true)
+        component int_constant_t cst1 (0.6)
+        component int_constant_t cst0 (1.5)
+        component int_constant_t cst7 (0.1)
+        component int_constant_t cst6 (15.0)
+        component Drone_compoundtype drone_1_compounddecl (true)
+    
+        connector flow_float_t from__direct__expression6__to__ctrl__0__maxOutput_cd (cst6.output_aepd, ctrl_1_compounddecl.maxOutput_input_cepd)
+        connector flow_float_t from__drone__0__update__to__ctrl__0__current_cd (drone_1_compounddecl.update_output_cepd, ctrl_1_compounddecl.current_input_cepd)
+        connector flow_float_t from__direct__expression3__to__ctrl__0__dt_cd (cst3.output_aepd, ctrl_1_compounddecl.dt_input_cepd)
+        connector flow_float_t from__direct__expression5__to__ctrl__0__minOutput_cd (cst5.output_aepd, ctrl_1_compounddecl.minOutput_input_cepd)
+        connector flow_float_t from__ctrl__0__correction__to__drone__0__u_cd (ctrl_1_compounddecl.correction_output_cepd, drone_1_compounddecl.u_input_cepd)
+        connector flow_float_t from__direct__expression1__to__ctrl__0__ki_cd (cst1.output_aepd, ctrl_1_compounddecl.ki_input_cepd)
+        connector flow_float_t from__direct__expression7__to__drone__0__dt_cd (cst7.output_aepd, drone_1_compounddecl.dt_input_cepd)
+        connector flow_float_t from__direct__expression2__to__ctrl__0__kd_cd (cst2.output_aepd, ctrl_1_compounddecl.kd_input_cepd)
+        connector flow_float_t from__direct__expression4__to__ctrl__0__target_cd (cst4.output_aepd, ctrl_1_compounddecl.target_input_cepd)
+        connector flow_float_t from__direct__expression0__to__ctrl__0__kp_cd (cst0.output_aepd, ctrl_1_compounddecl.kp_input_cepd)
+    
+    end
+end

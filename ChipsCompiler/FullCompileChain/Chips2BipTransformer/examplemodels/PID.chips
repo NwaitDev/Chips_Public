@@ -1,0 +1,62 @@
+logical PID(float target, float current, float kp, float ki, float kd, float minOutput, float maxOutput, float dt) init {
+
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;
+    float derivative = 0.;
+
+}then{
+
+    float error = target - current;
+
+    float p_out = kp * error;
+    proportional = error;
+
+    integral = integral + error * dt;
+    float i_out = ki * integral;
+
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+
+    float d_out = kd * derivative;
+
+    float rawCorrection = p_out + i_out + d_out;
+
+    float saturated = (float)(max((int)(minOutput), min((int)(rawCorrection), (int)(maxOutput))));
+
+    prevError = error;
+
+} -> correction(saturated)
+
+system{
+
+    PID ctrl;
+
+    float kp = 1.;
+    float ki = 0.;
+    float kd = 0.;
+
+    float target = 5.;
+    float current = 0.;
+
+
+    float min = 0.;
+    float max = 1000.;
+
+    float dt = 0.1;
+
+    ctrl.kd(kd);
+    ctrl.ki(ki);
+    ctrl.kp(kp);
+
+    ctrl.target(target);
+    ctrl.current(current);
+
+    ctrl.minOutput(min);
+    ctrl.maxOutput(max);
+
+    ctrl.dt(dt);
+
+}
