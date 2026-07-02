@@ -196,10 +196,10 @@ fi
 echo "[4/4] Generating $GENERATE_MODE output → '$OUTPUT_FILE'..."
 mkdir -p ${OUTPUT_FILE}/build
 if [[ "$GENERATE_MODE" == "cpp" ]]; then
-    $BIPC_PATH/bipc.sh -v FINEST --xmi "${OUTPUT_FILE}bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
+    $BIPC_PATH/bipc -v FINEST --xmi "${OUTPUT_FILE}bip.xmi" -d 'SYSTEM_COMPOUND' --gencpp-output ${OUTPUT_FILE} 
     echo "      (C++ generation completed)"
 else
-    $BIPC_PATH/bipc.sh -v FINEST --xmi "${OUTPUT_FILE}bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
+    $BIPC_PATH/bipc -v FINEST --xmi "${OUTPUT_FILE}bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
     echo "      (BIP generation completed)"
 fi
 
