@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# chipsc.sh — CLI frontend for the CHIPS compiler
+# chipsc — CLI frontend for the CHIPS compiler
 
 # thank you Claude.ai for the skeleton of this script
 
@@ -12,7 +12,7 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: chipsc.sh [OPTIONS] <input.chips> <output>
+Usage: chipsc [OPTIONS] <input.chips> <output>
 
 Compile a .chips source file into the specified output.
 
@@ -33,15 +33,15 @@ OPTIONS:
   -h                  Print this help message and exit
 
 EXAMPLES:
-  chipsc.sh source.chips myapp
-  chipsc.sh -p /tmp/build --generate-cpp source.chips myapp
-  chipsc.sh --bip-xmi -p ./out source.chips myapp
+  chipsc source.chips myapp
+  chipsc -p /tmp/build --generate-cpp source.chips myapp
+  chipsc --bip-xmi -p ./out source.chips myapp
 EOF
 }
 
 die() {
     echo "Error: $*" >&2
-    echo "Run 'chipsc.sh -h' for usage information." >&2
+    echo "Run 'chipsc -h' for usage information." >&2
     exit 1
 }
 
