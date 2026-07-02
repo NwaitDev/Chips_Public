@@ -1,0 +1,98 @@
+
+logical Drone(float u, float dt) init {
+
+    float m = 0.2;
+    float altitude = 0.;
+    float altitude_max = 0.;
+    float velocity = 0.;
+    float prevError = 0.;
+
+    float GRAVITY = 9.81;
+    float KP = 0.29;
+    float DRAG_COEFF = 0.8;
+
+}then{
+    float radian = ((2. * 3.14159265358979323846) / 60.);
+    
+    float K = 4. * KP * radian * radian;
+    float Fp = K * u * u;
+    float drag = DRAG_COEFF * velocity;
+    float a = (Fp / m) - GRAVITY - (drag / m);
+
+    velocity = velocity + a * dt;
+    altitude = altitude + velocity * dt;
+
+    if(altitude < 0.){
+        altitude = 0.;
+        velocity = 0.;
+    }
+    
+    if(altitude_max < altitude){
+        altitude_max = altitude;
+    }else{
+        altitude_max = altitude_max;
+    }
+} -> update(altitude)
+
+logical PID(float target, float current, float kp, float ki, float kd, float minOutput, float maxOutput, float dt) init {
+
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;
+    float derivative = 0.;
+
+}then{
+
+    float error = target - current;
+
+    float p_out = kp * error;
+    proportional = error;
+
+    integral = integral + error * dt;
+    float i_out = ki * integral;
+
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+
+    float d_out = kd * derivative;
+
+    float rawCorrection = p_out + i_out + d_out;
+
+    float saturated = (float)(max((int)(minOutput), min((int)(rawCorrection), (int)(maxOutput))));
+
+    prevError = error;
+
+} -> correction(saturated)
+
+system {
+
+    PID ctrl;
+    Drone drone;
+
+    float kp = 1.5;
+    float ki = 0.6;
+    float kd = 0.0;
+
+    float u_min = 0.0;
+    float u_max = 15.0;
+
+    float dt = 0.1;
+
+    float target = 5.0;
+
+    ctrl.kp(kp);
+    ctrl.ki(ki);
+    ctrl.kd(kd);
+    ctrl.dt(dt);
+    ctrl.target(target);
+    ctrl.minOutput(u_min);
+    ctrl.maxOutput(u_max);
+    ctrl.current(drone.update);
+
+    drone.u(ctrl.correction);
+    drone.dt(dt);
+
+
+}
