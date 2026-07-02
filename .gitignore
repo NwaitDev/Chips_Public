@@ -12,3 +12,6 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariat
 */generated/*
 .vscode/*
 *.class
+ChipsCompiler/Chips_Parser/build/
+ChipsCompiler/Chips_Parser/generated/
+*.log
