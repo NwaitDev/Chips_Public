@@ -2237,7 +2237,8 @@ rule Program2BipPackage {
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 			) = Tuple{fblocks=Map{}, dataflows=Map{}, nodes=Map{}, connections=Set{}, variables=Sequence{}} |
 			stt.evaluate(mem)
-		).debug('\n----------------------memory state------------------------\n') in
+		)--.debug('\n----------------------memory state------------------------\n')
+		in
 		Tuple{
 			components = memory.fblocks->getKeys()->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{}|
@@ -2322,6 +2323,80 @@ rule Program2BipPackage {
 -- Declaration of components in system context
 ----------------------------------------------
 
+helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))) =
+	let dims : Sequence(Integer) = fdecl.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
+	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
+	if lin_indices->size() <> 0 then 
+		memory.fblocks->including(
+			fdecl.variable.name->protect(),
+			Tuple{
+				dimensions = dims,
+				instances = lin_indices->iterate( 
+					i ; temp_instances:Sequence(bip!ComponentDeclaration) = Sequence{} |
+					temp_instances->append(
+						thisModule.MakeCompoundDeclaration(
+							fdecl.variable.name+'_'+i.toString(),
+							fdecl."def",
+							Sequence{thisModule.MakeDirectBooleanExpression(true)}
+						)
+					)
+				)
+			}
+		)
+	else 
+		memory.fblocks->including(
+			fdecl.variable.name->protect(), 
+			Tuple{
+				dimensions = dims,
+				instances = Sequence{
+					thisModule.MakeCompoundDeclaration(
+						fdecl.variable.name+'_0',
+						fdecl."def",
+						Sequence{thisModule.MakeDirectBooleanExpression(true)}
+					)
+				}	
+			}
+		)
+	endif;
+
+helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))) =
+	let dims : Sequence(Integer) = ndecl.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
+	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
+	if lin_indices->size() <> 0 then 
+		memory.nodes->including(
+			ndecl.variable.name->protect(),
+			Tuple{
+				dimensions = dims,
+				instances = thisModule.zeros(dims)
+				->collect(
+					z | Map{} -- To complete when starting to work with nodes 
+				)
+			}
+		)
+	else 
+		memory.nodes->including(
+			ndecl.variable.name->protect(), 
+			Tuple{
+				dimensions = dims,
+				instances = Sequence{
+					Map{} -- To complete when starting to work with nodes
+				}
+			}
+		)
+	endif;
+
 helper context chips!"chips::statements::system::physical_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
@@ -2336,66 +2411,10 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
-	let dims : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
 	Tuple {
-		fblocks =
-		if lin_indices->size() <> 0 then 
-			memory.fblocks->including(
-				self.variable.name->protect(),
-				Tuple{
-					dimensions = dims,
-					instances = lin_indices->iterate( 
-						i ; temp_instances:Sequence(bip!ComponentDeclaration) = Sequence{} |
-						temp_instances->append(
-							thisModule.MakeCompoundDeclaration(
-								self.variable.name+'_'+i.toString(),
-								self."def",
-								Sequence{thisModule.MakeDirectBooleanExpression(true)}
-							)
-						)
-					)
-				}
-			)
-		else 
-			memory.fblocks->including(
-				self.variable.name->protect(), 
-				Tuple{
-					dimensions = dims,
-					instances = Sequence{
-						thisModule.MakeCompoundDeclaration(
-							self.variable.name+'_0',
-							self."def",
-							Sequence{thisModule.MakeDirectBooleanExpression(true)}
-						)
-					}	
-				}
-			)
-		endif,
+		fblocks = thisModule.updatefblockswith(self, memory),
 		dataflows = memory.dataflows,
-		nodes = 
-		if lin_indices->size() <> 0 then 
-			memory.nodes->including(
-				self.variable.name->protect(),
-				Tuple{
-					dimensions = dims,
-					instances = thisModule.zeros(dims)
-					->collect(
-						z | Map{} -- To complete when starting to work with nodes 
-					)
-				}
-			)
-		else 
-			memory.nodes->including(
-				self.variable.name->protect(), 
-				Tuple{
-					dimensions = dims,
-					instances = Sequence{
-						Map{} -- To complete when starting to work with nodes
-					}
-				}
-			)
-		endif,
+		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
 		variables = memory.variables
 	};
@@ -2415,66 +2434,10 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
-	let dims : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
 	Tuple {
-		fblocks =
-		if lin_indices->size() <> 0 then 
-			memory.fblocks->including(
-				self.variable.name->protect(),
-				Tuple{
-					dimensions = dims,
-					instances = lin_indices->iterate( 
-						i ; temp_instances:Sequence(bip!ComponentDeclaration) = Sequence{} |
-						temp_instances->append(
-							thisModule.MakeCompoundDeclaration(
-								self.variable.name+'_'+i.toString(),
-								self."def",
-								Sequence{thisModule.MakeDirectBooleanExpression(true)}
-							)
-						)
-					)
-				}
-			)
-		else 
-			memory.fblocks->including(
-				self.variable.name->protect(), 
-				Tuple{
-					dimensions = dims,
-					instances = Sequence{
-						thisModule.MakeCompoundDeclaration(
-							self.variable.name+'_0',
-							self."def",
-							Sequence{thisModule.MakeDirectBooleanExpression(true)}
-						)
-					}	
-				}
-			)
-		endif,
+		fblocks = thisModule.updatefblockswith(self, memory),
 		dataflows = memory.dataflows,
-		nodes = 
-		if lin_indices->size() <> 0 then 
-			memory.nodes->including(
-				self.variable.name->protect(),
-				Tuple{
-					dimensions = dims,
-					instances = thisModule.zeros(dims)
-					->collect(
-						z | Map{} -- To complete when starting to work with nodes 
-					)
-				}
-			)
-		else 
-			memory.nodes->including(
-				self.variable.name->protect(), 
-				Tuple{
-					dimensions = dims,
-					instances = Sequence{
-						Map{} -- To complete when starting to work with nodes
-					}
-				}
-			)
-		endif,
+		nodes = memory.nodes,
 		connections = memory.connections,
 		variables = memory.variables
 	};
@@ -2493,40 +2456,37 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
-	let dims : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
 	Tuple {
 		fblocks = memory.fblocks,
 		dataflows = memory.dataflows,
-		nodes = 
-		if lin_indices->size() <> 0 then 
-			memory.nodes->including(
-				self.variable.name->protect(),
-				Tuple{
-					dimensions = dims,
-					instances = thisModule.zeros(dims)
-					->collect(
-						z | Map{} -- To complete when starting to work with nodes 
-					)
-				}
-			)
-		else 
-			memory.fblocks->including(
-				self.variable.name->protect(), 
-				Tuple{
-					dimensions = dims,
-					instances = Sequence{
-						Map{} -- To complete when starting to work with nodes 
-					}
-				}
-			)
-		endif,
+		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
 		variables = memory.variables
 	};
 
 -- -- Declarations of primitive variables in system context
 -- --------------------------------------------------------
+
+helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
+	if memory.variables->exists(e | e.name = var.variable.name.protect()) then
+		memory.variables
+	else	
+		memory.variables->including(
+			let dimensions : Sequence(Integer) = var.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
+			Tuple{
+				name = var.variable.name.protect(),
+				type = type,
+				value = thisModule.zeros(dimensions),
+				dims = if dimensions->isEmpty() then Sequence{1} else dimensions endif
+			}
+		)
+	endif;
 
 helper context chips!"chips::statements::system::int_declaration" def :
 	evaluate(memory:TupleType(
@@ -2547,20 +2507,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.variable.name.protect()) then
-			memory.variables
-		else	
-			memory.variables->including(
-				let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-				Tuple{
-					name=self.variable.name.protect(),
-					type='int',
-					value= thisModule.zeros(dimensions),
-					dims = if dimensions->isEmpty() then Sequence{1} else dimensions endif
-				}
-			)
-		endif
+		variables = thisModule.variableaddedupdate(self,'int',memory)
 	};
 
 
@@ -2583,20 +2530,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.variable.name.protect()) then
-			memory.variables
-		else	
-			memory.variables->including(
-				let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-				Tuple{
-					name=self.variable.name.protect(),
-					type='float',
-					value= thisModule.zeros(dimensions)->collect(z | 0.0),
-					dims = if dimensions->isEmpty() then Sequence{1} else dimensions endif
-				}
-			)
-		endif
+		variables = thisModule.variableaddedupdate(self,'float',memory)
 	};
 
 helper context chips!"chips::statements::system::bool_declaration" def :
@@ -2618,20 +2552,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.variable.name.protect()) then
-			memory.variables
-		else	
-			memory.variables->including(
-				let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-				Tuple{
-					name=self.variable.name.protect(),
-					type='bool',
-					value= thisModule.zeros(dimensions)->collect(z | false),
-					dims = if dimensions->isEmpty() then Sequence{1} else dimensions endif
-				}
-			)
-		endif
+		variables = thisModule.variableaddedupdate(self,'bool',memory)
 	};
 
 
@@ -2658,6 +2579,90 @@ helper context TupleType(name:String,type:String,value:Sequence(OclAny),dims:Seq
 		Tuple{start = startindex, end = endindex}
 	endif;
 
+helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
+	if memory.variables->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+		-- do the assignment
+
+		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+			= memory.variables->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+		
+		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
+			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
+
+		if 	assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::int_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::float_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::bool_variable_expression") then
+			let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+				= memory.variables->any(e | e.name=assignment.rvalue.variable.name) in
+
+			let rvalindexinterval : TupleType(start:Integer, end:Integer) =
+				memory.variables->any(e | e.name=assignment.rvalue.variable.name)
+				->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
+
+			memory.variables->excluding(lvalue)->including(
+				Tuple{
+					name=lvalue.name,
+					type=lvalue.type,
+					value=
+					if (lvalindexinterval.start = 0 ) then 
+						if (lvalindexinterval.end = lvalue.value->size()-1) then 
+							rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
+						else
+							rvalue.value->subSequence(1, rvalindexinterval.start+1)
+							->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+						endif 
+					else
+						if (lvalindexinterval.end = lvalue.value->size()-1) then 
+							lvalue.value->subSequence(1,lvalindexinterval.start+1)
+							->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+						else
+							lvalue.value->subSequence(1,lvalindexinterval.start)
+							->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+							->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+						endif
+					endif,
+					dims=lvalue.dims							
+				}
+			)
+		else
+			let newval : Integer = assignment.rvalue.evaluate(memory).value->get(0) in 
+
+			memory.variables->excluding(lvalue)->including(
+				Tuple{
+					name=lvalue.name,
+					type=lvalue.type,
+					value=
+					if (lvalindexinterval.start = 0 ) then 
+						if (lvalindexinterval.end = lvalue.value->size()-1) then 
+							thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+						else
+							thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | one*newval)
+							->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+						endif 
+					else
+						if (lvalindexinterval.end = lvalue.value->size()-1) then 
+							thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+							->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+						else
+							lvalue.value->subSequence(1,lvalindexinterval.start)
+							->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval))
+							->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+						endif
+					endif,
+					dims=lvalue.dims							
+				}
+			)
+		endif
+	else
+		let error : OclAny = OclUndefined.debug('the lvalue of this assignment is not found...') in 
+		memory.variables
+	endif;
 
 helper context chips!"chips::statements::system::int_assignment" def : 
 	evaluate(memory:TupleType(
@@ -2678,94 +2683,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.lvalue.variable.name->protect()) then
-			-- do the assignment
-
-			let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-				= memory.variables->any(e | e.name = self.lvalue.variable.name->protect()) in
-			
-			let lvalindexinterval : TupleType(start:Integer, end:Integer) =
-				lvalue->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-			if self.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::int_variable_expression") then
-				if 	memory.variables->exists(e | e.name=self.rvalue.variable.name) then
-
-					let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-						= memory.variables->any(e | e.name=self.rvalue.variable.name) in
-
-					let rvalindexinterval : TupleType(start:Integer, end:Integer) =
-						memory.variables->any(e | e.name=self.rvalue.variable.name)
-						->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
-								else
-									rvalue.value->subSequence(1, rvalindexinterval.start+1)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									lvalue.value->subSequence(1,lvalindexinterval.start+1)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- using undeclared variable as rvalue
-					OclUndefined
-				endif
-			else
-				if self.rvalue.oclIsKindOf(chips!"chips::rvalues::system_int_rvalue") then
-
-					let newval : Integer = self.rvalue.evaluate(memory).value->get(0) in 
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
-								else
-									thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | one*newval)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- This is an error, the type should at least be a system_int_rvalue
-					OclUndefined
-				endif
-			endif
-		else
-			-- throw an error? How? No Idea.
-			OclUndefined
-		endif
+		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
 helper context chips!"chips::statements::system::float_assignment" def : 
@@ -2787,93 +2705,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.lvalue.variable.name->protect()) then
-
-			let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-				= memory.variables->any(e | e.name = self.lvalue.variable.name->protect()) in
-			
-			let lvalindexinterval : TupleType(start:Integer, end:Integer) 
-				= lvalue->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-			if self.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::float_variable_expression") then
-				if 	memory.variables->exists(e | e.name=self.rvalue.variable.name) then
-
-					let rvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))
-						= memory.variables->any(e | e.name=self.rvalue.variable.name) in
-
-					let rvalindexinterval : TupleType(start:Integer, end:Integer) 
-						= memory.variables->any(e | e.name=self.rvalue.variable.name)
-						->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
-								else
-									rvalue.value->subSequence(1, rvalindexinterval.start+1)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									lvalue.value->subSequence(1,lvalindexinterval.start+1)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- using undeclared variable as rvalue
-					OclUndefined
-				endif
-			else
-				if self.rvalue.oclIsKindOf(chips!"chips::rvalues::system_float_rvalue") then
-
-					let newval : Real = self.rvalue.evaluate(memory).value->get(0) in 
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | 1.0*newval)
-								else
-									thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | 1.0*newval)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | 1.0*newval)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | 1.0*newval))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- This is an error, the type should at least be a system_int_rvalue
-					OclUndefined
-				endif
-			endif
-		else
-			-- throw an error? How? No Idea.
-			OclUndefined
-		endif
+		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
 helper context chips!"chips::statements::system::bool_assignment" def : 
@@ -2895,93 +2727,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		dataflows = memory.dataflows,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		variables = 
-		if memory.variables->exists(e | e.name = self.lvalue.variable.name->protect()) then
-
-			let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-				= memory.variables->any(e | e.name = self.lvalue.variable.name->protect()) in
-			
-			let lvalindexinterval : TupleType(start:Integer, end:Integer) 
-				= lvalue->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-			if self.rvalue.oclIsTypeOf(chips!"chips::xvalues::system::bool_variable_expression") then
-				if 	memory.variables->exists(e | e.name=self.rvalue.variable.name) then
-
-					let rvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))
-						= memory.variables->any(e | e.name=self.rvalue.variable.name) in
-
-					let rvalindexinterval : TupleType(start:Integer, end:Integer) 
-						= memory.variables->any(e | e.name=self.rvalue.variable.name)
-						->getIndexInterval(self.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
-								else
-									rvalue.value->subSequence(1, rvalindexinterval.start+1)
-									->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									lvalue.value->subSequence(1,lvalindexinterval.start+1)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- using undeclared variable as rvalue
-					OclUndefined
-				endif
-			else
-				if self.rvalue.oclIsKindOf(chips!"chips::rvalues::system_bool_rvalue") then
-
-					let newval : Real = self.rvalue.evaluate(memory).value->get(0) in 
-
-					memory.variables->excluding(lvalue)->including(
-						Tuple{
-							name=lvalue.name,
-							type=lvalue.type,
-							value=
-							if (lvalindexinterval.start = 0 ) then 
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | newval)
-								else
-									thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | false or newval)
-									->union(lvalue->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								endif 
-							else
-								if (lvalindexinterval.end = lvalue.value->size()-1) then 
-									thisModule.ones(Sequence{lvalue.value->size()})->collect(one | false or newval)
-									->union(lvalue->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
-								else
-									lvalue.value->subSequence(1,lvalindexinterval.start)
-									->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | false or newval))
-									->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
-								endif
-							endif,
-							dims=lvalue.dims							
-						}
-					)
-				else
-					-- This is an error, the type should at least be a system_int_rvalue
-					OclUndefined
-				endif
-			endif
-		else
-			-- throw an error? How? No Idea.
-			OclUndefined
-		endif
+		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
 -- -- linking instructions evaluation in system context
@@ -4125,7 +3871,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'int') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
 	else
@@ -4140,7 +3886,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'float') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
 	else
@@ -4155,7 +3901,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name)) in
+		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'bool') then 
 		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
 	else
@@ -4236,6 +3982,154 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 		}
 	endif;
 
+helper context chips!"chips::rvalues::system::operators::int::mult" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::mult" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::int::div" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) div roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::div" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) / roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
 helper context chips!"chips::rvalues::system::operators::int::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
@@ -4310,6 +4204,129 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 		}
 	endif;
 
+	helper context chips!"chips::rvalues::system::operators::int::mod" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) mod roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on modulo',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on modulo',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::float::cast_as_float" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	if  (operand.type = 'int') then
+		Tuple{
+			name='cast',
+			type= 'float',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as float') in
+		Tuple{
+			name='cast error',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	if  (operand.type = 'float') then
+		Tuple{
+			name='cast',
+			type= 'int',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as int') in
+		Tuple{
+			name='cast error',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='lt',
+				type= 'bool',
+				dims= Sequence{1},
+				value= Sequence{
+					thisModule.range(loperand.dims)
+						->forAll(i | loperand.value->get(i) < roperand.value->get(i))
+				}
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on <',
+				type= 'bool',
+				dims= Sequence{1},
+				value= Sequence{false}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on <',
+			type= 'bool',
+			dims= Sequence{1},
+			value= Sequence{false}
+		}
+	endif;
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
@@ -4320,35 +4337,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
 	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
-	if  (loperand.type = roperand.type) then
-		if (loperand.dims = roperand.dims) then
-			Tuple{
-				name='lower_than_int',
-				type= 'bool',
-				dims= Sequence{1},
-				value= Sequence{
-					thisModule.range(loperand.dims)
-						->forAll(i | loperand.value->get(i) < roperand.value->get(i))
-				}
-			}
-		else
-			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
-			Tuple{
-				name='wrong dimensions on int <',
-				type= 'bool',
-				dims= Sequence{1},
-				value= Sequence{false}
-			}
-		endif
-	else
-		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
-		Tuple{
-			name='wrong types on int <',
-			type= 'bool',
-			dims= Sequence{1},
-			value= Sequence{false}
-		}
-	endif;
+	thisModule.lt(loperand,roperand,memory);
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
@@ -4359,10 +4348,19 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
 	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.lt(loperand,roperand,memory);
+
+helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
 	if  (loperand.type = roperand.type) then
 		if (loperand.dims = roperand.dims) then
 			Tuple{
-				name='lower_than_float',
+				name='eq',
 				type= 'bool',
 				dims= Sequence{1},
 				value= Sequence{
@@ -4371,23 +4369,57 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 				}
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = OclUndefined.debug('Cannot compare (=) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
-				name='wrong dimensions on float <',
+				name='wrong dimensions on =',
 				type= 'bool',
 				dims= Sequence{1},
 				value= Sequence{false}
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = OclUndefined.debug('Cannot compare (=) values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
-			name='wrong types on float <',
+			name='wrong types on =',
 			type= 'bool',
 			dims= Sequence{1},
 			value= Sequence{false}
 		}
 	endif;
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
+helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : evaluate(memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(memory) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(memory) in
+	thisModule.eq(loperand,roperand,memory);
+
 
 helper context chips!"chips::rvalues::system::function" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),

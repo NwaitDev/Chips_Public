@@ -1,0 +1,970 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bip2.ujf.verimag.bip.actionlang="http://bip2/ujf/verimag/bip/actionlang/1.0" xmlns:bip2.ujf.verimag.bip.component.atom="http://bip2/ujf/verimag/bip/component/atom/1.0" xmlns:bip2.ujf.verimag.bip.component.compound="http://bip2/ujf/verimag/bip/component/compound/1.0" xmlns:bip2.ujf.verimag.bip.connector="http://bip2/ujf/verimag/bip/connector/1.0" xmlns:bip2.ujf.verimag.bip.package="http://bip2/ujf/verimag/bip/package/1.0" xmlns:bip2.ujf.verimag.bip.port="http://bip2/ujf/verimag/bip/port/1.0">
+  <bip2.ujf.verimag.bip.package:BipPackage name="Drone">
+    <atomTypes name="Drone_core" exportedPortDeclarations="send_aepd recv_aepd">
+      <dataParameterDeclarations dataType="bool" name="starts" const="true"/>
+      <internalPortDeclarations portType="port_t" name="start_aipd"/>
+      <internalPortDeclarations portType="port_t" name="then_aipd"/>
+      <internalPortDeclarations portType="float_port_t" name="send_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="update_aidd"/>
+      </internalPortDeclarations>
+      <internalPortDeclarations portType="floatfloat_port_t" name="recv_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="u_aidd"/>
+        <dataParameters parameterDeclaration="v1" type="chips_float" dataDeclarationReference="dt_aidd"/>
+      </internalPortDeclarations>
+      <behavior initStates="INIT">
+        <states name="INIT"/>
+        <states name="RECEIVE"/>
+        <states name="THEN"/>
+        <states name="SEND"/>
+        <transitions sources="INIT" destinations="RECEIVE" triggerPort="start_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="INIT" destinations="SEND" triggerPort="start_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="RECEIVE" destinations="THEN" triggerPort="recv_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="THEN" destinations="SEND" triggerPort="then_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="SEND" destinations="RECEIVE" triggerPort="send_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+      </behavior>
+      <internalDataDeclarations dataType="chips_float" name="u_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="dt_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="m_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="altitude_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="altitude__max_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="velocity_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="prevError_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="GRAVITY_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="KP_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="DRAG__COEFF_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="update_aidd"/>
+      <exportPortDeclarations portType="float_port_t" name="send_aepd" portDeclarationReferences="send_aipd"/>
+      <exportPortDeclarations portType="floatfloat_port_t" name="recv_aepd" portDeclarationReferences="recv_aipd"/>
+    </atomTypes>
+    <atomTypes name="PID_core" exportedPortDeclarations="send_aepd recv_aepd">
+      <dataParameterDeclarations dataType="bool" name="starts" const="true"/>
+      <internalPortDeclarations portType="port_t" name="start_aipd"/>
+      <internalPortDeclarations portType="port_t" name="then_aipd"/>
+      <internalPortDeclarations portType="float_port_t" name="send_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="correction_aidd"/>
+      </internalPortDeclarations>
+      <internalPortDeclarations portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="recv_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="target_aidd"/>
+        <dataParameters parameterDeclaration="v1" type="chips_float" dataDeclarationReference="current_aidd"/>
+        <dataParameters parameterDeclaration="v2" type="chips_float" dataDeclarationReference="kp_aidd"/>
+        <dataParameters parameterDeclaration="v3" type="chips_float" dataDeclarationReference="ki_aidd"/>
+        <dataParameters parameterDeclaration="v4" type="chips_float" dataDeclarationReference="kd_aidd"/>
+        <dataParameters parameterDeclaration="v5" type="chips_float" dataDeclarationReference="minOutput_aidd"/>
+        <dataParameters parameterDeclaration="v6" type="chips_float" dataDeclarationReference="maxOutput_aidd"/>
+        <dataParameters parameterDeclaration="v7" type="chips_float" dataDeclarationReference="dt_aidd"/>
+      </internalPortDeclarations>
+      <behavior initStates="INIT">
+        <states name="INIT"/>
+        <states name="RECEIVE"/>
+        <states name="THEN"/>
+        <states name="SEND"/>
+        <transitions sources="INIT" destinations="RECEIVE" triggerPort="start_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="INIT" destinations="SEND" triggerPort="start_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="RECEIVE" destinations="THEN" triggerPort="recv_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="THEN" destinations="SEND" triggerPort="then_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+        <transitions sources="SEND" destinations="RECEIVE" triggerPort="send_aipd">
+          <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+        </transitions>
+      </behavior>
+      <internalDataDeclarations dataType="chips_float" name="target_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="current_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="kp_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="ki_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="kd_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="minOutput_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="maxOutput_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="dt_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="prevError_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="proportional_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="integral_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="derivative_aidd"/>
+      <internalDataDeclarations dataType="chips_float" name="correction_aidd"/>
+      <exportPortDeclarations portType="float_port_t" name="send_aepd" portDeclarationReferences="send_aipd"/>
+      <exportPortDeclarations portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="recv_aepd" portDeclarationReferences="recv_aipd"/>
+    </atomTypes>
+    <atomTypes name="int_buffer_t" exportedPortDeclarations="exp_in exp_out">
+      <internalPortDeclarations portType="int_port_t" name="in"/>
+      <internalPortDeclarations portType="int_port_t" name="out">
+        <dataParameters parameterDeclaration="v0" type="chips_int" dataDeclarationReference="int_data"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_RECEIVING">
+        <states name="DATA_RECEIVING"/>
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_RECEIVING" triggerPort="out"/>
+        <transitions sources="DATA_RECEIVING" destinations="DATA_SENDING" triggerPort="in"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_int" name="int_data"/>
+      <exportPortDeclarations portType="int_port_t" name="exp_in" portDeclarationReferences="in"/>
+      <exportPortDeclarations portType="int_port_t" name="exp_out" portDeclarationReferences="out"/>
+    </atomTypes>
+    <atomTypes name="float_buffer_t" exportedPortDeclarations="exp_in exp_out">
+      <internalPortDeclarations portType="float_port_t" name="in"/>
+      <internalPortDeclarations portType="float_port_t" name="out">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="float_data"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_RECEIVING">
+        <states name="DATA_RECEIVING"/>
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_RECEIVING" triggerPort="out"/>
+        <transitions sources="DATA_RECEIVING" destinations="DATA_SENDING" triggerPort="in"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_float" name="float_data"/>
+      <exportPortDeclarations portType="float_port_t" name="exp_in" portDeclarationReferences="in"/>
+      <exportPortDeclarations portType="float_port_t" name="exp_out" portDeclarationReferences="out"/>
+    </atomTypes>
+    <atomTypes name="bool_buffer_t" exportedPortDeclarations="exp_in exp_out">
+      <internalPortDeclarations portType="bool_port_t" name="in"/>
+      <internalPortDeclarations portType="bool_port_t" name="out">
+        <dataParameters parameterDeclaration="v0" type="chips_bool" dataDeclarationReference="bool_data"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_RECEIVING">
+        <states name="DATA_RECEIVING"/>
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_RECEIVING" triggerPort="out"/>
+        <transitions sources="DATA_RECEIVING" destinations="DATA_SENDING" triggerPort="in"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_bool" name="bool_data"/>
+      <exportPortDeclarations portType="bool_port_t" name="exp_in" portDeclarationReferences="in"/>
+      <exportPortDeclarations portType="bool_port_t" name="exp_out" portDeclarationReferences="out"/>
+    </atomTypes>
+    <atomTypes name="int_constant_t" exportedPortDeclarations="output_aepd">
+      <internalPortDeclarations portType="int_port_t" name="output_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_int" dataDeclarationReference="int_value_aidd"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_SENDING">
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_SENDING" triggerPort="output_aipd"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_int" name="int_value_aidd"/>
+      <exportPortDeclarations portType="int_port_t" name="output_aepd" portDeclarationReferences="output_aipd"/>
+    </atomTypes>
+    <atomTypes name="float_constant_t" exportedPortDeclarations="output_aepd">
+      <internalPortDeclarations portType="float_port_t" name="output_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="float_value_aidd"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_SENDING">
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_SENDING" triggerPort="output_aipd"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_float" name="float_value_aidd"/>
+      <exportPortDeclarations portType="float_port_t" name="output_aepd" portDeclarationReferences="output_aipd"/>
+    </atomTypes>
+    <atomTypes name="bool_constant_t" exportedPortDeclarations="output_aepd">
+      <internalPortDeclarations portType="bool_port_t" name="output_aipd">
+        <dataParameters parameterDeclaration="v0" type="chips_bool" dataDeclarationReference="bool_value_aidd"/>
+      </internalPortDeclarations>
+      <behavior initStates="DATA_SENDING">
+        <states name="DATA_SENDING"/>
+        <transitions sources="DATA_SENDING" destinations="DATA_SENDING" triggerPort="output_aipd"/>
+      </behavior>
+      <internalDataDeclarations dataType="chips_bool" name="bool_value_aidd"/>
+      <exportPortDeclarations portType="bool_port_t" name="output_aepd" portDeclarationReferences="output_aipd"/>
+    </atomTypes>
+    <compoundTypes name="Drone_compoundtype">
+      <dataParameterDeclarations dataType="chips_bool" name="starts_componentdataparameterdeclaration" const="true"/>
+      <componentDeclarations type="Drone_core" name="core">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="starts_componentdataparameterdeclaration"/>
+      </componentDeclarations>
+      <componentDeclarations type="floatfloat_input_buffer_t" name="Drone_input_buffer_buffercompounddecl"/>
+      <componentDeclarations type="float_output_buffer_t" name="Drone_output_buffer_buffercompounddecl"/>
+      <connectorDeclarations type="flow_floatfloat_t" name="input__to__core_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="one_cepd" componentDeclaration="Drone_input_buffer_buffercompounddecl"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="recv_aepd" componentDeclaration="core"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="core__to__output_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="send_aepd" componentDeclaration="core"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="one_cepd" componentDeclaration="Drone_output_buffer_buffercompounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="dt_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_1_cepd" componentDeclaration="Drone_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="u_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_0_cepd" componentDeclaration="Drone_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="update_output_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_output_0_cepd" componentDeclaration="Drone_output_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+    </compoundTypes>
+    <compoundTypes name="PID_compoundtype">
+      <dataParameterDeclarations dataType="chips_bool" name="starts_componentdataparameterdeclaration" const="true"/>
+      <componentDeclarations type="PID_core" name="core">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="starts_componentdataparameterdeclaration"/>
+      </componentDeclarations>
+      <componentDeclarations type="floatfloatfloatfloatfloatfloatfloatfloat_input_buffer_t" name="PID_input_buffer_buffercompounddecl"/>
+      <componentDeclarations type="float_output_buffer_t" name="PID_output_buffer_buffercompounddecl"/>
+      <connectorDeclarations type="flow_floatfloatfloatfloatfloatfloatfloatfloat_t" name="input__to__core_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="one_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="recv_aepd" componentDeclaration="core"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="core__to__output_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="send_aepd" componentDeclaration="core"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="one_cepd" componentDeclaration="PID_output_buffer_buffercompounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="dt_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_7_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="minOutput_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_5_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="current_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_1_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="maxOutput_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_6_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="kp_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_2_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="kd_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_4_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="ki_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_3_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="target_input_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_input_0_cepd" componentDeclaration="PID_input_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="correction_output_cepd">
+        <portDeclarationReferences forwardPortDeclaration="float_output_0_cepd" componentDeclaration="PID_output_buffer_buffercompounddecl"/>
+      </exportPortDeclarations>
+    </compoundTypes>
+    <compoundTypes name="floatfloat_input_buffer_t" exportedPortDeclarations="float_input_0_cepd float_input_1_cepd one_cepd">
+      <componentDeclarations type="float_buffer_t" name="float0_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float1_bd"/>
+      <connectorDeclarations type="many2one_floatfloat_t" name="floatfloat_input_connector">
+        <portParameters parameterDeclaration="p0_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float0_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p1_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float1_bd"/>
+        </portParameters>
+      </connectorDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_0_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_1_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="floatfloat_port_t" name="one_cepd">
+        <portDeclarationReferences forwardPortDeclaration="r_exported_port" connectorDeclaration="floatfloat_input_connector"/>
+      </exportPortDeclarations>
+    </compoundTypes>
+    <compoundTypes name="floatfloatfloatfloatfloatfloatfloatfloat_input_buffer_t" exportedPortDeclarations="float_input_0_cepd float_input_1_cepd float_input_2_cepd float_input_3_cepd float_input_4_cepd float_input_5_cepd float_input_6_cepd float_input_7_cepd one_cepd">
+      <componentDeclarations type="float_buffer_t" name="float0_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float1_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float2_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float3_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float4_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float5_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float6_bd"/>
+      <componentDeclarations type="float_buffer_t" name="float7_bd"/>
+      <connectorDeclarations type="many2one_floatfloatfloatfloatfloatfloatfloatfloat_t" name="floatfloatfloatfloatfloatfloatfloatfloat_input_connector">
+        <portParameters parameterDeclaration="p0_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float0_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p1_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float1_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p2_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float2_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p3_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float3_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p4_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float4_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p5_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float5_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p6_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float6_bd"/>
+        </portParameters>
+        <portParameters parameterDeclaration="p7_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_out" componentDeclaration="float7_bd"/>
+        </portParameters>
+      </connectorDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_0_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_1_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_2_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float2_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_3_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float3_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_4_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float4_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_5_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float5_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_6_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float6_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_input_7_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float7_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="one_cepd">
+        <portDeclarationReferences forwardPortDeclaration="r_exported_port" connectorDeclaration="floatfloatfloatfloatfloatfloatfloatfloat_input_connector"/>
+      </exportPortDeclarations>
+    </compoundTypes>
+    <compoundTypes name="float_output_buffer_t">
+      <componentDeclarations type="float_buffer_t" name="float0_bd"/>
+      <connectorDeclarations type="one2many_float_t" name="float_output_connector">
+        <portParameters parameterDeclaration="p0_cppd">
+          <subPortDeclarationReference forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+        </portParameters>
+      </connectorDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="float_output_0_cepd">
+        <portDeclarationReferences forwardPortDeclaration="exp_out" componentDeclaration="float0_bd"/>
+      </exportPortDeclarations>
+      <exportPortDeclarations portType="float_port_t" name="one_cepd">
+        <portDeclarationReferences forwardPortDeclaration="s_exported_port" connectorDeclaration="float_output_connector"/>
+      </exportPortDeclarations>
+    </compoundTypes>
+    <compoundTypes name="SYSTEM_COMPOUND">
+      <componentDeclarations type="int_constant_t" name="cst3">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="0.1"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst2">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst5">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst4">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="5.0"/>
+      </componentDeclarations>
+      <componentDeclarations type="PID_compoundtype" name="ctrl_1_compounddecl">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst1">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="0.6"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst0">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="1.5"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst7">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="0.1"/>
+      </componentDeclarations>
+      <componentDeclarations type="int_constant_t" name="cst6">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectFloatExpression" value="15.0"/>
+      </componentDeclarations>
+      <componentDeclarations type="Drone_compoundtype" name="drone_1_compounddecl">
+        <parameters xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </componentDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression6__to__ctrl__0__maxOutput_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst6"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="maxOutput_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__drone__0__update__to__ctrl__0__current_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="update_output_cepd" componentDeclaration="drone_1_compounddecl"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="current_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression3__to__ctrl__0__dt_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst3"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="dt_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression5__to__ctrl__0__minOutput_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst5"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="minOutput_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__ctrl__0__correction__to__drone__0__u_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="correction_output_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="u_input_cepd" componentDeclaration="drone_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression1__to__ctrl__0__ki_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst1"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="ki_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression7__to__drone__0__dt_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst7"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="dt_input_cepd" componentDeclaration="drone_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression2__to__ctrl__0__kd_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst2"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="kd_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression4__to__ctrl__0__target_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst4"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="target_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+      <connectorDeclarations type="flow_float_t" name="from__direct__expression0__to__ctrl__0__kp_cd">
+        <portParameters parameterDeclaration="s">
+          <subPortDeclarationReference forwardPortDeclaration="output_aepd" componentDeclaration="cst0"/>
+        </portParameters>
+        <portParameters parameterDeclaration="r">
+          <subPortDeclarationReference forwardPortDeclaration="kp_input_cepd" componentDeclaration="ctrl_1_compounddecl"/>
+        </portParameters>
+      </connectorDeclarations>
+    </compoundTypes>
+    <connectorTypes name="many2one_floatfloat_t">
+      <exportedPortDeclaration portType="floatfloat_port_t" name="r_exported_port">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="v0"/>
+        <dataParameters parameterDeclaration="v1" type="chips_float" dataDeclarationReference="v1"/>
+      </exportedPortDeclaration>
+      <dataDeclarations dataType="chips_float" name="v0"/>
+      <dataDeclarations dataType="chips_float" name="v1"/>
+      <interactions onPorts="p0_cppd p1_cppd">
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v0"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p0_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v1"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p1_cppd"/>
+          </rhs>
+        </up>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p0_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p1_cppd"/>
+      </interactionDefinition>
+      <ports portType="float_port_t" name="p0_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+      </ports>
+      <ports portType="float_port_t" name="p1_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+      </ports>
+    </connectorTypes>
+    <connectorTypes name="many2one_floatfloatfloatfloatfloatfloatfloatfloat_t">
+      <exportedPortDeclaration portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="r_exported_port">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="v0"/>
+        <dataParameters parameterDeclaration="v1" type="chips_float" dataDeclarationReference="v1"/>
+        <dataParameters parameterDeclaration="v2" type="chips_float" dataDeclarationReference="v2"/>
+        <dataParameters parameterDeclaration="v3" type="chips_float" dataDeclarationReference="v3"/>
+        <dataParameters parameterDeclaration="v4" type="chips_float" dataDeclarationReference="v4"/>
+        <dataParameters parameterDeclaration="v5" type="chips_float" dataDeclarationReference="v5"/>
+        <dataParameters parameterDeclaration="v6" type="chips_float" dataDeclarationReference="v6"/>
+        <dataParameters parameterDeclaration="v7" type="chips_float" dataDeclarationReference="v7"/>
+      </exportedPortDeclaration>
+      <dataDeclarations dataType="chips_float" name="v0"/>
+      <dataDeclarations dataType="chips_float" name="v1"/>
+      <dataDeclarations dataType="chips_float" name="v2"/>
+      <dataDeclarations dataType="chips_float" name="v3"/>
+      <dataDeclarations dataType="chips_float" name="v4"/>
+      <dataDeclarations dataType="chips_float" name="v5"/>
+      <dataDeclarations dataType="chips_float" name="v6"/>
+      <dataDeclarations dataType="chips_float" name="v7"/>
+      <interactions onPorts="p0_cppd p1_cppd p2_cppd p3_cppd p4_cppd p5_cppd p6_cppd p7_cppd">
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v0"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p0_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v1"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p1_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v2"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p2_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v3"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p3_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v4"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p4_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v5"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p5_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v6"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p6_cppd"/>
+          </rhs>
+        </up>
+        <up xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v7"/>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p7_cppd"/>
+          </rhs>
+        </up>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p0_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p1_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p2_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p3_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p4_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p5_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p6_cppd"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p7_cppd"/>
+      </interactionDefinition>
+      <ports portType="float_port_t" name="p0_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p1_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p2_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p3_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p4_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p5_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p6_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+      <ports portType="float_port_t" name="p7_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+        <dataParameters dataDeclarationReference="v1"/>
+        <dataParameters dataDeclarationReference="v2"/>
+        <dataParameters dataDeclarationReference="v3"/>
+        <dataParameters dataDeclarationReference="v4"/>
+        <dataParameters dataDeclarationReference="v5"/>
+        <dataParameters dataDeclarationReference="v6"/>
+        <dataParameters dataDeclarationReference="v7"/>
+      </ports>
+    </connectorTypes>
+    <connectorTypes name="one2many_float_t">
+      <exportedPortDeclaration portType="float_port_t" name="s_exported_port">
+        <dataParameters parameterDeclaration="v0" type="chips_float" dataDeclarationReference="v0"/>
+      </exportedPortDeclaration>
+      <dataDeclarations dataType="chips_float" name="v0"/>
+      <interactions onPorts="p0_cppd">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="p0_cppd"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:DirectDataDeclarationReferenceExpression" dataDeclaration="v0"/>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="p0_cppd"/>
+      </interactionDefinition>
+      <ports portType="float_port_t" name="p0_cppd">
+        <dataParameters dataDeclarationReference="v0"/>
+      </ports>
+    </connectorTypes>
+    <connectorTypes name="flow_floatfloat_t">
+      <interactions onPorts="s r">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v1" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v1" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="s"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="r"/>
+      </interactionDefinition>
+      <ports portType="floatfloat_port_t" name="s"/>
+      <ports portType="floatfloat_port_t" name="r"/>
+    </connectorTypes>
+    <connectorTypes name="flow_floatfloatfloatfloatfloatfloatfloatfloat_t">
+      <interactions onPorts="s r">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v1" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v1" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v2" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v2" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v3" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v3" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v4" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v4" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v5" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v5" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v6" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v6" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v7" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v7" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="s"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="r"/>
+      </interactionDefinition>
+      <ports portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="s"/>
+      <ports portType="floatfloatfloatfloatfloatfloatfloatfloat_port_t" name="r"/>
+    </connectorTypes>
+    <connectorTypes name="flow_float_t">
+      <interactions onPorts="s r">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="s"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="r"/>
+      </interactionDefinition>
+      <ports portType="float_port_t" name="s"/>
+      <ports portType="float_port_t" name="r"/>
+    </connectorTypes>
+    <connectorTypes name="flow_bool_t">
+      <interactions onPorts="s r">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="s"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="r"/>
+      </interactionDefinition>
+      <ports portType="bool_port_t" name="s"/>
+      <ports portType="bool_port_t" name="r"/>
+    </connectorTypes>
+    <connectorTypes name="flow_int_t">
+      <interactions onPorts="s r">
+        <down xsi:type="bip2.ujf.verimag.bip.actionlang:AssignmentExpression">
+          <lhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="r"/>
+          </lhs>
+          <rhs xsi:type="bip2.ujf.verimag.bip.actionlang:SubDataDeclarationReferenceExpression">
+            <subDataDeclarationRef forwardDataDeclaration="v0" portDeclaration="s"/>
+          </rhs>
+        </down>
+        <guard xsi:type="bip2.ujf.verimag.bip.actionlang:DirectBooleanExpression" value="true"/>
+      </interactions>
+      <interactionDefinition xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionNestedDefinition">
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="s"/>
+        <subInteractions xsi:type="bip2.ujf.verimag.bip.connector:ConnectorInteractionPortReference" port="r"/>
+      </interactionDefinition>
+      <ports portType="int_port_t" name="s"/>
+      <ports portType="int_port_t" name="r"/>
+    </connectorTypes>
+    <portTypes name="int_port_t">
+      <dataParameterDeclarations dataType="chips_int" name="v0"/>
+    </portTypes>
+    <portTypes name="float_port_t">
+      <dataParameterDeclarations dataType="chips_float" name="v0"/>
+    </portTypes>
+    <portTypes name="bool_port_t">
+      <dataParameterDeclarations dataType="chips_bool" name="v0"/>
+    </portTypes>
+    <portTypes name="port_t"/>
+    <portTypes name="floatfloat_port_t">
+      <dataParameterDeclarations dataType="chips_float" name="v0"/>
+      <dataParameterDeclarations dataType="chips_float" name="v1"/>
+    </portTypes>
+    <portTypes name="floatfloatfloatfloatfloatfloatfloatfloat_port_t">
+      <dataParameterDeclarations dataType="chips_float" name="v0"/>
+      <dataParameterDeclarations dataType="chips_float" name="v1"/>
+      <dataParameterDeclarations dataType="chips_float" name="v2"/>
+      <dataParameterDeclarations dataType="chips_float" name="v3"/>
+      <dataParameterDeclarations dataType="chips_float" name="v4"/>
+      <dataParameterDeclarations dataType="chips_float" name="v5"/>
+      <dataParameterDeclarations dataType="chips_float" name="v6"/>
+      <dataParameterDeclarations dataType="chips_float" name="v7"/>
+    </portTypes>
+    <dataTypes name="chips_int" backendName="chips_int"/>
+    <dataTypes name="chips_float" backendName="chips_float"/>
+    <dataTypes name="chips_bool" backendName="chips_bool"/>
+    <dataTypes name="bool" native="true" backendName="bool"/>
+  </bip2.ujf.verimag.bip.package:BipPackage>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v1"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomInternalPortDeclaration portType="port_t" name="read_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomInternalPortDeclaration portType="port_t" name="write_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomExportPortDeclaration portType="port_t" name="read_ctx_aepd" portDeclarationReferences="read_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomExportPortDeclaration portType="port_t" name="write_ctx_aepd" portDeclarationReferences="write_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v1"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v2"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v3"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v4"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v5"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v6"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v7"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomInternalPortDeclaration portType="port_t" name="read_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomInternalPortDeclaration portType="port_t" name="write_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomExportPortDeclaration portType="port_t" name="read_ctx_aepd" portDeclarationReferences="read_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.component.atom:AtomExportPortDeclaration portType="port_t" name="write_ctx_aepd" portDeclarationReferences="write_ctx_aipd"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_int" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_bool" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_int" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_float" name="v0"/>
+  <bip2.ujf.verimag.bip.port:PortDataParameterDeclaration dataType="chips_bool" name="v0"/>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_0_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_1_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_0_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_1_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_output_0_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_out" componentDeclaration="float0_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_0_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_1_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_2_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float2_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_3_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float3_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_4_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float4_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_5_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float5_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_6_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float6_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_7_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float7_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_0_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float0_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_1_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float1_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_2_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float2_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_3_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float3_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_4_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float4_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_5_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float5_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_6_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float6_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+  <bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration portType="float_port_t" name="float_input_7_cepd">
+    <portDeclarationReferences forwardPortDeclaration="exp_in" componentDeclaration="float7_bd"/>
+  </bip2.ujf.verimag.bip.component.compound:CompoundExportPortDeclaration>
+</xmi:XMI>
