@@ -794,8 +794,7 @@ unique lazy rule MakeCoreAtomType {
 
 	starts : bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeBackendDataType('bool'),
-		name <- 'starts',
-		const <- true
+		name <- 'starts'
 	),
 
 	pn : bip!PetriNet(
@@ -1876,16 +1875,34 @@ lazy rule MakeCoreComponentDeclaration {
 }
 
 
+-- unique lazy rule MakeComponentDataParameterDeclaration{
+-- 	from name:String, type:String, fd:chips!function_definition
+
+-- 	to cdpd: bip!ComponentDataParameterDeclaration(
+-- 		dataType <- thisModule.MakeChipsDataType(type),
+-- 		name <- name+'_componentdataparameterdeclaration',
+-- 		const <- true
+-- 	)
+-- }
+
 unique lazy rule MakeComponentDataParameterDeclaration{
 	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
-		name <- name+'_componentdataparameterdeclaration',
-		const <- true
+		dataType <- thisModule.MakeBackendDataType(type),
+		name <- name+'_param'--,
+		-- const <- true
 	)
 }
 
+lazy rule MakeCompDataParameterDeclaration{
+	from name:String, type:String
+
+	to cdpd: bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBackendDataType(type),
+		name <- name+'_param'
+	)
+}
 
 lazy rule MakeCompoundDeclaration{
 	from 
@@ -1964,7 +1981,7 @@ unique lazy rule MakeConstantAtomType{
 	        castableTypes <- Sequence{},
 	        exportedPortDeclarations <- Sequence{aepd},
 	        exportedDataDeclarations <- Sequence{}, 
-	        dataParameterDeclarations <- Sequence{},
+	        dataParameterDeclarations <- Sequence{thisModule.MakeCompDataParameterDeclaration(type,type)},
 	        internalPortDeclarations <- Sequence{port},
 	        behavior <- thisModule.MakeConstantPetriNet(port),
 	        internalDataDeclarations <- Sequence{datadecl},
@@ -2036,7 +2053,7 @@ unique lazy rule MakeFloatConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		name <- 'cst'+id.toString(),
-		type <- thisModule.MakeConstantAtomType('int'),
+		type <- thisModule.MakeConstantAtomType('float'),
 		parameters <- Sequence{
 			thisModule.MakeDirectFloatExpression(value)
 		}
@@ -2054,7 +2071,7 @@ unique lazy rule MakeBoolConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		name <- 'cst'+id.toString(),
-		type <- thisModule.MakeConstantAtomType('int'),
+		type <- thisModule.MakeConstantAtomType('bool'),
 		parameters <- Sequence{
 			thisModule.MakeDirectBoolExpression(value)
 		}

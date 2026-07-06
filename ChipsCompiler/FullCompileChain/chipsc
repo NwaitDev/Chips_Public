@@ -180,8 +180,7 @@ echo "      (Analyze XMI step completed)"
 
 # Step 2 — BIP-XMI
 echo "[3/4] Transforming CHIPS-XMI → BIP-XMI..."
-# needs to have the following environment variable set :
-#   CHIPSC_PATH="$CHIPS_PATH"/ChipsCompiler/FullCompileChain/Chips2BipTransformer
+
 java -cp ".:$CHIPSC_PATH:$CHIPSC_PATH/lib/*" \
     emftvm $CHIPSC_PATH/metamodels/chips1.1.ecore \
     $CHIPSC_PATH/metamodels/BIP.ecore  \
@@ -206,6 +205,15 @@ if [[ "$GENERATE_MODE" == "cpp" ]]; then
 else
     $BIPC_PATH/bipc -v FINEST --xmi "${OUTPUT_FILE}.bip.xmi"  -d 'SYSTEM_COMPOUND' --genbip-output ${OUTPUT_FILE}
     echo "      (BIP generation completed)"
+    cat <<EOF
+[WARNING] due to a bug in the BIP compiler, components exported ports 
+          lost their alias during the compilation and must now be refered
+          to using their original name.
+          If you need to compile the so produced .bip file, run
+
+          $ sed -i -r 's/aepd/aipd/g' $(basename ${OUTPUT_FILE}).bip
+          $ sed -i -r 's/exp_/_/g' $(basename ${OUTPUT_FILE}).bip
+EOF
 fi
 
 echo ""
