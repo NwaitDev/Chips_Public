@@ -883,7 +883,7 @@ unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
 
 	to 	aepd: bip!AtomExportPortDeclaration(
 			portType <- thisModule.MakePortType(Sequence{type}),
-			name <-(type + if isinput then 'exp_in' else 'exp_out' endif),
+			name <-(type + if isinput then '_exp_in' else '_exp_out' endif),
 			portDeclarationReferences <- Sequence{thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,isinput)}
 		)
 }
@@ -2252,9 +2252,9 @@ rule Program2BipPackage {
 			atomTypes <- core_atom_types
 				->union(all_monotype_buffer_atom_types)
 				->union(constants_atom_types),
-			compoundTypes <- functional_blocks_types
+			compoundTypes <- functional_output_buffer_types
 				->union(functional_input_buffer_types)
-				->union(functional_output_buffer_types)
+				->union(functional_blocks_types)
 			 	->union(Sequence{system_compound}),
 			connectorTypes <- all_exporting_connector_types
 				->union(all_flow_connector_types),
