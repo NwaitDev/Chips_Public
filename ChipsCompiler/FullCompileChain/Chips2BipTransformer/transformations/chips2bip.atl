@@ -579,7 +579,7 @@ unique lazy rule MakeCoreAtomInternalPortDeclaration{
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(alldatatypes),
-		name <- portname+'_aipd',
+		name <- fdef.name +'_'+ portname+'_aipd',
 		dataParameters <- all_dataparameters
 	)
 }
@@ -712,7 +712,7 @@ unique lazy rule MakeCoreAtomType {
 		-- generating port parameter declarations
 		-----------------------------------------
 		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = 
-			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs.debug()->collect(t | t.type),aidd_input,chipsfunction);
+			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs->collect(t | t.type),aidd_input,chipsfunction);
 
 		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = 
 			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_outputs->collect(t | t.type), aidd_output,chipsfunction);
@@ -847,7 +847,7 @@ unique lazy rule MakeCoreAtomType {
 }
 
 
-unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
+lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 	from
 		type : String
 
@@ -858,14 +858,14 @@ unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 }
 
 
-unique lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
+lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
 	from
 		type: String,
 		isinput:Boolean
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- if isinput then 'in' else 'out' endif,
+		name <- (type + if isinput then '_in' else '_out' endif),
 		dataParameters <- Sequence{
 			thisModule.MakeAtomDataDeclarationReferenceDataParameter(
 				0,
@@ -874,8 +874,6 @@ unique lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
 			)
 		}
 	)
-
-	
 }
 
 unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
@@ -885,7 +883,7 @@ unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
 
 	to 	aepd: bip!AtomExportPortDeclaration(
 			portType <- thisModule.MakePortType(Sequence{type}),
-			name <-if isinput then 'exp_in' else 'exp_out' endif,
+			name <-(type + if isinput then 'exp_in' else 'exp_out' endif),
 			portDeclarationReferences <- Sequence{thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,isinput)}
 		)
 }
