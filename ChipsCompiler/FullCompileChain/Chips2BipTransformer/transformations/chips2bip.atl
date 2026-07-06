@@ -1973,13 +1973,13 @@ unique lazy rule MakeConstantAtomType{
 
 	aepd: bip!AtomExportPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <-'output'+'_aepd',
+		name <- type+'_output'+'_aepd',
 		portDeclarationReferences <- Sequence{port}
 	),
 
 	port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- 'output'+'_aipd',
+		name <- type+'_output'+'_aipd',
 		dataParameters <- Sequence{thisModule.MakeAtomDataDeclarationReferenceDataParameter(0,type, datadecl)}
 	),
 
