@@ -33,7 +33,7 @@ public:
 };
 
 
-void parse(std::istream& input, std::string filename) {
+void parse(std::istream& input, std::string output, std::string filename) {
 
     antlr4::ANTLRInputStream    stream(input);
     ChipsLexer                  lexer(&stream);
@@ -49,8 +49,6 @@ void parse(std::istream& input, std::string filename) {
 
     auto* tree = parser.program();   // parse
     ASTBuilder builder;
-
-    std::string output = "output.chips.xmi";
 
     std::ostringstream body_out;
     ChipsToXmiWriter body_writer(body_out);
@@ -81,20 +79,21 @@ void parse(std::istream& input, std::string filename) {
 
 // ── Point d'entrée ────────────────────────────────────────────
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cout<<"[ERROR] chips compiler requires exactly one parameter\n"
-                 <<"usage: ./chipsc path/to/file.chips"<<std::endl;
+    if (argc != 3) {
+        std::cout<<"[ERROR] chips parser requires exactly two parameters\n"
+                 <<"usage: ./chipsc path/to/file.chips path/to/output/file"<<std::endl;
         std::cout;
         std::exit(1);
     } else {
         std::string filename(argv[1]);
+        std::string output(argv[2]);
         std::ifstream file(filename);
         if (!file) {
             std::cerr << "Impossible d'ouvrir le fichier : " << filename << "\n";
             std::exit(1);
         }
         try {
-            parse(file, filename);
+            parse(file, output, filename);
         } catch (const std::exception& e) {
             std::cerr << "Erreur : " << e.what() << "\n";
             std::exit(1);
