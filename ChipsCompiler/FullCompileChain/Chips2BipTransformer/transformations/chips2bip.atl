@@ -16,10 +16,10 @@ helper def : outputCategory : String = 'output';
 helper def : innerCategory : String = 'inner';
 helper def : ctxCategory : String = 'ctx';
 
-helper def : recvPortName : String = 'recv';
-helper def : sendPortName : String = 'send';
-helper def : readctxPortName : String = 'read_ctx';
-helper def : writectxPortName : String = 'write_ctx';
+helper context chips!function_definition def : recvPortName : String = self.name+'_recv';
+helper context chips!function_definition def : sendPortName : String = self.name+'_send';
+helper context chips!function_definition def : readctxPortName : String = self.name+'_read_ctx';
+helper context chips!function_definition def : writectxPortName : String = self.name+'_write_ctx';
 
 helper def : dictionary : Map(String, Map(OclAny, OclAny)) = Map{};
 helper def : temp_dic : Map(OclAny,OclAny) = Map{};
@@ -712,7 +712,7 @@ unique lazy rule MakeCoreAtomType {
 		-- generating port parameter declarations
 		-----------------------------------------
 		pdpd_inputs : Sequence(bip!PortDataParameterDeclaration) = 
-			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs->collect(t | t.type),aidd_input,chipsfunction);
+			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs.debug()->collect(t | t.type),aidd_input,chipsfunction);
 
 		pdpd_outputs : Sequence(bip!PortDataParameterDeclaration) = 
 			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_outputs->collect(t | t.type), aidd_output,chipsfunction);
@@ -722,13 +722,13 @@ unique lazy rule MakeCoreAtomType {
 
 
 		input_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(thisModule.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
+			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
 		output_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(thisModule.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
+			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
 		read_ctx_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(thisModule.readctxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
+			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.readctxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 		write_ctx_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(thisModule.writectxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
+			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.writectxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 
 		-- generating ports (order matters)
 		-----------------------------------
@@ -752,15 +752,15 @@ unique lazy rule MakeCoreAtomType {
 		---------------------------------------------
 
 		aepd_snd : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
+			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
 		aepd_rcv : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
+			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
 
 		read_ctx_aepd : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.readctxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
+			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.readctxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 
 		write_ctx_aepd : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(thisModule.writectxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
+			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.writectxPortName,all_contextuals->collect(t | t.type),pdpd_ctx,chipsfunction);
 
 
 		-- generating list of contextuals to export
