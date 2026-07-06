@@ -35,7 +35,9 @@ void ChipsToXmiWriter::xmi_header(const std::string& filename)
     
     // xsi:schemaLocation (si des namespaces sont présents)
     if (!m_namespace_urls.empty()) {
-        std::string schema_file = "/home/vfocheux/Bureau/Chips_Public/ChipsCompiler/FullCompileChain/Chips2BipTransformer/metamodels/chips1.1.ecore";
+        std::string current_path = std::filesystem::current_path();
+        std::string schema_file = current_path + "/Chips2BipTransformer/metamodels/chips1.1.ecore";
+        std::cerr << schema_file << std::endl;
         m_out << "  xsi:schemaLocation=\"http://chips " << schema_file;
         
         for (const auto& [prefix, url] : sorted_ns) {
