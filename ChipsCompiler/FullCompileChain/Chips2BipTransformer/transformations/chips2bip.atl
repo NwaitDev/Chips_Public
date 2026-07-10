@@ -28,7 +28,9 @@ helper def : temp_dic : Map(OclAny,OclAny) = Map{};
 -- 	memory:TupleType(
 -- 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
--- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+-- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+--			TupleType(channels:Map(String,TupleType(type:String,available:Boolean)),
+--			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))))))),
 -- 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 -- 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 -- 	)
@@ -2222,7 +2224,12 @@ rule Program2BipPackage {
 		let memory:TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 		) =
@@ -2230,7 +2237,15 @@ rule Program2BipPackage {
 			stt ; mem :TupleType(
 				fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+				nodes: Map(String,
+					TupleType(
+						dimensions:Sequence(Integer),
+						instances:Sequence(TupleType(
+							channels:Map(String,TupleType(type:String,available:Boolean)),
+							contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+						))
+					)
+				),
 				connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 			) = Tuple{fblocks=Map{}, dataflows=Map{}, nodes=Map{}, connections=Set{}, variables=Sequence{}} |
@@ -2283,9 +2298,1139 @@ rule Program2BipPackage {
 		)
 }
 
------------------------------------------------------------------------------------------
+
 -----------------------------------------------------------------------------------------
 ----------------MEMORY EVALUATION FOR INTERPRETATION OF CHIPS MODELS---------------------
+-----------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
+---- 			BIP PRESENCE OF CONTEXTUALS AND CHANNELS
+----			DEDUCED FROM CHIPS "WITH" INSTRUCTIONS INTERPRETATION
+-----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
+
+
+helper context chips!channel_declaration def: evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	Tuple{
+		temp_memory = node_data.temp_memory,
+		channels = 
+			if node_data.channels->getKeys()->any( e | e = self.name) <> OclUndefined then
+				let a : OclAny = OclUndefined.debug('Duplicate channel with name "'+ self.name +'" ignored.') in
+				node_data.channels
+			else 
+				node_data.channels->including(
+					self.name,
+					Tuple{type = self.type_identifier, available = true}
+				)
+			endif,
+		contextuals = node_data.contextuals
+	};
+
+helper context chips!contextual_int_declaration def: evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	if node_data.contextuals->any(e | e = self.identifier) = OclUndefined then
+		let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e |e.evaluate(node_data.temp_memory).value->get(0)) in
+		let var : TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)) = 
+		Tuple{
+			name = self.identifier,
+			type = 'int',
+			value = thisModule.zeros(dimensions),
+			dims = dimensions
+		} in
+		Tuple{
+			temp_memory = Tuple{variables=node_data.temp_memory.variables->including(var)},
+			channels = node_data.channels,
+			contextuals = node_data.contextuals->including(var)
+		}
+	else
+		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		node_data
+	endif;
+
+
+helper context chips!contextual_float_declaration def: evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	if node_data.contextuals->any(e | e = self.identifier) = OclUndefined then
+		let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e |e.evaluate(node_data.temp_memory).value->get(0)) in
+		let var : TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)) = 
+		Tuple{
+			name = self.identifier,
+			type = 'float',
+			value = thisModule.zeros(dimensions)->collect(z | 0.0),
+			dims = dimensions
+		} in
+		Tuple{
+			temp_memory = Tuple{variables=node_data.temp_memory.variables->including(var)},
+			channels = node_data.channels,
+			contextuals = node_data.contextuals->including(var)
+		}
+	else
+		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		node_data
+	endif;
+
+
+helper context chips!contextual_bool_declaration def: evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	if node_data.contextuals->any(e | e = self.identifier) = OclUndefined then
+		let dimensions : Sequence(Integer) = self.variable.dimensions->collect(e |e.evaluate(node_data.temp_memory).value->get(0)) in
+		let var : TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)) = 
+		Tuple{
+			name = self.identifier,
+			type = 'bool',
+			value = thisModule.zeros(dimensions)->collect(z | false),
+			dims = dimensions
+		} in
+		Tuple{
+			temp_memory = Tuple{variables=node_data.temp_memory.variables->including(var)},
+			channels = node_data.channels,
+			contextuals = node_data.contextuals->including(var)
+		}
+	else
+		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		node_data
+	endif;
+
+
+helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
+		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
+		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(TupleType(channels:Map(String,TupleType(type:String,available:Boolean)),contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))))))) =
+	let dims : Sequence(Integer) = ndecl.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
+	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
+	let node_data : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = ndecl."def".with.statements->iterate( stt ; node_data : TupleType(
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = Tuple{temp_memory = Tuple{variables=Sequence{}},channels=Map{}, contextuals=Sequence{}} | stt->evaluate(node_data)) in
+	if lin_indices->size() <> 0 then 
+		memory.nodes->including(
+			ndecl.variable.name->protect(),
+			Tuple{
+				dimensions = dims,
+				instances = thisModule.zeros(dims)
+				->collect( z | node_data )
+			}
+		)
+	else 
+		memory.nodes->including(
+			ndecl.variable.name->protect(), 
+			Tuple{
+				dimensions = dims,
+				instances = Sequence{node_data}
+			}
+		)
+	endif;
+
+
+
+helper context chips!"chips::rvalues::primitive::direct_int" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	Tuple{
+		name = 'direct',
+		type = 'int',
+		value = Sequence{self.value},
+		dims = Sequence{1}
+	};
+helper context chips!"chips::rvalues::primitive::direct_float" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	Tuple{
+		name = 'direct',
+		type = 'float',
+		value = Sequence{self.value},
+		dims = Sequence{1}
+	};
+
+helper context chips!"chips::rvalues::primitive::direct_bool" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	Tuple{
+		name = 'direct',
+		type = 'bool',
+		value = Sequence{self.value},
+		dims = Sequence{1}
+	};
+
+helper context chips!"chips::xvalues::primitive::int_variable_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'int') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::xvalues::primitive::float_variable_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'float') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::xvalues::primitive::bool_variable_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'bool') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::xvalues::primitive::contextual_int_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'int') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::xvalues::primitive::contextual_float_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'float') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::xvalues::primitive::contextual_bool_expression" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+	if (var.type <> 'bool') then 
+		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
+	else
+		var
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::int::plus" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='plus',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) + roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on sum',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on sum',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::float::plus" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='plus',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) + roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on sum',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0.0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on sum',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0.0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::int::mult" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::float::mult" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='mult',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) * roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on mult',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on mult',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::int::div" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) div roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::float::div" def :evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) / roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on div',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on div',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::int::minus" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='minus',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) - roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on substraction',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on substraction',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::float::minus" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='minus',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) - roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on substract',
+				type= 'float',
+				dims= Sequence{1},
+				value= Sequence{0.0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on substract',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0.0}
+		}
+	endif;
+
+	helper context chips!"chips::rvalues::primitive::operators::int::mod" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	if  (loperand.type = roperand.type) then
+		if (loperand.dims = roperand.dims) then
+			Tuple{
+				name='div',
+				type= loperand.type,
+				dims= loperand.dims,
+				value= thisModule.range(loperand.dims)
+					->collect(i | loperand.value->get(i) mod roperand.value->get(i))
+			}
+		else
+			let a : OclType = OclUndefined.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			Tuple{
+				name='wrong dimensions on modulo',
+				type= 'int',
+				dims= Sequence{1},
+				value= Sequence{0}
+			}
+		endif
+	else
+		let a : OclType = OclUndefined.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
+		Tuple{
+			name='wrong types on modulo',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::float::cast_as_float" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	if  (operand.type = 'int') then
+		Tuple{
+			name='cast',
+			type= 'float',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as float') in
+		Tuple{
+			name='cast error',
+			type= 'float',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::int::cast_as_int" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let operand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	if  (operand.type = 'float') then
+		Tuple{
+			name='cast',
+			type= 'int',
+			dims= operand.dims,
+			value= operand.value
+		}
+	else
+		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as int') in
+		Tuple{
+			name='cast error',
+			type= 'int',
+			dims= Sequence{1},
+			value= Sequence{0}
+		}
+	endif;
+
+helper context chips!"chips::rvalues::primitive::operators::bool::lt_int" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	thisModule.lt(loperand,roperand,node_data);
+
+helper context chips!"chips::rvalues::primitive::operators::bool::lt_float" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	thisModule.lt(loperand,roperand,node_data);
+
+helper context chips!"chips::rvalues::primitive::operators::bool::eq_int" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	thisModule.eq(loperand,roperand,node_data);
+
+helper context chips!"chips::rvalues::primitive::operators::bool::eq_float" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	thisModule.eq(loperand,roperand,node_data);
+
+helper context chips!"chips::rvalues::primitive::operators::bool::eq_bool" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
+	let loperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.left_operand->evaluate(node_data) in
+	let roperand : TupleType(name:String, value:Sequence(OclAny), type:String, dims:Sequence(Integer)) = self.right_operand->evaluate(node_data) in
+	thisModule.eq(loperand,roperand,node_data);
+
+
+helper context chips!"chips::rvalues::primitive::function" def : evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
+	let params: Sequence(TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer))) 
+			= self.parameters->collect(e | e.evaluate(node_data)) in
+	let dimensions : Sequence(Integer) = params->collect(p | p.value->get(0)) in
+	if (self.name = 'zeros') then
+		Tuple{
+			name = 'zeros',
+			type = 'int',
+			value = thisModule.zeros(dimensions),
+			dims = dimensions
+		}
+	else 
+		if(self.name = 'ones') then
+			Tuple{
+				name = 'ones',
+				type = 'int',
+				value = thisModule.ones(dimensions),
+				dims = dimensions
+			}
+		else 
+			if(self.name = 'range') then
+				Tuple{
+					name = 'range',
+					type = 'int',
+					value = thisModule.range(dimensions),
+					dims = dimensions
+				}
+			else 
+				let a : OclAny = OclUndefined.debug('Unrecogized function name '+self.name) in
+				Tuple{
+					name = 'fcall',
+					type = 'error',
+					value = Sequence{0},
+					dims = Sequence{1}
+				}
+			endif
+		endif
+	endif;
+
+
+-- -- Flow control structures interpretation in system section
+-- -------------------------------------------
+
+helper context chips!"chips::statements::primitive::foreach" def : 
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	let expr : TupleType(name:String, type: String, value:Sequence(OclAny), dims:Sequence(Integer)) = self.iterable_expr.evaluate(node_data) in
+	let iterable : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
+	Tuple{
+		name=self.iterator.variable.name,
+		type=
+			if self.iterator.oclIsKindOf(chips!"chips::statements::system::int_declaration") then
+				'int'
+			else
+				if self.iterator.oclIsKindOf(chips!"chips::statements::system::float_declaration") then
+					'float'
+				else 
+					if self.iterator.oclIsKindOf(chips!"chips::statements::system::bool_declaration") then
+						'bool'
+					else 
+						OclUndefined
+					endif
+				endif
+			endif,
+		value = expr.value,
+		dims = expr.dims
+	} in
+	iterable.value->iterate(
+		iterator ; 
+		m1: TupleType(
+			temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+			channels:Map(String,TupleType(type:String,available:Boolean)),
+			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		) = node_data |
+		let m1_prime : TupleType(
+			temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+			channels:Map(String,TupleType(type:String,available:Boolean)),
+			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		) = self.statements->iterate( 
+			stt ; 
+			m2: TupleType(
+				temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			) = Tuple{
+					temp_memory = Tuple{
+						variables = m1.temp_memory.variables->including(
+							Tuple{
+								name=self.iterator.variable.name,
+								value=Sequence{iterator},
+								type=iterable.type,
+								dims=
+								if iterable.dims->size()>=2 then 
+									iterable.dims->subSequence(2,iterable.dims->size())			
+								else 
+									if iterable.dims->size() = 1 then
+										Sequence{1}
+									else
+										OclUndefined -- what happened??? How did you get here?
+									endif
+								endif
+							}
+						)
+					},
+					channels = m1.channels,
+					contextuals = m1.contextuals
+				} | 
+			stt.evaluate(m2)
+		) in
+		Tuple{
+			temp_memory = Tuple{
+				variables = m1_prime.temp_memory.variables->reject(e | (e.name = self.iterator.variable.name) and (e.type = iterable.type))
+			},
+			channels = m1_prime.channels,
+			contextuals = m1_prime.contextuals
+		}
+	);
+
+
+helper context chips!"chips::statements::primitive::if" def :
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	let condition : Boolean = self.condition.evaluate(node_data).value->get(0) in
+	if (condition) then 
+		self.if_section.if_statements->iterate(
+			stt ;
+			m1: TupleType(
+				temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			) = node_data |
+			stt.evaluate(m1)
+		)
+	else
+		node_data
+	endif;
+
+helper context chips!"chips::statements::primitive::if_else" def :
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	let condition : Boolean = self.condition.evaluate(node_data).value->get(0) in
+	if (condition) then 
+		self.if_section.if_statements->iterate(
+			stt ;
+			m1: TupleType(
+				temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			) = node_data |
+			stt.evaluate(m1)
+		)
+	else
+		self.if_section.if_statements->iterate(
+			stt ;
+			m1: TupleType(
+				temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			) = node_data |
+			stt.evaluate(m1)
+		)
+	endif;
+
+helper context TupleType(
+	temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+	channels:Map(String,TupleType(type:String,available:Boolean)),
+	contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : assignRvalToLvalVariable(lvalue:OclAny, lvalindexinterval:TupleType(start:Integer, end:Integer), rvalue:OclAny, rvalindexinterval:TupleType(start:Integer, end:Integer))
+: Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+ = self.temp_memory.variables->excluding(lvalue)->including(
+	Tuple{
+		name = lvalue.name,
+		type = lvalue.type,
+		value = 
+		if (lvalindexinterval.start = 0 ) then 
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
+			else
+				rvalue.value->subSequence(1, rvalindexinterval.start+1)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			endif 
+		else
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				lvalue.value->subSequence(1,lvalindexinterval.start+1)
+				->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+			else
+				lvalue.value->subSequence(1,lvalindexinterval.start)
+				->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+				->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+			endif
+		endif,
+		dims=lvalue.dims			
+	}
+);
+
+helper context TupleType(
+	temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+	channels:Map(String,TupleType(type:String,available:Boolean)),
+	contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : assignRvalToLvalContextual(lvalue:OclAny, lvalindexinterval:TupleType(start:Integer, end:Integer), rvalue:OclAny, rvalindexinterval:TupleType(start:Integer, end:Integer))
+: Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+ = self.temp_memory.variables->excluding(lvalue)->including(
+	Tuple{
+		name = lvalue.name,
+		type = lvalue.type,
+		value = 
+		if (lvalindexinterval.start = 0 ) then 
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1)
+			else
+				rvalue.value->subSequence(1, rvalindexinterval.start+1)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			endif 
+		else
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				lvalue.value->subSequence(1,lvalindexinterval.start+1)
+				->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+			else
+				lvalue.value->subSequence(1,lvalindexinterval.start)
+				->union(rvalue.value->subSequence(rvalindexinterval.start + 1, rvalindexinterval.end + 1))
+				->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+			endif
+		endif,
+		dims=lvalue.dims			
+	}
+);
+
+helper context TupleType(
+	temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+	channels:Map(String,TupleType(type:String,available:Boolean)),
+	contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : assignEvaluatedRvalToLvalVariable(lvalue:OclAny, lvalindexinterval:TupleType(start:Integer, end:Integer), newval:OclAny)
+: Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+ = self.temp_memory.variables->excluding(lvalue)->including(
+	Tuple{
+		name=lvalue.name,
+		type=lvalue.type,
+		value=
+		if (lvalindexinterval.start = 0 ) then 
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+			else
+				thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | one*newval)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			endif 
+		else
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			else
+				lvalue.value->subSequence(1,lvalindexinterval.start)
+				->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval))
+				->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+			endif
+		endif,
+		dims=lvalue.dims							
+	}
+);
+
+helper context TupleType(
+	temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+	channels:Map(String,TupleType(type:String,available:Boolean)),
+	contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : assignEvaluatedRvalToLvalContextual(lvalue:OclAny, lvalindexinterval:TupleType(start:Integer, end:Integer), newval:OclAny)
+: Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+ = self.contextuals->excluding(lvalue)->including(
+	Tuple{
+		name=lvalue.name,
+		type=lvalue.type,
+		value=
+		if (lvalindexinterval.start = 0 ) then 
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+			else
+				thisModule.ones(Sequence{lvalindexinterval.start+1})->collect(one | one*newval)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			endif 
+		else
+			if (lvalindexinterval.end = lvalue.value->size()-1) then 
+				thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval)
+				->union(lvalue.value->subSequence(lvalindexinterval.start+1, lvalue.value->size()))
+			else
+				lvalue.value->subSequence(1,lvalindexinterval.start)
+				->union(thisModule.ones(Sequence{lvalue.value->size()})->collect(one | one*newval))
+				->union(lvalue.value->subSequence(lvalindexinterval.end+1, lvalue.value->size()))
+			endif
+		endif,
+		dims=lvalue.dims							
+	}
+);
+
+helper def : primitiveassignededupdate(
+	assignment:OclAny, 
+	node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+
+	let new_variables : Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))) = 
+	if node_data.temp_memory.variables->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+		-- do the assignment
+		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+			= node_data.temp_memory.variables->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+		
+		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
+			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+		if assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::float_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::bool_variable_expression") then
+			
+			let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+				= node_data.temp_memory.variables->any(e | e.name=assignment.rvalue.variable.name) in
+
+			let rvalindexinterval : TupleType(start:Integer, end:Integer) =
+				rvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+			node_data->assignRvalToLvalVariable( lvalue, lvalindexinterval,rvalue, rvalindexinterval)
+		else
+			if assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_int_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_float_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_bool_expression") then 
+				let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+					= node_data.contextuals->any(e | e.name=assignment.rvalue.variable.name) in
+
+				let rvalindexinterval : TupleType(start:Integer, end:Integer) =
+					rvalue->getIndexInterval( assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+				node_data->assignRvalToLvalVariable( lvalue, lvalindexinterval, rvalue, rvalindexinterval)
+			else 
+				let newval : Integer = assignment.rvalue.evaluate(node_data).value->get(0) in 
+				node_data->assignEvaluatedRvalToLvalVariable(lvalue, lvalindexinterval, newval)
+			endif
+		endif
+	else
+		node_data.temp_memory.variables
+	endif in
+
+	let new_contextuals : Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))) = 
+	if node_data.contextuals->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+		-- do the assignment
+		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+			= node_data.contextuals->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+		
+		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
+			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+		if assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::float_variable_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::bool_variable_expression") then
+			
+			let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+				= node_data.temp_memory.variables->any(e | e.name=assignment.rvalue.variable.name) in
+
+			let rvalindexinterval : TupleType(start:Integer, end:Integer) =
+				rvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+			node_data->assignRvalToLvalContextual( lvalue, lvalindexinterval,rvalue, rvalindexinterval)
+		else
+			if assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_int_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_float_expression")
+			or assignment.rvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::contextual_bool_expression") then 
+				let rvalue :  TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
+					= node_data.contextuals->any(e | e.name=assignment.rvalue.variable.name) in
+
+				let rvalindexinterval : TupleType(start:Integer, end:Integer) =
+					rvalue->getIndexInterval( assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
+
+				node_data->assignRvalToLvalContextual( lvalue, lvalindexinterval, rvalue, rvalindexinterval)
+			else 
+				let newval : Integer = assignment.rvalue.evaluate(node_data).value->get(0) in 
+				node_data->assignEvaluatedRvalToLvalContextual(lvalue, lvalindexinterval, newval)
+			endif
+		endif
+	else
+		node_data.temp_memory.variables
+	endif in
+
+	Tuple{
+		temp_memory=Tuple{variables=new_variables},
+		channels=node_data.channels,
+		contextuals=new_contextuals
+	};
+
+helper context chips!"chips::statements::primitive::int_assignment" def : 
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	thisModule.primitiveassignededupdate(self,node_data);
+
+helper context chips!"chips::statements::primitive::float_assignment" def : 
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	thisModule.primitiveassignededupdate(self,node_data);
+
+helper context chips!"chips::statements::primitive::bool_assignment" def : 
+	evaluate(node_data : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	)) : TupleType(
+		temp_memory : TupleType(variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))),
+		channels:Map(String,TupleType(type:String,available:Boolean)),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = 
+	thisModule.primitiveassignededupdate(self,node_data);
+
 -----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------
 ---- 			BIP DECLARATION OF COMPONENTS AND CONNECTORS
@@ -2300,13 +3445,17 @@ rule Program2BipPackage {
 -- 	evaluate(memory:TupleType(
 -- 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
--- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+-- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+--			TupleType(channels:Map(String,TupleType(type:String,available:Boolean)),
+--			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))))))),
 -- 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 -- 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 -- 	)) : TupleType(
 -- 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
--- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+-- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+--			TupleType(channels:Map(String,TupleType(type:String,available:Boolean)),
+--			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))))))),
 -- 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 -- 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 -- 	) = 
@@ -2318,13 +3467,20 @@ rule Program2BipPackage {
 -- 		variables = memory.variables
 -- 	};
 
+
 -- Declaration of components in system context
 ----------------------------------------------
+
 
 helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))) =
@@ -2363,49 +3519,27 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		)
 	endif;
 
-helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
-		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
-		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-	)) : Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))) =
-	let dims : Sequence(Integer) = ndecl.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
-	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
-	if lin_indices->size() <> 0 then 
-		memory.nodes->including(
-			ndecl.variable.name->protect(),
-			Tuple{
-				dimensions = dims,
-				instances = thisModule.zeros(dims)
-				->collect(
-					z | Map{} -- To complete when starting to work with nodes 
-				)
-			}
-		)
-	else 
-		memory.nodes->including(
-			ndecl.variable.name->protect(), 
-			Tuple{
-				dimensions = dims,
-				instances = Sequence{
-					Map{} -- To complete when starting to work with nodes
-				}
-			}
-		)
-	endif;
-
 helper context chips!"chips::statements::system::physical_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -2422,13 +3556,23 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -2444,13 +3588,23 @@ helper context chips!"chips::statements::system::object_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -2468,7 +3622,12 @@ helper context chips!"chips::statements::system::object_declaration" def :
 helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
@@ -2490,13 +3649,23 @@ helper context chips!"chips::statements::system::int_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2513,13 +3682,23 @@ helper context chips!"chips::statements::system::float_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2535,13 +3714,23 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2580,7 +3769,12 @@ helper context TupleType(name:String,type:String,value:Sequence(OclAny),dims:Seq
 helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
@@ -2666,13 +3860,23 @@ helper context chips!"chips::statements::system::int_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2688,13 +3892,23 @@ helper context chips!"chips::statements::system::float_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2710,13 +3924,23 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2735,13 +3959,23 @@ helper context chips!link def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = memory; -- currently doing nothing because it is not a priority (but it should have to do with the nodes and the connections)
@@ -2753,13 +3987,23 @@ helper context chips!channel_plugging def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = memory; -- currently doing nothing because it is not a priority (but it should have to do with the nodes and the connections)
@@ -2771,13 +4015,23 @@ helper context chips!"chips::statements::system::foreach" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2807,14 +4061,24 @@ helper context chips!"chips::statements::system::foreach" def :
 		m1: TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) = memory |
 		let m1_prime : TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) = self.statements->iterate( 
@@ -2822,7 +4086,12 @@ helper context chips!"chips::statements::system::foreach" def :
 			m2: TupleType(
 				fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 				connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = Tuple{
@@ -2862,13 +4131,23 @@ helper context chips!"chips::statements::system::if" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2879,7 +4158,12 @@ helper context chips!"chips::statements::system::if" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 				connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -2893,13 +4177,23 @@ helper context chips!"chips::statements::system::if_else" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -2910,7 +4204,12 @@ helper context chips!"chips::statements::system::if_else" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 				connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -2922,7 +4221,12 @@ helper context chips!"chips::statements::system::if_else" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 				connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -2937,13 +4241,23 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -3031,13 +4345,23 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -3125,13 +4449,23 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -3218,13 +4552,23 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3237,7 +4581,12 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -3324,13 +4673,23 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3343,7 +4702,12 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -3430,13 +4794,23 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3449,7 +4823,12 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 			connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -3535,13 +4914,23 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3630,13 +5019,23 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3725,13 +5124,23 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -3822,7 +5231,12 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3836,7 +5250,12 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3850,7 +5269,12 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3864,7 +5288,12 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 helper context chips!"chips::xvalues::system::int_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3879,7 +5308,12 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 helper context chips!"chips::xvalues::system::float_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3894,7 +5328,12 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 helper context chips!"chips::xvalues::system::bool_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3909,7 +5348,12 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 helper context chips!"chips::rvalues::system::operators::int::plus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3946,7 +5390,12 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 helper context chips!"chips::rvalues::system::operators::float::plus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -3983,7 +5432,12 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 helper context chips!"chips::rvalues::system::operators::int::mult" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4020,7 +5474,12 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 helper context chips!"chips::rvalues::system::operators::float::mult" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4057,7 +5516,12 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 helper context chips!"chips::rvalues::system::operators::int::div" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4094,7 +5558,12 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 helper context chips!"chips::rvalues::system::operators::float::div" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4131,7 +5600,12 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 helper context chips!"chips::rvalues::system::operators::int::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4168,7 +5642,12 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 helper context chips!"chips::rvalues::system::operators::float::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4205,7 +5684,12 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 	helper context chips!"chips::rvalues::system::operators::int::mod" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4242,7 +5726,12 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 helper context chips!"chips::rvalues::system::operators::float::cast_as_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4267,7 +5756,12 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4292,7 +5786,12 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -4329,7 +5828,12 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4340,7 +5844,12 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4351,7 +5860,12 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -4388,7 +5902,12 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4399,7 +5918,12 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4410,7 +5934,12 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -4422,7 +5951,12 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 helper context chips!"chips::rvalues::system::function" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(Map(String,TupleType(channeltype:String, available:Boolean))))),
+		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+			TupleType(
+				channels:Map(String,TupleType(type:String,available:Boolean)),
+				contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			)
+		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
