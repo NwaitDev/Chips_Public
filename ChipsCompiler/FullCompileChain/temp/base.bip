@@ -1,0 +1,850 @@
+@cpp(src="base.cpp",include="base.hpp")
+/*
+    Package for trivial bip components, types or connectors
+*/
+package base
+
+    extern data type chips_float
+
+    extern function chips_float init_float(float) 
+
+    extern function float chips_float_to_float(chips_float)
+
+    extern operator chips_float +(chips_float, chips_float) 
+    extern operator chips_float -(chips_float, chips_float)
+    extern operator chips_float *(chips_float, chips_float)
+    extern operator chips_float /(chips_float, chips_float)
+
+    extern operator chips_float +(chips_float, float)
+    extern operator chips_float +(float, chips_float)
+
+    extern operator chips_float -(chips_float, float)
+    extern operator chips_float -(float, chips_float)
+
+    extern operator chips_float *(chips_float, float)
+    extern operator chips_float *(float, chips_float)
+
+    extern operator chips_float /(chips_float, float)
+    extern operator chips_float /(float, chips_float)
+
+    extern operator bool <(chips_float, chips_float)
+
+    extern function chips_float max(chips_float, float)
+
+    extern function srand(int) // from C
+    extern function float randomdouble() // using C rand() function
+
+    extern function int asint(float f)
+    extern function float asfloat(int i)
+    extern function int intIdentity(int i)
+    extern function float floatIdentity(float i)
+
+    extern data type intarray
+    extern data type collective_int
+    extern data type collective_float
+    extern data type collective_bool
+    extern data type collective_intarray
+
+    extern data type chips_int
+
+    extern function assign(chips_int, int)
+    extern function assign(chips_int, collective_int)
+    extern function assign(chips_int, chips_int)
+    extern function assign(collective_int, chips_int)
+    extern function tick(chips_int)
+
+
+    extern function collective_int make(int)
+    extern function collective_float make(float)
+    extern function collective_bool make(bool)
+    extern function collective_intarray make(intarray)
+    extern function bool are_copies(collective_int,collective_int)
+    extern function bool are_copies(collective_int,int)
+    extern function bool are_copies(int,collective_int)
+    extern function bool are_copies(collective_float, collective_float)
+    extern function bool are_copies(collective_bool, collective_bool)
+    extern function bool is_stop(collective_int v)
+    extern function bool is_stop(collective_bool v)
+    extern function bool is_stop(collective_float v)
+    extern function intarray zeros(int dim1)
+    extern function intarray range(const int upto)
+    extern function bool are_copies(intarray, intarray)
+    extern function bool are_copies(collective_intarray, collective_intarray)
+    extern function bool are_copies(intarray, collective_intarray)
+    extern function bool are_copies(collective_intarray, intarray)
+
+
+    // port that serves as a trigger
+    port type port_t()
+
+    // port holding a float
+    port type portFloat_t(float v0)
+
+    // port holding an integer
+    port type portInt_t(int v0)
+    port type portChipsInt_t(chips_int v0)
+
+    // port holding a boolean
+    port type portBool_t(bool v0)
+
+    port type portIntArray_t(intarray v0)
+
+    port type portIntIntIntIntIntInt_t(int v0, int v1, int v2, int v3, int v4, int v5)
+
+    port type portIntIntIntIntInt_t(int v0, int v1, int v2, int v3, int v4)
+
+    port type portChipsIntIntIntIntInt_t(chips_int v0, int v1, int v2, int v3, int v4)
+
+    port type portIntArrayIntInt_t(intarray v0, int v1, int v2)
+
+    port type portIntIntIntBool_t(int v0, int v1, int v2, bool v3)
+    
+    port type portBoolIntIntBool_t(bool v0, int v1, int v2, bool v3) 
+
+    port type portIntBoolInt_t(int v0, bool v1, int v2)
+    
+    port type portBoolIntInt_t(bool v0, int v1, int v2)
+
+    port type portIntIntBool_t(int v0, int v1, bool v2)
+
+    port type portIntIntBoolFloatBool_t(int v0, int v1, bool v2, float v3, bool v4)
+
+    port type portBoolIntIntIntInt_t(bool v0, int v1, int v2, int v3, int v4)
+    port type portBoolChipsIntInt_t(bool v0, chips_int v1, int v2)
+    
+    port type portFloatFloatBool_t(float v0, float v1, bool v2)
+
+    port type portIntInt_t(int v0, int v1)
+
+    port type portIntFloatFloatBool_t(int v0, float v1, float v2, bool v3)
+
+    port type portCInt_t(collective_int v0)
+    
+    port type portCBool_t(collective_bool v0)
+
+    port type portCIntArray_t(collective_intarray v0)
+
+    port type portCIntArrayCIntArrayIntArray_t(collective_intarray v0, collective_intarray v1, intarray v2)
+
+    port type portCIntCIntInt_t(collective_int v0, collective_int v1 , int v2)
+
+    port type portCIntCInt_t(collective_int v0, collective_int v1)
+
+    port type portBoolChipsIntIntBool_t(bool v0, chips_int v1, int v2, bool v3)
+
+    connector type flowBool_t(portBool_t s0, portBool_t r0)
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+        }
+    end
+
+    connector type flowFloat_t(portFloat_t s0, portFloat_t r0)
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+        }
+    end
+
+    connector type flowInt_t(portInt_t s0, portInt_t r0)
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+        }
+    end
+
+    connector type flowChipsInt_t(portChipsInt_t s0, portChipsInt_t r0)
+        define s0 r0
+        on s0 r0 down {
+            assign(r0.v0, s0.v0);
+        }
+    end
+
+    connector type flowBoolChipsIntInt_t(portBoolChipsIntInt_t s0, portBoolChipsIntInt_t r0)
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v2 = s0.v2;
+            assign(r0.v1, s0.v1);
+        }
+    end
+    
+    connector type flowIntArray_t(portIntArray_t s0, portIntArray_t r0)
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+        }
+    end
+
+    connector type plugInt_t(portInt_t s0)
+        define s0
+    end
+
+
+    connector type flowIntArrayIntInt_t(
+        portIntArrayIntInt_t s0,
+        portIntArrayIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+        }
+    end
+
+    connector type flowIntInt_t(
+        portIntInt_t s0,
+        portIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+        }
+    end
+
+    connector type flowFloatFloatBool_t(
+        portFloatFloatBool_t s0,
+        portFloatFloatBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+        }
+    end
+
+    connector type flowIntIntIntBool_t(
+        portIntIntIntBool_t s0,
+        portIntIntIntBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+        }
+    end
+
+    connector type flowIntIntIntIntInt_t(
+        portIntIntIntIntInt_t s0,
+        portIntIntIntIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+            r0.v4 = s0.v4;
+        }
+    end
+
+    connector type flowChipsIntIntIntIntInt_t(
+        portChipsIntIntIntIntInt_t s0,
+        portChipsIntIntIntIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            assign(r0.v0,s0.v0);
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+            r0.v4 = s0.v4;
+        }
+    end
+
+    connector type flowBoolIntIntIntInt_t (
+        portBoolIntIntIntInt_t s0,
+        portBoolIntIntIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+            r0.v4 = s0.v4;
+        }
+    end
+
+    connector type flowBoolIntIntBool_t (
+        portBoolIntIntBool_t s0,
+        portBoolIntIntBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+        }
+    end
+
+    connector type flowBoolChipsIntIntBool_t (
+        portBoolChipsIntIntBool_t s0,
+        portBoolChipsIntIntBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            assign(r0.v1, s0.v1);
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+        }
+    end
+
+    connector type flowBoolIntInt_t (
+        portBoolIntInt_t s0,
+        portBoolIntInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+        }
+    end
+
+    connector type flowIntIntBoolFloatBool_t(
+        portIntIntBoolFloatBool_t s0,
+        portIntIntBoolFloatBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+            r0.v3 = s0.v3;
+            r0.v4 = s0.v4;
+        }
+    end
+
+    connector type flowIntBoolInt_t(
+        portIntBoolInt_t s0,
+        portIntBoolInt_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+        }
+    end
+
+    connector type flowIntIntBool_t(
+        portIntIntBool_t s0,
+        portIntIntBool_t r0
+    )
+        define s0 r0
+        on s0 r0 down {
+            r0.v0 = s0.v0;
+            r0.v1 = s0.v1;
+            r0.v2 = s0.v2;
+        }
+    end
+
+
+    connector type many2one_IntArray_t(
+        portIntArray_t s0
+    )
+        data intarray v0
+        export port portIntArray_t r0(v0)
+
+        define s0
+        on s0 up {
+            v0 = s0.v0;
+        }
+    end
+
+    connector type many2one_Bool_t(
+        portBool_t s0
+    )
+        data bool v0
+        export port portBool_t r0(v0)
+
+        define s0
+        on s0 up {
+            v0 = s0.v0;
+        }
+    end
+
+    connector type many2one_Int_t(
+        portInt_t s0
+    )
+        data int v0
+        export port portInt_t r0(v0)
+
+        define s0
+        on s0 up {
+            v0 = s0.v0;
+        }
+    end
+
+    connector type many2one_FloatFloatBool_t(
+        portFloat_t s0,
+        portFloat_t s1,
+        portBool_t s2
+    )
+        data float v0,v1
+        data bool v2
+        export port portFloatFloatBool_t r0(v0,v1,v2)
+
+        define s0 s1 s2
+        on s0 s1 s2 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+        }
+    end
+
+    connector type many2one_BoolIntIntBool_t(
+        portBool_t s0,
+        portInt_t s1,
+        portInt_t s2,
+        portBool_t s3
+    )
+        data int v1,v2
+        data bool v0,v3
+        export port portBoolIntIntBool_t r0(v0,v1,v2,v3)
+
+        define s0 s1 s2 s3
+        on s0 s1 s2 s3 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+            v3 = s3.v0;
+        }
+    end
+
+    connector type many2one_BoolChipsIntIntBool_t(
+        portBool_t s0,
+        portChipsInt_t s1,
+        portInt_t s2,
+        portBool_t s3
+    )
+        data chips_int v1
+        data int v2
+        data bool v0,v3
+        export port portBoolChipsIntIntBool_t r0(v0,v1,v2,v3)
+
+        define s0 s1 s2 s3
+        on s0 s1 s2 s3 up {
+            v0 = s0.v0;
+            assign(v1,s1.v0);
+            v2 = s2.v0;
+            v3 = s3.v0;
+        }
+    end
+
+    connector type many2one_IntIntIntIntInt_t(
+        portInt_t s0,
+        portInt_t s1,
+        portInt_t s2,
+        portInt_t s3,
+        portInt_t s4
+    )
+        data int v0,v1,v2,v3,v4
+        export port portIntIntIntIntInt_t r0(v0,v1,v2,v3,v4)
+
+        define s0 s1 s2 s3 s4
+        on s0 s1 s2 s3 s4 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+            v3 = s3.v0;
+            v4 = s4.v0;
+        }
+    end
+
+    connector type many2one_ChipsIntIntIntIntInt_t(
+        portChipsInt_t s0,
+        portInt_t s1,
+        portInt_t s2,
+        portInt_t s3,
+        portInt_t s4
+    )
+        data int v1,v2,v3,v4
+        data chips_int v0
+        export port portChipsIntIntIntIntInt_t r0(v0,v1,v2,v3,v4)
+
+        define s0 s1 s2 s3 s4
+        on s0 s1 s2 s3 s4 up {
+            assign(v0, s0.v0);
+            v1 = s1.v0;
+            v2 = s2.v0;
+            v3 = s3.v0;
+            v4 = s4.v0;
+        }
+    end
+
+
+    connector type many2one_IntInt_t(
+        portInt_t s0,
+        portInt_t s1
+    )
+        data int v0,v1
+        export port portIntInt_t r0(v0,v1)
+
+        define s0 s1
+        on s0 s1 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+        }
+    end
+
+    connector type many2one_BoolIntIntIntInt_t(
+        portBool_t s0,
+        portInt_t s1,
+        portInt_t s2,
+        portInt_t s3,
+        portInt_t s4
+    )
+        data bool v0
+        data int v1,v2,v3,v4
+        export port portBoolIntIntIntInt_t r0(v0,v1,v2,v3,v4)
+
+        define s0 s1 s2 s3 s4
+        on s0 s1 s2 s3 s4 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+            v3 = s3.v0;
+            v4 = s4.v0;
+        }
+    end
+
+
+    connector type many2one_IntIntBool_t(
+        portInt_t s0,
+        portInt_t s1,
+        portBool_t s2
+    )
+        data int v0,v1
+        data bool v2
+        export port portIntIntBool_t r0(v0,v1,v2)
+
+        define s0 s1 s2
+        on s0 s1 s2 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+        }
+    end
+
+    connector type many2one_IntArrayIntInt_t(
+        portIntArray_t s0,
+        portInt_t s1,
+        portInt_t s2
+    )
+        data intarray v0
+        data int v1,v2
+        export port portIntArrayIntInt_t r0(v0,v1,v2)
+
+        define s0 s1 s2
+        on s0 s1 s2 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+        }
+    end
+
+    connector type many2one_IntBoolInt_t(
+        portInt_t s0,
+        portBool_t s1,
+        portInt_t s2
+    )
+        data int v0,v2
+        data bool v1
+        export port portIntBoolInt_t r0(v0,v1,v2)
+
+        define s0 s1 s2
+        on s0 s1 s2 up {
+            v0 = s0.v0;
+            v1 = s1.v0;
+            v2 = s2.v0;
+        }
+    end
+
+    connector type one2many_Bool_t(
+        portBool_t r0
+    )
+        data bool v0
+
+        export port portBool_t s0(v0)
+        
+        define r0
+        on r0 down {
+            r0.v0 = v0;
+        }
+    end
+
+    connector type one2many_Int_t(
+        portInt_t r0
+    )
+        data int v0
+
+        export port portInt_t s0(v0)
+        
+        define r0
+        on r0 down {
+            r0.v0 = v0;
+        }
+    end
+
+    connector type one2many_IntIntBoolFloatBool_t(
+        portInt_t r0,
+        portInt_t r1,
+        portBool_t r2,
+        portFloat_t r3,
+        portBool_t r4
+    )
+        data int v0,v1
+        data bool v2, v4
+        data float v3
+
+        export port portIntIntBoolFloatBool_t s0(v0,v1,v2,v3,v4)
+        
+        define r0 r1 r2 r3 r4
+        on r0 r1 r2 r3 r4 down {
+            r0.v0 = v0;
+            r1.v0 = v1;
+            r2.v0 = v2;
+            r3.v0 = v3;
+            r4.v0 = v4;
+        }
+    end
+
+    connector type one2many_IntIntIntBool_t(
+        portInt_t r0,
+        portInt_t r1,
+        portInt_t r2,
+        portBool_t r3
+    )
+        data int v0,v1,v2
+        data bool v3
+
+        export port portIntIntIntBool_t s0(v0,v1,v2, v3)
+        
+        define r0 r1 r2 r3 
+        on r0 r1 r2 r3 down {
+            r0.v0 = v0;
+            r1.v0 = v1;
+            r2.v0 = v2;
+            r3.v0 = v3;
+        }
+    end
+
+    connector type one2many_IntIntBool_t(
+        portInt_t r0,
+        portInt_t r1,
+        portBool_t r2
+    )
+        data int v0,v1
+        data bool v2
+
+        export port portIntIntBool_t s0(v0,v1,v2)
+        
+        define r0 r1 r2
+        on r0 r1 r2 down {
+            r0.v0 = v0;
+            r1.v0 = v1;
+            r2.v0 = v2;
+        }
+    end
+
+    connector type one2many_BoolIntInt_t(
+        portBool_t r0,
+        portInt_t r1,
+        portInt_t r2
+    )
+        data bool v0
+        data int v1, v2
+
+        export port portBoolIntInt_t s0(v0,v1,v2)
+        
+        define r0 r1 r2
+        on r0 r1 r2 down {
+            r0.v0 = v0;
+            r1.v0 = v1;
+            r2.v0 = v2;
+        }
+    end
+
+    connector type one2many_BoolChipsIntInt_t(
+        portBool_t r0,
+        portChipsInt_t r1,
+        portInt_t r2
+    )
+        data bool v0
+        data int v2
+        data chips_int v1
+
+        export port portBoolChipsIntInt_t s0(v0,v1,v2)
+        
+        define r0 r1 r2
+        on r0 r1 r2 down {
+            r0.v0 = v0;
+            assign(r1.v0,v1);
+            r2.v0 = v2;
+        }
+    end
+
+
+    atom type intRX()
+        data int the_data
+        
+        export port portInt_t from_the_outside(the_data)
+        export port portInt_t to_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_outside from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_core from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type chips_intRX()
+        data chips_int the_data
+        
+        export port portChipsInt_t from_the_outside(the_data)
+        export port portChipsInt_t to_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_outside from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_core from DATA_SENDING to DATA_RECEIVING do {
+            tick(the_data);
+        }
+    end
+
+    atom type floatRX()
+        data float the_data
+        
+        export port portFloat_t from_the_outside(the_data)
+        export port portFloat_t to_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_outside from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_core from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type boolRX()
+        data bool the_data
+        
+        export port portBool_t from_the_outside(the_data)
+        export port portBool_t to_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_outside from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_core from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type IntArrayRX()
+        data intarray the_data
+        
+        export port portIntArray_t from_the_outside(the_data)
+        export port portIntArray_t to_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_outside from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_core from DATA_SENDING to DATA_RECEIVING
+    end
+
+
+    atom type intTX()
+        data int the_data
+        
+        export port portInt_t to_the_outside(the_data)
+        export port portInt_t from_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_core from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_outside from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type chips_intTX()
+        data chips_int the_data
+        
+        export port portChipsInt_t to_the_outside(the_data)
+        export port portChipsInt_t from_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_core from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_outside from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type floatTX()
+        data float the_data
+        
+        export port portFloat_t to_the_outside(the_data)
+        export port portFloat_t from_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_core from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_outside from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type boolTX()
+        data bool the_data
+        
+        export port portBool_t to_the_outside(the_data)
+        export port portBool_t from_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_core from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_outside from DATA_SENDING to DATA_RECEIVING
+    end
+
+    atom type IntArrayTX()
+        data intarray the_data
+        
+        export port portIntArray_t to_the_outside(the_data)
+        export port portIntArray_t from_the_core(the_data)
+
+        place DATA_RECEIVING, DATA_SENDING
+
+        initial to DATA_RECEIVING
+
+        on from_the_core from DATA_RECEIVING to DATA_SENDING
+
+        on to_the_outside from DATA_SENDING to DATA_RECEIVING
+    end
+
+end

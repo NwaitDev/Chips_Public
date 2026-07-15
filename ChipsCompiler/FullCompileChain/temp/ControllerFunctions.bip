@@ -1,0 +1,18 @@
+@cpp(src="ControllerFunctions.cpp",include="ControllerFunctions.hpp,../../../ModelsUnderControl/AntiWindup/StatefulAntiWindup/BackCalculation/BackCalculationAntiWindup.hpp,../../../ModelsUnderControl/AntiWindup/StatelessAntiWindup/Clamp/ClampAntiWindup.hpp")
+
+package ControllerFunctions
+
+    use base
+
+    extern data type pid_controller
+
+    extern function pid_controller init_pid_controller(chips_float, chips_float, chips_float, chips_float, chips_float)
+    extern function set_target_value(pid_controller, chips_float)
+    extern function chips_float pid_compute(pid_controller, chips_float)
+    extern function set_current_value(pid_controller, chips_float)
+
+    extern function chips_float get_integral(pid_controller)
+    extern function chips_float get_proportional(pid_controller)
+    extern function chips_float get_derivative(pid_controller)
+
+end
