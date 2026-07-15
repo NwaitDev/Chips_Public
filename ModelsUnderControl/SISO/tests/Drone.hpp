@@ -138,17 +138,17 @@ public:
         CsvLogger logger(CsvPath);
 
         for(float t = 0.0f; t <= simTime; t += dt){
-            // if(t < TIME_KEEP){
-            //     drone.altitude = 0.0f;
-            // }
+            if(t < TIME_KEEP){
+                drone.altitude = 0.0f;
+            }
 
             controller.setCurrentValue(drone.altitude);
             controller.setTargetValue(target);
             float u = controller.compute(dt);
             float y = drone.update(u, dt);
-            // if(t < TIME_KEEP){
-            //     y = 0.0f;
-            // }
+            if(t < TIME_KEEP){
+                y = 0.0f;
+            }
 
             times.push_back(t);
             altitudes.push_back(y);
