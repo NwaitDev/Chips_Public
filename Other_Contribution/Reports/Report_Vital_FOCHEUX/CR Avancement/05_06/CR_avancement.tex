@@ -1,0 +1,140 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with`a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{tabularx}
+
+\title{Rapport d'avancement}
+\author{Vital FOCHEUX}
+\date{du 28 mai au 5 juin 2026}
+
+\begin{document}
+\maketitle
+
+\section{Notes de la dernière réunion}
+
+\begin{itemize}
+    \item Pour les diagrammes, plutôt mettre les blocs d'une certaine couleur s'ils sont embarqués par le même type d'objet plutôt que les englober pour une couleur car trop confus
+    \item Changer la signification du stop, pour qu'un bloc fonctionnel accepte de ne rien recevoir et va juste passer à l'action d'envoyer ses outputs
+    \item Préparer avec Anna de comment mettre en place avec le principe d'agrégation et de profil
+    \item Faire un diagramme de classe pour comprendre plus facilement comment sont liés les filtres à leurs interfaces
+    \item Tester des filtres avec des exemples et les analyser
+    \item Tester 2/3 anti-windup. Soit les plus utiles/fréquents avec des exemples qui permettraient de parler au plus de monde ou qui sont faciles à mettre en place
+    \item Regarder pour des cas qui fonctionnent pour nous (BlinkyBlock, Robot Modulaire...)
+    \item Avoir un exemple "fil rouge" 
+\end{itemize}
+
+\section{Depuis la dernière fois}
+
+\subsection{Les filtres}
+
+J'ai réalisé un diagramme de classe pour qu'on puisse bien comprendre les liens d'héritages entre les différents filtres implémentés (cf : \nameref{fig:diag_classe_filtre})
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{digramme_classe_filter.drawio.png}
+    \caption{Diagramme de classe des filtres}
+    \label{fig:diag_classe_filtre}
+\end{figure}
+
+J'ai pu tester les filtres sur des exemples pour voir les résultats qu'ils donnent. En reprenant les types d'analyse qu'avait faits le groupe contrôle en Python.
+
+\subsubsection{Passe-Base}
+
+Le filtre passe-bas agit comme un "lisseur". Il laisse passer les variations lentes (le mouvement réel du système), mais bloque ou atténue fortement les variations rapides (le bruit). \\
+
+On peut voir que pour les commandes générées par un contrôleur avec un anti-windup passe-bas sont bien atténuées, contrairement sans (cf: \nameref{fig:commande_low_pass})
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{réponse echelon low_pass.png}
+    \caption{Mesures transmises aux contrôleurs (Passe-Base)}
+    \label{fig:reponse_echelon_low_pass}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{commange_low_pass.png}
+    \caption{Commandes générées par les contrôleurs (Passe-Bas}
+    \label{fig:commande_low_pass}
+\end{figure}
+
+\subsubsection{Median}
+
+Le filtre médian permet de récupérer la médiane sur une fenêtre d'un certain nombre de valeurs. Le filtre permet d'éviter que s'il y a des valeurs abérantes sur certains moments, cela les "suppriment". \\
+
+On peut voir, comme pour la commande et les mesures, que le filtre permet vraiment d'éviter ces piques (cf \nameref{fig:commande_median} \& \nameref{fig:reponse_echelon_median})
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{reponse echelon median.png}
+    \caption{Mesures transmises aux contrôleurs (Médian)}
+    \label{fig:reponse_echelon_median}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{commande_median.png}
+    \caption{Commandes générées par les contrôleurs (Médian)}
+    \label{fig:commande_median}
+\end{figure}
+
+\subsection{Les anti-windups}
+
+Pour les anti-windups, il a fallu, comme pour les filtres, les tester pour analyser les résultats et savoir s'ils fonctionnent comme attendu. J'ai testé les anti-windups clamp et back calculation car ce sont ceux qui sont les plus utilisés sur les contrôleurs PID.
+
+\subsubsection{Clamp}
+
+Pour cet exemple, on prend un drone dont l'objectif est d'atteindre une certaine altitude (50m) avec la vitesse de ses hélices. Sauf que les 30 premières secondes, on retient le drone à 0 mètre, mais les hélices du drone continuent d'augmenter en vitesse, ce qui fait que leur vitesse peut augmenter beaucoup trop rapidement et qu'ils soient éjectés en l'air d'un coup. \\
+
+Avec l'anti-windup clamp, cela permet d'éviter une partie de ce problème car si l'intégral dépasse les valeurs limites, alors cela va faire un min max pour rester dans l'ensemble des valeurs voulues. (cf \nameref{fig:reponse_clamp \& \nameref{fig:commande_clamp})}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{reponse echelon antiwindup clamp.png}
+    \caption{Mesures transmises aux contrôleurs (Clamp)}
+    \label{fig:reponse_clamp}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{commande antiwindup clamp.png}
+    \caption{Commandes générées par les contrôleurs (Clamp)}
+    \label{fig:commande_clamp}
+\end{figure}
+
+\subsubsection{Back Calculation}
+
+Il fonctionne un peu de la même manière que le clamp, mais il permet de rester cohérent avec les limites physiques. \\
+
+Cet exemple fonctionne de la même manière que le précédent, mais là on utilise un haut-parleur qui peut entendre une fréquence. Il aura une limite où il ne pourra plus entendre la fréquence (comme les humains avec les ultrasons). Sur les 30 premières secondes, il n'entendra aucune fréquence et d'un coup, il entendra une fréquence.(cf \nameref{fig:reponse_back_calculation} \& \nameref{fig:commande_back_calculation})
+
+Cet exemple permet de s'imaginer comment ça pourrait fonctionner avec les hauts-parleurs des Blinky Blocks.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{commande backcalculation.png}
+    \caption{Commandes générées par les contrôleurs (Back Calculation)}
+    \label{fig:commande_back_calculation}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{reponse echelon backcalculation.png}
+    \caption{Mesures transmises aux contrôleurs (Back Calculation)}
+    \label{fig:reponse_back_calculation}
+\end{figure}
+
+Sur les exemples des anti-windups, il est assez compliqué de trouver des exemples concrets sans qu'ils se ressemblent tous, mais surtout des exemples simples à comprendre et à mettre en place. De même, je n'ai réussi à trouver un exemple "fil rouge" qui pourrait être utilisé un peu dans tous les cas possibles.
+
+\end{document}
