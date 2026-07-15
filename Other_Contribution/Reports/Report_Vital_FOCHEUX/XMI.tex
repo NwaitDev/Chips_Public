@@ -1,0 +1,30 @@
+\subsection{Sérialisation vers XMI}
+\label{sec:XMI}
+
+Les travaux antérieurs ont également permis de développer une première chaîne de transformation capable de convertir un programme CHIPS en un modèle XMI conforme au méta-modèle Ecore. Cette étape constitue le coeur de l'interprétation du langage puisqu'elle permet de transformer une représentation textuelle en un modèle exploitable par les différents outils de l'ingénierie dirigée par les modèles. Cette première architecture reposait sur un parcours de l'arbre syntaxique abstrait afin de générer progressivement les différents éléments du document XMI. \\
+
+Cette première implémentation a permis de démontrer la faisabilité de la sérialisation du langage et de mettre en place les principaux mécanismes nécessaires à la génération des modèles. Elle introduisait notamment un visiteur chargé du parcours de l'AST ainsi qu'une première table des symboles permettant de résoudre les références présentes dans le modèle généré. \\
+
+L'évolution de l'interpréteur réalisée au cours du stage a toutefois nécessité de faire évoluer cette architecture (cf. figure \ref{fig:architecture_parseur_xmi}) afin de l'adapter au nouvel AST produit par ANTLR4 tout en conservant les principes de fonctionnement établis par les travaux antérieurs. \\
+
+\subsubsection{Evolution du visiteur de génération du XMI}
+\label{sec:generation_XMI}
+
+Les premiers travaux de sérialisation reposaient sur un visiteur chargé de parcourir récursivement l'arbre syntaxique abstrait afin de construire progressivement le modèle XMI correspondant. Chaque méthode de visite avait pour rôle de traduire un type de noeud particulier en son équivalent dans le méta-modèle Ecore tout en assurant la cohérence de la structure produite. \\
+
+Le principe général de cette architecture a été conservé au cours du stage. En revanche, la migration vers ANTLR4 ainsi que l'évolution du langage CHIPS ont nécessité de faire évoluer plusieurs mécanismes internes du visiteur afin de prendre en compte la nouvelle organisation de l'AST et les nouvelles constructions syntaxiques introduites. \\
+
+Les développements réalisés ont principalement porté sur la restructuration du visiteur, la factorisation de traits communs et l'amélioration de la génération des différents éléments du modèle XMI. \\
+
+\subsubsection{La table des symbôles pour le XMI}
+\label{sec:table_symbole_XMI}
+
+La génération d'un modèle XMI nécessite de retrouver précisément les différents éléments déclarés dans un programme afin de construire correctement les références imposées par le méta-modèle Ecore. Les travaux antérieurs répondaient à cette problématique au moyen d'une première table des symboles associant les identifiants rencontrés lors du parcours de l'AST aux chemins XMI des éléments correspondants. \\ % citer rapport projet
+
+Cette première architecture répondait aux besoins de la chaîne de transformation initiale mais devait évoluer afin d'accompagner les modifications apportées au nouvel AST ainsi que les nouvelles fonctionnalités du langage. Les mécanismes de résolution des références ont notamment été généralisés afin de prendre en compte davantage de catégories de symboles et de centraliser les informations nécessaires à la génération du modèle. \\
+
+Les travaux réalisés au cours du stage ont ainsi conduit à une refonte de cette structure de données afin d'en faire un composant central de la sérialisation XMI. Cette évolution améliore la robustesse du processus de génération, facilite la résolution des références entre les différents éléments du modèle et prépare l'infrastructure aux futures évolutions du langage CHIPS. \\
+
+\FloatBarrier
+
+\newpage

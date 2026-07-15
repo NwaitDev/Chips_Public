@@ -181,14 +181,14 @@ public class GeneratePackage extends AbstractAcceleoGenerator {
          * note that those instructions may have a significant impact on the performances.
          */
 
-        //org.eclipse.emf.ecore.util.EcoreUtil.resolveAll(model);
+        // org.eclipse.emf.ecore.util.EcoreUtil.resolveAll(model);
 
-        //if (model != null && model.eResource() != null) {
+        // if (model != null && model.eResource() != null) {
         //    List<org.eclipse.emf.ecore.resource.Resource.Diagnostic> errors = model.eResource().getErrors();
         //    for (org.eclipse.emf.ecore.resource.Resource.Diagnostic diagnostic : errors) {
         //        System.err.println(diagnostic.toString());
         //    }
-        //}
+        // }
 
         super.doGenerate(monitor);
     }
