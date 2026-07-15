@@ -1,23 +1,26 @@
 \section{Le parseur et la sérialisation XMI}
 \label{sec:parseur_XMI}
 
+L'un des principaux objectifs de ce projet est de permettre la transformation d'un programme écrit en CHIPS vers une représentation XMI conforme au méta-modèle Ecore du langage. Cette étape constitue un élément essentiel de la chaîne de modélisation, puisqu'elle permet de convertir une description textuelle en un modèle structuré pouvant être manipulé par différents outils reposant sur les technologies de l'Eclipse Modeling Framework (EMF). La difficulté ne réside pas uniquement dans la lecture du langage mais également dans l'interprétation correcte de sa structure afin de reconstruire fidèlement les relations définies par le méta-modèle. \\
+
 \RemarkBox
 {Note terminologique}
 {
 Un méta-modèle est, par analogie, la "grammaire" d'un modèle. Dans le projet de CHIPS, il prend la forme de diagrammes de classes Ecore qui définissent de manière stricte les concepts du langage CHIPS (entités, attributs, relations). Le fichier chips1.1.ecore est donc le schéma directeur qui dicte comment un fichier XMI doit être structure pour être valide.
 }
 
-L'un des principaux objectifs de ce projet est de permettre la transformation d'un programme écrit en CHIPS vers une représentation XMI conforme au méta-modèle Ecore du langage. Cette étape constitue un élément essentiel de la chaîne de modélisation, puisqu'elle permet de convertir une description textuelle en un modèle structuré pouvant être manipulé par différents outils reposant sur les technologies de l'Eclipse Modeling Framework (EMF). La difficulté ne réside pas uniquement dans la lecture du langage mais également dans l'interprétation correcte de sa structure afin de reconstruire fidèlement les relations définies par le méta-modèle. \\
-
 Pour atteindre cet objectif, plusieurs évolutions ont été apportées à l'infrastructure existante. Le parseur historique, développé avec Yacc/Bison et Flex, ne permettait pas de prendre en charge certaines constructions modernes du langage, notamment les templates du C++, qui sont utilisés pour définir les classes génériques lors de la compilation. Une réécriture basée sur ANTLR4 a donc été entreprise afin de disposer d'une représentation syntaxique plus robuste et mieux adaptée à l'interprétation du langage. Cette nouvelle architecture facilite également le parcours de l'arbre syntaxique abstrait, étape indispensable à la construction du modèle XMI. \\
 
 Cette partie présente ainsi les différentes briques mises en œuvre pour réaliser cette transformation. Nous commencerons par décrire la migration vers ANTLR4 ainsi que la conception de la table des symboles utilisée lors de l'analyse du programme. Nous expliquerons ensuite comment le parcours de l'arbre syntaxique, réalisé au moyen du patron de conception visiteur, permet de construire progressivement le modèle correspondant. Enfin, nous détaillerons les adaptions apportées à la table des symboles afin de résoudre correctement les références entre les différents éléments du méta-modèle et de produire un fichier XMI valide. \\
 
-Il y a deux tables des symboles distinctes à gérer (cf. figure \ref{fig:architecture_parseur_xmi}), celle du parseur et celle du générateur XMI. Etant donné que le méta-modèle, pour être respecté, implique que le parseur fasse bien plus que parser mais surtout le contrôle de type car il est fortement typé, mais aussi des vérifications des portées des variables dans le programme CHIPS. \\
+Il y a deux tables des symboles distinctes à gérer (cf. figure \ref{fig:architecture_parseur_xmi}), celle du parseur et celle du générateur XMI. 
+Etant donné que le méta-modèle, pour être respecté, implique que le parseur fasse bien plus que parser. Il doit 
+surtout faire le contrôle de type car le langage est fortement typé, mais aussi des vérifications des portées des 
+variables dans le programme CHIPS. \\
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.5\textwidth]{images/architecture_parseur_xmi.png}
+    \includegraphics[width=0.3\textwidth]{images/architecture_parseur_xmi.png}
     \caption{Architecture du parseur et du générateur XMI}
     \label{fig:architecture_parseur_xmi}
 \end{figure}

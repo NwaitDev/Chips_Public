@@ -11,7 +11,13 @@ Toutefois, l'évolution du langage CHIPS a progressivement fait apparaître de n
 \subsubsection{Migration vers ANTLR4}
 \label{sec:migration_antlr4}
 
-L'analyseur développé lors des travaux antérieurs reposait sur une grammaire écrite pour Yacc/Bison et Flex, permettant de reconnaître les différentes constructions du langage CHIPS et de construire l'arbre syntaxique abstrait correspondant. Cette architecture répondait pleinement aux besoins du langage dans son état initial et permettait de générer correctement l'ensemble des structures alors supportées. \\
+L'analyseur développé lors des travaux antérieurs reposait sur une grammaire écrite pour Yacc/Bison et Flex, 
+permettant de reconnaître les différentes constructions du langage CHIPS et de construire l'arbre syntaxique 
+abstrait correspondant. Cette architecture n'assurait pas fidèlement la compatibilité avec l'approche dirigée par les modèles, par conséquent 
+pour augmenter cette fidélité de l'AST du parseur vis-à-vis du méta-modèle.
+
+% Cette architecture répondait pleinement aux besoins du langage dans son état initial et 
+% permettait de générer correctement l'ensemble des structures alors supportées. \\
 
 Au cours du stage, l'apparition des templates C++, permettant de définir des classes génériques passant de 297 à 97 classes C++, a introduit une nouvelle problématique. Ces constructions possèdent une syntaxe fortement imbriquée qui rend leur prise en charge particulièrement complexe dans la grammaire Bison existante. Afin de permettre leur intégration tout en conservant les fonctionnalités déjà développées, le choix a été fait de migrer vers ANTLR4, dont les mécanismes d'analyse offrent une plus grande souplesse pour décrire ce type de structures syntaxiques. \\
 
@@ -34,6 +40,13 @@ Elle repose sur plusieurs niveaux de stockage.
 
 L'idée générale est donc : un stockage principal pour les symboles ordinaires, et des structures annexes pour les cas particuliers liés aux fonctions et aux blocs. \\
 
+\RemarkBox
+{Points important}
+{
+    CHIPS est un langage qui définit des modèles sous la forme de blocs fonctionnels pour représenter un processus, 
+    en les connectant entre eux, on permet au modèle de réaliser une suite d'opérations.
+}
+
 \paragraph{Méthodes principales}
 
 Les méthodes les plus importantes sont assez simples à lire.
@@ -49,29 +62,19 @@ Les méthodes les plus importantes sont assez simples à lire.
 
 \paragraph{Exemple d'utilisation}
 
-En pratique, le flux ressemble à ça :
+En pratique, l'utilisation de ces fonctions se réalise dans cet ordre :
 
 \begin{lstlisting}[caption={Exemple d'utilisation de SymbolTable}]
-    logical Pow(int x) -> pow(x*x)
-
-    logical Clock() init {
-        int time = 0;
-    }then {
-        time = time + 1;
-    }-> time(time)
-
-    logical Print(int x) then{
-        print(x);
+    auto& table = chips::SymbolTable::getInstance();
+    table.enterScope();
+    table.declareVariable("x", someValue);
+    // dom somethings
+    if(table.lookupVariable("x").has_value()){
+        // do somethings
+    }else{
+        // handle error
     }
-
-    system {
-        Clock clock;
-        Pow pow;
-        Print print;
-
-        pow(clock.time);
-        print(pow.pow);
-    }
+    table.exitScope();
 \end{lstlisting}
 Ici, on entre dans un scope, on va déclarer une variable ayant pour identifiant "x". On va effectuer un certain nombre d'opérations, puis on va chercher à retrouver la variable "x" dans la table des symboles. Si elle est trouvée, on peut l'utiliser et effectuer des opérations dessus. Sinon, on gère l'erreur de manière appropriée. Enfin, on quitte le scope, ce qui supprime toutes les variables déclarées dans ce scope de la table des symboles.
 

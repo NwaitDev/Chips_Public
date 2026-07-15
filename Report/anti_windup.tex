@@ -1,6 +1,21 @@
 \subsection{L'implémentation des anti-windups}
 \label{sec:anti_windup}
 
+\RemarkBox
+{Remarque}
+{
+    Le calcul de la commande du PID s'effectue avec l'équation suivante :
+    \begin{equation}
+        u(t) = K_p e(t) + K_i \int_{0}^{t} e(\tau) d\tau + K_d \frac{de(t)}{dt}
+    \end{equation}
+    où :
+    \begin{itemize}
+        \item $u(t)$ est le signal de commande
+        \item $e(t)$ est l'erreur (différence entre la consigne et la mesure)
+        \item $K_p$, $K_i$ et $K_d$ sont respectivement les gains proportionnel, intégral et dérivé du PID
+    \end{itemize}
+}
+
 Dans un contrôleur PID, le terme de l'intégral a pour rôle d'éliminer l'erreur statique en accumulant l'erreur au cours du temps. Cependant, lorsque l'actionneur atteint ses limites physiques de fonctionnement, la commande calculée par le contrôleur ne peut plus être appliquée intégralement. On parle alors de saturation de l'actionneur. \\
 
 Dans cette situation, le terme intégral continue d'accumuler l'erreur alors même que l'actionneur est incapable de produire une commande supplémentaire. Ce phénomène est appelé saturation de l'intégrateur. Lorsque le système quitte la saturation, l'intégrateur contient une valeur excessive qui continue d'influencer la commande pendant un certain temps. Cela peut entraîner un dépassement important de la consigne, des oscillations ainsi qu'une augmentation du temps de stabilisation du système. (cf. figure \ref{fig:integralWindup}) \\
@@ -130,7 +145,7 @@ Il présente également quelques inconvénients :
 Dans cette section, il faut bien comprendre que tout est dans un contexte de simulation, et que les résultats obtenus ne sont pas forcément représentatifs de la réalité. Cette section a pour but de montrer l'impact de l'anti-windup sur un système de contrôle, et non pas de fournir une solution optimale pour le contrôle d'un drone.
 }
 
-Pour tester l'efficacité de l'anti-windup, nous avons choisi un cas pratique simple mais représentatif : le contrôle d'altitude d'un drone en fonction de la vitesse de rotation de ses hélices, en suivant l'exemple donné dans la vidéo \href{https://www.youtube.com/watch?v=NVLXCwc8HzM&list=PLn8PRpmsu08pQBgjxYFXSsODEF3Jqmm-y&index=24}{Anti-windup for PID control | Understanding PID Control, Part 2}. L'objectif est de maintenir le drone à une altitude cible en ajustant la vitesse de rotation des hélices. \\
+Pour tester l'efficacité de l'anti-windup, nous avons choisi un cas pratique simple mais représentatif : le contrôle d'altitude d'un drone en fonction de la vitesse de rotation de ses hélices, en suivant l'exemple donné dans la vidéo \href{https://www.youtube.com/watch?v=NVLXCwc8HzM&list=PLn8PRpmsu08pQBgjxYFXSsODEF3Jqmm-y&index=24}{Anti-windup for PID control | Understanding PID Control, Part 2}. L'objectif est de maintenir le drone à une altitude cible en ajustant la vitesse de rotation des hélices (cf. listing \ref{lst:drone_pid}). \\
 
 Pour réussir cela, nous avons mis en place un contrôleur PID qui calcule la commande à envoyer aux hélices en fonction de l'erreur entre l'altitude cible et l'altitude actuelle du drone. Cependant, la vitesse de rotation des hélices est limitée à 15 tours/minute, ce qui peut entraîner une saturation de la commande lorsque le drone est loin de l'altitude cible. Dans ce cas, l'intégrateur du PID peut continuer à accumuler l'erreur, ce qui peut provoquer un dépassement important de l'altitude cible lorsque le drone quitte la saturation. \\
 
@@ -143,7 +158,7 @@ Nous avons donc mis en place deux types d'anti-windup : le clamp et le back-calc
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{images/schéma_bloc_fonctionel_drone.png}
+    \includegraphics[width=\textwidth]{images/schema_drone.png}
     \caption{Schéma bloc fonctionnel du système de contrôle du drone}
     \label{fig:schéma_bloc_fonctionel_drone}
 \end{figure}
@@ -179,7 +194,7 @@ Où :
 
 La force de poussée générée par les hélices est calculée par l'équation suivante :
 \begin{equation}
-F_{p} = 4 * KP * (\frac{2 \pi}{60})^{2} * u^{2}
+F_{p} = 4 * KP * \left(\frac{2 \pi}{60}\right)^{2} * u^{2}
 \end{equation}
 
 Où :
@@ -213,6 +228,8 @@ Alors qu'avec le scénario dans les conditions parfaites, sans anti-windup le d�
 Toutefois, il est important de noter que l'anti-windup a un impact sur le temps de stabilisation du système. En effet, dans le scénario avec la retenue de 10 secondes, le temps de stabilisation est de 32.2 secondes sans anti-windup, alors qu'avec l'anti-windup clamp il est réduit à 21.6 secondes et avec l'anti-windup back-calculation il est encore réduit à 18.9 secondes (cf. tables \ref{tab:avec_retenue_de_10_secondes_Temps_de_stabilisation}). 
 Ces temps de stabilisation sont assez longs, dus au fait que l'intégrale du PID atteint une valeur trop élevée, ce qui fait que le contrôleur met du temps à stabiliser la vitesse de rotation des hélices. Ces problèmes sont bien visibles sur la figure \ref{fig:anti_windup_blade_retenue} où l'on peut voir que la commande du contrôleur est saturée à 15 tours/minute pendant un certain temps, puis passe à un minimum local de 7.13 tours/minute sans anti-windup, à 10.82 tours/minute avec l'anti-windup clamp et à 12.21 tours/minute avec l'anti-windup back-calculation. Ce qui fait qu'on a un effet de "rebond" sur la commande du contrôleur, ce qui fait que le drone met du temps à stabiliser sa vitesse de rotation des hélices. (cf. tables \ref{tab:avec_retenue_de_10_secondes_Commande_maximale_(tour/min)} et \ref{tab:avec_retenue_de_10_secondes_Commande_minimale_local_(tour/min)})\\
 
+\newpage
+
 Alors que dans le scénario sans la retenue de 10 secondes, le temps de stabilisation est de 11.8 secondes sans anti-windup, et avec l'anti-windup back-calculation il est réduit à 11.3 secondes (cf. tables \ref{tab:sans_retenue_de_10_secondes_Temps_de_stabilisation}). Ces temps de stabilisation sont plus courts, dus au fait que l'intégrale du PID n'atteint pas une valeur trop élevée, ce qui fait que le contrôleur met moins de temps à stabiliser la vitesse de rotation des hélices. 
 Ces problèmes sont bien visibles sur la figure \ref{fig:anti_windup_blade_sans_retenue} où l'on peut voir que la commande du contrôleur est saturée à 15 tours/minute pendant un certain temps, puis passe à un minimum local de 12.08 tours/minute sans anti-windup, à 12.21 tours/minute avec l'anti-windup back-calculation. Ce qui fait qu'on a un effet de "rebond" sur la commande du contrôleur, mais moins prononcé que dans le scénario avec la retenue de 10 secondes. (cf. tables \ref{tab:sans_retenue_de_10_secondes_Commande_maximale_(tour/min)} et \ref{tab:sans_retenue_de_10_secondes_Commande_minimale_local_(tour/min)})\\
 
@@ -222,8 +239,6 @@ Ces problèmes sont bien visibles sur la figure \ref{fig:anti_windup_blade_sans_
 On ne fait pas mention de l'anti-windup clamp dans le scénario sans la retenue de 10 secondes, car il n'y a pas 
 d'activation par rapport à l'intégrale du PID, donc il n'y a pas de différence avec le PID sans anti-windup.
 }
-
-\newpage
 
 On peut donc conclure que l'utilisation d'un anti-windup est bénéfique dans ces scénarios, car il permet de réduire le dépassement maximal de l'altitude cible et le temps de stabilisation du système, ce qui est crucial pour le contrôle d'un drone. Cependant, il est important de noter que l'anti-windup a un impact sur la commande du contrôleur, et qu'il est donc nécessaire de bien choisir les paramètres de l'anti-windup en fonction du système à contrôler. \\
 

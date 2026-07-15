@@ -1,7 +1,7 @@
 \subsection{Les filtres}
 \label{sec:filtres}
 
-Dans la théorie du contrôle, les filtres sont utilisés pour améliorer la qualité des mesures issues des capteurs avant qu'elles ne soient exploitées par le contrôleur. Les mesures réelles sont en effet souvent perturbées par du bruit, des parasités ou des variations rapides qui peuvent dégrader les performances d'un système asservi. Un filtrage approprié permet de réduire ces perturbations tout en conservant les informations utiles au contrôle. \\
+Dans la théorie du contrôle, les filtres sont utilisés pour améliorer la qualité des mesures issues des capteurs avant qu'elles ne soient exploitées par le contrôleur. Les mesures réelles sont en effet souvent perturbées par du bruit, des parasites ou des variations rapides qui peuvent dégrader les performances d'un système asservi. Un filtrage approprié permet de réduire ces perturbations tout en conservant les informations utiles au contrôle. \\
 
 L'étude des filtres repose sur deux outils fondamentaux de l'automatique : le domaine de Laplace et la fonction de transfert. Ces outils permettent de décrire mathématiquement le comportement dynamique d'un système de manière beaucoup plus simple que les équations différentielles utilisées dans le domaine temporel. \\
 
@@ -56,7 +56,7 @@ fréquences présentes dans un signal.
 \end{sidewaysfigure}
 
 
-Pour faciliter l'implémentation de ces différents types de filtres, nous avons créé une classe abstraite 
+Pour faciliter l'implémentation de différents types de filtres, nous avons créé une classe abstraite 
 \texttt{IFilter} qui définit une interface commune pour tous les filtres. Cette classe contient deux méthodes 
 abstraites :
 \begin{itemize}
@@ -67,7 +67,7 @@ abstraites :
 \end{itemize}
 
 Nous avons aussi la classe abstraite \texttt{StatufulFilter} qui hérite de \texttt{IFilter} et qui est destinée 
-aux filtres qui nécessitent de conserver un état interne, comme le filtre passe-bas, passe-haut. 
+aux filtres qui nécessitent de conserver un état interne, comme le filtre passe-bas et passe-haut. 
 Cette classe contient des méthodes pour gérer l'état interne du filtre telles que l'initialisation, la mise à jour 
 et la réinitialisation de l'état. \\
 
@@ -76,7 +76,7 @@ aux filtres qui utilisent une fenêtre glissante pour traiter les données, comm
 Cette classe contient des méthodes pour gérer la fenêtre glissante, telles que l'ajout de nouvelles valeurs, le
 calcul sur la fenêtre et la réinitialisation de la fenêtre. \\
 
-Nous allons nous pencher plus en détail sur les filtres passe-bas et médian, qui sont les deux types de filtres que nous avons décidés d'analyser 
+Nous allons nous pencher plus en détail sur les filtres passe-bas et médian, qui sont les deux types de filtres que nous avons décidé d'analyser 
 parmi les différents types de filtres existants.
 
 \subsubsection{Le filtre passe-Bas (ordre 1)}
@@ -139,7 +139,7 @@ A chaque appel de la fonction \texttt{apply()}, une seule nouvelle mesure est n�
 
 \paragraph{Evaluation}
 
-Pour l'évaluation des performances du filtre passe-bas, on va prendre deux signaux celui : désiré et le bruit. Les valeurs sont générées comme ceci :
+Pour l'évaluation des performances du filtre passe-bas, on utilisera deux signaux, celui désiré et le bruit. Les valeurs sont générées comme ceci :
 \begin{equation}
     y = \sin(2 \pi f_{low} \Delta t) + \sin(2 \pi f_{noise} \Delta t)
 \end{equation}
@@ -265,7 +265,7 @@ Le filtre mémorise simultanément la dernière valeur d'entrée et la dernière
 
 \paragraph{Evaluation}
 
-Pour l'évaluation des performances du filtre passe-haut, on va prendre deux signaux celui : désiré et le bruit. les valeurs sont générées comme ceci :
+Pour l'évaluation des performances du filtre passe-haut, on va prendre deux signaux, celui désiré et le bruit. les valeurs sont générées comme ceci :
 \begin{equation}
     y = \sin(2 \pi f_{noise} \Delta t) + \sin(2 \pi f_{high} \Delta t)
 \end{equation}
@@ -279,7 +279,7 @@ où :
 
 Le $\tau$ sera égal à $\frac{1}{2 \pi f_c}$, avec $f_c$ la fréquence de coupure du filtre, ici 80. \\
 
-Le filtre passe-haut élimine efficacement les composantes de basse fréquence présentes dans le signal. Après filtrage, seule la sinusoïde de haute fréquence reste visible (cf. figure \ref{fig:high_pass1}). \\
+Le filtre passe-haut élimine efficacement une grande partie des composantes de basse fréquence présentes dans le signal. Après filtrage, seule la sinusoïde de haute fréquence reste visible (cf. figure \ref{fig:high_pass1}). \\
 
 L'analyse fréquentielle (cf. figure \ref{fig:high_pass_fft1}) confirme ce comportement. Le spectre brut est constitué de deux composantes principales :
 \begin{itemize}
