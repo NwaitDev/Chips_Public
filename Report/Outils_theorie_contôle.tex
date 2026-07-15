@@ -1,0 +1,17 @@
+
+\section{Implantation des outils de la théorie du contrôle}
+\label{sec:outils_theorie_controle}
+
+Les travaux réalisés se sont concentrés sur deux problématiques majeures rencontrées dans les systèmes asservis. La première concerne le traitement des mesures provenant des capteurs. En pratique, ces mesures sont rarement parfaites : elles peuvent être affectées par du bruit, des perturbations ou des variations rapides susceptibles de dégrader le fonctionnement d'un contrôleur. La seconde problématique est liée à la saturation des actionneurs. Lorsqu'un contrôleur PID demande une commande supérieure aux capacités physiques du système, un phénomène d'accumulation de l'action intégrale, appelé intégral windup, peut apparaître et entraîner une dégradation importante des performances du système. \\
+
+Afin de répondre à ces deux problématiques, plusieurs composantes ont été développées et intégrées dans une architecture commune afin de favoriser leur réutilisation et leur extensibilité. L'objectif n'était pas uniquement de proposer une implémentation fonctionnelle, mais également de comparer les différentes approches afin d'identifier les solutions les plus adaptées selon les contraintes d'utilisation? Une attention particulière a ainsi été portée à la simplicité d'intégration, au coût de calcul, à la stabilité numérique ainsi qu'aux performances obtenues sur des signaux représentatifs. \\
+
+La section \ref{sec:filtres} est consacrée aux filtres numériques. Après avoir présenté l'architecture mise en place pour factoriser leur implémentation, nous étudierons successivement les filtres passe-bas, passe-haut, Butterworth d'ordre 2 et médian. Pour chacun d'entre eux, nous rappellerons les fondements théoriques, les équations utilisées lors de leur discrétisation ainsi que les choix d'implémentation retenus. Leurs performances seront ensuite évaluées au moyen d'analyses temporelles et fréquentielles, notamment à l'aide de la transformée de Fourier rapide (FFT) et de la densité spectrale de puissance (PSD), avant d'être comparées afin de mettre en évidence leurs avantages, leurs limites et leurs domaines d'application respectifs. \\
+
+La section \ref{sec:anti_windup} est consacrée aux mécanismes d'anti-windup destinés à limiter les effets de la saturation dans les contrôleurs PID. Après une représentation des méthodes Clamp et Back-calculation, leur fonctionnement sera illustré sur un cas pratique représentatif mettant en évidence le phénomène de windup. Les différentes stratégies seront ensuite évaluées expérimentalement afin de comparer leur influence sur les performances du contrôleur, notamment en termes de stabilité, de temps de réponse, de dépassement et de vitesse de retour à un fonctionnement nominal. Cette étude permettra d'identifier les avantages et les limites de chacune des approches proposées, ainsi que les contextes dans lesquels elles sont les plus pertinentes. \\
+
+\input{filtres.tex}
+
+\input{anti_windup.tex}
+
+\input{toolchain.tex}

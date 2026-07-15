@@ -1,0 +1,295 @@
+% --- PRÉAMBULE ---
+\documentclass[a4paper, 11pt]{article}
+
+% --- Paquets pour le français et l'encodage ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[main=french,provide=*]{babel}
+
+% --- PAQUETS CORRIGÉS/AJOUTÉS ---
+\usepackage{xcolor} % Pour définir et utiliser des couleurs
+\usepackage{colortbl} % Pour la commande \rowcolor dans les tableaux
+\usepackage{tabularx} % Pour l'environnement tabularx
+\usepackage{enumitem} % Pour personnaliser les listes (label=$\circ$ et label=$\bullet$)
+\usepackage{array}    % Pour améliorer les tableaux
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm} % Marges
+\usepackage{graphicx} % Pour inclure des images
+\usepackage{hyperref} % Pour les liens cliquables (ex : table des matières)
+\usepackage{xurl}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+}
+\usepackage{amsmath} % Pour les formules mathématiques
+\usepackage{appendix}
+\usepackage{pdfpages}
+\usepackage{makecell}
+\usepackage{ragged2e}
+
+\usepackage{todonotes}
+\usepackage{titlesec}
+
+\usepackage{array,multirow,makecell}
+
+\usepackage{rotating}
+
+\usepackage{placeins}
+
+\usepackage[
+    backend=biber,
+    style=numeric,
+    sorting=nyt
+]{biblatex}
+
+\addbibresource{bibliographie.bib}
+
+\setcellgapes{1pt}
+\makegapedcells
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash }b{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash }b{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}
+{\theparagraph}
+{1em}
+{}
+
+\titlespacing*{\paragraph}
+{0pt}
+{3.25ex plus 1ex minus .2ex}
+{1.5ex plus .2ex}
+
+
+% --- Coloration / code ---
+\usepackage{listings}
+\lstdefinelanguage{Chips}{
+  morekeywords={logical, physical,object,system,init,then,spread,collect,as,with,implementation,input,stop,among,ctx,using,actuator,sensor},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+
+\lstset{
+    language=C++,
+    basicstyle=\footnotesize\ttfamily,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    tabsize=2,
+    captionpos=b
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{red!60!black},
+  showstringspaces=false,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true
+}
+\DeclareRobustCommand{\prog}[1]{\begingroup\urlstyle{tt}\nolinkurl{#1}\endgroup}
+\newcommand{\kw}[1]{\textbf{#1}}
+
+\usepackage{tcolorbox} % Pour les encadrés colorés
+
+\usepackage{subcaption}
+\usepackage{xparse}
+
+\NewDocumentCommand{\ComparisonTable}{m m m m m m}{%
+\begin{subtable}{0.45\textwidth}
+\centering
+\caption{#1}
+\label{#6}
+\begin{tabular}{|C{3.5cm}|C{3.5cm}|}
+\hline
+ & #2 \\
+\hline
+Sans anti-windup & #3 \\
+\hline
+Anti-windup clamp & #4 \\
+\hline
+Anti-windup back-calculation & #5 \\
+\hline
+\end{tabular}
+\end{subtable}%
+}
+
+\NewDocumentCommand{\DoubleComparisonTable}{m m m m}{%
+\begin{table}
+\centering
+#1%
+\hfill
+#2
+\caption{#3}
+\label{#4}
+\end{table}
+}
+
+\NewDocumentCommand{\RemarkBox}{m m}{
+    \begin{tcolorbox}[
+        colback=yellow!10,
+        colframe=orange!80!black,
+        title=#1
+    ]
+    #2
+    \end{tcolorbox}
+}
+
+% --- DÉBUT DU DOCUMENT ---
+\begin{document}
+
+\justifying
+
+\input{hardcover.tex}
+
+% \thispagestyle{empty}
+\clearpage
+
+\newpage
+
+\section*{Remerciements}
+% \thispagestyle{empty}
+Je tiens à exprimer mes remerciements envers Madame Olga KOUCHNARENKO, ma maître de stage ainsi que tutrice universitaire, pour m'avoir proposé et encadré tout au long de ce stage. \\
+
+Je remercie également Madame Anna GALLONE, pour tous les conseils qu'elle m'a apportés tout au long de ce stage par rapport au langage CHIPS, à certains concepts mathématiques et à la théorie du contrôle. \\
+
+Mes remerciements vont également à Madame Sophie CERF, pour m'avoir guidé et conseillé sur des concepts de la théorie du contrôle. \\
+
+Enfin, je souhaite exprimer ma reconnaissance envers l'ensemble de l'équipe du DISC, pour m'avoir accueilli et intégré dans l'équipe VESONTIO, ainsi qu'à toutes les personnes qui ont pu m'aider de près ou de loin dans la réalisation de ce stage. \\
+
+\newpage
+
+\newpage
+\tableofcontents
+\newpage
+
+\listoffigures
+
+\newpage
+
+\listoftables
+
+\newpage
+% \setcounter{page}{1}
+
+\input{Introduction.tex}
+
+\input{FEMTO-ST.tex}
+
+\input{Contexte.tex}
+
+\input{Parseur_XMI.tex}
+
+\input{Outils_theorie_contôle.tex}
+
+\input{Conclusion.tex}
+
+\appendix
+\section{Annexe}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/low_pass_psd_order1.png}
+    \caption{Densité spectrale de puissance avant et après filtre passe-bas d'ordre 1}
+    \label{fig:low_pass_psd1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/high_pass_psd_order1.png}
+    \caption{Densité spectrale de puissance avant et après filtre passe-haut d'ordre 1}
+    \label{fig:high_pass_psd1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/low_pass_psd_order2.png}
+    \caption{Densité spectrale de puissance avant et après filtre passe-bas d'ordre 2}
+    \label{fig:low_pass_psd2}
+\end{figure}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{images/high_pass_psd_order2.png}
+    \caption{Densité spectrale de puissance avant et après filtre passe-haut d'ordre 2}
+    \label{fig:high_pass_psd2}
+\end{figure}
+
+\FloatBarrier
+\newpage
+
+\section{Glossaire}
+
+\begin{itemize}
+    \item CHIPS : Control of Hierarchical Interconnected Programmable Systems
+    \item BIP : Behavior, Interaction, Priority
+    \item PID : Proportional-Integral-Derivative
+    \item ANTLR4 : ANother Tool for Language Recognition version 4
+    \item XMI : XML Metadata Interchange
+    \item ATL : ATLAS Transformation Language
+    \item AST : Abstract Syntax Tree
+    \item PSD : Power Spectral Density
+    \item FFT : Fast Fourier Transform
+\end{itemize}
+
+\FloatBarrier
+\newpage
+
+\printbibliography[heading=bibintoc,title={Références}]
+
+\clearpage
+
+\thispagestyle{empty}
+
+\rule{\textwidth}{0.5pt}
+\vspace{0.2cm}
+
+\section*{Résumé}
+
+Ce rapport présente les travaux de développement et d'amélioration du compilateur pour le langage \textbf{CHIPS} 
+(Control of Hierarchical Interconnected Programmable Systems), un langage dédié à la modélisation formelle de systèmes distribués complexes. 
+Les objectifs principaux ont été de migrer le parseur historique vers ANTLR4 afin d'obtenir une architecture plus robuste et plus facilement 
+extensible, d'adapter le générateur XMI au nouvel arbre syntaxique produit par ANTLR4, de développer une bibliothèque de filtres numériques 
+comprenant des filtres passe-bas, passe-haut, Butterworth d'ordre 2 ainsi qu'un filtre médian, et d'implémenter plusieurs mécanismes d'anti-windup 
+destinés aux contrôleurs PID, ainsi que d'évaluer expérimentalement les performances des différentes solutions proposées au moyen d'analyses 
+temporelles, fréquentielles. Aussi de réaliser une chaîne de compilation complète pour le langage CHIPS intégrant l'ensemble de ces composants.
+
+\paragraph{\textbf{Mots clés :}} CHIPS, C++, ANTLR4, XMI, méta-modèle, filtres, anti-windup, PID 
+\vspace{1cm}
+
+\section*{Abstract}
+\selectlanguage{english}
+
+This report presents the development and enhancement of the compiler for the CHIPS (Control of Hierarchical Interconnected Programmable Systems) 
+language, a domain-specific language dedicated to the formal modeling of complex distributed systems. The main objectives were to migrate the legacy 
+parser to ANTLR4 in order to obtain a more robust and easily extensible architecture, to adapt the XMI generator to the new abstract syntax tree 
+produced by ANTLR4, to develop a library of digital filters including first-order low-pass and high-pass filters, a second-order Butterworth filter, 
+and a median filter, and to implement several anti-windup mechanisms for PID controllers. In addition, the proposed solutions were experimentally 
+evaluated through both time-domain and frequency-domain analyses. Finally, a complete compilation toolchain for the CHIPS language was developed, 
+integrating all of these components.
+
+\paragraph{\textbf{Keywords :}} CHIPS, C++, ANTLR4, XMI, meta-model, filters, anti-windup, PID
+
+\selectlanguage{french}
+
+\vspace{0.2cm}
+\rule{\textwidth}{0.5pt}
+
+\FloatBarrier
+
+
+\clearpage
+
+
+\end{document}

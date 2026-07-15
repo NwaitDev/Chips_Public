@@ -1,0 +1,77 @@
+
+\subsection{Le parseur}
+\label{sec:parseur}
+
+Les premiers travaux consacrés au développement du langage CHIPS ont conduit à la réalisation d'un premier interpréteur reposant sur les outils Yacc/Bison et Flex. Cette architecture assurait l'analyse lexicale et syntaxique des programmes CHIPS afin de produire un arbre syntaxique abstrait représentant leur structure. Cet AST constituait ensuite le point d'entrée des différents traitements réalisés par l'interpréteur, notamment la génération d'un modèle XMI conforme au méta-modèle du langage. \\
+
+Cette première implémentation a permis de démontrer la faisabilité de la chaîne d'interprétation du langage et de valider les principaux choix architecturaux retenus pour le projet. Elle constitue aujourd'hui encore la base sur laquelle reposent les développements réalisés pendant le stage. \\
+
+Toutefois, l'évolution du langage CHIPS a progressivement fait apparaître de nouvelles exigences, notamment avec l'introduction des templates C++. Ces nouvelles constructions syntaxiques ont conduit à faire évoluer l'architecture de l'analyseur afin de conserver une grammaire claire et facilement extensible. Les sections suivantes présentent les principaux travaux réalisés dans cette optique. \\
+
+\subsubsection{Migration vers ANTLR4}
+\label{sec:migration_antlr4}
+
+L'analyseur développé lors des travaux antérieurs reposait sur une grammaire écrite pour Yacc/Bison et Flex, permettant de reconnaître les différentes constructions du langage CHIPS et de construire l'arbre syntaxique abstrait correspondant. Cette architecture répondait pleinement aux besoins du langage dans son état initial et permettait de générer correctement l'ensemble des structures alors supportées. \\
+
+Au cours du stage, l'apparition des templates C++, permettant de définir des classes génériques passant de 297 à 97 classes C++, a introduit une nouvelle problématique. Ces constructions possèdent une syntaxe fortement imbriquée qui rend leur prise en charge particulièrement complexe dans la grammaire Bison existante. Afin de permettre leur intégration tout en conservant les fonctionnalités déjà développées, le choix a été fait de migrer vers ANTLR4, dont les mécanismes d'analyse offrent une plus grande souplesse pour décrire ce type de structures syntaxiques. \\
+
+Cette migration constitue la principale évolution de la chaîne d'analyse réalisée pendant ce stage. Elle a nécessité l'adaptation des différents traitements reposant sur l'AST généré par l'analyseur. \\
+
+\subsubsection{La table des symboles pour le parseur}
+\label{sec:table_symbole_parseur}
+
+Il a fallu implémenter une table des symboles assez robuste pour qu'elle permette de ne pas instancier deux classes différentes qui auraient le même nom dans un programme CHIPS. La classe SymbolTable sert de registre central des noms visibles pendant l'analyse du programme. Son rôle est de mémoriser ce qui a été déclaré, avec son type logique, pour que le reste du parseur puisse retrouver rapidement une variable, une fonction, un channel, un objet ou un bloc sans ambiguïté. \\
+
+\paragraph{Structure interne}
+
+Elle repose sur plusieurs niveaux de stockage.
+\begin{itemize}[label=$\bullet$]
+    \item \texttt{scopes} contient une pile de scopes, chaque scope étant une table associant un nom à un symbole.
+    \item chaque \texttt{Symbol} stocke trois choses : la valeur réelle dans un \texttt{std::any}, le nom, et la catégorie du symbole via \texttt{SymbolKind}.
+    \item en plus de ça, il y a deux tables séparées pour les sorties de fonctions et les paramètres de fonctions.
+    \item enfin, \texttt{declarated\_block\_system} garde le type associé à certains blocs déclarés.
+\end{itemize}
+
+L'idée générale est donc : un stockage principal pour les symboles ordinaires, et des structures annexes pour les cas particuliers liés aux fonctions et aux blocs. \\
+
+\paragraph{Méthodes principales}
+
+Les méthodes les plus importantes sont assez simples à lire.
+
+\begin{itemize}
+    \item \texttt{enterScope()} et \texttt{exitScope()} ouvrent et ferment un scope.
+    \item \texttt{declare...()} enregistre un symbole d'un certain genre : variable, variable contextuelle, channel, fonction, objet, bloc\dots
+    \item \texttt{lookup...()} recherche un symbole dans les scopes, en partant du plus interne vers le plus externe.
+    \item \texttt{declareFunctionOutput()} et \texttt{declareFunctionParameter()} gèrent les métadonnées des fonctions.
+    \item \texttt{declareBlock()} et \texttt{getTypeOfDeclaratedBlock()} servent à mémoriser puis relire le type d'un bloc.
+    \item \texttt{dump()} affiche un état lisible de la table pour le débogage.
+\end{itemize}
+
+\paragraph{Exemple d'utilisation}
+
+En pratique, le flux ressemble à ça :
+
+\begin{lstlisting}[caption={Exemple d'utilisation de SymbolTable}]
+    logical Pow(int x) -> pow(x*x)
+
+    logical Clock() init {
+        int time = 0;
+    }then {
+        time = time + 1;
+    }-> time(time)
+
+    logical Print(int x) then{
+        print(x);
+    }
+
+    system {
+        Clock clock;
+        Pow pow;
+        Print print;
+
+        pow(clock.time);
+        print(pow.pow);
+    }
+\end{lstlisting}
+Ici, on entre dans un scope, on va déclarer une variable ayant pour identifiant "x". On va effectuer un certain nombre d'opérations, puis on va chercher à retrouver la variable "x" dans la table des symboles. Si elle est trouvée, on peut l'utiliser et effectuer des opérations dessus. Sinon, on gère l'erreur de manière appropriée. Enfin, on quitte le scope, ce qui supprime toutes les variables déclarées dans ce scope de la table des symboles.
+
