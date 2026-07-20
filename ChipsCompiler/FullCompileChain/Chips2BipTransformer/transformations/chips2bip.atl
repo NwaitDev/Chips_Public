@@ -2397,13 +2397,50 @@ unique lazy rule MakeBoolConstantDeclaration{
 	}
 }
 
--- helper context Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer))) def : 
--- getCompoundExportPortDeclarationOf(
--- 	varname:String
--- 	index:Sequence(Integer),
--- 	paramname:String
--- ) : bip!CompoundExportPortDeclaration = 
--- memory->any(t | t.key = varname)
+
+-- TupleType(
+-- 	fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+-- 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+-- 	links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
+-- 	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+-- 		TupleType(
+-- 			channels:Map(String,TupleType(type:String,available:Boolean)),
+-- 			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+-- 		)
+-- 	))),
+-- 	connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+-- 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+-- )
+
+-- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
+helper context OclAny def : getNodeCtxDeclarations(nodename:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
+	self.nodes->get(nodename).instances->at(index.linearize(self.nodes->get(nodename).dimensions)).contextuals->getValues()->collect(tt | tt.instances);
+
+-- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
+helper context OclAny def : getNodeCtxDeclarationsRec(nodename:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
+	self.getNodeCtxDeclarations(nodename, index)
+	->union(
+		let singletonlink : OclAny = self.links->select(e |(e.src = nodename) and (e.src_index = reference.src_index)) in
+		if singletonlink->isEmpty() then
+			Sequence{}
+		else
+			self.getNodeCtxDeclarationsRec(singletonlink.trg, singletonlink.trg_index)
+		endif
+	);
+
+
+-- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
+helper context OclAny def : getCtxDeclarations(fblockname:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
+	let type : chips!function_definition = self.fblocks->get(fblockname).ftype in
+	let inner_ctx : Sequence(bip!ComponentDeclaration) =
+		if (type.oclIsTypeOf(chips!physical_definition)) then 
+			self.self.getNodeCtxDeclarations(nodename, index)
+		else
+			Sequence{}
+		endif
+	in
+	let outer_ctx : Sequence(bip!ComponentDeclaration) = 
+
 
 
 rule Program2BipPackage {
@@ -2588,10 +2625,15 @@ rule Program2BipPackage {
 		in
 		------- Connecting the components to their contextual values
 		------- According to the components they are linked to
-		-- let ctx_connectors : Set(bip!connectorDeclaration) = 
-		-- 	memory. 
-		
-		-- in
+		let ctx_connectors : Set(bip!ConnectorDeclaration) = 
+			memory.fblocks
+			->collect( fblock | Tuple{fb = fblock, ctxs= fblock.ftype->all_contextuals} )
+			->select(fb | not fb.ctxs->isEmpty()) 
+			->iterate(
+				fbtuple ; ctxconn : Set(bip!ConnectorDeclaration) = Set{} |
+				
+			)
+		in
 		Tuple{
 			components = memory.fblocks->getKeys()->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{} |
