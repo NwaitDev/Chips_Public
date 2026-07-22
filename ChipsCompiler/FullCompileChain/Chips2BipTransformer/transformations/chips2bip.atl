@@ -210,25 +210,6 @@ helper context Integer def : delinearize(dims:Sequence(Integer)) : Sequence(Inte
 	endif;
 
 
--- Not needed, coded this for nothing
-
--- -- Inverse function of flatten()
--- helper context Sequence(OclAny) def : inflate(dimensions:Sequence(Integer)) : Sequence(OclAny) =
--- 	let nbelements : Integer = dimensions->iterate(n ; iter : Integer = 1 | iter*n) in
--- 	if (self->size() <> nbelements) then 
--- 		OclUndefined
--- 	else
--- 		if dimensions->size() = 1 then 
--- 			self 
--- 		else 
--- 			let nbsubelements : Integer = nbelements div dimensions->first() in
--- 			thisModule.range(Sequence{dimensions->first()}) -- /!\ range starts from 0
--- 			->collect(
--- 				e | self->subSequence((e*nbsubelements+1),((e+1)*nbsubelements))->inflate(dimensions->subSequence(2,dimensions->size()))
--- 			)
--- 		endif
--- 	endif;
-
 -- helper context TupleType(name:String, type:String, value:Sequence(OclAny), dims:Sequence(Integer)) def : 
 -- 	assignAt(index:Sequence(Integer), value:Sequence{Integer}) : TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)) = ;
 
@@ -328,7 +309,7 @@ helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Se
 	self->collect(stt | stt->uses_contextuals()->asSequence())->asSequence();
 
 
-helper context chips!function_definition def : all_contextuals : Sequence(TupleType(name:String, type:String)) =
+helper context chips!function_definition def : all_contextuals() : Sequence(TupleType(name:String, type:String)) =
 self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
 
 
@@ -712,7 +693,7 @@ unique lazy rule MakeCoreAtomType {
 		
 		all_outputs : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_outputs;
 		
-		all_contextuals : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_contextuals;
+		all_contextuals : Sequence(TupleType(type: String, name:String)) = chipsfunction.all_contextuals();
 
 
 		-- Defining the states for the petri net (order matters)
@@ -1849,7 +1830,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 	using {
 		all_inputs : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_inputs;
 		all_outputs : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_outputs;
-		all_contextuals : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_contextuals;
+		all_contextuals : Sequence(TupleType(name:String,type:String)) = chipsfunction.all_contextuals();
 
 		all_indexed_inputs : Sequence(TupleType(iindex:Integer,type:String, name:String)) =
 			all_inputs->augmentWithIindex()->collect(t | Tuple{type=t.data.type, iindex=t.iindex, name = t.data.name});
@@ -2003,7 +1984,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 											->get('InputBufferTypes')
 											->get(all_contextuals_ordered_types)
 											->get('eoutput'),
-										buffers_sequence->get(3)
+										buffers_sequence->at(3)
 									)
 								),
 								thisModule.MakePortDeclarationReferenceParameter(
@@ -2050,7 +2031,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 											->get('OutputBufferTypes')
 											->get(all_contextuals_ordered_types)
 											->get('einput'),
-										buffers_sequence->get(4)
+										buffers_sequence->at(4)
 									)
 								)
 							}
@@ -2099,7 +2080,46 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 				)
 			);
 
-		-- still need to handle contextuals
+		exported_input_ctx : Set(bip!CompoundExportPortDeclaration) = 
+			all_indexed_contextuals->iterate(
+				p ; map : Map(String,bip!CompoundExportPortDeclaration) = Map{} | 
+				map->including(
+					p.name,
+					thisModule.MakeCompoundExportPortDeclaration(
+						p.name+'_input_ctx',
+						Sequence{p.type},
+						Sequence{thisModule.MakeComponentSubPortDeclarationReference(
+							thisModule.dictionary
+								->get('InputBufferTypes')
+								->get(all_contextuals_ordered_types)
+								->get('einputs')
+								->get(p.iindex),
+							buffers_sequence->at(3)
+						)}
+					)
+				)
+			);
+		
+		exported_output_ctx : Set(bip!CompoundExportPortDeclaration) = 
+			all_indexed_contextuals->iterate(
+				p ; map : Map(String, bip!CompoundExportPortDeclaration) = Map{} | 
+				map->including(
+					p.name,
+					thisModule.MakeCompoundExportPortDeclaration(
+						p.name+'_output_ctx',
+						Sequence{p.type},
+						Sequence{thisModule.MakeComponentSubPortDeclarationReference(
+							thisModule.dictionary
+								->get('OutputBufferTypes')
+								->get(all_contextuals_ordered_types)
+								->get('eoutputs')
+								->get(p.iindex),
+							buffers_sequence->at(4)
+						)}
+					)
+				)
+			);
+
 		exportedportdecl : Sequence(bip!CompoundExportPortDeclaration) =
 			exported_inputs->getValues()
 			->union(
@@ -2109,36 +2129,8 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 				if (all_contextuals->isEmpty()) then
 					Set{}
 				else
-					all_indexed_contextuals->iterate(
-						p ; set : Set(bip!CompoundExportPortDeclaration) = Set{} | 
-						set->including(
-							thisModule.MakeCompoundExportPortDeclaration(
-								p.name+'_input_ctx',
-								Sequence{p.type},
-								Sequence{thisModule.MakeComponentSubPortDeclarationReference(
-									thisModule.dictionary
-										->get('InputBufferTypes')
-										->get(all_contextual_types)
-										->get('einputs')
-										->get(p.iindex),
-									buffers_sequence->get(3)
-								)}
-							)
-						)->including(
-							thisModule.MakeCompoundExportPortDeclaration(
-								p.name+'_output_ctx',
-								Sequence{p.type},
-								Sequence{thisModule.MakeComponentSubPortDeclarationReference(
-									thisModule.dictionary
-										->get('OutputBufferTypes')
-										->get(all_contextual_types)
-										->get('eoutputs')
-										->get(p.iindex),
-									buffers_sequence->get(4)
-								)}
-							)
-						)
-					)
+					exported_input_ctx->getValues()
+					->union(exported_output_ctx->getValues())
 				endif
 			)->asSequence()->toArray();
 	}
@@ -2169,7 +2161,9 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 				chipsfunction.name,
 				Map{
 					('einputs', exported_inputs),
-					('eoutputs', exported_outputs)
+					('eoutputs', exported_outputs),
+					('ectxinput', exported_input_ctx),
+					('ectxoutput', exported_output_ctx)
 				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
@@ -2398,29 +2392,40 @@ unique lazy rule MakeBoolConstantDeclaration{
 }
 
 
--- TupleType(
--- 	fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
--- 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
--- 	links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
--- 	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
--- 		TupleType(
--- 			channels:Map(String,TupleType(type:String,available:Boolean)),
--- 			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
--- 		)
--- 	))),
--- 	connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
--- 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
--- )
 
--- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
-helper context OclAny def : getNodeCtxDeclarations(nodename:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
-	self.nodes->get(nodename).instances->at(index.linearize(self.nodes->get(nodename).dimensions)).contextuals->getValues()->collect(tt | tt.instances);
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
+	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+		TupleType(
+			channels:Map(String,TupleType(type:String,available:Boolean)),
+			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+		)
+	))),
+	connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getNodeCtxDeclarations(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+let node : OclAny = self.nodes->get(nodename).instances->get(index.linearize(self.nodes->get(nodename).dimensions)) in
+	node.contextuals->getKeys()->collect(k | Tuple{name=k, comp=node.contextuals->get(k).instances})->asSequence();
 
--- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
-helper context OclAny def : getNodeCtxDeclarationsRec(nodename:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
+
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
+	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+		TupleType(
+			channels:Map(String,TupleType(type:String,available:Boolean)),
+			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+		)
+	))),
+	connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getNodeCtxDeclarationsRec(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
 	self.getNodeCtxDeclarations(nodename, index)
 	->union(
-		let singletonlink : OclAny = self.links->select(e |(e.src = nodename) and (e.src_index = reference.src_index)) in
+		let singletonlink : OclAny = self.links->select(e |(e.src = nodename) and (e.src_index = index)) in
 		if singletonlink->isEmpty() then
 			Sequence{}
 		else
@@ -2429,18 +2434,21 @@ helper context OclAny def : getNodeCtxDeclarationsRec(nodename:String, index:Seq
 	);
 
 
--- Spoiler, this OclAny is actually supposed to be the memory type, but I've had enough of rewriting the whole type of it.
-helper context OclAny def : getCtxDeclarations(fblockname:String, index:Sequence(Integer)): Sequence(bip!ComponentDeclaration) =
-	let type : chips!function_definition = self.fblocks->get(fblockname).ftype in
-	let inner_ctx : Sequence(bip!ComponentDeclaration) =
-		if (type.oclIsTypeOf(chips!physical_definition)) then 
-			self.self.getNodeCtxDeclarations(nodename, index)
-		else
-			Sequence{}
-		endif
-	in
-	let outer_ctx : Sequence(bip!ComponentDeclaration) = 
-
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
+	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+		TupleType(
+			channels:Map(String,TupleType(type:String,available:Boolean)),
+			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+		)
+	))),
+	connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : 
+getCtxDeclarations(fblockname:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+	self->getNodeCtxDeclarationsRec(fblockname, index);
 
 
 rule Program2BipPackage {
@@ -2591,7 +2599,7 @@ rule Program2BipPackage {
 			connectors: Sequence(bip!ConnectorDeclaration)
 		) =
 		let memory:TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -2605,7 +2613,7 @@ rule Program2BipPackage {
 		) =
 		chipsprogram.system.system_statements->iterate(
 			stt ; mem :TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 				links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 				nodes: Map(String,
@@ -2625,14 +2633,91 @@ rule Program2BipPackage {
 		in
 		------- Connecting the components to their contextual values
 		------- According to the components they are linked to
-		let ctx_connectors : Set(bip!ConnectorDeclaration) = 
-			memory.fblocks
-			->collect( fblock | Tuple{fb = fblock, ctxs= fblock.ftype->all_contextuals} )
-			->select(fb | not fb.ctxs->isEmpty()) 
+		let ctx_connectors : Sequence(bip!ConnectorDeclaration) = 
+			memory.fblocks->getKeys()
+			->select(fbkey | not memory.fblocks->get(fbkey).ftype.oclIsUndefined())
+			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.fblocks->get(fbkey).ftype->all_contextuals() } )
+			->select(fb | not fb.ctxs->isEmpty())
 			->iterate(
-				fbtuple ; ctxconn : Set(bip!ConnectorDeclaration) = Set{} |
-				
-			)
+				fb ; connectorlist1 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
+				connectorlist1->union(
+					thisModule.range(memory.fblocks->get(fb.fbkey).dimensions)->iterate(
+						comp_index ; connectorlist2 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
+						connectorlist2->union(
+							fb.ctxs->collect( ctx |
+								Sequence{
+									thisModule.MakeConnectorDeclaration(
+										memory.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_input_ctx_connector',
+										thisModule.MakeFlowConnectorType(Sequence{ctx.type}),
+										Sequence{
+											thisModule.MakePortDeclarationReferenceParameter(
+												thisModule.dictionary
+													->get('FlowConnectorTypes')
+													->get(Sequence{ctx.type})
+													->get('s_port'),
+												thisModule.MakeComponentSubPortDeclarationReference(
+													thisModule.dictionary
+														->get('ContextualTypes')
+														->get(ctx.type)
+														->get('aepd_give'),
+													memory->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1)
+												)
+											),
+											thisModule.MakePortDeclarationReferenceParameter(
+												thisModule.dictionary
+													->get('FlowConnectorTypes')
+													->get(Sequence{ctx.type})
+													->get('r_port'),
+												thisModule.MakeComponentSubPortDeclarationReference(
+													thisModule.dictionary
+														->get('FunctionalBlockCompoundTypes')
+														->get(memory.fblocks->get(fb.fbkey).ftype.name)
+														->get('ectxinput')
+														->get(ctx.name),
+													memory.fblocks->get(fb.fbkey).instances->get(comp_index)
+												)
+											)
+										}
+									),
+									thisModule.MakeConnectorDeclaration(
+										memory.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_output_ctx_connector',
+										thisModule.MakeFlowConnectorType(Sequence{ctx.type}),
+										Sequence{
+											thisModule.MakePortDeclarationReferenceParameter(
+												thisModule.dictionary
+													->get('FlowConnectorTypes')
+													->get(Sequence{ctx.type})
+													->get('s_port'),
+												thisModule.MakeComponentSubPortDeclarationReference(
+													thisModule.dictionary
+														->get('FunctionalBlockCompoundTypes')
+														->get(memory.fblocks->get(fb.fbkey).ftype.name)
+														->get('ectxoutput')
+														->get(ctx.name),
+													memory.fblocks->get(fb.fbkey).instances->get(comp_index)
+												)
+											),
+											thisModule.MakePortDeclarationReferenceParameter(
+												thisModule.dictionary
+													->get('FlowConnectorTypes')
+													->get(Sequence{ctx.type})
+													->get('r_port'),
+												thisModule.MakeComponentSubPortDeclarationReference(
+													thisModule.dictionary
+														->get('ContextualTypes')
+														->get(ctx.type)
+														->get('aepd_rcv'),
+													memory->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1) -- temporarily set to 0
+												)
+											)
+										}
+									)
+								}
+							)
+						)
+					)
+				)
+			)->flatten()
 		in
 		Tuple{
 			components = memory.fblocks->getKeys()->iterate(
@@ -2653,7 +2738,7 @@ rule Program2BipPackage {
 					)->flatten()
 				)
 			),
-			connectors = memory.dataflows->getValues()
+			connectors = memory.dataflows->getValues()->asSequence()->union(ctx_connectors)
 		};
 
 	}
@@ -2818,7 +2903,7 @@ helper context chips!contextual_bool_declaration def: evaluate(node_data : Tuple
 
 
 helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -3890,7 +3975,7 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 -- Base evaluation template
 -- helper context chips!"chips::statements::" def :
 -- 	evaluate(memory:TupleType(
--- 		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+-- 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 --		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 -- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -3899,7 +3984,7 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 -- 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 -- 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 -- 	)) : TupleType(
--- 		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+-- 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 --		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 -- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -3923,7 +4008,7 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 
 
 helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -3934,7 +4019,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		))),
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-	)) : Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))) =
+	)) : Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))) =
 	let dims : Sequence(Integer) = fdecl.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
 	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
 	if lin_indices->size() <> 0 then 
@@ -3959,10 +4044,8 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		memory.fblocks->including(
 			fdecl.variable.name->protect(), 
 			Tuple{
+				ftype = fdecl."def",
 				dimensions = dims,
-				needs_ctx = 
-				let ctxlist : Sequence() = thisModule.dictionary->get('CoreAtomTypes')->get(fdecl."def".name)->get('aepd')->get('read_ctx')
-				if thisModule.dictionary->get('CoreAtomTypes')->get(fdecl."def".name)->get('aepd')->get('read_ctx'),
 				instances = Sequence{
 					thisModule.MakeCompoundDeclaration(
 						fdecl.variable.name+'_0',
@@ -3976,7 +4059,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 
 helper context chips!"chips::statements::system::physical_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -3988,7 +4071,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4012,7 +4095,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 
  helper context chips!"chips::statements::system::logical_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4024,7 +4107,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4047,7 +4130,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 
 helper context chips!"chips::statements::system::object_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4059,7 +4142,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4084,7 +4167,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 -- --------------------------------------------------------
 
 helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4112,7 +4195,7 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 
 helper context chips!"chips::statements::system::int_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4124,7 +4207,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4148,7 +4231,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 
 helper context chips!"chips::statements::system::float_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4160,7 +4243,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4183,7 +4266,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 
 helper context chips!"chips::statements::system::bool_declaration" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4195,7 +4278,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4241,7 +4324,7 @@ helper context TupleType(name:String,type:String,value:Sequence(OclAny),dims:Seq
 	endif;
 
 helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4333,7 +4416,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 
 helper context chips!"chips::statements::system::int_assignment" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4345,7 +4428,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4368,7 +4451,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 
 helper context chips!"chips::statements::system::float_assignment" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4380,7 +4463,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4403,7 +4486,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 
 helper context chips!"chips::statements::system::bool_assignment" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4415,7 +4498,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4441,7 +4524,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 
 helper context chips!link def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4453,7 +4536,7 @@ helper context chips!link def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4498,7 +4581,7 @@ helper context chips!link def :
 
 helper context chips!channel_plugging def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4510,7 +4593,7 @@ helper context chips!channel_plugging def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4528,7 +4611,7 @@ helper context chips!channel_plugging def :
 
 helper context chips!"chips::statements::system::foreach" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4540,7 +4623,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4576,7 +4659,7 @@ helper context chips!"chips::statements::system::foreach" def :
 	iterable.value->iterate(
 		iterator ; 
 		m1: TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4589,7 +4672,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) = memory |
 		let m1_prime : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4603,7 +4686,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		) = self.statements->iterate( 
 			stt ; 
 			m2: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 				links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4651,7 +4734,7 @@ helper context chips!"chips::statements::system::foreach" def :
 
 helper context chips!"chips::statements::system::if" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4663,7 +4746,7 @@ helper context chips!"chips::statements::system::if" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4680,7 +4763,7 @@ helper context chips!"chips::statements::system::if" def :
 		self.if_section.if_statements->iterate(
 			stt ;
 			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 				links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4700,7 +4783,7 @@ helper context chips!"chips::statements::system::if" def :
 
 helper context chips!"chips::statements::system::if_else" def :
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4712,7 +4795,7 @@ helper context chips!"chips::statements::system::if_else" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4729,7 +4812,7 @@ helper context chips!"chips::statements::system::if_else" def :
 		self.if_section.if_statements->iterate(
 			stt ;
 			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 				links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4747,7 +4830,7 @@ helper context chips!"chips::statements::system::if_else" def :
 		self.else_section.else_statements->iterate(
 			stt ;
 			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 				links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4768,7 +4851,7 @@ helper context chips!"chips::statements::system::if_else" def :
 
 helper context chips!"chips::statements::system::feeding_physical_int" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4780,7 +4863,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4875,7 +4958,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 
 helper context chips!"chips::statements::system::feeding_physical_float" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4887,7 +4970,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4982,7 +5065,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 
 helper context chips!"chips::statements::system::feeding_physical_bool" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -4994,7 +5077,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5088,7 +5171,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 
 helper context chips!"chips::statements::system::feeding_logical_int" def : 
 	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5100,7 +5183,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5119,7 +5202,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	else
 		let name : String = 'direct_expression'+thisModule.id->toString() in
 		let partial_next_mem : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5135,6 +5218,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				->including(
 					name,
 					Tuple{
+						ftype = OclUndefined,
 						dimensions = Sequence{1},
 						instances = Sequence{
 							thisModule.MakeIntegerConstantDeclaration(
@@ -5214,7 +5298,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 
 helper context chips!"chips::statements::system::feeding_logical_float" def : 
 	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5226,7 +5310,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5245,7 +5329,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	else
 		let name : String = 'direct_expression'+thisModule.id->toString() in
 		let partial_next_mem : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5261,6 +5345,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 				->including(
 					name,
 					Tuple{
+						ftype = OclUndefined,
 						dimensions = Sequence{1},
 						instances = Sequence{
 							thisModule.MakeFloatConstantDeclaration(
@@ -5340,7 +5425,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 
 helper context chips!"chips::statements::system::feeding_logical_bool" def : 
 	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5352,7 +5437,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5371,7 +5456,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	else
 		let name : String = 'direct_expression'+thisModule.id->toString() in
 		let partial_next_mem : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5387,6 +5472,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 				->including(
 					name,
 					Tuple{
+						ftype = OclUndefined,
 						dimensions = Sequence{1},
 						instances = Sequence{
 							thisModule.MakeBoolConstantDeclaration(
@@ -5465,7 +5551,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 
 helper context chips!"chips::statements::system::feeding_logical_int" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5477,7 +5563,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5573,7 +5659,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 
 helper context chips!"chips::statements::system::feeding_logical_float" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5585,7 +5671,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5681,7 +5767,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 
 helper context chips!"chips::statements::system::feeding_logical_bool" def : 
 	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5693,7 +5779,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Set(TupleType(from_ob:String,from_chan:String, to_ob:String, to_chan:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5791,7 +5877,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 -- -- evaluation of an expression in system context
 -- --------------------------------------------------------
 helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5811,7 +5897,7 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 	};
 
 helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5831,7 +5917,7 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 	};
 
 helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5851,7 +5937,7 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 	};
 
 helper context chips!"chips::xvalues::system::int_variable_expression" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5872,7 +5958,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 	endif;
 
 helper context chips!"chips::xvalues::system::float_variable_expression" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5893,7 +5979,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 	endif;
 
 helper context chips!"chips::xvalues::system::bool_variable_expression" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5914,7 +6000,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::int::plus" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -5957,7 +6043,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::float::plus" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6000,7 +6086,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::int::mult" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6043,7 +6129,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::float::mult" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6086,7 +6172,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::int::div" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6129,7 +6215,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::float::div" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6172,7 +6258,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::int::minus" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6215,7 +6301,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::float::minus" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6258,7 +6344,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 	endif;
 
 	helper context chips!"chips::rvalues::system::operators::int::mod" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6301,7 +6387,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::float::cast_as_float" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6332,7 +6418,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6363,7 +6449,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 	endif;
 
 helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6406,7 +6492,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6423,7 +6509,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 	thisModule.lt(loperand,roperand,memory);
 
 helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6440,7 +6526,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 	thisModule.lt(loperand,roperand,memory);
 
 helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6483,7 +6569,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 	endif;
 
 helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6500,7 +6586,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 	thisModule.eq(loperand,roperand,memory);
 
 helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6517,7 +6603,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 	thisModule.eq(loperand,roperand,memory);
 
 helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
@@ -6535,7 +6621,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 
 
 helper context chips!"chips::rvalues::system::function" def : evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition,dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
