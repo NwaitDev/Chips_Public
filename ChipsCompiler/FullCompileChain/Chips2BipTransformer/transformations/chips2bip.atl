@@ -1255,6 +1255,19 @@ unique lazy rule MakeConnectorPortParameterDeclaration{
 	)
 }
 
+unique lazy rule MakeCollectiveConnectorPortParameterDeclaration{
+	from 
+		indexed_types:Sequence(TupleType(iindex:Integer,type:String)),
+		channelname: String,
+		datadecls:Sequence(bip!ConnectorDataDeclaration)
+
+	to cppd : bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(indexed_types->collect(t | t.type)),
+		name <- 'p_'+channelname+'_cppd',
+		dataParameters<- indexed_types->collect(t | thisModule.MakeDataDeclarationReferenceDataParameter(datadecls->get(t.iindex)))
+	)
+}
+
 unique lazy rule MakeMany2OneConnectorType{
 	from ordered_types : Sequence(String)
 
@@ -1563,6 +1576,48 @@ unique lazy rule MakePortDeclarationReferenceParameter{
 	)
 }
 
+helper def: getNodeData(node:chips!node_definition) : 
+TupleType(
+	channels:Map(String,String),
+	contextuals:Map(String,TupleType(
+		dimensions:Sequence(Integer),
+		instances:Sequence(bip!ComponentDeclaration)
+	))
+) = node.with.statements->iterate( stt ; 
+	node_data : TupleType(
+		channels:Map(String,String),
+		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+	) = Tuple{temp_memory = Tuple{variables=Sequence{}},channels=Map{}, contextuals=Sequence{}} | stt->evaluate(node_data)
+);
+
+helper context chips!collective_function_definition def : getAccumulatorSig() : Sequence(TupleType(name:String,type:String)) = 
+	self.accumulator.accumulator->collect( param |
+		Tuple{
+			name = param.declaration.variable.name,
+			type = if param.oclIsKindOf(chips!int_collective_parameter) then
+				'int'
+			else if param.oclIsKindOf(chips!float_collective_parameter) then
+				'float'
+			else if param.oclIsKindOf(chips!bool_collective_parameter) then
+				'bool'
+			else
+				OclUndefined.debug('this should never happen, unrecognized type for accumulator parameter '+param.name)
+			endif endif endif
+		}
+	)->asSequence();
+
+unique lazy rule MakeCollectiveConnectorDataDeclaration{
+	from 
+		type:String,
+		dname:String,
+		cfd:chips!collective_function_definition
+
+
+	to cdd:bip!ConnectorDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(type),
+		name <- dname
+	)
+}
 
 unique lazy rule MakeCollectiveConnectorType{
 	from 
@@ -1570,26 +1625,91 @@ unique lazy rule MakeCollectiveConnectorType{
 
 	using{
 		fname : String = cfd.name;
-		support_node_type : String = cfd.support_object;
-		accumulator_signature: Sequence(String) = cfd.accumulator.;
 
-		target : cdd:bip!ConnectorDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
-		name <- 'v'+iindex.toString()
-	)
+		support_node_type : String = cfd.support_object.name;
 
-		downports : Sequence(bip!ConnectorPortParameterDeclaration) = 
-			Sequence{
-				
-			};
-		upport : bip!PortDeclaration = ;
+		node_data : TupleType(
+			channels:Map(String,String),
+			contextuals:Map(String,TupleType(
+				dimensions:Sequence(Integer),
+				instances:Sequence(bip!ComponentDeclaration)
+			))
+		) = thisModule.getNodeData(cfd.support_object);
+
+		accumulator_signature: Sequence(TupleType(name:String,type:String)) = cfd.getAccumulatorSig();
+
+		target_type : String = 
+		let expr : OclAny = cfd.target_output.expression->at(1) in 
+		-- currently, target_output.expression is a sequence in anticipation for when we get anonymous datastructures 
+		-- as signals transmitted between components
+		if expr.oclIsKindOf(chips!collective_int_rvalue) then
+			'int'
+		else if expr.oclIsKindOf(chips!collective_float_rvalue) then
+			'float'
+		else if expr.oclIsKindOf(chips!collective_bool_rvalue) then
+			'bool'
+		else
+			OclUndefined.debug('this should never happen, unrecognized type for target output of '+fname)
+		endif endif endif;
+
+		accu_sig_indexed : Sequence(TupleType(type:String, iindex:Integer)) = 
+			accumulator_signature->augmentWithIindex();
+
+		datadecls : Map(String, Sequence(bip!ConnectorDataDeclaration)) =
+			node_data.channels->getKeys()->iterate(
+				chan; themap : Map(String, Sequence(bip!ConnectorDataDeclaration)) = Map{} |
+				themap->including(
+					chan,
+					accu_sig_indexed->collect(
+						paramiindex |
+						thisModule.MakeCollectiveConnectorDataDeclaration(
+							paramiindex.data.type,
+							paramiindex.data.name+'_of_'+chan,
+							cfd
+						)
+					)->asSequence()
+				)
+			);
+
+		cddrdp : Map(String, Sequence(bip!ConnectorDataDeclarationReferenceDataParameter)) =
+			accu_sig_indexed->collect(paramiindex |
+				node_data.channels->getKeys()->collect(
+					chan |
+					thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+						paramiindex.data.type,
+						datadecls->get(chan)->get(paramiindex.iindex),
+						thisModule.MakePortDataParameterDeclaration(
+							paramiindex.data.type,
+							paramiindex.iindex,
+							accu_sig_indexed->collect(t|t.data.type)
+						)
+					)
+				)
+			);
+
+		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
+			node_data.channels->getKeys()->iterate(
+				name ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
+				themap->including(
+					name,
+					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), name, datadecls.debug()->get(name)
+					)
+				)
+			);
+		--upport : bip!PortDeclaration = thisModule.;
 	}
 
-	to pct:bip!ConnectorType(
-		name<- 'spread'+'_'+fname+'_among_'+support_node_type+'_conn_t',
-		interactions<-Sequence{},
-		interactionDefinition <- {},
-		ports <- downports
+	to cct:bip!ConnectorType(
+		name<- fname+'_among_'+support_node_type+'_conn_t',
+		--interactions<-Sequence{},
+		dataDeclarations <- datadecls->getValues()->flatten(),
+		ports <- downports->getValues()
+	),
+
+	target :bip!ConnectorDataDeclaration(
+		dataType <- thisModule.MakeChipsDataType(target_type),
+		name <- 'target'
 	)
 
 	do {
@@ -1601,17 +1721,13 @@ unique lazy rule MakeCollectiveConnectorType{
 
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
-				cfd,
-
-				Map{
-					('@', ),
-					('default', )
-				}
+				fname,
+				Map{}
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('CollectiveConnectorType', thisModule.temp_dic);
 
-		one;
+		cct;
 	}
 }
 
@@ -2518,10 +2634,11 @@ rule Program2BipPackage {
 				->collect( t | thisModule.MakePortType(t))->toArray();
 
 
-
 		all_chips_function_defs : Sequence(chips!function_definition) = 
 			chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition))->toArray();
 		
+		all_chips_collective_defs : Sequence(chips!collective_function_definition) =
+			chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!collective_function_definition))->toArray();
 
 		system_specific_input_port_types: Sequence(bip!PortType) = 
 			all_chips_function_defs->collect(
@@ -2537,19 +2654,26 @@ rule Program2BipPackage {
 				)
 			)->toArray();
 
+		collective_specific_port_types: Sequence(bip!PortType) =
+			all_chips_collective_defs->collect(
+				the_def | thisModule.MakePortType(
+					the_def->getAccumulatorSig()->collect(t | t.type)
+				)
+			)->toArray();
+
 		core_atom_types: Sequence(bip!AtomType) = all_chips_function_defs->collect(d |  thisModule.MakeCoreAtomType(d))->toArray();
 
 		all_monotype_buffer_atom_types : Sequence(bip!AtomType) =
 			Sequence{'int','float', 'bool'}
-			->collect(t|thisModule.MakeMonotypeBufferType(t))->toArray();
+			->collect( t | thisModule.MakeMonotypeBufferType(t))->toArray();
 		
 		constants_atom_types: Sequence(bip!AtomType) = 
 			Sequence{'int','float', 'bool'}
-			->collect(t|thisModule.MakeConstantAtomType(t))->toArray();
+			->collect( t | thisModule.MakeConstantAtomType(t))->toArray();
 
 		all_contextual_types : Sequence(bip!AtomType) =
 			Sequence{'int','float', 'bool'}
-			->collect(t|thisModule.MakeContextualAtomType(t))->toArray();
+			->collect( t | thisModule.MakeContextualAtomType(t))->toArray();
 
 		functional_blocks_types: Sequence(bip!CompoundType) = 
 			all_chips_function_defs
@@ -2581,6 +2705,10 @@ rule Program2BipPackage {
 				)
 			)->toArray();
 		
+
+		all_collective_connector_types : Sequence(bip!ConnectorType) = 
+			all_chips_collective_defs->collect(d | thisModule.MakeCollectiveConnectorType(d));
+
 		trivial_flow_connector_types: 
 		Map(Sequence(String), TupleType(
 			ct:bip!ConnectorType, 
@@ -2807,10 +2935,12 @@ rule Program2BipPackage {
 				->union(functional_output_buffer_types)
 			 	->union(Sequence{system_compound}),
 			connectorTypes <- all_exporting_connector_types
-				->union(all_flow_connector_types),
+				->union(all_flow_connector_types)
+				->union(all_collective_connector_types),
 			portTypes <- base_port_types
 				->union(system_specific_input_port_types)
-				->union(system_specific_output_port_types),
+				->union(system_specific_output_port_types)
+				->union(collective_specific_port_types),
 			dataTypes <- data_types
 			-- used_packages <- Sequence{},
 			-- constData <- Sequence{}, -- what for ? oh wait, yes
@@ -2986,12 +3116,7 @@ helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
 	let node_data : TupleType(
 		channels:Map(String,String),
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-	) = ndecl."def".with.statements->iterate( stt ; 
-		node_data : TupleType(
-			channels:Map(String,String),
-			contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-		) = Tuple{temp_memory = Tuple{variables=Sequence{}},channels=Map{}, contextuals=Sequence{}} | stt->evaluate(node_data)
-	) in
+	) = thisModule.getNodeData(ndecl."def") in
 	if lin_indices->size() <> 0 then 
 		memory.nodes->including(
 			ndecl.variable.name->protect(),
