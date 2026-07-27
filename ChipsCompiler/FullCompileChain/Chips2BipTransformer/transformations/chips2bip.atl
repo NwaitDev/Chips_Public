@@ -1671,6 +1671,16 @@ unique lazy rule MakeCollectiveConnectorType{
 				)
 			);
 
+		up_datadecls : Sequence(bip!ConnectorDataDeclaration) =
+			accu_sig_indexed->collect(
+				paramiindex |
+				thisModule.MakeCollectiveConnectorDataDeclaration(
+					paramiindex.data.type,
+					paramiindex.data.name+'_of_upaccumulator',
+					cfd
+				)
+			)->asSequence();
+
 		cddrdp : Map(String, Sequence(bip!ConnectorDataDeclarationReferenceDataParameter)) =
 			accu_sig_indexed->collect(paramiindex |
 				node_data.channels->getKeys()->collect(
@@ -1697,17 +1707,65 @@ unique lazy rule MakeCollectiveConnectorType{
 					)
 				)
 			);
-		--upport : bip!PortDeclaration = thisModule.;
+		
+		-- subInteractions : Sequence(bip!ConnectorInteractionPortReference) = 
+		-- 	downports->getValues()->collect( p | thisModule.MakeConnectorInteractionPortReference(p) );
+		
 	}
 
 	to cct:bip!ConnectorType(
 		name<- fname+'_among_'+support_node_type+'_conn_t',
-		--interactions<-Sequence{},
-		dataDeclarations <- datadecls->getValues()->flatten(),
-		ports <- downports->getValues()
+		interactions<-Sequence{
+			thisModule.MakeConnectorInteractionNestedDefinition(
+				downports->getValues()->asSequence()
+			)
+		},
+		exportedPortDeclaration <- up_accumulator,
+		dataDeclarations <- 
+			datadecls
+			->getValues()
+			->flatten()
+			->asSequence()
+			->union(up_datadecls)
+			->including(target_datadecl),
+		ports <- downports->getValues()->including(target_cppd)
 	),
 
-	target :bip!ConnectorDataDeclaration(
+	up_accumulator :bip!ConnectorExportedPortDeclaration(
+		portType <-thisModule.MakePortType(accu_sig_indexed->collect(tuple | tuple.data.type)),
+		name <- 'up_accumulator',
+		dataParameters <- accu_sig_indexed
+			->collect(tuple | 
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					tuple.data.type,
+					up_datadecls->get(tuple.iindex),
+					thisModule.MakePortDataParameterDeclaration(
+						tuple.data.type,
+						tuple.iindex,
+						accu_sig_indexed->collect(t|t.data.type)
+					)
+				)
+			)
+	),
+	
+	target_cppd : bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(target_type),
+		name <- 'p_target_cppd',
+		dataParameters<- Sequence{target_ddrdp}
+	),
+
+	target_ddrdp: bip!DataDeclarationReferenceDataParameter(
+		dataDeclarationReference<-target_datadecl,
+		type<-thisModule.MakeChipsDataType(target_type),
+		parameterDeclaration <- target_pdpd
+	),
+
+	target_pdpd: bip!PortDataParameterDeclaration( 
+		name <- 'v0',
+		dataType <- thisModule.MakeChipsDataType(target_type)
+	),
+
+	target_datadecl : bip!ConnectorDataDeclaration(
 		dataType <- thisModule.MakeChipsDataType(target_type),
 		name <- 'target'
 	)
