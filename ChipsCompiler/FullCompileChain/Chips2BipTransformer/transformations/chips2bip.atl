@@ -26,6 +26,27 @@ helper def : dictionary : Map(String, Map(OclAny, OclAny)) = Map{};
 helper def : temp_dic : Map(OclAny,OclAny) = Map{};
 
 
+helper def: buildStructName(types : Sequence(String)) : String =
+  'Aggr_' + types->iterate(t; acc : String = '' |
+      acc + if acc = '' then '' else '_' endif + t
+  );
+
+
+unique lazy rule MakeBipDataType{
+	from 
+		type : OclAny
+	using{
+		isSingleType : Boolean = type.oclIsKindOf(String);
+		name : String = if isSingleType then 'chips_'+type else thisModule.buildStructName(type) endif;
+		back : String = if isSingleType then 'chips_'+type else 'struct ' + thisModule.buildStructName(type) endif;
+	}
+	to dt : bip!DataType (
+      name        <- name,
+      native      <- false,
+      backendName <- back
+    )
+}
+
 unique lazy rule MakeCppFunctionCall {
 	from
 		t : TupleType(functionName : String, parameters : Sequence(OclAny))
@@ -210,10 +231,107 @@ helper context Integer def : delinearize(dims:Sequence(Integer)) : Sequence(Inte
 	endif;
 
 
--- helper context TupleType(name:String, type:String, value:Sequence(OclAny), dims:Sequence(Integer)) def : 
--- 	assignAt(index:Sequence(Integer), value:Sequence{Integer}) : TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)) = ;
-
 --------------- WHY IS THERE NO SWITCH IN ATL?
+
+
+--------------- (helpers to detect the type of the input in collective functions)
+
+helper context OclAny def : shortForTypeDeductionUnaryOp(operandtype:String) : String =
+	if self.operand->oclIsTypeOf(chips!input_kw) then 
+		operandtype
+	else
+		self.operand->extract_input_type()
+	endif;
+
+helper context OclAny def : shortForTypeDeductionBinaryOp(operandtype:String) : String =
+	if self.left_operand->oclIsTypeOf(chips!input_kw)
+	or self.right_operand->oclIsTypeOf(chips!input_kw) then 
+		operandtype
+	else
+		self.left_operand->extract_input_type_in_rvalue(operandtype)+self.right_operand->extract_input_type_in_rvalue(operandtype)
+	endif;
+
+helper context OclAny def: extract_input_type_in_rvalue(ctx_type : String) : String =
+	if self.oclIsTypeOf(chips!input_kw) then
+		ctx_type
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::leq_int")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::geq_int")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::lt_int")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::gt_int")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_int")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_int") 
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::minus") 
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::plus")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::mult")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::div")
+		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::mod") then
+		self.shortForTypeDeductionBinaryOp('int')
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::leq_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::geq_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::lt_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::gt_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_float")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::minus") 
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::plus")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::mult")
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::div") then
+		self.shortForTypeDeductionBinaryOp('float')
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::not") then
+		self.shortForTypeDeductionUnaryOp('bool')
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::or") 
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::and") 
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_bool") 
+			or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_bool") then
+		self.shortForTypeDeductionBinaryOp('bool')
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::cast_as_int") then
+		if self.numeric->oclIsTypeOf(chips!input_kw) then 
+			'float'
+		else
+			self.numeric->extract_input_type_in_rvalue('float')
+		endif
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::cast_as_float") then
+		if self.numeric->oclIsTypeOf(chips!input_kw) then 
+			'int'
+		else
+			self.numeric->extract_input_type_in_rvalue('int')
+		endif
+	else
+		''
+	endif endif endif endif endif endif endif;
+
+helper context chips!collective_statement def: extract_input_type() : String =
+	if self.oclIsTypeOf(chips!"chips::statements::collective::int_assignment") then
+		self.rvalue->extract_input_type_in_rvalue('int')
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::float_assignment") then
+		self.rvalue->extract_input_type_in_rvalue('float')
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::bool_assignment") then
+		self.rvalue->extract_input_type_in_rvalue('bool')
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::if") then
+		self.condition->extract_input_type_in_rvalue('bool') +
+		self.if_section.if_statements->iterate(
+			stt ; type : String = '' | type+stt->extract_input_type()
+		)
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::if_else") then
+		self.condition->extract_input_type_in_rvalue('bool') +
+		self.if_section.if_statements->iterate(
+			stt ; type : String = '' | type+stt->extract_input_type()
+		) +
+		self.else_section.else_statements->iterate(
+			stt ; type : String = '' | type+stt->extract_input_type()
+		)
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::foreach") then
+		self.iterable_expr->extract_input_type_in_rvalue('any') +
+		self.statements->iterate(
+			stt ; type : String = '' | type+stt->extract_input_type()
+		)
+	else 
+		''
+	endif endif endif endif endif endif;
+
+helper context Sequence(chips!collective_statement) def : extract_input_type() : String =
+	self->iterate(stt ; type : String = '' | stt->extract_input_type());
+
 --------------- (helpers to detect which chips functions use contextual data)
 
 helper context chips!primitive_rvalue def : uses_contextuals() : Set(TupleType(type:String, name:String)) =
@@ -312,19 +430,6 @@ helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Se
 helper context chips!function_definition def : all_contextuals() : Sequence(TupleType(name:String, type:String)) =
 self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
 
-
-unique lazy rule MakeChipsDataType {
-	from type : String
-
-	to chipsdatatype : bip!DataType(
-		name <- 'chips_'+type,
-		native <- false,
-		superTypes <- Sequence{},
-		castableTypes <- Sequence{},
-		backendName <- 'chips_'+type
-	)
-}
-
 unique lazy rule MakeBackendDataType {
 	from type: String
 
@@ -337,11 +442,17 @@ unique lazy rule MakeBackendDataType {
 	)
 }
 
-helper context Sequence(String) def : asPortName() : String = 
+helper context Sequence(OclAny) def : asPortName() : String = 
 	if self->size() = 0 then 
 		'port_t'
 	else
-		self->iterate(tname ; accu : String = '' | accu+tname)+'_port_t'
+		self->iterate(type ; accu : String = '' | accu+
+			if type.oclIsTypeOf(String) then
+				type
+			else
+				'Struct_'+type->iterate(tt ; accc : String = ''| accc+tt)+'_'
+			endif
+		)+'_port_t'
 	endif;
 
 
@@ -462,25 +573,51 @@ lazy rule MakeContextualPetriNet {
 
 unique lazy rule MakePortDataParameterDeclaration {
 	from 
-		type:String, 
+		type:OclAny,
+		iindex:Integer,
+		type_ordered_sequence:Sequence(OclAny)
+	to 
+		pdpd: bip!PortDataParameterDeclaration(
+			name <- 'v'+iindex.toString(),
+			dataType <- thisModule.MakeBipDataType(type)
+		)
+}
+
+unique lazy rule MakeStructPortDataParameterDeclaration {
+	from 
+		type:Sequence(String),
 		iindex:Integer,
 		type_ordered_sequence:Sequence(String)
 	to 
 		pdpd: bip!PortDataParameterDeclaration(
 			name <- 'v'+iindex.toString(),
-			dataType <- thisModule.MakeChipsDataType(type)
+			dataType <- thisModule.MakeBipDataType(type)
 		)
 }
 
 
 unique lazy rule MakePortType {
 	from 
-		type_ordered_sequence : Sequence(String)
+		type_ordered_sequence : Sequence(OclAny)
 
 	using{
 		portDataParamDeclSequence : Sequence(bip!PortDataParameterDeclaration) =
 			type_ordered_sequence->augmentWithIindex()
-			->collect( tuple | thisModule.MakePortDataParameterDeclaration(tuple.data,tuple.iindex,type_ordered_sequence));
+			->collect( tuple | 
+				if tuple.data->oclIsKindOf(String) then
+					thisModule.MakePortDataParameterDeclaration(
+						tuple.data,
+						tuple.iindex,
+						type_ordered_sequence
+					)
+				else 
+					thisModule.MakeStructPortDataParameterDeclaration(
+						tuple.data,
+						tuple.iindex,
+						type_ordered_sequence
+					)
+				endif
+			);
 	}
 
 	to pt : bip!PortType(
@@ -554,7 +691,7 @@ lazy rule MakeAtomInternalDataDeclaration{
 		name : String
 
 	to datadecl:bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <-name.protect()+'_aidd'
 	)
 }
@@ -567,7 +704,7 @@ unique lazy rule MakeCoreAtomInternalDataDeclaration{
 		category: String
 
 	to datadecl:bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <-name.protect()+'_aidd'
 	)
 }
@@ -582,12 +719,12 @@ unique lazy rule MakeAtomDataDeclarationReferenceDataParameter{
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
 			dataDeclarationReference <- datadecl,
 			parameterDeclaration <- pdpd,
-			type <- thisModule.MakeChipsDataType(type)
+			type <- thisModule.MakeBipDataType(type)
 		),
 
 		pdpd: bip!PortDataParameterDeclaration( 
 			name <- 'v'+iindex.toString(),
-			dataType <- thisModule.MakeChipsDataType(type)
+			dataType <- thisModule.MakeBipDataType(type)
 		)
 }
 
@@ -602,11 +739,11 @@ unique lazy rule MakeCoreAtomDataDeclarationReferenceDataParameter{
 		ddrdp: bip!DataDeclarationReferenceDataParameter(
 			dataDeclarationReference <- datadecl,
 			parameterDeclaration <- pdpd,
-			type <- thisModule.MakeChipsDataType(type)
+			type <- thisModule.MakeBipDataType(type)
 		),
 		pdpd: bip!PortDataParameterDeclaration( 
 			name <- 'v'+iindex.toString(),
-			dataType <- thisModule.MakeChipsDataType(type)
+			dataType <- thisModule.MakeBipDataType(type)
 		)
 }
 
@@ -892,7 +1029,7 @@ lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 		type : String
 
 	to datadecl:bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <-type+'_data'
 	)
 }
@@ -1001,7 +1138,7 @@ lazy rule MakeContextualTypeInternalDataDeclaration{
 		type : String
 
 	to datadecl:bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <-type+'_data'
 	)
 }
@@ -1132,7 +1269,7 @@ unique lazy rule MakeMany2OneConnectorDataDeclaration{
 
 
 	to cdd:bip!ConnectorDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <- 'v'+iindex.toString()
 	)
 }
@@ -1175,13 +1312,13 @@ lazy rule MakeAssignment{
 
 lazy rule MakeConnectorDataDeclarationReferenceDataParameter {
 	from 
-		type:String,
+		type:OclAny,
 		ddr:bip!ConnectorDataDeclaration,
 		paramdecl:bip!PortDataParameterDeclaration
 
 	to ddrdp:bip!DataDeclarationReferenceDataParameter(
 		dataDeclarationReference<-ddr,
-		type<-thisModule.MakeChipsDataType(type),
+		type<-thisModule.MakeBipDataType(type),
 		parameterDeclaration <- paramdecl
 	)
 }
@@ -1259,12 +1396,11 @@ unique lazy rule MakeCollectiveConnectorPortParameterDeclaration{
 	from 
 		indexed_types:Sequence(TupleType(iindex:Integer,type:String)),
 		channelname: String,
-		datadecls:Sequence(bip!ConnectorDataDeclaration)
+		cfd:chips!collective_function_definition
 
 	to cppd : bip!ConnectorPortParameterDeclaration(
 		portType <- thisModule.MakePortType(indexed_types->collect(t | t.type)),
-		name <- 'p_'+channelname+'_cppd',
-		dataParameters<- indexed_types->collect(t | thisModule.MakeDataDeclarationReferenceDataParameter(datadecls->get(t.iindex)))
+		name <- 'p_'+channelname+'_cppd'
 	)
 }
 
@@ -1318,6 +1454,8 @@ unique lazy rule MakeMany2OneConnectorType{
 		guard <- thisModule.MakeTrivialGuard(true)-- (ValuedExpression)
 	)
 
+
+
 	do {
 
 		thisModule.temp_dic <- thisModule.dictionary->get('Many2OneConnectorTypes');
@@ -1348,7 +1486,7 @@ unique lazy rule MakeOne2ManyConnectorDataDeclaration{
 
 
 	to cdd:bip!ConnectorDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <- 'v'+iindex.toString()
 	)
 }
@@ -1601,25 +1739,25 @@ helper context chips!collective_function_definition def : getAccumulatorSig() : 
 			else if param.oclIsKindOf(chips!bool_collective_parameter) then
 				'bool'
 			else
-				OclUndefined.debug('this should never happen, unrecognized type for accumulator parameter '+param.name)
+				'ATL transformation Error'.debug('this should never happen, unrecognized type for accumulator parameter '+param.name)
 			endif endif endif
 		}
 	)->asSequence();
 
 unique lazy rule MakeCollectiveConnectorDataDeclaration{
 	from 
-		type:String,
+		datatype:bip!DataType,
 		dname:String,
 		cfd:chips!collective_function_definition
 
 
 	to cdd:bip!ConnectorDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- datatype,
 		name <- dname
 	)
 }
 
-unique lazy rule MakeCollectiveConnectorType{
+unique lazy rule MakeSpreadConnectorType{
 	from 
 		cfd:chips!collective_function_definition
 
@@ -1628,6 +1766,8 @@ unique lazy rule MakeCollectiveConnectorType{
 
 		support_node_type : String = cfd.support_object.name;
 
+		hascontextuals : Boolean = false; -- at the moment, not implemented because it's a pain to do
+		
 		node_data : TupleType(
 			channels:Map(String,String),
 			contextuals:Map(String,TupleType(
@@ -1649,53 +1789,22 @@ unique lazy rule MakeCollectiveConnectorType{
 		else if expr.oclIsKindOf(chips!collective_bool_rvalue) then
 			'bool'
 		else
-			OclUndefined.debug('this should never happen, unrecognized type for target output of '+fname)
+			'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
 		endif endif endif;
 
-		accu_sig_indexed : Sequence(TupleType(type:String, iindex:Integer)) = 
+		accu_sig_indexed : Sequence(TupleType(data:TupleType(type:String,name:String), iindex:Integer)) = 
 			accumulator_signature->augmentWithIindex();
 
-		datadecls : Map(String, Sequence(bip!ConnectorDataDeclaration)) =
-			node_data.channels->getKeys()->iterate(
-				chan; themap : Map(String, Sequence(bip!ConnectorDataDeclaration)) = Map{} |
-				themap->including(
-					chan,
-					accu_sig_indexed->collect(
-						paramiindex |
-						thisModule.MakeCollectiveConnectorDataDeclaration(
-							paramiindex.data.type,
-							paramiindex.data.name+'_of_'+chan,
-							cfd
-						)
-					)->asSequence()
-				)
-			);
-
 		up_datadecls : Sequence(bip!ConnectorDataDeclaration) =
-			accu_sig_indexed->collect(
-				paramiindex |
+			accumulator_signature->collect(
+				t |
 				thisModule.MakeCollectiveConnectorDataDeclaration(
-					paramiindex.data.type,
-					paramiindex.data.name+'_of_upaccumulator',
+					thisModule.MakeBipDataType(t.type),
+					t.name+'_of_upaccumulator',
 					cfd
 				)
-			)->asSequence();
-
-		cddrdp : Map(String, Sequence(bip!ConnectorDataDeclarationReferenceDataParameter)) =
-			accu_sig_indexed->collect(paramiindex |
-				node_data.channels->getKeys()->collect(
-					chan |
-					thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-						paramiindex.data.type,
-						datadecls->get(chan)->get(paramiindex.iindex),
-						thisModule.MakePortDataParameterDeclaration(
-							paramiindex.data.type,
-							paramiindex.iindex,
-							accu_sig_indexed->collect(t|t.data.type)
-						)
-					)
-				)
-			);
+			)
+			->asSequence();
 
 		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
 			node_data.channels->getKeys()->iterate(
@@ -1703,32 +1812,43 @@ unique lazy rule MakeCollectiveConnectorType{
 				themap->including(
 					name,
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
-						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), name, datadecls.debug()->get(name)
+						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), name, cfd
 					)
 				)
 			);
-		
-		-- subInteractions : Sequence(bip!ConnectorInteractionPortReference) = 
-		-- 	downports->getValues()->collect( p | thisModule.MakeConnectorInteractionPortReference(p) );
-		
 	}
 
 	to cct:bip!ConnectorType(
 		name<- fname+'_among_'+support_node_type+'_conn_t',
-		interactions<-Sequence{
-			thisModule.MakeConnectorInteractionNestedDefinition(
-				downports->getValues()->asSequence()
-			)
-		},
+		interactions<- Sequence{interaction},
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
+			downports->getValues()->asSequence()
+			->append(target_cppd)
+		),
 		exportedPortDeclaration <- up_accumulator,
-		dataDeclarations <- 
-			datadecls
-			->getValues()
-			->flatten()
-			->asSequence()
-			->union(up_datadecls)
-			->including(target_datadecl),
+		dataDeclarations <- up_datadecls,
 		ports <- downports->getValues()->including(target_cppd)
+	),
+
+	interaction:bip!ConnectorInteractionAction(
+		onPorts<- downports->getValues()->asSequence()
+			->append(target_cppd), --(ConnectorPortParameterDeclaration)
+		down <- Sequence{downinteraction},
+		up <- if hascontextuals then
+			Sequence{upinteraction}
+		else
+			Sequence{}
+		endif
+	),
+
+	downinteraction: bip!FunctionCallExpression(
+		functionName <- fname+'_down'--,
+		--parameters <- ,
+	),
+
+	upinteraction: bip!FunctionCallExpression(
+		functionName <- fname+'_up'--,
+		--parameters <- ,
 	),
 
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
@@ -1750,29 +1870,12 @@ unique lazy rule MakeCollectiveConnectorType{
 	
 	target_cppd : bip!ConnectorPortParameterDeclaration(
 		portType <- thisModule.MakePortType(target_type),
-		name <- 'p_target_cppd',
-		dataParameters<- Sequence{target_ddrdp}
-	),
-
-	target_ddrdp: bip!DataDeclarationReferenceDataParameter(
-		dataDeclarationReference<-target_datadecl,
-		type<-thisModule.MakeChipsDataType(target_type),
-		parameterDeclaration <- target_pdpd
-	),
-
-	target_pdpd: bip!PortDataParameterDeclaration( 
-		name <- 'v0',
-		dataType <- thisModule.MakeChipsDataType(target_type)
-	),
-
-	target_datadecl : bip!ConnectorDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(target_type),
-		name <- 'target'
+		name <- 'p_target_cppd'
 	)
 
 	do {
 
-		thisModule.temp_dic <- thisModule.dictionary->get('CollectiveConnectorType');
+		thisModule.temp_dic <- thisModule.dictionary->get('SpreadConnectorType');
 		if (thisModule.temp_dic.oclIsUndefined()) {
 			thisModule.temp_dic <- Map{};
 		}
@@ -1783,7 +1886,160 @@ unique lazy rule MakeCollectiveConnectorType{
 				Map{}
 			);
 		thisModule.dictionary <- thisModule.dictionary
-			->including('CollectiveConnectorType', thisModule.temp_dic);
+			->including('SpreadConnectorType', thisModule.temp_dic);
+
+		cct;
+	}
+}
+
+
+unique lazy rule MakeCollectConnectorType{
+	from 
+		cfd:chips!collective_function_definition
+
+	using{
+		fname : String = cfd.name;
+
+		support_node_type : String = cfd.support_object.name;
+
+		hascontextuals : Boolean = false; -- at the moment, not implemented because it's a pain to do
+		
+		input_type : String = cfd.operations.statements->extract_input_type();
+		
+		node_data : TupleType(
+			channels:Map(String,String),
+			contextuals:Map(String,TupleType(
+				dimensions:Sequence(Integer),
+				instances:Sequence(bip!ComponentDeclaration)
+			))
+		) = thisModule.getNodeData(cfd.support_object);
+
+		accumulator_signature: Sequence(TupleType(name:String,type:String)) = cfd.getAccumulatorSig();
+
+		target_type : String = 
+		let expr : OclAny = cfd.target_output.expression->at(1) in 
+		-- currently, target_output.expression is a sequence in anticipation for when we get anonymous datastructures 
+		-- as signals transmitted between components
+		if expr.oclIsKindOf(chips!collective_int_rvalue) then
+			'int'
+		else if expr.oclIsKindOf(chips!collective_float_rvalue) then
+			'float'
+		else if expr.oclIsKindOf(chips!collective_bool_rvalue) then
+			'bool'
+		else
+			'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
+		endif endif endif;
+
+		accu_sig_indexed : Sequence(TupleType(data:TupleType(type:String,name:String), iindex:Integer)) = 
+			accumulator_signature->augmentWithIindex();
+
+		up_datadecls : Sequence(bip!ConnectorDataDeclaration) =
+			Sequence{
+				thisModule.MakeCollectiveConnectorDataDeclaration(
+					thisModule.MakeBipDataType(target_type),
+					'target_data',
+					cfd
+				)
+			}->union(
+				node_data.channels->getKeys()->asSequence()->collect(
+					chan |
+					thisModule.MakeCollectiveConnectorDataDeclaration(
+						thisModule.MakeBipDataType(accumulator_signature->collect(t | t.type)),
+						chan+'_output',
+						cfd
+					)
+				)
+			);
+
+		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
+			node_data.channels->getKeys()->iterate(
+				channame ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
+				themap->including(
+					channame->protect(),
+					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
+						channame->protect(), 
+						cfd
+					)
+				)
+			)->including(
+				'_self', 
+				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+					accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
+					'_self',
+					cfd
+				)
+			)->including(
+				'input', 
+				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+					Sequence{Tuple{type=input_type, iindex=0}}, 
+					'input',
+					cfd
+				)
+			);
+		
+		up_port_type_seq : Sequence(OclAny) = 
+			Sequence{target_type}
+			->union(
+				node_data.channels->getKeys()->asSequence()
+				->collect(channame | accumulator_signature->collect(tuple | tuple.type))
+			);
+	}
+
+	to cct:bip!ConnectorType(
+		name<- fname+'_among_'+support_node_type+'_conn_t',
+		interactions<- Sequence{interaction},
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
+			downports->getValues()
+		),
+		exportedPortDeclaration <- up_accumulator,
+		dataDeclarations <- up_datadecls,
+		ports <- downports->getValues()
+	),
+
+	interaction:bip!ConnectorInteractionAction(
+		onPorts<- downports->getValues(), --(ConnectorPortParameterDeclaration)
+		up <- Sequence{upinteraction}
+	),
+
+	upinteraction: bip!FunctionCallExpression(
+		functionName <- fname+'_up'--,
+		--parameters <- ,
+	),
+
+	up_accumulator :bip!ConnectorExportedPortDeclaration(
+		portType <-thisModule.MakePortType(up_port_type_seq),
+		name <- 'up_accumulator',
+		dataParameters <-
+		up_port_type_seq->augmentWithIindex()
+		->collect(
+			t |
+			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+				up_port_type_seq->get(t.iindex),
+				up_datadecls->get(t.iindex), -- ddr:bip!ConnectorDataDeclaration,
+				thisModule.MakePortDataParameterDeclaration(
+					up_port_type_seq->get(t.iindex), -- type:OclAny
+					t.iindex, --iindex:Integer
+					up_port_type_seq --type_ordered_sequence:Sequence(OclAny)
+				)
+			)
+		)
+	)
+
+	do {
+
+		thisModule.temp_dic <- thisModule.dictionary->get('SpreadConnectorType');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				fname,
+				Map{}
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('SpreadConnectorType', thisModule.temp_dic);
 
 		cct;
 	}
@@ -2431,7 +2687,7 @@ unique lazy rule MakeComponentDataParameterDeclaration{
 	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <- name+'_componentdataparameterdeclaration',
 		const <- true
 	)
@@ -2535,7 +2791,7 @@ unique lazy rule MakeConstantAtomType{
 	),
 
 	datadecl:bip!AtomInternalDataDeclaration(
-		dataType <- thisModule.MakeChipsDataType(type),
+		dataType <- thisModule.MakeBipDataType(type),
 		name <-dataname+'_aidd'
 	)
 
@@ -2682,21 +2938,28 @@ rule Program2BipPackage {
 	
 	using {
 
-		data_types: Sequence(bip!DataType) = 
-			Sequence{'int','float','bool'}->collect(t | thisModule.MakeChipsDataType(t))
-			->union(Sequence{thisModule.MakeBackendDataType('bool')})->toArray(); -- only needed to decide which fsm starts
+		all_chips_function_defs : Sequence(chips!function_definition) = 
+			chipsprogram.preamble.definitions
+			->select(d | d.oclIsKindOf(chips!function_definition))->toArray();
+		
+		all_chips_collective_defs : Sequence(chips!collective_function_definition) =
+			chipsprogram.preamble.definitions
+			->select(d | d.oclIsKindOf(chips!collective_function_definition))->toArray();
 
+
+		data_types: Sequence(bip!DataType) = 
+			Sequence{'int','float','bool'}->collect(t | thisModule.MakeBipDataType(t))
+			->union(Sequence{thisModule.MakeBackendDataType('bool')}) -- only needed to decide which fsm starts
+			->union(
+				all_chips_collective_defs
+				->select(cfd | cfd.collective_function_type = #collect)
+				->collect(cfd| cfd.getAccumulatorSig()->collect(elem | elem.type))
+				->collect(typeSeq | thisModule.MakeBipDataType(typeSeq))
+			)->toArray();
 
 		base_port_types: Sequence(bip!PortType) = 
 			Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'},Sequence{}}
 				->collect( t | thisModule.MakePortType(t))->toArray();
-
-
-		all_chips_function_defs : Sequence(chips!function_definition) = 
-			chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!function_definition))->toArray();
-		
-		all_chips_collective_defs : Sequence(chips!collective_function_definition) =
-			chipsprogram.preamble.definitions->select(d | d.oclIsKindOf(chips!collective_function_definition))->toArray();
 
 		system_specific_input_port_types: Sequence(bip!PortType) = 
 			all_chips_function_defs->collect(
@@ -2765,7 +3028,13 @@ rule Program2BipPackage {
 		
 
 		all_collective_connector_types : Sequence(bip!ConnectorType) = 
-			all_chips_collective_defs->collect(d | thisModule.MakeCollectiveConnectorType(d));
+			all_chips_collective_defs->collect(d | 
+				if d.collective_function_type = #spread then
+					thisModule.MakeSpreadConnectorType(d)
+				else
+					thisModule.MakeCollectConnectorType(d)
+				endif
+			);
 
 		trivial_flow_connector_types: 
 		Map(Sequence(String), TupleType(
@@ -3047,7 +3316,7 @@ helper context chips!channel_declaration def: evaluate(node_data : TupleType(
 		temp_memory = node_data.temp_memory,
 		channels = 
 			if node_data.channels->getKeys()->any( e | e = self.name) <> OclUndefined then
-				let a : OclAny = OclUndefined.debug('Duplicate channel with name "'+ self.name +'" ignored.') in
+				let a : OclAny = 'ATL transformation Error'.debug('Duplicate channel with name "'+ self.name +'" ignored.') in
 				node_data.channels
 			else 
 				node_data.channels->including(
@@ -3081,7 +3350,7 @@ helper context chips!contextual_int_declaration def: evaluate(node_data : TupleT
 			contextuals = node_data.contextuals->including(var)
 		}
 	else
-		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		let a : OclAny = 'ATL transformation Error'.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
 		node_data
 	endif;
 
@@ -3109,7 +3378,7 @@ helper context chips!contextual_float_declaration def: evaluate(node_data : Tupl
 			contextuals = node_data.contextuals->including(var)
 		}
 	else
-		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		let a : OclAny = 'ATL transformation Error'.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
 		node_data
 	endif;
 
@@ -3137,7 +3406,7 @@ helper context chips!contextual_bool_declaration def: evaluate(node_data : Tuple
 			contextuals = node_data.contextuals->including(var)
 		}
 	else
-		let a : OclAny = OclUndefined.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
+		let a : OclAny = 'ATL transformation Error'.debug('Duplicate contextual with name "'+ self.name +'" ignored.') in
 		node_data
 	endif;
 
@@ -3271,7 +3540,7 @@ helper context chips!"chips::xvalues::primitive::int_variable_expression" def : 
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'int') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
 		var
 	endif;
@@ -3284,7 +3553,7 @@ helper context chips!"chips::xvalues::primitive::float_variable_expression" def 
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'float') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
 		var
 	endif;
@@ -3297,7 +3566,7 @@ helper context chips!"chips::xvalues::primitive::bool_variable_expression" def :
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'bool') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
 		var
 	endif;
@@ -3310,7 +3579,7 @@ helper context chips!"chips::xvalues::primitive::contextual_int_expression" def 
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'int') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
 		var
 	endif;
@@ -3323,7 +3592,7 @@ helper context chips!"chips::xvalues::primitive::contextual_float_expression" de
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'float') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
 		var
 	endif;
@@ -3336,7 +3605,7 @@ helper context chips!"chips::xvalues::primitive::contextual_bool_expression" def
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'bool') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
 		var
 	endif;
@@ -3358,7 +3627,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::plus" def : eva
 					->collect(i | loperand.value->get(i) + roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on sum',
 				type= 'int',
@@ -3367,7 +3636,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::plus" def : eva
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on sum',
 			type= 'int',
@@ -3393,7 +3662,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::plus" def : e
 					->collect(i | loperand.value->get(i) + roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on sum',
 				type= 'float',
@@ -3402,7 +3671,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::plus" def : e
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on sum',
 			type= 'float',
@@ -3428,7 +3697,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::mult" def : eva
 					->collect(i | loperand.value->get(i) * roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on mult',
 				type= 'int',
@@ -3437,7 +3706,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::mult" def : eva
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on mult',
 			type= 'int',
@@ -3463,7 +3732,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::mult" def : e
 					->collect(i | loperand.value->get(i) * roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on mult',
 				type= 'float',
@@ -3472,7 +3741,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::mult" def : e
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on mult',
 			type= 'float',
@@ -3498,7 +3767,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::div" def : eval
 					->collect(i | loperand.value->get(i) div roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on div',
 				type= 'int',
@@ -3507,7 +3776,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::div" def : eval
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on div',
 			type= 'int',
@@ -3533,7 +3802,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::div" def :eva
 					->collect(i | loperand.value->get(i) / roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on div',
 				type= 'float',
@@ -3542,7 +3811,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::div" def :eva
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on div',
 			type= 'float',
@@ -3568,7 +3837,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::minus" def : ev
 					->collect(i | loperand.value->get(i) - roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on substraction',
 				type= 'int',
@@ -3577,7 +3846,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::minus" def : ev
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on substraction',
 			type= 'int',
@@ -3603,7 +3872,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::minus" def : 
 					->collect(i | loperand.value->get(i) - roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on substract',
 				type= 'float',
@@ -3612,7 +3881,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::minus" def : 
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on substract',
 			type= 'float',
@@ -3638,7 +3907,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::minus" def : 
 					->collect(i | loperand.value->get(i) mod roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on modulo',
 				type= 'int',
@@ -3647,7 +3916,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::minus" def : 
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on modulo',
 			type= 'int',
@@ -3670,7 +3939,7 @@ helper context chips!"chips::rvalues::primitive::operators::float::cast_as_float
 			value= operand.value
 		}
 	else
-		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as float') in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot cast '+operand.name+' as float') in
 		Tuple{
 			name='cast error',
 			type= 'float',
@@ -3693,7 +3962,7 @@ helper context chips!"chips::rvalues::primitive::operators::int::cast_as_int" de
 			value= operand.value
 		}
 	else
-		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as int') in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot cast '+operand.name+' as int') in
 		Tuple{
 			name='cast error',
 			type= 'int',
@@ -3780,7 +4049,7 @@ helper context chips!"chips::rvalues::primitive::function" def : evaluate(node_d
 					dims = dimensions
 				}
 			else 
-				let a : OclAny = OclUndefined.debug('Unrecogized function name '+self.name) in
+				let a : OclAny = 'ATL transformation Error'.debug('Unrecogized function name '+self.name) in
 				Tuple{
 					name = 'fcall',
 					type = 'error',
@@ -4645,7 +4914,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 			)
 		endif
 	else
-		let error : OclAny = OclUndefined.debug('the lvalue of this assignment is not found...') in 
+		let error : OclAny = 'ATL transformation Error'.debug('the lvalue of this assignment is not found...') in 
 		memory.variables
 	endif;
 
@@ -4854,13 +5123,13 @@ helper context chips!channel_plugging def :
 			let to_chan : String = self.eater.eating_channel.name in
 			let to_chan_type : String = self.eater.eating_channel.type_identifier in
 			if (not memory.connections->select(e | (e.from_ob = from_ob_name) and (e.from_index = from_ob_index) and (e.from_chan = from_chan))->isEmpty()) then
-				let a :OclAny = OclUndefined.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', feeding channel output is already connected') in
+				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', feeding channel output is already connected') in
 				memory.connections
 			else if (not memory.connections->select(e | (e.to_ob = to_ob_name) and (e.to_index = to_ob_index) and (e.to_chan = to_chan))->isEmpty()) then
-				let a :OclAny = OclUndefined.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', eating channel input is already connected') in
+				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', eating channel input is already connected') in
 				memory.connections
 			else if (from_chan_type<>to_chan_type) then
-				let a :OclAny = OclUndefined.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', incompatible channel types') in
+				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', incompatible channel types') in
 				memory.connections
 			else
 				memory.connections->including(
@@ -5213,10 +5482,10 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_int.evaluate') -- How is it even possible?
+				let a : OclType = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_int.evaluate') -- How is it even possible?
 				in
 				memory.dataflows
 			endif 
@@ -5320,10 +5589,10 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_float.evaluate') -- How is it even possible?
+				let a : OclType = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_float.evaluate') -- How is it even possible?
 				in
 				memory.dataflows
 			endif 
@@ -5427,10 +5696,10 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
-				let a : OclType = OclUndefined.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_bool.evaluate') -- How is it even possible?
+				let a : OclType = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_bool.evaluate') -- How is it even possible?
 				in
 				memory.dataflows
 			endif 
@@ -5918,7 +6187,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				)
 			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			endif,
 			links = memory.links,
@@ -6026,7 +6295,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 				)
 			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			endif,
 			links = memory.links,
@@ -6134,7 +6403,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 				)
 			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
 				-- TO DO (but less urgent than the rest)
-				let a : OclType = OclUndefined.debug('Collective cast operator not handled by the compiler yet') in
+				let a : OclType = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			endif,
 			links = memory.links,
@@ -6238,7 +6507,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'int') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', int expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
 		var
 	endif;
@@ -6259,7 +6528,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'float') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', float expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
 		var
 	endif;
@@ -6280,7 +6549,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 		memory.variables->any(e | (e.name = self.variable.name->protect())) in
 	if (var.type <> 'bool') then 
-		OclUndefined.debug(var.name+' is of type '+var.type+', bool expected')
+		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
 		var
 	endif;
@@ -6310,7 +6579,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 					->collect(i | loperand.value->get(i) + roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on sum',
 				type= 'int',
@@ -6319,7 +6588,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on sum',
 			type= 'int',
@@ -6353,7 +6622,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 					->collect(i | loperand.value->get(i) + roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on sum',
 				type= 'float',
@@ -6362,7 +6631,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot sum values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on sum',
 			type= 'float',
@@ -6396,7 +6665,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 					->collect(i | loperand.value->get(i) * roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on mult',
 				type= 'int',
@@ -6405,7 +6674,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on mult',
 			type= 'int',
@@ -6439,7 +6708,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 					->collect(i | loperand.value->get(i) * roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on mult',
 				type= 'float',
@@ -6448,7 +6717,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot multiply values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on mult',
 			type= 'float',
@@ -6482,7 +6751,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 					->collect(i | loperand.value->get(i) div roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on div',
 				type= 'int',
@@ -6491,7 +6760,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on div',
 			type= 'int',
@@ -6525,7 +6794,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 					->collect(i | loperand.value->get(i) / roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on div',
 				type= 'float',
@@ -6534,7 +6803,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot divide values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on div',
 			type= 'float',
@@ -6568,7 +6837,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 					->collect(i | loperand.value->get(i) - roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on substraction',
 				type= 'int',
@@ -6577,7 +6846,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on substraction',
 			type= 'int',
@@ -6611,7 +6880,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 					->collect(i | loperand.value->get(i) - roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on substract',
 				type= 'float',
@@ -6620,7 +6889,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot substract values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on substract',
 			type= 'float',
@@ -6654,7 +6923,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 					->collect(i | loperand.value->get(i) mod roperand.value->get(i))
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot compute mod values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on modulo',
 				type= 'int',
@@ -6663,7 +6932,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot compute mod values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on modulo',
 			type= 'int',
@@ -6694,7 +6963,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 			value= operand.value
 		}
 	else
-		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as float') in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot cast '+operand.name+' as float') in
 		Tuple{
 			name='cast error',
 			type= 'float',
@@ -6725,7 +6994,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 			value= operand.value
 		}
 	else
-		let a : OclType = OclUndefined.debug('Cannot cast '+operand.name+' as int') in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot cast '+operand.name+' as int') in
 		Tuple{
 			name='cast error',
 			type= 'int',
@@ -6759,7 +7028,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 				}
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot compare (<) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on <',
 				type= 'bool',
@@ -6768,7 +7037,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot compare (<) values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on <',
 			type= 'bool',
@@ -6836,7 +7105,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 				}
 			}
 		else
-			let a : OclType = OclUndefined.debug('Cannot compare (=) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
+			let a : OclType = 'ATL transformation Error'.debug('Cannot compare (=) values of different dimensions\n'+loperand.name+' and '+roperand.name) in
 			Tuple{
 				name='wrong dimensions on =',
 				type= 'bool',
@@ -6845,7 +7114,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			}
 		endif
 	else
-		let a : OclType = OclUndefined.debug('Cannot compare (=) values of different types\n'+loperand.name+' and '+roperand.name) in
+		let a : OclType = 'ATL transformation Error'.debug('Cannot compare (=) values of different types\n'+loperand.name+' and '+roperand.name) in
 		Tuple{
 			name='wrong types on =',
 			type= 'bool',
@@ -6946,7 +7215,7 @@ helper context chips!"chips::rvalues::system::function" def : evaluate(memory:Tu
 					dims = dimensions
 				}
 			else 
-				let a : OclAny = OclUndefined.debug('Unrecogized function name '+self.name) in
+				let a : OclAny = 'ATL transformation Error'.debug('Unrecogized function name '+self.name) in
 				Tuple{
 					name = 'fcall',
 					type = 'error',
