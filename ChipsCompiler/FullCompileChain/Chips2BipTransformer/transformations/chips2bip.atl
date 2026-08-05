@@ -60,6 +60,10 @@ unique lazy rule MakeCppFunctionCall {
 helper context Integer def : toString(memory : Set(TupleType(key:String, value:OclAny, type:String, dimensions:Sequence(Integer)))) : String =
 	self.toString();
 
+helper context Sequence(Integer) def : toString() : String =
+	let temp : String = self->iterate(elem ; str : String = '' | str+'_'+elem.toString()+'_') in
+	if temp = '' then '_0_' else temp endif;
+
 helper context Sequence(OclAny) def : augmentWithIindex() : Sequence(TupleType(data:OclAny, iindex:Integer)) =
 	thisModule.range(Sequence{self->size()})->collect(x | Tuple{data=self->get(x), iindex=x});
 
@@ -2890,7 +2894,7 @@ helper context TupleType(
 		TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Map(
 			TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-			bip!ConnectorDeclaration
+			String -- the collective function name
 		)
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -2914,7 +2918,7 @@ helper context TupleType(
 		TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Map(
 			TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-			bip!ConnectorDeclaration
+			String -- the collective function name
 		)
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -2945,7 +2949,7 @@ helper context TupleType(
 		TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Map(
 			TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-			bip!ConnectorDeclaration
+			String -- the collective function name
 		)
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -3141,7 +3145,7 @@ rule Program2BipPackage {
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -3165,7 +3169,7 @@ rule Program2BipPackage {
 					TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Map(
 						TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-						bip!ConnectorDeclaration
+						String -- the collective function name
 					)
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -3461,7 +3465,7 @@ helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4582,7 +4586,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4640,7 +4644,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4659,7 +4663,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4690,7 +4694,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4709,7 +4713,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4739,7 +4743,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4758,7 +4762,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
@@ -4790,7 +4794,7 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4825,7 +4829,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4844,7 +4848,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4875,7 +4879,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4894,7 +4898,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4924,7 +4928,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4943,7 +4947,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -4996,7 +5000,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5095,7 +5099,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5114,7 +5118,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5144,7 +5148,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5163,7 +5167,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5193,7 +5197,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5212,7 +5216,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5245,7 +5249,7 @@ helper context chips!link def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5264,7 +5268,7 @@ helper context chips!link def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5328,7 +5332,7 @@ helper context chips!channel_plugging def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5390,7 +5394,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5409,7 +5413,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5452,7 +5456,7 @@ helper context chips!"chips::statements::system::foreach" def :
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5472,7 +5476,7 @@ helper context chips!"chips::statements::system::foreach" def :
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5493,7 +5497,7 @@ helper context chips!"chips::statements::system::foreach" def :
 					TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Map(
 						TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-						bip!ConnectorDeclaration
+						String -- the collective function name
 					)
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5548,7 +5552,7 @@ helper context chips!"chips::statements::system::if" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5567,7 +5571,7 @@ helper context chips!"chips::statements::system::if" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5591,7 +5595,7 @@ helper context chips!"chips::statements::system::if" def :
 					TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Map(
 						TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-						bip!ConnectorDeclaration
+						String -- the collective function name
 					)
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5618,7 +5622,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5637,7 +5641,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5661,7 +5665,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5686,7 +5690,7 @@ helper context chips!"chips::statements::system::if_else" def :
 					TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Map(
 						TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-						bip!ConnectorDeclaration
+						String -- the collective function name
 					)
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5697,6 +5701,23 @@ helper context chips!"chips::statements::system::if_else" def :
 
 -- -- feeding interpretation in system section
 -- ----------------------------------------------------
+
+helper def: partial_connectors_entry(
+	root : TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String),
+	leaf : TupleType(object:String,object_index:Sequence(Integer)),
+	collective_func:String
+) :  bip!ConnectorDeclaration = 
+	let spreadtype : bip!ConnectorType = thisModule.dictionary->get('SpreadConnectorType')->get(collective_func) in
+	let isspread : Boolean = spreadtype <> OclUndefined in
+	let collecttype : : bip!ConnectorType = thisModule.dictionary->get('CollectConnectorType')->get(collective_func) in
+	thisModule.MakeConnectorDeclaration(
+		root.root_function->protect()+root.root_index->toString()+root.root_parameter->protect()+'_to_'
+		+leaf.object->protect()+leaf.object_index->toString()+'_using_'+collective_func->protect(),
+		if isspread then spreadtype else collecttype endif,
+		Sequence{
+			
+		}
+	);
 
 helper context chips!"chips::statements::system::feeding_physical_int" def : 
 	evaluate(memory:TupleType(
@@ -5714,14 +5735,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
-			)
-		),
-		partial_connectors : Map(
-			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Map(
-				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5740,7 +5754,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5810,8 +5824,6 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			)
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
 				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_int.evaluate') -- How is it even possible?
@@ -5819,6 +5831,14 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 				memory.dataflows
 			endif 
 		endif,
+		partial_connectors = 
+		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+			-- TO DO (but less urgent than the rest)
+			let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+			memory.partial_connectors
+		else 
+			memory.partial_connectors
+		endif
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
@@ -5842,7 +5862,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5861,7 +5881,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5963,7 +5983,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -5982,7 +6002,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6083,7 +6103,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6102,7 +6122,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6128,7 +6148,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6231,7 +6251,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6250,7 +6270,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6276,7 +6296,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6379,7 +6399,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6398,7 +6418,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6424,7 +6444,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Map(
 					TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-					bip!ConnectorDeclaration
+					String -- the collective function name
 				)
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6526,7 +6546,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6545,7 +6565,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6648,7 +6668,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6667,7 +6687,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6770,7 +6790,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6789,7 +6809,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6891,7 +6911,7 @@ helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6915,7 +6935,7 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6942,7 +6962,7 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6969,7 +6989,7 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -6996,7 +7016,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7024,7 +7044,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7052,7 +7072,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7080,7 +7100,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7130,7 +7150,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7180,7 +7200,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7230,7 +7250,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7280,7 +7300,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7330,7 +7350,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7380,7 +7400,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7430,7 +7450,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7480,7 +7500,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7530,7 +7550,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7568,7 +7588,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7606,7 +7626,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7656,7 +7676,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7680,7 +7700,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7704,7 +7724,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7754,7 +7774,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7778,7 +7798,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7802,7 +7822,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
@@ -7827,7 +7847,7 @@ helper context chips!"chips::rvalues::system::function" def : evaluate(memory:Tu
 			TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Map(
 				TupleType(object:String,object_index:Sequence(Integer),collective_func:String),
-				bip!ConnectorDeclaration
+				String -- the collective function name
 			)
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
