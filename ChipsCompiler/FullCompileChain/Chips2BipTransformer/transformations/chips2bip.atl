@@ -4674,6 +4674,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		links = memory.links,
 		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = memory.variables
 	};
 
@@ -4724,6 +4725,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = memory.variables
 	};
 
@@ -4773,6 +4775,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		links = memory.links,
 		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = memory.variables
 	};
 
@@ -4859,6 +4862,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableaddedupdate(self,'int',memory)
 	};
 
@@ -4909,6 +4913,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableaddedupdate(self,'float',memory)
 	};
 
@@ -4958,6 +4963,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableaddedupdate(self,'bool',memory)
 	};
 
@@ -5129,6 +5135,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5178,6 +5185,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5227,6 +5235,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5298,6 +5307,7 @@ helper context chips!link def :
 		endif,
 		nodes = memory.nodes,
 		connections = memory.connections,
+		partial_connectors = memory.partial_connectors,
 		variables = memory.variables
 	};
 
@@ -5372,6 +5382,7 @@ helper context chips!channel_plugging def :
 				)
 			endif endif endif
 		,
+		partial_connectors = memory.partial_connectors,
 		variables = memory.variables
 	};
 
@@ -5507,6 +5518,7 @@ helper context chips!"chips::statements::system::foreach" def :
 					links = m1.links,
 					nodes = m1.nodes,
 					connections = m1.connections,
+					partial_connectors = m1.partial_connectors,
 					variables = m1.variables->including(Tuple{
 						name=self.iterator.variable.name,
 						value=Sequence{iterator},
@@ -5531,6 +5543,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			links = m1_prime.links,
 			nodes = m1_prime.nodes,
 			connections = m1_prime.connections,
+			partial_connectors = m1_prime.partial_connectors,
 			variables = m1_prime.variables->reject(e | (e.name = self.iterator.variable.name) and (e.type = iterable.type))
 		}
 	);
@@ -5960,6 +5973,14 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 				memory.dataflows
 			endif 
 		endif,
+		partial_connectors = 
+		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+			-- TO DO (but less urgent than the rest)
+			let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+			memory.partial_connectors
+		else 
+			memory.partial_connectors
+		endif
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
@@ -6081,6 +6102,14 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 				memory.dataflows
 			endif 
 		endif,
+		partial_connectors = 
+		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+			-- TO DO (but less urgent than the rest)
+			let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+			memory.partial_connectors
+		else 
+			memory.partial_connectors
+		endif
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
@@ -6137,12 +6166,18 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String,src_index:Integer, trg:String, trg_index:String)),
-			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
-			TupleType(
-				channels:Map(String,String),
-				contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
-			)
-		))),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					instances:Sequence(
+						TupleType(
+							channels:Map(String,String),
+							contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+						)
+					)
+				)
+			),
 			connections: Set(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
 			partial_connectors : Map(
 				TupleType(root_function:String,root_index:Sequence(Integer),root_parameter:String), 
@@ -6171,6 +6206,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
+			partial_connectors = memory.partial_connectors,
 			variables = memory.variables
 		} in
 		Tuple{
@@ -6639,14 +6675,26 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 						}
 					)
 				)
-			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
-				memory.dataflows
+			else
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_int.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
 			endif,
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
+			partial_connectors = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+				-- TO DO (but less urgent than the rest)
+				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+				memory.partial_connectors
+			else 
+				memory.partial_connectors
+			endif,
 			variables = memory.variables
 		}
 	endif;
@@ -6761,14 +6809,26 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 						}
 					)
 				)
-			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
-				memory.dataflows
+			else
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_float.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
 			endif,
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
+			partial_connectors = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+				-- TO DO (but less urgent than the rest)
+				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+				memory.partial_connectors
+			else 
+				memory.partial_connectors
+			endif,
 			variables = memory.variables
 		}
 	endif;
@@ -6883,14 +6943,26 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 						}
 					)
 				)
-			else -- I.E. self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast")
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
-				memory.dataflows
+			else
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_bool.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
 			endif,
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
+			partial_connectors = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+				-- TO DO (but less urgent than the rest)
+				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+				memory.partial_connectors
+			else 
+				memory.partial_connectors
+			endif,
 			variables = memory.variables
 		}
 	endif;
