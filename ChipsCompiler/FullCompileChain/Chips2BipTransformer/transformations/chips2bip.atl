@@ -2896,7 +2896,7 @@ unique lazy rule MakeBoolConstantDeclaration{
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-	links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 		TupleType(
 			type:String, channels:Map(String,String),
@@ -2904,7 +2904,7 @@ helper context TupleType(
 		)
 	))),
 	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-	partial_connectors : Map(
+	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 	),
@@ -2917,7 +2917,7 @@ let node : OclAny = self.nodes->get(nodename).instances->get(index.linearize(sel
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-	links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 		TupleType(
 			type:String, channels:Map(String,String),
@@ -2925,7 +2925,7 @@ helper context TupleType(
 		)
 	))),
 	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-	partial_connectors : Map(
+	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 	),
@@ -2945,7 +2945,7 @@ helper context TupleType(
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-	links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 		TupleType(
 			type:String, channels:Map(String,String),
@@ -2953,7 +2953,7 @@ helper context TupleType(
 		)
 	))),
 	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 	),
@@ -3139,7 +3139,7 @@ rule Program2BipPackage {
 		let memory:TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -3147,7 +3147,7 @@ rule Program2BipPackage {
 			)
 		))),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -3157,7 +3157,7 @@ rule Program2BipPackage {
 			stt ; mem :TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 				nodes: Map(String,
 					TupleType(
 						dimensions:Sequence(Integer),
@@ -3168,12 +3168,12 @@ rule Program2BipPackage {
 					)
 				),
 				connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-				partial_connectors : Map(
+				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-			) = Tuple{fblocks=Map{}, dataflows=Map{}, links=Set{},  nodes=Map{}, connections=Sequence{}, partial_connectors=Map{}, variables=Sequence{}} |
+			) = Tuple{fblocks=Map{}, dataflows=Map{}, links=Set{},  nodes=Map{}, connections=Sequence{}, ccasts_map=Map{}, variables=Sequence{}} |
 			stt.evaluate(mem)
 		)--.debug('\n----------------------memory state------------------------\n')
 		in
@@ -3267,9 +3267,18 @@ rule Program2BipPackage {
 		in
 		let collective_connectors_trees : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			TupleType(obj:String, obj_index:Integer, Map(String, OclAny))
+			Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
+			-- children:Map(channelname,index_of_plugged_object)
 		) = 
-			thisModule.createRoot()->fillTree()
+			memory.ccasts_map->getKeys()->iterate(
+				tuple ; themap : Map(
+					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+					Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
+				) = Map{} |
+				themap->including(
+					(tuple,Sequence{})
+				)
+			)
 		in
 		let collective_collect_placeholders : Map(
 			TupleType(
@@ -3484,7 +3493,7 @@ helper context chips!contextual_bool_declaration def: evaluate(node_data : Tuple
 helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -3492,7 +3501,7 @@ helper def: updatenodeswith(ndecl:OclAny, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4557,12 +4566,12 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 -- 	evaluate(memory:TupleType(
 -- 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
---		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+--		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 -- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 --			TupleType(type:String, channels:Map(String,String),
 --			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))))))),
 -- 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		-- partial_connectors : Map(
+		-- ccasts_map : Map(
 		-- 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		-- 	Map(
 		-- 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String)),
@@ -4573,12 +4582,12 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 -- 	)) : TupleType(
 -- 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 -- 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
---		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+--		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 -- 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 --			TupleType(type:String, channels:Map(String,String),
 --			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))))))),
 -- 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		-- partial_connectors : Map(
+		-- ccasts_map : Map(
 		-- 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		-- 	Map(
 		-- 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String)),
@@ -4604,7 +4613,7 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4612,7 +4621,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4659,7 +4668,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4667,7 +4676,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4675,7 +4684,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4683,7 +4692,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4695,7 +4704,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		links = memory.links,
 		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = memory.variables
 	};
 
@@ -4704,7 +4713,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4712,7 +4721,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4720,7 +4729,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4728,7 +4737,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4740,7 +4749,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = memory.variables
 	};
 
@@ -4748,7 +4757,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4756,7 +4765,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4764,7 +4773,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4772,7 +4781,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4784,7 +4793,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		links = memory.links,
 		nodes = thisModule.updatenodeswith(self, memory),
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = memory.variables
 	};
 
@@ -4794,7 +4803,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4802,7 +4811,7 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4826,7 +4835,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4834,7 +4843,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4842,7 +4851,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4850,7 +4859,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4862,7 +4871,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableaddedupdate(self,'int',memory)
 	};
 
@@ -4871,7 +4880,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4879,7 +4888,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4887,7 +4896,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4895,7 +4904,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4907,7 +4916,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableaddedupdate(self,'float',memory)
 	};
 
@@ -4915,7 +4924,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4923,7 +4932,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4931,7 +4940,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4939,7 +4948,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -4951,7 +4960,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableaddedupdate(self,'bool',memory)
 	};
 
@@ -4982,7 +4991,7 @@ helper context TupleType(name:String,type:String,value:Sequence(OclAny),dims:Seq
 helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -4990,7 +4999,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5078,7 +5087,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5086,7 +5095,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5094,7 +5103,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5102,7 +5111,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5114,7 +5123,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5122,7 +5131,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5130,7 +5139,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5138,7 +5147,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5146,7 +5155,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5158,7 +5167,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5166,7 +5175,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5174,7 +5183,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5182,7 +5191,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5190,7 +5199,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5202,7 +5211,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		links = memory.links,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = thisModule.variableassignededupdate(self,memory)
 	};
 
@@ -5213,7 +5222,7 @@ helper context chips!link def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5221,7 +5230,7 @@ helper context chips!link def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5229,7 +5238,7 @@ helper context chips!link def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5237,18 +5246,20 @@ helper context chips!link def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
-	let reference : TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String) =
+	let reference : TupleType(src:String, src_index:Integer, src_type:String src_type:String, trg:String, trg_index:String, trg_type:String, trg_type:String) =
 		Tuple{
 			src = self.linked_component.variable.name,
 			src_index = self.linked_component.index->evaluate(memory),
+			src_type = self.linked_component.variable."def".name
 			trg = self.support_node.variable.name,
-			trg_index = self.support_node.index->evaluate(memory)
+			trg_index = self.support_node.index->evaluate(memory),
+			trg_type = self.support_node.variable."def".name
 		} in
 	Tuple{
 		fblocks = memory.fblocks,
@@ -5268,7 +5279,7 @@ helper context chips!link def :
 		endif,
 		nodes = memory.nodes,
 		connections = memory.connections,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = memory.variables
 	};
 
@@ -5279,7 +5290,7 @@ helper context chips!channel_plugging def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5291,7 +5302,7 @@ helper context chips!channel_plugging def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5299,7 +5310,7 @@ helper context chips!channel_plugging def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5340,7 +5351,7 @@ helper context chips!channel_plugging def :
 				)
 			endif endif endif
 		,
-		partial_connectors = memory.partial_connectors,
+		ccasts_map = memory.ccasts_map,
 		variables = memory.variables
 	};
 
@@ -5351,7 +5362,7 @@ helper context chips!"chips::statements::system::foreach" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5359,7 +5370,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5367,7 +5378,7 @@ helper context chips!"chips::statements::system::foreach" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5375,7 +5386,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5407,7 +5418,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		m1: TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 				TupleType(
 					type:String, channels:Map(String,String),
@@ -5415,7 +5426,7 @@ helper context chips!"chips::statements::system::foreach" def :
 				)
 			))),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -5424,7 +5435,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		let m1_prime : TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 				TupleType(
 					type:String, channels:Map(String,String),
@@ -5432,7 +5443,7 @@ helper context chips!"chips::statements::system::foreach" def :
 				)
 			))),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -5442,7 +5453,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			m2: TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 					TupleType(
 						type:String, channels:Map(String,String),
@@ -5450,7 +5461,7 @@ helper context chips!"chips::statements::system::foreach" def :
 					)
 				))),
 				connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-				partial_connectors : Map(
+				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 				),
@@ -5461,7 +5472,7 @@ helper context chips!"chips::statements::system::foreach" def :
 					links = m1.links,
 					nodes = m1.nodes,
 					connections = m1.connections,
-					partial_connectors = m1.partial_connectors,
+					ccasts_map = m1.ccasts_map,
 					variables = m1.variables->including(Tuple{
 						name=self.iterator.variable.name,
 						value=Sequence{iterator},
@@ -5486,7 +5497,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			links = m1_prime.links,
 			nodes = m1_prime.nodes,
 			connections = m1_prime.connections,
-			partial_connectors = m1_prime.partial_connectors,
+			ccasts_map = m1_prime.ccasts_map,
 			variables = m1_prime.variables->reject(e | (e.name = self.iterator.variable.name) and (e.type = iterable.type))
 		}
 	);
@@ -5496,7 +5507,7 @@ helper context chips!"chips::statements::system::if" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5504,7 +5515,7 @@ helper context chips!"chips::statements::system::if" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5512,7 +5523,7 @@ helper context chips!"chips::statements::system::if" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5520,7 +5531,7 @@ helper context chips!"chips::statements::system::if" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5533,7 +5544,7 @@ helper context chips!"chips::statements::system::if" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 					TupleType(
 						type:String, channels:Map(String,String),
@@ -5541,7 +5552,7 @@ helper context chips!"chips::statements::system::if" def :
 					)
 				))),
 				connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-				partial_connectors : Map(
+				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 				),
@@ -5557,7 +5568,7 @@ helper context chips!"chips::statements::system::if_else" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5565,7 +5576,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5573,7 +5584,7 @@ helper context chips!"chips::statements::system::if_else" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5581,7 +5592,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5594,7 +5605,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 					TupleType(
 						type:String, channels:Map(String,String),
@@ -5602,7 +5613,7 @@ helper context chips!"chips::statements::system::if_else" def :
 					)
 				))),
 				connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5616,7 +5627,7 @@ helper context chips!"chips::statements::system::if_else" def :
 			m1: TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 				nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 					TupleType(
 						type:String, channels:Map(String,String),
@@ -5624,7 +5635,7 @@ helper context chips!"chips::statements::system::if_else" def :
 					)
 				))),
 				connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-				partial_connectors : Map(
+				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 					Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 				),
@@ -5637,7 +5648,7 @@ helper context chips!"chips::statements::system::if_else" def :
 -- -- feeding interpretation in system section
 -- ----------------------------------------------------
 
--- helper def: partial_connectors_entry(
+-- helper def: ccasts_map_entry(
 -- 	root : TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String),
 -- 	leaf : TupleType(object:String,object_index:Sequence(Integer)),
 -- 	collective_func:String
@@ -5657,7 +5668,7 @@ helper context chips!"chips::statements::system::if_else" def :
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-	links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 	nodes: Map(String,
 		TupleType(
 			dimensions:Sequence(Integer),
@@ -5670,7 +5681,7 @@ helper context TupleType(
 		)
 	),
 	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-	partial_connectors : Map(
+	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 	),
@@ -5720,7 +5731,7 @@ helper def : includingPartialConnectorForPhysical(
 	memory: TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5728,7 +5739,7 @@ helper def : includingPartialConnectorForPhysical(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5819,15 +5830,15 @@ helper def : includingPartialConnectorForPhysical(
 		leaf_index = leaf_index, 
 		leaf_param=leaf_param
 	} in
-	if memory.partial_connectors->getKeys()->select(k | k = key)->isEmpty() then
-		memory.partial_connectors->including(
+	if memory.ccasts_map->getKeys()->select(k | k = key)->isEmpty() then
+		memory.ccasts_map->including(
 			key,
 			Set{value}
 		)
 	else
-		memory.partial_connectors->including(
+		memory.ccasts_map->including(
 			key,
-			memory.partial_connectors->get(key)->including(value)
+			memory.ccasts_map->get(key)->including(value)
 		)
 	endif;
 
@@ -5836,7 +5847,7 @@ helper def : includingPartialConnectorForLogical(
 	memory: TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5844,7 +5855,7 @@ helper def : includingPartialConnectorForLogical(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5935,15 +5946,15 @@ helper def : includingPartialConnectorForLogical(
 		leaf_index = leaf_index,
 		leaf_param=leaf_param
 	} in
-	if memory.partial_connectors->getKeys()->select(k | k = key)->isEmpty() then
-		memory.partial_connectors->including(
+	if memory.ccasts_map->getKeys()->select(k | k = key)->isEmpty() then
+		memory.ccasts_map->including(
 			key,
 			Set{value}
 		)
 	else
-		memory.partial_connectors->including(
+		memory.ccasts_map->including(
 			key,
-			memory.partial_connectors->get(key)->including(value)
+			memory.ccasts_map->get(key)->including(value)
 		)
 	endif;
 
@@ -5952,7 +5963,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5960,7 +5971,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -5968,7 +5979,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -5976,7 +5987,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6054,11 +6065,11 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 				memory.dataflows
 			endif 
 		endif,
-		partial_connectors = 
+		ccasts_map = 
 		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 			thisModule.includingPartialConnectorForPhysical(memory,self)
 		else 
-			memory.partial_connectors
+			memory.ccasts_map
 		endif,
 		links = memory.links,
 		nodes = memory.nodes,
@@ -6071,7 +6082,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6079,7 +6090,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6087,7 +6098,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6095,7 +6106,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6175,11 +6186,11 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 				memory.dataflows
 			endif 
 		endif,
-		partial_connectors = 
+		ccasts_map = 
 		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 			thisModule.includingPartialConnectorForPhysical(memory,self)
 		else 
-			memory.partial_connectors
+			memory.ccasts_map
 		endif,
 		links = memory.links,
 		nodes = memory.nodes,
@@ -6192,7 +6203,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6200,7 +6211,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6208,7 +6219,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6216,7 +6227,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6296,11 +6307,11 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 				memory.dataflows
 			endif 
 		endif,
-		partial_connectors = 
+		ccasts_map = 
 		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 			thisModule.includingPartialConnectorForPhysical(memory,self)
 		else 
-			memory.partial_connectors
+			memory.ccasts_map
 		endif,
 		links = memory.links,
 		nodes = memory.nodes,
@@ -6312,7 +6323,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6320,7 +6331,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6328,7 +6339,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6336,7 +6347,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6351,7 +6362,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(
 				String,
 				TupleType(
@@ -6365,7 +6376,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				)
 			),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -6389,7 +6400,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = memory.partial_connectors,
+			ccasts_map = memory.ccasts_map,
 			variables = memory.variables
 		} in
 		Tuple{
@@ -6449,7 +6460,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			links = partial_next_mem.links,
 			nodes = partial_next_mem.nodes,
 			connections = partial_next_mem.connections,
-			partial_connectors = partial_next_mem.partial_connectors,
+			ccasts_map = partial_next_mem.ccasts_map,
 			variables = partial_next_mem.variables
 		}
 	endif;
@@ -6459,7 +6470,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6467,7 +6478,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6475,7 +6486,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6483,7 +6494,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6498,7 +6509,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6506,7 +6517,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			)
 		))),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -6530,7 +6541,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = memory.partial_connectors,
+			ccasts_map = memory.ccasts_map,
 			variables = memory.variables
 		} in
 		Tuple{
@@ -6590,7 +6601,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			links = partial_next_mem.links,
 			nodes = partial_next_mem.nodes,
 			connections = partial_next_mem.connections,
-			partial_connectors = partial_next_mem.partial_connectors,
+			ccasts_map = partial_next_mem.ccasts_map,
 			variables = partial_next_mem.variables
 		}
 	endif;
@@ -6600,7 +6611,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	handleSystemExpressions(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6608,7 +6619,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6616,7 +6627,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6624,7 +6635,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6639,7 +6650,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		let partial_next_mem : TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6647,7 +6658,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			)
 		))),
 			connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-			partial_connectors : Map(
+			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 			),
@@ -6671,7 +6682,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = memory.partial_connectors,
+			ccasts_map = memory.ccasts_map,
 			variables = memory.variables
 		} in
 		Tuple{
@@ -6731,7 +6742,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			links = partial_next_mem.links,
 			nodes = partial_next_mem.nodes,
 			connections = partial_next_mem.connections,
-			partial_connectors = partial_next_mem.partial_connectors,
+			ccasts_map = partial_next_mem.ccasts_map,
 			variables = partial_next_mem.variables
 		}
 	endif;
@@ -6740,7 +6751,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6748,7 +6759,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6756,7 +6767,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6764,7 +6775,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6851,11 +6862,11 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = 
+			ccasts_map = 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
 				thisModule.includingPartialConnectorForLogical(memory,self)
 			else 
-				memory.partial_connectors
+				memory.ccasts_map
 			endif,
 			variables = memory.variables
 		}
@@ -6866,7 +6877,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6874,7 +6885,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6882,7 +6893,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -6890,7 +6901,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -6977,11 +6988,11 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = 
+			ccasts_map = 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
 				thisModule.includingPartialConnectorForLogical(memory,self)
 			else 
-				memory.partial_connectors
+				memory.ccasts_map
 			endif,
 			variables = memory.variables
 		}
@@ -6992,7 +7003,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7000,7 +7011,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7008,7 +7019,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 	)) : TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7016,7 +7027,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7103,11 +7114,11 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			links = memory.links,
 			nodes = memory.nodes,
 			connections = memory.connections,
-			partial_connectors = 
+			ccasts_map = 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
 				thisModule.includingPartialConnectorForLogical(memory,self)
 			else 
-				memory.partial_connectors
+				memory.ccasts_map
 			endif,
 			variables = memory.variables
 		}
@@ -7117,7 +7128,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7125,7 +7136,7 @@ helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7138,7 +7149,7 @@ helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType
 helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7146,7 +7157,7 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7162,7 +7173,7 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7170,7 +7181,7 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7186,7 +7197,7 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7194,7 +7205,7 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7210,7 +7221,7 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 helper context chips!"chips::xvalues::system::int_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7218,7 +7229,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7235,7 +7246,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 helper context chips!"chips::xvalues::system::float_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7243,7 +7254,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7260,7 +7271,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 helper context chips!"chips::xvalues::system::bool_variable_expression" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7268,7 +7279,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7285,7 +7296,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 helper context chips!"chips::rvalues::system::operators::int::plus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7293,7 +7304,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7332,7 +7343,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 helper context chips!"chips::rvalues::system::operators::float::plus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7340,7 +7351,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7379,7 +7390,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 helper context chips!"chips::rvalues::system::operators::int::mult" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7387,7 +7398,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7426,7 +7437,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 helper context chips!"chips::rvalues::system::operators::float::mult" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7434,7 +7445,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7473,7 +7484,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 helper context chips!"chips::rvalues::system::operators::int::div" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7481,7 +7492,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7520,7 +7531,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 helper context chips!"chips::rvalues::system::operators::float::div" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7528,7 +7539,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7567,7 +7578,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 helper context chips!"chips::rvalues::system::operators::int::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7575,7 +7586,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7614,7 +7625,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 helper context chips!"chips::rvalues::system::operators::float::minus" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7622,7 +7633,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7661,7 +7672,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 	helper context chips!"chips::rvalues::system::operators::int::mod" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7669,7 +7680,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7708,7 +7719,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 helper context chips!"chips::rvalues::system::operators::float::cast_as_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7716,7 +7727,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7743,7 +7754,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7751,7 +7762,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7778,7 +7789,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7786,7 +7797,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7825,7 +7836,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7833,7 +7844,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7846,7 +7857,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7854,7 +7865,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7867,7 +7878,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7875,7 +7886,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7914,7 +7925,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7922,7 +7933,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7935,7 +7946,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7943,7 +7954,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7956,7 +7967,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7964,7 +7975,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
@@ -7978,7 +7989,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 helper context chips!"chips::rvalues::system::function" def : evaluate(memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, trg:String, trg_dim:Sequence(Integer), trg_index:String)),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
 			TupleType(
 				type:String, channels:Map(String,String),
@@ -7986,7 +7997,7 @@ helper context chips!"chips::rvalues::system::function" def : evaluate(memory:Tu
 			)
 		))),
 		connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, to_ob:String,to_index:Sequence(Integer), to_chan:String)),
-		partial_connectors : Map(
+		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
 		),
