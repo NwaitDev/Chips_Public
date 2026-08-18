@@ -1,0 +1,38 @@
+\begin{frame}{Présentation CHIPS}
+    \begin{block}{Présentation CHIPS}
+        \begin{itemize}
+            \item Langage de modélisation de systèmes distribués et embarqués
+            \item Représente les applications distribuées sous la forme de deux graphes:
+            \begin{itemize}
+                \item Graphe fonctionnel (nœuds $\rightarrow$ algorithmes, arêtes $\rightarrow$ flux de données)
+                \item Graphe de dépendance physique (nœuds $\rightarrow$ algorithmes, arêtes $\rightarrow$ dépendances matérielles)
+            \end{itemize}
+            \item Compilation vers un modèle formel (XMI puis BIP)
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Motivations}
+   \begin{block}{Objectifs du projet}
+        \begin{itemize}
+            \item Langage récent
+            \item Certaines constructions syntaxiques ne sont pas encore prises en charge
+            \item Gestion des erreurs
+            \item Sérialisation de l'AST vers le format XMI
+            \item Implémentation d'un Grammar Based Testing (GBT)
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Technologies utilisées}
+    \begin{block}{Technologies utilisées}
+        \begin{itemize}
+            \item Flex et Yacc $\rightarrow$ parser
+            \item C++ et XMI $\rightarrow$ parser et sérialisation
+            \item Python $\rightarrow$ validation XMI et GBT
+            \item GitHub $\rightarrow$ gestionnaire de versions
+            \item Notion $\rightarrow$ gestion des tâches
+            \item Discord $\rightarrow$ communication
+        \end{itemize}
+    \end{block}
+\end{frame}
