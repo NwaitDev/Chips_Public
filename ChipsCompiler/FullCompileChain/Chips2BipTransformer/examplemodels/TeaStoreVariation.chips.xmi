@@ -3104,11 +3104,11 @@
       <with>
         <statements
             xsi:type="chips.statements.node:channel_declaration"
-            name="next"
+            name="nextb"
             type_identifier="BackChannel"/>
         <statements
             xsi:type="chips.statements.node:channel_declaration"
-            name="prev"
+            name="prevb"
             type_identifier="BackChannel"/>
       </with>
     </definitions>
@@ -4167,6 +4167,77 @@
         <support_node
             xsi:type="chips.systemspecific.expressions:physical_variable_expression"
             variable="//@system/@system_statements.9/@variable"/>
+      </statements>
+      <statements
+          xsi:type="chips.statements.system:if">
+        <condition
+            xsi:type="chips.rvalues.dataflow.operators.bool:neq_int">
+          <left_operand
+              xsi:type="chips.xvalues.system:int_variable_expression"
+              variable="//@system/@system_statements.24/@iterator/@variable"/>
+          <right_operand
+              xsi:type="chips.rvalues.system:direct_int"/>
+        </condition>
+        <if_section>
+          <if_statements
+              xsi:type="chips.statements.system:channel_plugging">
+            <eater
+                eating_channel="//@preamble/@definitions.11/@with/@statements.0">
+              <node
+                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                  variable="//@system/@system_statements.22/@variable">
+                <index
+                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
+                  <left_operand
+                      xsi:type="chips.xvalues.system:int_variable_expression"
+                      variable="//@system/@system_statements.24/@iterator/@variable"/>
+                  <right_operand
+                      xsi:type="chips.rvalues.system:direct_int"
+                      value="1"/>
+                </index>
+              </node>
+            </eater>
+            <feeder
+                feeding_channel="//@preamble/@definitions.11/@with/@statements.1">
+              <node
+                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                  variable="//@system/@system_statements.22/@variable">
+                <index
+                    xsi:type="chips.xvalues.system:int_variable_expression"
+                    variable="//@system/@system_statements.24/@iterator/@variable"/>
+              </node>
+            </feeder>
+          </if_statements>
+          <if_statements
+              xsi:type="chips.statements.system:channel_plugging">
+            <eater
+                eating_channel="//@preamble/@definitions.11/@with/@statements.1">
+              <node
+                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                  variable="//@system/@system_statements.22/@variable">
+                <index
+                    xsi:type="chips.xvalues.system:int_variable_expression"
+                    variable="//@system/@system_statements.24/@iterator/@variable"/>
+              </node>
+            </eater>
+            <feeder
+                feeding_channel="//@preamble/@definitions.11/@with/@statements.0">
+              <node
+                  xsi:type="chips.systemspecific.expressions:object_variable_expression"
+                  variable="//@system/@system_statements.22/@variable">
+                <index
+                    xsi:type="chips.rvalues.dataflow.operators.int:minus">
+                  <left_operand
+                      xsi:type="chips.xvalues.system:int_variable_expression"
+                      variable="//@system/@system_statements.24/@iterator/@variable"/>
+                  <right_operand
+                      xsi:type="chips.rvalues.system:direct_int"
+                      value="1"/>
+                </index>
+              </node>
+            </feeder>
+          </if_statements>
+        </if_section>
       </statements>
     </system_statements>
     <system_statements
