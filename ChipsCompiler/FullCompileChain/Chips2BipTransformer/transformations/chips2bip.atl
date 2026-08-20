@@ -3844,12 +3844,11 @@ rule Program2BipPackage {
 	to 
 		bippackage: bip!BipPackage(
 			name <- chipsprogram.fileName.split('\\.')->get(0)->split('/')->last(),
-			atomTypes <- thisModule.types->get('AtomType'),
-			compoundTypes <- thisModule.types->get('CompoundType')
-			 	->union(Sequence{system_compound}),
-			connectorTypes <- thisModule.types->get('ConnectorType'),
-			portTypes <- thisModule.types->get('PortType'),
-			dataTypes <- thisModule.types->get('DataType')
+			atomTypes <- thisModule.types->get('AtomType').debug(),
+			compoundTypes <- thisModule.types->get('CompoundType')->append(system_compound).debug(),
+			connectorTypes <- thisModule.types->get('ConnectorType').debug(),
+			portTypes <- thisModule.types->get('PortType').debug(),
+			dataTypes <- thisModule.types->get('DataType').debug()
 			-- used_packages <- Sequence{},
 			-- constData <- Sequence{}, -- what for ? oh wait, yes
 			-- prototypes <- Sequence{} -- for importing functions from cpp backend
