@@ -1242,7 +1242,9 @@
         <eSubpackages name="float" nsURI="http://chips/rvalues/collective/operators/float"
             nsPrefix="chips.rvalues.collective.operators.float">
           <eClassifiers xsi:type="ecore:EClass" name="minus" eSuperTypes="#//rvalues/collective_float_rvalue">
-            <eStructuralFeatures xsi:type="ecore:EReference" name="operand" lowerBound="1"
+            <eStructuralFeatures xsi:type="ecore:EReference" name="left_operand" lowerBound="1"
+                eType="#//rvalues/collective_float_rvalue" containment="true"/>
+            <eStructuralFeatures xsi:type="ecore:EReference" name="right_operand" lowerBound="1"
                 eType="#//rvalues/collective_float_rvalue" containment="true"/>
           </eClassifiers>
           <eClassifiers xsi:type="ecore:EClass" name="plus" eSuperTypes="#//rvalues/collective_float_rvalue">

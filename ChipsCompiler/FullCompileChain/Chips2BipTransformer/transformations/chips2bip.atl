@@ -30,7 +30,8 @@ helper def : temp_dic : Map(OclAny,OclAny) = Map{};
 --						|'PortType'
 --						|'AtomType'
 --						|'CompoundType'
---						|'ConnectorType', list of definitions of such type
+--						|'ConnectorType'
+--						|'Prototype', list of definitions of such type
 helper def : types : Map(String, Sequence(OclAny)) = Map{};
 helper def : temp : OclAny = OclUndefined;
 
@@ -67,13 +68,183 @@ unique lazy rule MakeBipDataType{
 	}
 }
 
-unique lazy rule MakeCppFunctionCall {
+lazy rule MakePrototypeParameterDeclaration{
 	from
-		t : TupleType(functionName : String, parameters : Sequence(OclAny))
+		t:String,
+		n:String
+
+	to pp:bip!PrototypeParameterDeclaration(
+		type <- thisModule.MakeBipDataType(t),
+		name <- n,
+		const <- false
+	)
+}
+
+unique lazy rule MakeBipNativePrototypeParameterDeclaration{
+	from
+		t:String,
+		n:String
+
+	to pp:bip!PrototypeParameterDeclaration(
+		type <- thisModule.MakeBackendDataType(t),
+		name <- n,
+		const <- true
+	)
+}
+
+
+unique lazy rule MakeInitCtxFunctionPrototype{
+	from 
+		rtype : String
+
+	to p : bip!FunctionCallPrototype(
+		functionName <- 'init_ctx',
+		parameterDeclarations <- Sequence{
+			thisModule.MakeBipNativePrototypeParameterDeclaration('string', rtype+'_ctx_name'),
+			thisModule.MakePrototypeParameterDeclaration(rtype, 'ctx_value')
+		},
+		returnType <- thisModule.MakeBipDataType(rtype),
+		native <- false,
+		const <- true
+	)
+
+	do {
+		thisModule.temp <- thisModule.types->get('FunctionCallPrototype');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(p);
+		thisModule.types <- thisModule.types->including('FunctionCallPrototype', thisModule.temp);
+	
+		p;
+	}
+}
+
+unique lazy rule MakeFunctionCallPrototypeWithReturnOnBipNativeParameters{
+	from 
+		functionName:String,
+		ppdecls: Sequence(TupleType(t:String,n:String)),
+		rtype : String
+
+	to p : bip!FunctionCallPrototype(
+		functionName <- functionName,
+		parameterDeclarations <- ppdecls->collect(tu | thisModule.MakeBipNativePrototypeParameterDeclaration(tu.t, tu.n)),
+		returnType <- thisModule.MakeBipDataType(rtype),
+		native <- false,
+		const <- false
+	)
+
+	do {
+		thisModule.temp <- thisModule.types->get('FunctionCallPrototype');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(p);
+		thisModule.types <- thisModule.types->including('FunctionCallPrototype', thisModule.temp);
+	
+		p;
+	}
+}
+
+unique lazy rule MakeFunctionCallPrototypeWithReturn{
+	from 
+		functionName:String,
+		ppdecls: Sequence(TupleType(t:String,n:String)),
+		rtype : String
+
+	to p : bip!FunctionCallPrototype(
+		functionName <- functionName,
+		parameterDeclarations <- ppdecls->collect(tu | thisModule.MakePrototypeParameterDeclaration(tu.t, tu.n)),
+		returnType <- thisModule.MakeBipDataType(rtype),
+		native <- false,
+		const <- false
+	)
+
+	do {
+		thisModule.temp <- thisModule.types->get('FunctionCallPrototype');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(p);
+		thisModule.types <- thisModule.types->including('FunctionCallPrototype', thisModule.temp);
+	
+		p;
+	}
+}
+
+unique lazy rule MakeFunctionCallPrototypeWithoutReturn{
+	from 
+		functionName:String,
+		ppdecls: Sequence(TupleType(t:String,n:String))
+
+	to p : bip!FunctionCallPrototype(
+		functionName <- functionName,
+		parameterDeclarations <- ppdecls->collect(tu | thisModule.MakePrototypeParameterDeclaration(tu.t, tu.n)),
+		native <- false,
+		const <- false
+	)
+
+	do {
+		thisModule.temp <- thisModule.types->get('FunctionCallPrototype');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(p);
+		thisModule.types <- thisModule.types->including('FunctionCallPrototype', thisModule.temp);
+	
+		p;
+	}
+}
+
+lazy rule MakeCppFunctionCall {
+	from
+		functionName : String, 
+		parameters : Sequence(OclAny),
+		ppdecls: Sequence(TupleType(t:String,n:String)),
+		rtype : String
+
+	using {
+		proto : OclAny = 
+			if rtype = 'void'
+			then thisModule.MakeFunctionCallPrototypeWithoutReturn(functionName,ppdecls)
+			else thisModule.MakeFunctionCallPrototypeWithReturn(functionName,ppdecls,rtype)
+			endif;
+		error : String = 
+			if proto.oclIsUndefined() 
+			then 'ATL transformation error'.debug('Couldn\'t instantiate prototype of function call '+functionName)
+			else 'no error'
+			endif;
+	}
 	to
 		e : bip!FunctionCallExpression (
-			functionName <- t.functionName,
-			parameters   <- t.parameters
+			functionName <- functionName,
+			parameters   <- parameters
+		)
+}
+
+lazy rule MakeContextualInitializerCppFunctionCall {
+	from
+		name: bip!ValuedExpression,
+		ctx_value:bip!ValuedExpression,
+		type:String
+
+	using {
+		fname : String = 'init_ctx';
+		proto : OclAny = thisModule.MakeInitCtxFunctionPrototype(type);
+		error : String = 
+			if proto.oclIsUndefined() 
+			then 'ATL transformation error'.debug('Couldn\'t instantiate prototype of function call '+fname)
+			else 'no error'
+			endif;
+	}
+	to
+		e : bip!FunctionCallExpression (
+			functionName <- fname,
+			parameters   <- Sequence{name,ctx_value}
 		)
 }
 
@@ -179,9 +350,7 @@ helper context chips!primitive_declaration  def : extract_type : String =
 
 helper context chips!primitive_declaration def : name : String = self.variable.name;
 
--- linearized version of the functions above
-
--- I neeeeed RANGE to start at ZERO (Why does ATL use indices starting at ONE T_T)
+-- I neeeeed RANGE to start at ZERO (Why does ATL usex indices starting at ONE ...? T_T)
 helper def :range(dims : Sequence(Integer)) : Sequence(OclAny) = 
 	if dims->size() > 0 then
 		let total : Integer = dims->iterate(i ; iter : Integer = 1 | i*iter) in
@@ -254,8 +423,622 @@ helper context Integer def : delinearize(dims:Sequence(Integer)) : Sequence(Inte
 		Sequence{self}
 	endif;
 
+-- helper context String def : applyWith(params:Sequence(Integer)) : Sequence(OclAny) =  
+-- 	if (self = 'zeros') then
+-- 		thisModule.zeros(params)
+-- 	else 
+-- 		if(self = 'ones') then
+-- 			thisModule.ones(params)
+-- 		else 
+-- 			if(self = 'range') then
+-- 				thisModule.range(params)
+-- 			else 
+-- 				let error : OclAny = 'ATL transformation Error'.debug('Unrecogized function name '+self.name) in
+-- 				OclUndefined
+-- 			endif
+-- 		endif
+-- 	endif;
 
 --------------- WHY IS THERE NO SWITCH IN ATL?
+
+
+helper context String def: typenameToDefaultDirectExpression() : OclAny =
+	if self = 'int' then thisModule.MakeDirectIntegerExpression(1)
+	else if self = 'float' then thisModule.MakeDirectFloatExpression(1.0)
+	else if self = 'bool' then thisModule.MakeDirectBooleanExpression(true)
+	else OclUndefined
+	endif endif endif;
+
+
+lazy rule MakeNotExpression {
+    from
+        sub : bip!ValuedExpression
+    to
+        e : bip!UnaryOpExpression (
+            operator <- #logical_not,
+            operand <- sub
+        )
+}
+
+-- ============================================================================
+-- Generic dispatcher for expressions in the accumulators of collective fcts
+--  * stop_kw and input_kw never occur in those rvalues, nor do the contextual
+--    variables and the regular variables
+--  * Every CHIPS variable, independently of its dimension, is represented in
+--    BIP by a C++ FunctionCallExpression.
+--      x       -> x()
+--      x(i)    -> x(i)
+--      x(i,j)  -> x(i,j)
+-- ============================================================================
+
+helper def : MakeBipExpression(
+    r : chips!"chips::rvalues::collective_rvalue"
+) : bip!ValuedExpression =
+    if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::direct_int"
+    ) then
+        thisModule.MakeDirectInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::direct_float"
+    ) then
+        thisModule.MakeDirectFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::direct_bool"
+    ) then
+        thisModule.MakeDirectBool(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::function"
+    ) then
+	thisModule.MakeCppFunctionCall(
+			r.name, 
+			r.parameters->collect(p | thisModule.MakeBipExpression(p)),
+			thisModule.range(Sequence{r.parameters->size()})
+			->collect(i | Tuple{
+				t='int',
+				n='v'+i->toString()
+				
+			}),
+			'int'
+	)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::minus"
+    ) then
+        thisModule.MakeIntMinus(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::plus"
+    ) then
+        thisModule.MakeIntPlus(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::mult"
+    ) then
+        thisModule.MakeIntMult(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::div"
+    ) then
+        thisModule.MakeIntDiv(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::mod"
+    ) then
+        thisModule.MakeIntMod(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::int::cast_as_int"
+    ) then
+        thisModule.MakeCastAsInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::float::minus"
+    ) then
+        thisModule.MakeFloatMinus(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::float::plus"
+    ) then
+        thisModule.MakeFloatPlus(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::float::mult"
+    ) then
+        thisModule.MakeFloatMult(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::float::div"
+    ) then
+        thisModule.MakeFloatDiv(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::float::cast_as_float"
+    ) then
+        thisModule.MakeCastAsFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::not"
+    ) then
+        thisModule.MakeBoolNot(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::or"
+    ) then
+        thisModule.MakeBoolOr(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::and"
+    ) then
+        thisModule.MakeBoolAnd(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::eq_bool"
+    ) then
+        thisModule.MakeEqBool(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::neq_bool"
+    ) then
+        thisModule.MakeBinaryBool(r, #not_equal)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::eq_float"
+    ) then
+        thisModule.MakeEqFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::neq_float"
+    ) then
+        thisModule.MakeNeqFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::gt_float"
+    ) then
+        thisModule.MakeGtFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::lt_float"
+    ) then
+        thisModule.MakeLtFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::geq_float"
+    ) then
+        thisModule.MakeGeqFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::leq_float"
+    ) then
+        thisModule.MakeLeqFloat(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::neq_int"
+    ) then
+        thisModule.MakeNeqInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::eq_int"
+    ) then
+        thisModule.MakeEqInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::gt_int"
+    ) then
+        thisModule.MakeGtInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::lt_int"
+    ) then
+        thisModule.MakeLtInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::geq_int"
+    ) then
+        thisModule.MakeGeqInt(r)
+    else if r.oclIsTypeOf(
+        chips!"chips::rvalues::collective::operators::bool::leq_int"
+    ) then
+        thisModule.MakeLeqInt(r)
+    else
+        OclUndefined
+    endif endif endif endif endif endif endif endif
+    endif endif endif endif endif endif endif endif
+    endif endif endif endif endif endif endif endif
+    endif endif endif endif endif endif endif endif;
+
+
+-- ============================================================================
+-- Literal expressions
+-- ============================================================================
+
+lazy rule MakeDirectInt {
+    from
+        r : chips!"chips::rvalues::collective::direct_int"
+    to
+        e : bip!DirectIntegerExpression (
+            value <- r.value
+        )
+}
+
+lazy rule MakeDirectFloat {
+    from
+        r : chips!"chips::rvalues::collective::direct_float"
+    to
+        e : bip!DirectFloatExpression (
+            value <- r.value
+        )
+}
+
+lazy rule MakeDirectBool {
+    from
+        r : chips!"chips::rvalues::collective::direct_bool"
+    to
+        e : bip!DirectBooleanExpression (
+            value <- r.value
+        )
+}
+
+-- ============================================================================
+-- Integer arithmetic
+-- ============================================================================
+
+lazy rule MakeIntMinus {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::minus"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #subtraction,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeIntPlus {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::plus"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #addition,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeIntMult {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::mult"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #multiplication,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeIntDiv {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::div"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #division,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeIntMod {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::mod"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #modulo,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+
+-- ============================================================================
+-- Floating-point arithmetic
+-- ============================================================================
+
+lazy rule MakeFloatMinus {
+    from
+        r : chips!"chips::rvalues::collective::operators::float::minus"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #subtraction,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeFloatPlus {
+    from
+        r : chips!"chips::rvalues::collective::operators::float::plus"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #addition,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeFloatMult {
+    from
+        r : chips!"chips::rvalues::collective::operators::float::mult"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #multiplication,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeFloatDiv {
+    from
+        r : chips!"chips::rvalues::collective::operators::float::div"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #division,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+
+-- ============================================================================
+-- Casts
+--
+-- BIP.ecore has no CastExpression. The names below are the C++ functions
+-- expected to be represented by existing FunctionCallPrototype instances.
+-- ============================================================================
+
+lazy rule MakeCastAsInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::int::cast_as_int"
+    to
+        e : bip!FunctionCallExpression (
+            functionName <- 'chips_cast_int',
+            parameters <- Sequence {
+                thisModule.MakeBipExpression(r.numeric)
+            }
+        )
+}
+
+lazy rule MakeCastAsFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::float::cast_as_float"
+    to
+        e : bip!FunctionCallExpression (
+            functionName <- 'chips_cast_float',
+            parameters <- Sequence {
+                thisModule.MakeBipExpression(r.numeric)
+            }
+        )
+}
+
+lazy rule MakeTypeConverterNativeToChips{
+	from 
+		ve : bip!ValuedExpression,
+		type:String
+	
+	using {
+		proto : OclAny = thisModule.MakeFunctionCallPrototypeWithReturnOnBipNativeParameters(
+			'create_chips_'+type,
+			Sequence{
+				Tuple{
+					t=type,
+					n='native_'+type+'_rvalue'
+				}
+			},
+			type
+		);
+		error : String = 
+			if proto.oclIsUndefined() 
+			then 'ATL transformation error'.debug('Couldn\'t instantiate prototype of function call create_chips_'+type)
+			else 'no error'
+			endif;
+	}
+
+	to 
+		e : bip!FunctionCallExpression (
+            functionName <- 'create_chips_'+type,
+            parameters <- Sequence {ve}
+        )
+}
+
+
+-- ============================================================================
+-- Boolean operators
+-- ============================================================================
+
+lazy rule MakeBoolNot {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::not"
+    to
+        e : bip!UnaryOpExpression (
+            operator <- #logical_not,
+            operand <- thisModule.MakeBipExpression(r.operand)
+        )
+}
+
+lazy rule MakeBoolOr {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::or"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #logical_or,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeBoolAnd {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::and"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #logical_and,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+
+-- ============================================================================
+-- Boolean comparisons
+-- ============================================================================
+
+lazy rule MakeEqBool {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::eq_bool"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeBinaryFloatComparison {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::eq_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeBinaryIntComparison {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::eq_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeNeqBool {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::neq_bool"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #not_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeEqFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::eq_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeNeqFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::neq_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #not_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeGtFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::gt_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #greater_than,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeLtFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::lt_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #less_than,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeGeqFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::geq_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #greater_than_or_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeLeqFloat {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::leq_float"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #less_than_or_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeNeqInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::neq_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #not_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeEqInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::eq_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeGtInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::gt_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #greater_than,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeLtInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::lt_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #less_than,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeGeqInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::geq_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #greater_than_or_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
+lazy rule MakeLeqInt {
+    from
+        r : chips!"chips::rvalues::collective::operators::bool::leq_int"
+    to
+        e : bip!BinaryOpExpression (
+            operator <- #less_than_or_equal,
+            left <- thisModule.MakeBipExpression(r.left_operand),
+            right <- thisModule.MakeBipExpression(r.right_operand)
+        )
+}
+
 
 
 --------------- (helpers to detect the type of the input in collective functions)
@@ -494,18 +1277,38 @@ helper context Sequence(OclAny) def : asPortName() : String =
 
 
 lazy rule MakeConstantPetriNet {
-	from aipd_out:bip!AtomInternalPortDeclaration
+	from 
+		aipd_out:bip!AtomInternalPortDeclaration, 
+		aidd :bip!AtomInternalDataDeclaration,
+		value:bip!ComponentDataParameterDeclaration,
+		type:String
 
 	to pn : bip!PetriNet(
 		states <- Sequence{snd_state},
 		initStates <- Sequence{snd_state},
-		transitions <- Sequence{only_tranz}
+		transitions <- Sequence{only_tranz},
+		initialActions<-Sequence{
+			thisModule.MakeAssignment(
+				dddre_lval,
+				thisModule.MakeTypeConverterNativeToChips(
+					dddre_rval,
+					type
+				)
+			)
+		}
+	),
+	dddre_lval:bip!DirectDataDeclarationReferenceExpression(
+		dataDeclaration<-aidd
+	),
+	dddre_rval:bip!DirectDataDeclarationReferenceExpression(
+		dataDeclaration<-value
 	),
 
 	only_tranz : bip!Transition(
 		sources <- Sequence{snd_state},
 		destinations <- Sequence{snd_state},
-		triggerPort <- aipd_out
+		triggerPort <- aipd_out,
+		actions <- Sequence{}
 	),
 
 	snd_state : bip!State(
@@ -516,12 +1319,25 @@ lazy rule MakeConstantPetriNet {
 lazy rule MakeBufferPetriNet {
 	from
 		aipd_in:bip!AtomInternalPortDeclaration,
-		aipd_out:bip!AtomInternalPortDeclaration
+		aipd_out:bip!AtomInternalPortDeclaration,
+		aidd:bip!AtomInternalDataDeclaration,
+		type:String
 
 	to pn : bip!PetriNet(
 		states <- Sequence{rcv_state, snd_state},
 		initStates <- Sequence{rcv_state},
-		transitions <- Sequence{t_snd_to_rcv, t_rcv_to_snd}
+		transitions <- Sequence{t_snd_to_rcv, t_rcv_to_snd},
+		initialActions<-Sequence{
+			thisModule.MakeAssignment(
+				thisModule.MakeDirectDataDeclarationReferenceExpression(
+					aidd
+				),
+				thisModule.MakeTypeConverterNativeToChips(
+					type.typenameToDefaultDirectExpression(),
+					type
+				)
+			)
+		}
 	),
 
 	t_rcv_to_snd : bip!Transition(
@@ -533,8 +1349,8 @@ lazy rule MakeBufferPetriNet {
 	t_snd_to_rcv : bip!Transition(
 		sources <- Sequence{snd_state},
 		destinations <- Sequence{rcv_state},
-		triggerPort <- aipd_out
-		-- actions <- Add the tick clock for chips variables aging mechanism
+		triggerPort <- aipd_out,
+		actions <- Sequence{} -- Add the tick clock for chips variables aging mechanism
 	),
 
 	rcv_state : bip!State(
@@ -569,14 +1385,18 @@ lazy rule MakeContextualPetriNet {
 		initStates <- Sequence{available},
 		transitions <- Sequence{give_tok,get_tok,reading},
 		initialActions <- Sequence{
-			thisModule.MakeCppFunctionCall(
-				Tuple{
-					functionName = 'init_ctx',
-					parameters = Sequence{
-						thisModule.MakeDirectDataDeclarationReferenceExpression(ctxnamedecl),
-						thisModule.MakeDirectDataDeclarationReferenceExpression(aidd)
-					}
-				}
+			thisModule.MakeAssignment(
+				thisModule.MakeDirectDataDeclarationReferenceExpression(
+					aidd
+				),
+				thisModule.MakeContextualInitializerCppFunctionCall(
+					thisModule.MakeDirectDataDeclarationReferenceExpression(ctxnamedecl),
+					thisModule.MakeTypeConverterNativeToChips(
+						type.typenameToDefaultDirectExpression(),
+						type
+					),
+					type
+				)
 			)
 		}
 	),
@@ -681,7 +1501,7 @@ lazy rule MakeTransition{
 		source : bip!State,
 		target : bip!State,
 		port : bip!AtomInternalPortDeclaration,
-		guardedby : OclAny
+		guardedby : bip!ValuedExpression
 
 	to 
 		trans : bip!Transition(
@@ -701,12 +1521,12 @@ lazy rule MakeTrivialGuard{
 
 
 
-helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequence(bip!AtomInternalPortDeclaration)) : Sequence(bip!Transition) =
+helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequence(bip!AtomInternalPortDeclaration), starts_rcv:bip!ValuedExpression, starts_snd:bip!ValuedExpression) : Sequence(bip!Transition) =
 
 	if (stateslist->size()=6) then 
 		Sequence{ -- contextual case
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to rcv / add guard
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to snd / add guard
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),starts_rcv), -- init to rcv / add guard
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd / add guard
 			thisModule.MakeTransition(stateslist->get(1),stateslist->get(4),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to readctx
 			thisModule.MakeTransition(stateslist->get(4),stateslist->get(2),portslist->get(4),thisModule.MakeTrivialGuard(true)), -- readctx to then
 			thisModule.MakeTransition(stateslist->get(2),stateslist->get(5),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to writectx
@@ -715,8 +1535,8 @@ helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequen
 		}
 	else
 		Sequence{ -- regular case
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to rcv
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),thisModule.MakeTrivialGuard(true)), -- init to snd
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),starts_rcv), -- init to rcv
+			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd
 			thisModule.MakeTransition(stateslist->get(1),stateslist->get(2),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to then
 			thisModule.MakeTransition(stateslist->get(2),stateslist->get(3),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to snd
 			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
@@ -744,11 +1564,11 @@ unique lazy rule MakeCoreAtomInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <-name.protect()+'_aidd'
+		name <-name.protect()+'_aidd_'+category
 	)
 }
 
-unique lazy rule MakeAtomDataDeclarationReferenceDataParameter{
+lazy rule MakeAtomDataDeclarationReferenceDataParameter{
 	from 
 		iindex : Integer,
 		type : String,
@@ -896,6 +1716,7 @@ unique lazy rule MakeCoreAtomType {
 				chipsfunction,
 				thisModule.ctxCategory
 			));
+		aidd_ctx_data : Sequence(OclAny) = all_contextuals->merge(aidd_ctx);
     	aidd_input : Sequence(bip!AtomInternalDataDeclaration) = 
 			all_inputs->collect(t | thisModule.MakeCoreAtomInternalDataDeclaration(
 				t.type,
@@ -903,6 +1724,7 @@ unique lazy rule MakeCoreAtomType {
 				chipsfunction,
 				thisModule.inputCategory
 			));
+		aidd_input_data : Sequence(OclAny) = all_inputs->merge(aidd_input);
 		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = 
 			all_outputs->collect(t | thisModule.MakeCoreAtomInternalDataDeclaration(
 				t.type,
@@ -910,15 +1732,24 @@ unique lazy rule MakeCoreAtomType {
 				chipsfunction,
 				thisModule.outputCategory
 			));
-		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
+		aidd_output_data : Sequence(OclAny) = all_outputs->merge(aidd_output);
+		aidd_inner_tuples : Sequence(TupleType(type:String,name:String)) =
 			chipsfunction.init.statements
 			->select(stt | stt.oclIsKindOf(chips!primitive_declaration))
-			->collect(stt |  thisModule.MakeCoreAtomInternalDataDeclaration(
-				stt.extract_type,
-				stt.name,
+			->collect(stt |  Tuple{
+				type=stt.extract_type,
+				name=stt.name
+			});
+				
+		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
+			aidd_inner_tuples
+			->collect(t | thisModule.MakeCoreAtomInternalDataDeclaration(
+				t.type,
+				t.name,
 				chipsfunction,
-				thisModule.innerCategory
-			)); 
+				thisModule.outputCategory
+			));
+		aidd_inner_data : Sequence(OclAny) = aidd_inner_tuples->merge(aidd_inner);
 
 
 		-- generating port parameter declarations
@@ -1007,18 +1838,61 @@ unique lazy rule MakeCoreAtomType {
         exportPortDeclarations <-Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export)
     ),
 
+	pn : bip!PetriNet(
+		states <- all_states,
+		initStates <- Sequence{all_states->get(0)},
+		transitions <- thisModule.MakeTransitions(
+			all_states, 
+			all_aipdecl,
+			thisModule.MakeNotExpression(thisModule.MakeDirectDataDeclarationReferenceExpression(starts)),
+			thisModule.MakeDirectDataDeclarationReferenceExpression(starts)
+		),
+		initialActions <- 
+			aidd_input_data
+			->union(aidd_ctx_data)
+			->union(aidd_inner_data)
+			->union(aidd_output_data)
+			->collect(
+				datum |
+				thisModule.MakeAssignment(
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						datum.second
+					),
+					thisModule.MakeTypeConverterNativeToChips(
+						datum.first.type.typenameToDefaultDirectExpression(),
+						datum.first.type
+					)
+				)
+			)->append(
+				thisModule.MakeCppFunctionCall(
+					'init_'+chipsfunction.name,
+					aidd_input_data
+						->union(aidd_ctx_data)
+						->union(aidd_inner_data)
+						->union(aidd_output_data)
+						->collect(datum |
+							thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+						),
+					aidd_input_data
+						->union(aidd_ctx_data)
+						->union(aidd_inner_data)
+						->union(aidd_output_data)
+						->collect(datum |
+							Tuple{
+								t=datum.first.type,
+								n=datum.first.name
+							}
+						),
+					'void'
+				)
+
+			)
+	),
 
 	starts : bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeBackendDataType('bool'),
 		name <- 'starts',
 		const <- true
-	),
-
-	pn : bip!PetriNet(
-		states <- all_states,
-		initStates <- Sequence{all_states->get(0)},
-		transitions <- thisModule.MakeTransitions(all_states, all_aipdecl),
-		initialActions <- Sequence{} -- put the call to the init function here
 	)
 
 	do{
@@ -1107,7 +1981,7 @@ unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <-type+'_data'
+		name <-type+'_monotype_buffer_data'
 	)
 }
 
@@ -1170,7 +2044,7 @@ unique lazy rule MakeMonotypeBufferType{
 	        exportedPortDeclarations <- Sequence{aepd_in,aepd_out},
 	        dataParameterDeclarations <- Sequence{}, -- should stay empty for that type
 	        internalPortDeclarations <- Sequence{aipd_in,aipd_out},
-	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out),
+	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out,aidd,type),
 	        internalDataDeclarations <- Sequence{aidd},
 	        exportPortDeclarations <- Sequence{aepd_in,aepd_out}
 		)
@@ -1225,25 +2099,20 @@ unique lazy rule MakeContextualTypeInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <-type+'_data'
+		name <-type+'_contextual_data'
 	)
 }
 
 unique lazy rule MakeContextualTypeInternalPortDeclaration{
 	from
-		name:String, type: String, aidd: bip!AtomInternalDataDeclaration
+		name:String,
+		type: String,
+		all_data_parameters: Sequence(bip!DataDeclarationReferenceDataParameter)
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
 		name <- name,
-		dataParameters <- Sequence{
-			thisModule.MakeAtomDataDeclarationReferenceDataParameter(
-				0,
-				type,
-				aidd,
-				Sequence{type}
-			)
-		}
+		dataParameters <- all_data_parameters
 	)
 }
 
@@ -1270,11 +2139,44 @@ unique lazy rule MakeContextualAtomType{
 			thisModule.MakeContextualTypeInternalDataDeclaration(type);
 
 		aipd_rcv_token:bip!AtomInternalPortDeclaration = 
-			thisModule.MakeContextualTypeInternalPortDeclaration('receiveToken', type, aidd);
+			thisModule.MakeContextualTypeInternalPortDeclaration(
+				'receiveToken',
+				type, 
+				Sequence{
+					thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+						0,
+						type,
+						aidd,
+						Sequence{type}
+					)
+				}
+			);
 		aipd_give_token:bip!AtomInternalPortDeclaration = 
-			thisModule.MakeContextualTypeInternalPortDeclaration('giveToken', type, aidd);
+			thisModule.MakeContextualTypeInternalPortDeclaration(
+				'giveToken',
+				type,
+				Sequence{
+					thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+						0,
+						type,
+						aidd,
+						Sequence{type}
+					)
+				}
+			);
 		aipd_read:bip!AtomInternalPortDeclaration = 
-			thisModule.MakeContextualTypeInternalPortDeclaration('justRead', type, aidd);
+			thisModule.MakeContextualTypeInternalPortDeclaration(
+				'justRead',
+				type,
+				Sequence{
+					thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+						0,
+						type,
+						aidd,
+						Sequence{type}
+					)
+				}
+			);
 		
 		aepd_rcv_token:bip!AtomExportPortDeclaration = 
 			thisModule.MakeContextualTypeExportPortDeclaration('receiveToken', type, aipd_rcv_token);
@@ -1291,7 +2193,14 @@ unique lazy rule MakeContextualAtomType{
 	        exportedPortDeclarations <- Sequence{aepd_rcv_token,aepd_give_token,aepd_read},
 	        dataParameterDeclarations <- Sequence{cdpd},
 	        internalPortDeclarations <- Sequence{aipd_rcv_token,aipd_give_token,aipd_read},
-	        behavior <- thisModule.MakeContextualPetriNet(cdpd, type, aidd, aipd_rcv_token,aipd_give_token,aipd_read),
+	        behavior <- thisModule.MakeContextualPetriNet(
+				cdpd,
+				type, 
+				aidd, 
+				aipd_rcv_token,
+				aipd_give_token,
+				aipd_read
+			),
 	        internalDataDeclarations <- Sequence{aidd},
 	        exportPortDeclarations <- Sequence{aepd_rcv_token,aepd_give_token,aepd_read}
 		),
@@ -1983,22 +2892,22 @@ unique lazy rule MakeSpreadConnectorType{
 	interaction:bip!ConnectorInteractionAction(
 		onPorts<- downports->getValues()->asSequence()
 			->append(target_cppd), --(ConnectorPortParameterDeclaration)
-		down <- Sequence{downinteraction},
+		down <- Sequence{thisModule.MakeCppFunctionCall(
+			fname+'_down',
+			Sequence{},
+			Sequence{},
+			'void'
+		)},
 		up <- if hascontextuals then
-			Sequence{upinteraction}
+			Sequence{thisModule.MakeCppFunctionCall(
+				fname+'_up',
+				Sequence{},
+				Sequence{},
+				'void'
+			)}
 		else
 			Sequence{}
 		endif
-	),
-
-	downinteraction: bip!FunctionCallExpression(
-		functionName <- fname+'_down'--,
-		--parameters <- ,
-	),
-
-	upinteraction: bip!FunctionCallExpression(
-		functionName <- fname+'_up'--,
-		--parameters <- ,
 	),
 
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
@@ -2019,7 +2928,7 @@ unique lazy rule MakeSpreadConnectorType{
 	),
 	
 	target_cppd : bip!ConnectorPortParameterDeclaration(
-		portType <- thisModule.MakePortType(target_type),
+		portType <- thisModule.MakePortType(Sequence{target_type}),
 		name <- 'p_target_cppd'
 	)
 
@@ -2148,7 +3057,7 @@ unique lazy rule MakeCollectConnectorType{
 		name<- fname+'_among_'+support_node_type+'_conn_t',
 		interactions<- Sequence{interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
-			downports->getValues()
+			downports->getValues()->asSequence()
 		),
 		exportedPortDeclaration <- up_accumulator,
 		dataDeclarations <- up_datadecls,
@@ -2157,12 +3066,12 @@ unique lazy rule MakeCollectConnectorType{
 
 	interaction:bip!ConnectorInteractionAction(
 		onPorts<- downports->getValues(), --(ConnectorPortParameterDeclaration)
-		up <- Sequence{upinteraction}
-	),
-
-	upinteraction: bip!FunctionCallExpression(
-		functionName <- fname+'_up'--,
-		--parameters <- ,
+		up <- Sequence{thisModule.MakeCppFunctionCall(
+			fname+'_up',
+			Sequence{},
+			Sequence{},
+			'void'
+		)}
 	),
 
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
@@ -2505,7 +3414,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		all_contextuals_ordered_types : Sequence(String) = all_contextuals->collect(t|t.type);
 
 		only_parameter : bip!ComponentDataParameterDeclaration = 
-			thisModule.MakeComponentDataParameterDeclaration('starts','bool',chipsfunction);
+			thisModule.MakeFunctionComponentDataParameterDeclaration('starts','bool',chipsfunction);
 
 		--------------------------------------------
 		--------------------------------------------
@@ -2860,21 +3769,30 @@ unique lazy rule MakeCoreComponentDeclaration {
 	),
 	
 	starts_valued_expression: bip!DirectDataDeclarationReferenceExpression (
-		dataDeclaration <- thisModule.MakeComponentDataParameterDeclaration('starts','bool',chipsfunction)
+		dataDeclaration <- thisModule.MakeFunctionComponentDataParameterDeclaration('starts','bool',chipsfunction)
 	)
 }
 
 
-unique lazy rule MakeComponentDataParameterDeclaration{
+unique lazy rule MakeFunctionComponentDataParameterDeclaration{
 	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <- name+'_componentdataparameterdeclaration',
+		name <- name+'_param_of_'+fd.name,
 		const <- true
 	)
 }
 
+lazy rule MakeComponentDataParameterDeclaration{
+	from name:String, type:String
+
+	to cdpd: bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBackendDataType(type),
+		name <- name+'_param',
+		const <- true
+	)
+}
 
 unique lazy rule MakeCompoundDeclaration{
 	from 
@@ -2953,9 +3871,9 @@ unique lazy rule MakeConstantAtomType{
 	        castableTypes <- Sequence{},
 	        exportedPortDeclarations <- Sequence{aepd},
 	        exportedDataDeclarations <- Sequence{}, 
-	        dataParameterDeclarations <- Sequence{},
+	        dataParameterDeclarations <- Sequence{value},
 	        internalPortDeclarations <- Sequence{port},
-	        behavior <- thisModule.MakeConstantPetriNet(port),
+	        behavior <- thisModule.MakeConstantPetriNet(port, datadecl, value, type),
 	        internalDataDeclarations <- Sequence{datadecl},
 	        exportPortDeclarations <- Sequence{aepd}
 		),
@@ -2968,7 +3886,7 @@ unique lazy rule MakeConstantAtomType{
 
 	port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- type+'_output'+'_aipd',
+		name <- type+'_output_aipd',
 		dataParameters <- Sequence{thisModule.MakeAtomDataDeclarationReferenceDataParameter(
 			0,
 			type,
@@ -2980,6 +3898,12 @@ unique lazy rule MakeConstantAtomType{
 	datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
 		name <-dataname+'_aidd'
+	),
+
+	value : bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBackendDataType(type),
+		name <- 'val',
+		const <- true
 	)
 
 	do{
@@ -3059,7 +3983,7 @@ unique lazy rule MakeBoolConstantDeclaration{
 		name <- 'cst'+id.toString(),
 		type <- thisModule.MakeConstantAtomType('int'),
 		parameters <- Sequence{
-			thisModule.MakeDirectBoolExpression(value)
+			thisModule.MakeDirectBooleanExpression(value)
 		}
 	)
 	
@@ -3078,10 +4002,16 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		collective_cast: chips!collective_function_definition
 	
 	using{
-
-		aidds:Sequence(bip!AtomInternalDataDeclaration) = 
-			collective_cast.accumulator.accumulator->collect( param |
-				let type:String = 
+	
+		tuplesofparams: Sequence(
+			TupleType(
+				type:String,
+				value:OclAny,
+				name:String,
+				param:bip!ComponentDataParameterDeclaration
+			)
+		) = collective_cast.accumulator.accumulator->collect( param |
+				let typename : String = 
 				if (param.oclIsTypeOf(chips!int_collective_parameter)) then 
 					'int'
 				else if (param.oclIsTypeOf(chips!float_collective_parameter)) then 
@@ -3092,30 +4022,36 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 					let error : String = 'ATL Transformation Error'.debug('Unknown collective parameter type') in
 					OclUndefined
 				endif endif endif in
-				thisModule.MakeAtomInternalDataDeclaration(
-					type, param.declaration.variable.name, collective_cast
-				)
+				Tuple{
+					type=typename,
+					name=param.declaration.variable.name,
+					value= if (param.default_value->oclIsTypeOf(chips!input_kw)) then 
+							typename.typenameToDefaultDirectExpression()
+						else 
+							thisModule.MakeBipExpression(param.default_value)
+						endif,
+					param=thisModule.MakeComponentDataParameterDeclaration(
+						param.declaration.variable.name,
+						typename
+					)
+				}
 			);
 		
-		alldatatypes : Sequence(String) = 
-			collective_cast.accumulator.accumulator->collect( param | 
-				if (param.oclIsTypeOf(chips!int_collective_parameter)) then 
-					'int'
-				else if (param.oclIsTypeOf(chips!float_collective_parameter)) then 
-					'float'
-				else if (param.oclIsTypeOf(chips!bool_collective_parameter)) then 
-					'bool'
-				else 
-					let error : String = 'ATL Transformation Error'.debug('Unknown collective parameter type') in
-					OclUndefined
-				endif endif endif
+		aidds:Sequence(bip!AtomInternalDataDeclaration) = 
+			tuplesofparams->collect( t |
+				thisModule.MakeAtomInternalDataDeclaration(
+					t.type, t.name, collective_cast
+				)
 			);
+		aidds_data:Sequence(OclAny) = tuplesofparams->merge(aidds);
+
 	}
 	
 	to 
 	pht: bip!AtomType(
 		name <- collective_cast.name+'_placeholder_t',
 		native <- false,
+		dataParameterDeclarations <- tuplesofparams->collect(p | p.param),
 		exportedPortDeclarations <- Sequence{aepd},
 		internalPortDeclarations <- Sequence{aipd},
 		behavior <- pn,
@@ -3127,32 +4063,38 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		states <- Sequence{stt},
 		initStates <- Sequence{stt},
 		transitions <- Sequence{only_tranz},
-		initialActions <- Sequence{
-			thisModule.MakeCppFunctionCall(
-				Tuple{
-					functionName = 'init_'+collective_cast.name+'_accumulator',
-					parameters = aidds->collect( param |
-						thisModule.MakeDirectDataDeclarationReferenceExpression(param)
-					)
-				}
+		initialActions <- aidds_data->collect( datum |
+			thisModule.MakeAssignment(
+				thisModule.MakeDirectDataDeclarationReferenceExpression(
+					datum.second
+				),
+				thisModule.MakeTypeConverterNativeToChips(
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						datum.first.param
+					),
+					datum.first.type
+				)
 			)
-		}
+		)
 	),
 
 	only_tranz : bip!Transition(
 		sources <- Sequence{stt},
 		destinations <- Sequence{stt},
 		triggerPort <- aipd,
-		actions <- Sequence{
-			thisModule.MakeCppFunctionCall(
-				Tuple{
-					functionName = 'init_'+collective_cast.name+'_accumulator',
-					parameters = aidds->collect( param |
-						thisModule.MakeDirectDataDeclarationReferenceExpression(param)
-					)
-				}
+		actions <-aidds_data->collect( datum |
+			thisModule.MakeAssignment(
+				thisModule.MakeDirectDataDeclarationReferenceExpression(
+					datum.second
+				),
+				thisModule.MakeTypeConverterNativeToChips(
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						datum.first.param
+					),
+					datum.first.type
+				)
 			)
-		}
+		)
 	),
 
 	stt : bip!State(
@@ -3160,17 +4102,17 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 	),
 
 	aepd: bip!AtomExportPortDeclaration(
-		portType <- thisModule.MakePortType(alldatatypes),
+		portType <- thisModule.MakePortType(tuplesofparams->collect(p | p.type)),
 		name <- 'aepd',
 		portDeclarationReferences <- Sequence{aipd}
 	),
 
 	aipd : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.MakePortType(alldatatypes),
+		portType <- thisModule.MakePortType(tuplesofparams->collect(p | p.type)),
 		name <- 'aipd',
-		dataParameters <- thisModule.MakeAtomPortDataParamDeclSequence(alldatatypes,aidds)
+		dataParameters <- thisModule.MakeAtomPortDataParamDeclSequence(tuplesofparams->collect(p | p.type),aidds)
 	)
-
+	
 	do {
 		thisModule.temp <- thisModule.types->get('AtomType');
 		if (thisModule.temp.oclIsUndefined()) {
@@ -3808,7 +4750,9 @@ rule Program2BipPackage {
 		-------------  Generating the bip instances of the   ----------------------------
 		-------------   collective cast connectors   ------------------------------------
 
-		collective_connectors_instances : Sequence(bip!ConnectorDeclaration) = Sequence{};
+		collective_connectors_instances : Sequence(bip!ConnectorDeclaration) = Sequence{
+			
+		};
 
 		bip_package : TupleType(
 			components: Sequence(bip!ComponentDeclaration),
@@ -3837,21 +4781,21 @@ rule Program2BipPackage {
 			)->union(
 				thisModule.dictionary->get('ContextualAtomDeclaration')->getValues()->asSequence()
 			),
-			connectors = memory.dataflows->getValues()->asSequence()->union(ctx_connectors)
+			connectors = memory.dataflows->getValues()->asSequence()->union(ctx_connectors)->union(collective_connectors_instances)
 		};
 	}
 
 	to 
-		bippackage: bip!BipPackage(
+		pack: bip!BipPackage(
 			name <- chipsprogram.fileName.split('\\.')->get(0)->split('/')->last(),
-			atomTypes <- thisModule.types->get('AtomType').debug(),
-			compoundTypes <- thisModule.types->get('CompoundType')->append(system_compound).debug(),
-			connectorTypes <- thisModule.types->get('ConnectorType').debug(),
-			portTypes <- thisModule.types->get('PortType').debug(),
-			dataTypes <- thisModule.types->get('DataType').debug()
-			-- used_packages <- Sequence{},
-			-- constData <- Sequence{}, -- what for ? oh wait, yes
-			-- prototypes <- Sequence{} -- for importing functions from cpp backend
+			dataTypes <- thisModule.types->get('DataType'),
+			portTypes <- thisModule.types->get('PortType'),
+			connectorTypes <- thisModule.types->get('ConnectorType'),
+			atomTypes <- thisModule.types->get('AtomType'),
+			compoundTypes <- thisModule.types->get('CompoundType')->append(system_compound),
+			used_packages <- Sequence{},
+			constData <- Sequence{}, -- what for ? oh wait, yes
+			prototypes <- thisModule.types->get('FunctionCallPrototype')->asSequence() 
 		),
 
 		system_compound : bip!CompoundType(
@@ -6492,7 +7436,7 @@ helper context TupleType(
 		) in
 		if link->oclIsUndefined() then
 			let error : String = 'ATL Transformation error'.debug('Cannot find a linked element of the right object type') in
-			-- let debugger : OclAny = self.links.debug() in 
+			-- let debugger : OclAny = self.links in 
 			OclUndefined
 		else
 			self->resolveObjectOf(link.trg, linkable_index, object_type)
