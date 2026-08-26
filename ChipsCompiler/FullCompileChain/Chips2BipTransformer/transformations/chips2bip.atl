@@ -2942,7 +2942,10 @@ unique lazy rule MakeSpreadConnectorType{
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
 				fname,
-				Map{}
+				Map{
+					('cepd',up_accumulator),
+					('down_ports',downports)
+				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('SpreadConnectorType', thisModule.temp_dic);
@@ -3077,20 +3080,21 @@ unique lazy rule MakeCollectConnectorType{
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
 		portType <-thisModule.MakePortType(up_port_type_seq),
 		name <- 'up_accumulator',
-		dataParameters <-
-		up_port_type_seq->augmentWithIindex()
-		->collect(
-			t |
-			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-				up_port_type_seq->get(t.iindex),
-				up_datadecls->get(t.iindex), -- ddr:bip!ConnectorDataDeclaration,
-				thisModule.MakePortDataParameterDeclaration(
-					up_port_type_seq->get(t.iindex), -- type:OclAny
-					t.iindex, --iindex:Integer
-					up_port_type_seq --type_ordered_sequence:Sequence(OclAny)
+		dataParameters <- 
+			up_port_type_seq
+			->augmentWithIindex()
+			->collect(
+				t |
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					up_port_type_seq->get(t.iindex),
+					up_datadecls->get(t.iindex), -- ddr:bip!ConnectorDataDeclaration,
+					thisModule.MakePortDataParameterDeclaration(
+						up_port_type_seq->get(t.iindex), -- type:OclAny
+						t.iindex, --iindex:Integer
+						up_port_type_seq --type_ordered_sequence:Sequence(OclAny)
+					)
 				)
 			)
-		)
 	)
 
 	do {
@@ -3103,7 +3107,10 @@ unique lazy rule MakeCollectConnectorType{
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
 				fname,
-				Map{}
+				Map{
+					('cepd',up_accumulator),
+					('down_ports',downports)
+				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('CollectConnectorType', thisModule.temp_dic);
@@ -4114,6 +4121,23 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 	)
 	
 	do {
+		thisModule.temp_dic <- thisModule.dictionary->get('PlaceholderAtomTypes');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				collective_cast.name,
+				Map{
+					('aidds',aidds),
+					('aipd',aipd),
+					('aepd',aepd)
+				}
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('PlaceholderAtomTypes', thisModule.temp_dic);
+
 		thisModule.temp <- thisModule.types->get('AtomType');
 		if (thisModule.temp.oclIsUndefined()) {
 			thisModule.temp <- Sequence{};
@@ -4158,6 +4182,114 @@ unique lazy rule MakeCollectiveCastPlaceholderDeclaration{
 		placeholder;
 	}
 }
+
+
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String, src_trg:String, trg_index:String, trg_type:String)),
+	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+		TupleType(
+			type:String, channels:Map(String,String),
+			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+		)
+	))),
+	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, from_type:String, to_ob:String,to_index:Sequence(Integer), to_chan:String, to_type:String)),
+		ccasts_map : Map(
+		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+	),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getFunctionEmbedingNodes(fname:String, findex:Integer) : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) = 
+	self.links->iterate(
+		link ; iterator : TupleType(embeded:Sequence(TupleType(name:String, index:Integer)), embedingNodes:Sequence(TupleType(name:String, index:Integer))) =
+			Tuple{embeded=Sequence{Tuple{name=fname,index=findex}}, embedingNodes=Sequence{}} | 
+		let isEmbeding : Boolean = not (iterator.embeded->any(e | e.name = link.src and e.index = link.src_index).oclIsUndefined()) in
+		Tuple{
+			embeded = if isEmbeding 
+				then iterator.embeded->including(Tuple{name=link.src, index=link.src_index})
+				else iterator.embeded endif,
+			embedingNodes = if isEmbeding 
+				then iterator.embedingNodes->including(Tuple{name=link.src, index=link.src_index})
+				else iterator.embedingNodes endif
+		}
+	).embedingNodes->collect(
+		t | Tuple{
+			function=Tuple{name=fname, index=findex},
+			object=Tuple{name=t.name, index=t.index}
+		}
+	);
+
+
+
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String, src_trg:String, trg_index:String, trg_type:String)),
+	nodes: Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(
+		TupleType(
+			type:String, channels:Map(String,String),
+			contextuals:Map(String,TupleType(dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration)))
+		)
+	))),
+	connections: Sequence(TupleType(from_ob:String,from_index:Sequence(Integer),from_chan:String, from_type:String, to_ob:String,to_index:Sequence(Integer), to_chan:String, to_type:String)),
+	ccasts_map : Map(
+		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		Set(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+	),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getFunctionEmbedingTable() : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) =
+	self.fblocks->getKeys()->iterate(
+		fname ; theset : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) = Set{} |
+		theset->union(
+			thisModule->range(self.fblocks->get(fname).dimensions)->iterate(
+				index ; subset : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) = Set{} |
+				subset->union(
+					self.getFunctionEmbedingNodes(fname,index)
+				)
+			)
+		)
+	);
+
+
+
+helper def: makeTreesOutOfChildrenSeq(seq : Sequence(Map(String,Integer))) : Sequence(Map(String,OclAny)) =
+	seq.debug()->augmentWithIindex()->iterate(
+		elem ; metidsAndSeqseq : TupleType(metids:Set(Integer), seqseq:Sequence(Sequence(Map(String,Integer)))) = 
+			Tuple{metids=Set{},seqseq=Sequence{}} |
+		if metidsAndSeqseq.metids->includes(elem.iindex)
+		then 
+			Tuple{
+				metids = metidsAndSeqseq.metids->union(elem.data->getValues()->asSet()),
+				seqseq = metidsAndSeqseq.seqseq->append(metidsAndSeqseq.seqseq->last()->including(elem))
+			}
+		else
+			Tuple{
+				metids = metidsAndSeqseq.metids->union(elem.data->getValues()->asSet()),
+				seqseq = metidsAndSeqseq.seqseq->append(Sequence{elem})
+			}
+		endif
+	).seqseq->collect(
+		seq |
+		let index_of_first : Integer = seq->first().iindex+1 in
+		thisModule.makeTreeOutOfChildrenSeqRec(seq->collect(e| e.data),index_of_first, index_of_first)
+	)->flatten();
+
+helper def: makeTreeOutOfChildrenSeqRec(seq : Sequence(Map(String,Integer)), current_index:Integer, start_index:Integer) : Map(String,OclAny) =
+	if current_index < 0
+	then 'placeholder'
+	else seq->at(current_index-start_index+1)->getKeys()->iterate(
+		key ; themap : Map(String, OclAny) = Map{} |
+		themap->including(
+			key,
+			thisModule.makeTreeOutOfChildrenSeqRec(
+				seq,
+				seq->at(current_index-start_index+1)->get(key)-start_index,
+				start_index
+			)
+		)
+	)
+	endif;
 
 -----------------------------------------------------------------------------------------
 ------------------------------- PACKAGE COMPOSITION (~main) -----------------------------
@@ -4596,7 +4728,7 @@ rule Program2BipPackage {
 		collective_connectors_trees : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
-			-- children:Map(channelname,index_of_plugged_object)
+			-- children:Map(channelname, index_of_plugged_object || placeholder)
 		) = memory.ccasts_map->getKeys()->iterate(
 				tuple ; themap : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
@@ -4677,22 +4809,23 @@ rule Program2BipPackage {
 		-------------  Generating the bip instances of the placeholders   ---------------
 		-- that will be plugged to missing connections on collective cast connectors  ---
 
-		collective_placeholders : Map(
-			TupleType(
+		channeled_ports_to_appy_collective_ops_on : Map(
+			TupleType( -- the signal to be spread or collected
 				collective_cast:String,
 				root_function:String,
 				root_index:Sequence(Integer),
 				root_parameter:String
 			),
-			Sequence(Map(String,bip!ComponentDeclaration)) -- (channel, placeholder) 
-		) = trees_keys->iterate(
+			Sequence(TupleType(obj:String, index:Integer, children:Map(String,TupleType(port_holder:OclAny, port:OclAny))))
+		) = 
+		trees_keys->iterate(
 			ccrfrirp ; themap : Map(
 				TupleType(
 					collective_cast:String,
 					root_function:String,
 					root_index:Sequence(Integer)
 				),
-				Sequence(Map(String,bip!ComponentDeclaration))
+				Sequence(Map(String,OclAny))
 			) = Map{} |
 			let node_data : TupleType(
 				type:String, channels:Map(String,String),
@@ -4704,51 +4837,99 @@ rule Program2BipPackage {
 				all_chips_collective_defs->any(d | d.name = ccrfrirp.collective_cast).support_object
 			) in
 			let channels_list : Sequence(String) = node_data.channels->getKeys()->asSequence() in
-			let placeholders_list : Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer))) = 
+			let children_lists : Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer))) =
+			-- For each object stored in the sequence, we trace:
+			-- 	the name of the object (or object array), 
+			--	the index of the instance (0 if object, 0 or + if object array element)
+			--	a children map that matches:
+			--		the name of the channel leading to the child
+			--		with the index in children_lists of the child if it exists, -1 else
 			collective_connectors_trees->get(ccrfrirp)->iterate(
-				obinch ; ph_list : Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer))) = Sequence{} |
-				ph_list->append(
+				obinch ; ch_list : Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer))) = Sequence{} |
+				ch_list->append(
 					Tuple{
 						obj=obinch.obj,
 						index=obinch.index,
 						children=channels_list->iterate(
 							chan ; newchildren : Map(String,Integer) = Map{} |
 							if obinch.children->getKeys()->excludes(chan) then
-								newchildren->including(chan,obinch.children->get(chan))
+								newchildren->including(chan,-1)
 							else
-								newchildren
+								newchildren->including(chan,obinch.children->get(chan))
 							endif
 						)
 					}
 				)
 			) in
+			let children_lists_as_trees : OclAny = thisModule.makeTreesOutOfChildrenSeq(children_lists->collect(t | t.children)) in
 			themap->including(
 				ccrfrirp,
-				placeholders_list->iterate(
-					obinch2 ; seq:Sequence(Map(String, bip!ComponentDeclaration)) = Sequence{} |
+				children_lists->iterate(
+					obinch2 ; seq:Sequence(TupleType(obj:String, index:Integer, children:Map(String,TupleType(port_holder:OclAny, port:OclAny)))) = Sequence{} |
 					seq->append(
-						obinch2.children->getKeys()->iterate(
-							chname ; chtomap : Map(String, bip!ComponentDeclaration) = Map{} |
-							chtomap->including(
-								chname,
-								thisModule.MakeCollectiveCastPlaceholderDeclaration(
-									all_chips_collective_defs->any(d | d.name = ccrfrirp.collective_cast),
-									obinch2.obj,
-									chname,
-									obinch2.index->at(1)
-								)
+						Tuple{
+							obj=obinch2.obj,
+							index=obinch2.index,
+							children=channels_list->iterate(
+								chan ; newchildren : Map(String,TupleType(port_holder:OclAny,port:OclAny)) = Map{} |
+								if obinch2.children->get(chan) = -1 then
+									Tuple{
+										port_holder = thisModule.MakeCollectiveCastPlaceholderDeclaration(
+											all_chips_collective_defs->any(d | d.name = ccrfrirp.collective_cast),
+											obinch2.obj,
+											chan,
+											obinch2.index->at(1)
+										),
+										port = thisModule.dictionary->get('PlaceholderAtomTypes')->get('aepd')
+									}
+								else
+									if thisModule.dictionary->get('CollectConnectorType')->getKeys()->including(ccrfrirp.collective_cast)
+									then
+										Tuple{
+											port_holder = obinch2.children->get(chan),
+											port = thisModule.dictionary->get('CollectConnectorType')->get('cepd')
+										}
+									else
+										Tuple{
+											port_holder = obinch2.children->get(chan),
+											port = thisModule.dictionary->get('SpreadConnectorType')->get('cepd')
+										}
+									endif
+									
+								endif
 							)
-						)
+						}
 					) 
-				)->toArray()
+				)
 			)
 		);
-		all_placeholders : OclAny = collective_placeholders->getValues()->collect(seq | seq->collect(map| map->getValues()))->flatten()->asSequence()->toArray();
 
+		-- let f_embeding_table : 
+		-- 	Set(TupleType(
+		-- 		function:TupleType(
+		-- 			name:String, index:Integer
+		-- 		),
+		-- 		object:TupleType(
+		-- 			name:String,index:Integer
+		-- 		)
+		-- 	)) = memory.getFunctionEmbedingTable() in
+		
 		---------------------------------------------------------------------------------
 		---------------------------------------------------------------------------------
 		-------------  Generating the bip instances of the   ----------------------------
 		-------------   collective cast connectors   ------------------------------------
+
+
+		-- collective_placeholders : Map(
+		-- 	TupleType(collective_cast:String, root_function:String, root_index:Sequence(Integer), root_parameter:String),
+		-- 	Sequence(Map(String,bip!ComponentDeclaration)) -- (channel, placeholder) 
+		-- )
+
+
+		-- collective_connectors_trees : Map(
+		-- 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		-- 	Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
+		-- )
 
 		collective_connectors_instances : Sequence(bip!ConnectorDeclaration) = Sequence{
 			
