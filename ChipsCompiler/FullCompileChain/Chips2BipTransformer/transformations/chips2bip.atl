@@ -2869,7 +2869,7 @@ unique lazy rule MakeSpreadConnectorType{
 			node_data.channels->getKeys()->iterate(
 				name ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
 				themap->including(
-					name,
+					name->protect(),
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
 						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), name, cfd
 					)
@@ -3033,20 +3033,16 @@ unique lazy rule MakeCollectConnectorType{
 						cfd
 					)
 				)
-			)->including(
-				'_self', 
-				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
-					accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
-					'_self',
-					cfd
-				)
-			)->including(
-				'input', 
-				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
-					Sequence{Tuple{type=input_type, iindex=0}}, 
-					'input',
-					cfd
-				)
+--			)->including(
+-- it's actually not a port, just an inner variable ... unless it's the port through which provide the default value
+-- in such case, it was only the way to make sure I coded correctly the first prototypes of transformations.
+-- Now, default values should not be provided with an outer component but by the definition of the cpp function called
+--				'_self',
+--				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+--					accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
+--					'_self',
+--					cfd
+--				)
 			);
 		
 		up_port_type_seq : Sequence(OclAny) = 
@@ -3061,15 +3057,15 @@ unique lazy rule MakeCollectConnectorType{
 		name<- fname+'_among_'+support_node_type+'_conn_t',
 		interactions<- Sequence{interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
-			downports->getValues()->asSequence()
+			downports->getValues()->asSequence()->append(cppd_input)
 		),
 		exportedPortDeclaration <- up_accumulator,
 		dataDeclarations <- up_datadecls,
-		ports <- downports->getValues()
+		ports <- downports->getValues()->union(Bag{cppd_input})
 	),
 
 	interaction:bip!ConnectorInteractionAction(
-		onPorts<- downports->getValues(), --(ConnectorPortParameterDeclaration)
+		onPorts<- downports->getValues()->union(Bag{cppd_input}), --(ConnectorPortParameterDeclaration)
 		up <- Sequence{thisModule.MakeCppFunctionCall(
 			fname+'_up',
 			Sequence{},
@@ -3096,6 +3092,11 @@ unique lazy rule MakeCollectConnectorType{
 					)
 				)
 			)
+	),
+
+	cppd_input : bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(Sequence{input_type}),
+		name <- 'p_input_cppd'
 	)
 
 	do {
@@ -3110,7 +3111,8 @@ unique lazy rule MakeCollectConnectorType{
 				fname,
 				Map{
 					('cepd',up_accumulator),
-					('down_ports',downports)
+					('down_ports',downports),
+					('input', cppd_input)
 				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
@@ -4240,7 +4242,7 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 ) def : getFunctionEmbedingNodes(fname:String, findex:Integer) : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) = 
@@ -4308,7 +4310,7 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 ) def : getFunctionEmbedingTable() : Set(TupleType(function:TupleType(name:String, index:Integer),object:TupleType(name:String, index:Integer))) =
@@ -4549,7 +4551,7 @@ helper context Map(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	),
@@ -4557,16 +4559,14 @@ helper context Map(
 ) : Map(
 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 	Sequence(Map(String,OclAny))
-) = 
-	
-	self->getKeys()->iterate(
+) = self->getKeys()->iterate(
 		key ; themap : Map(OclAny, OclAny) = Map{} |
 		themap->including(
-			key.debug(),
-			self->get(key).debug()->collect(
+			key,
+			self->get(key)->collect(
 				root |
 				root->instantiation_visit(key, memory, Tuple{name='_origin',index=0,channel='_none'},all_chips_collective_defs)
-			)
+			)->toArray()
 		) 
 	);
 
@@ -4602,7 +4602,7 @@ helper context TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	),
@@ -4616,10 +4616,8 @@ helper context TupleType(
 	children:Map(String, OclAny)
 ) = 
 	let connector_type: chips!collective_function_definition =  all_chips_collective_defs->any(ccast | ccast.name = collectiveop.collective_cast) in
-	let b : OclAny = self.debug() in 
-	if self.obj='placeholder' 
+	if self.obj='placeholder'
 	then
-		let a : OclAny = 'IVE BEEN HERE'.debug() in
 		let compdecl : bip!ComponentDeclaration =
 			thisModule.MakeCollectiveCastPlaceholderDeclaration(
 				connector_type,
@@ -4628,8 +4626,8 @@ helper context TupleType(
 				origin.index
 			) in
 		Tuple{
-			obj='placeholder', --'placeholder_for_'+collectiveop.collective_cast,
-			index=0,
+			obj='ph_from_chan_'+origin.channel->protect()+'_for_'+collectiveop.collective_cast,
+			index=origin.index,
 			instance=compdecl,
 			exported_port=thisModule.MakeComponentSubPortDeclarationReference(
 					thisModule.dictionary
@@ -4673,8 +4671,8 @@ helper context TupleType(
 						thisModule.dictionary
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
 							->get(collectiveop.collective_cast)
-							->get('downports')
-							->get(key),
+							->get('down_ports')
+							->get(key->protect()),
 						instantiated_children->get(key).exported_port
 					)
 				)->asSequence()
@@ -4683,14 +4681,14 @@ helper context TupleType(
 						thisModule.dictionary
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
 							->get(collectiveop.collective_cast)
-							->get('target'),
+							->get(if is_spread then 'target' else 'input' endif),
 						let theleaf : OclAny = memory.ccasts_map->get(collectiveop)->any(leaf | (leaf.obj = self.obj) and (leaf.obj_index = self.index)) in 
 						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('FunctionalBlockCompoundTypes')
-								->get(theleaf.leaf_fct)
+								->get(theleaf.leaf_fct_type)
 								->get(if is_spread then 'einputs' else 'eoutputs' endif)
-								->get(theleaf.leaf_param),
+								->get(theleaf.leaf_param.name),
 							memory.fblocks->get(theleaf.leaf_fct).instances->get(theleaf.leaf_index)
 						)
 					)
@@ -4717,17 +4715,33 @@ helper context TupleType (
 	instance:OclAny,
 	exported_port:OclAny,
 	children:Map(String,OclAny)
-) def : collect_all_placeholders_in_tree(list:Sequence(OclAny)) : Sequence(OclAny) =
-	self.children->getKeys()->iterate(
-		channel ; newlist : Sequence(OclAny) = list->union(
-			if self.obj <> 'placeholder' then 
-				list
-			else 
-				list->append(self.debug().instance)
-			endif
-		) |
-		newlist->union(self.children->get(channel)->collect_all_placeholders_in_tree(newlist))
-	);
+) def : collect_all_placeholders_in_tree(
+	acc : TupleType(
+		list:Sequence(OclAny), 
+		visited:Set(TupleType(obj:String,id:Integer))
+	)
+) : TupleType(
+	list:Sequence(OclAny), 
+	visited:Set(TupleType(obj:String,id:Integer))
+) =	let current : TupleType(obj:String,id:Integer) = Tuple{obj=self.obj, id=self.index}.debug('visiting') in
+	if acc.visited->includes(current)
+	then Tuple{list=acc.list, visited=acc.visited}
+	else 
+		self.children->getKeys()->iterate(
+			channel ; newacc : TupleType(
+				list:Sequence(OclAny), 
+				visited:Set(TupleType(obj:String,id:Integer))
+			) = if not self.obj->startsWith('ph_from') then 
+					acc
+				else 
+					Tuple{
+						list = acc.list->append(self.instance), -- .debug('item added to the list because it is a placeholder'),
+						visited = acc.visited->including(current)
+					}
+				endif |
+			self.children->get(channel)->collect_all_placeholders_in_tree(newacc)
+		)
+	endif;
 
 
 -----------------------------------------------------------------------------------------
@@ -5048,7 +5062,7 @@ rule Program2BipPackage {
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 		) =
@@ -5078,7 +5092,7 @@ rule Program2BipPackage {
 				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 			) = Tuple{fblocks=Map{}, dataflows=Map{}, links=Set{},  nodes=Map{}, connections=Sequence{}, ccasts_map=Map{}, variables=Sequence{}} |
@@ -5244,19 +5258,21 @@ rule Program2BipPackage {
 		-------------  Generating the bip instances of the   ----------------------------
 		-------------   collective cast connectors   ------------------------------------
 
-		instanciated_collective_connectors_and_placeholders : Sequence(Map(String,OclAny)) = 
-			collective_connectors_trees->collective_instantiation(memory,all_chips_collective_defs)->getValues()->asSequence()->toArray();
+		instantiated_collective_connectors_trees : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(Map(String,OclAny))
+		) = collective_connectors_trees->collective_instantiation(memory,all_chips_collective_defs);
 
 		all_placeholders : Sequence(bip!ComponentDeclaration) =
 			collective_connectors_trees->getKeys()->iterate(
 				key; ph_seq : Sequence(bip!ComponentDeclaration) = Sequence{} |
 				ph_seq->union(
 					let all_stuff : Sequence(bip!ComponentDeclaration) = Sequence{} in
-					collective_connectors_trees->get(key)->asSequence()->collect(
-						root | root->collect_all_placeholders_in_tree(all_stuff)
-					)->flatten()
+					instantiated_collective_connectors_trees->get(key)->asSequence()->collect(
+						root | root->collect_all_placeholders_in_tree(Tuple{list=all_stuff, visited=Set{}}).list
+					)->flatten().debug()
 				)
-			)->toArray();
+			);
 
 
 
@@ -5268,20 +5284,6 @@ rule Program2BipPackage {
 			components = memory.fblocks->getKeys()->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{} |
 				seq->union(memory.fblocks->get(fbname).instances)
-			)->union(
-				memory.nodes->getKeys()->iterate(
-				nodename ; seq : Sequence(bip!ComponentDeclaration) = Sequence{} |
-					seq->union(
-						memory.nodes
-						->get(nodename).instances
-						->collect(tuple | 
-							tuple.contextuals
-							->getValues()
-							->asSequence()
-							->collect(t | t.instances)
-						)->flatten()->select( e | not e.oclIsUndefined()) -- I don't know why some variables may end up in the contextuals lists...
-					)->flatten()
-				)
 			)->union(
 				thisModule.dictionary->get('PlaceholderDeclaration')->getValues()->asSequence()
 			)->union(
@@ -5482,12 +5484,12 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 ) def : getNodeCtxDeclarations(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
 let node : OclAny = self.nodes->get(nodename).instances->get(index.linearize(self.nodes->get(nodename).dimensions)) in
-	node.contextuals->getKeys()->collect(k | Tuple{name=k, comp=node.contextuals->get(k).instances})->asSequence();
+	node->getKeys()->collect(k | Tuple{name=k, comp=node->get(k).instances})->asSequence();
 
 
 helper context TupleType(
@@ -5515,7 +5517,7 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 ) def : getNodeCtxDeclarationsRec(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
@@ -5555,7 +5557,7 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 ) def : 
@@ -5699,7 +5701,7 @@ helper def: updatenodeswith(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : Map(
@@ -6905,7 +6907,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer),instances:Sequence(bip!ComponentDeclaration))) =
@@ -6972,7 +6974,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7000,7 +7002,7 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -7041,7 +7043,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7069,7 +7071,7 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -7109,7 +7111,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7137,7 +7139,7 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	) = 
@@ -7179,7 +7181,7 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
@@ -7223,7 +7225,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7251,7 +7253,7 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7292,7 +7294,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7320,7 +7322,7 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7360,7 +7362,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7388,7 +7390,7 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7451,7 +7453,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
@@ -7559,7 +7561,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7587,7 +7589,7 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7627,7 +7629,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7655,7 +7657,7 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7695,7 +7697,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7723,7 +7725,7 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7766,7 +7768,7 @@ helper context chips!link def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7794,7 +7796,7 @@ helper context chips!link def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -7882,7 +7884,7 @@ helper context chips!channel_plugging def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -7958,7 +7960,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -7986,7 +7988,7 @@ helper context chips!"chips::statements::system::foreach" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -8038,7 +8040,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) = memory |
@@ -8067,7 +8069,7 @@ helper context chips!"chips::statements::system::foreach" def :
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) = self.statements->iterate( 
@@ -8097,7 +8099,7 @@ helper context chips!"chips::statements::system::foreach" def :
 				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = Tuple{
@@ -8163,7 +8165,7 @@ helper context chips!"chips::statements::system::if" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -8191,7 +8193,7 @@ helper context chips!"chips::statements::system::if" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -8224,7 +8226,7 @@ helper context chips!"chips::statements::system::if" def :
 				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -8260,7 +8262,7 @@ helper context chips!"chips::statements::system::if_else" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -8288,7 +8290,7 @@ helper context chips!"chips::statements::system::if_else" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -8321,7 +8323,7 @@ helper context chips!"chips::statements::system::if_else" def :
 				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -8355,7 +8357,7 @@ helper context chips!"chips::statements::system::if_else" def :
 				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 				ccasts_map : Map(
 					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 				),
 				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 			) = memory |
@@ -8401,7 +8403,7 @@ helper context TupleType(
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 ) def : resolveObjectOf(linkable : String, linkable_index : Integer, object_type: String) : TupleType(name:String, index:Integer)
@@ -8470,14 +8472,14 @@ helper def : includingPartialConnectorForPhysical(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	),
 	stt : OclAny
 ) : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	) = 
 	let collective_cast : String = stt.feeder.collective_function.name --.debug('collective function used')
 	in
@@ -8512,6 +8514,12 @@ helper def : includingPartialConnectorForPhysical(
 		stt.feeder.physical_feeder_expression.variable_expression.variable.name
 	else 
 		stt.eater.variable.variable.name
+	endif
+	in
+	let leaf_fct_type : String = if not isspread then
+		stt.feeder.physical_feeder_expression.variable_expression.variable.declaration."def".name
+	else 
+		stt.eater.variable.variable.declaration."def".name
 	endif
 	in
 	let leaf_index_prime : Sequence(Integer) = if not isspread then
@@ -8551,13 +8559,15 @@ helper def : includingPartialConnectorForPhysical(
 		obj_index:Integer,
 		leaf_fct:String,
 		leaf_index:Integer,
-		leaf_param : String
+		leaf_param : String,
+		leaf_fct_type: String
 	) = Tuple{
 		obj=object.name, 
 		obj_index= object.index,
 		leaf_fct=leaf_fct,
 		leaf_index = leaf_index, 
-		leaf_param=leaf_param
+		leaf_param=leaf_param,
+		leaf_fct_type=leaf_fct_type
 	} in
 	if memory.ccasts_map->getKeys()->select(k | k = key)->isEmpty() then
 		memory.ccasts_map->including(
@@ -8568,7 +8578,7 @@ helper def : includingPartialConnectorForPhysical(
 		memory.ccasts_map->getKeys()->iterate(
 			tk ; newccast_map :  Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			) = Map{} |
 			newccast_map->including(
 				tk,
@@ -8607,14 +8617,14 @@ helper def : includingPartialConnectorForLogical(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	),
 	stt : OclAny
 ) : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	) = 
 	let collective_cast : String = stt.feeder.collective_function.name --.debug('collective function used')
 	in
@@ -8650,6 +8660,12 @@ helper def : includingPartialConnectorForLogical(
 	else 
 		stt.eater.variable_expression.variable.name
 	endif --.debug('leaf function used') 
+	in
+	let leaf_fct_type : String = if not isspread then
+		stt.feeder.logical_feeder_expression.variable_expression.variable.declaration."def".name
+	else 
+		stt.eater.variable_expression.variable.declaration."def".name
+	endif
 	in
 	let leaf_index_prime : Sequence(Integer) = if not isspread then
 		stt.feeder.logical_feeder_expression.variable_expression.index->evaluate(memory)
@@ -8688,13 +8704,15 @@ helper def : includingPartialConnectorForLogical(
 		obj_index:Integer,
 		leaf_fct:String,
 		leaf_index:Integer,
-		leaf_param : String
+		leaf_param : String,
+		leaf_fct_type : String
 	) = Tuple{
 		obj=object.name, 
 		obj_index= object.index,
 		leaf_fct=leaf_fct,
 		leaf_index = leaf_index,
-		leaf_param=leaf_param
+		leaf_param=leaf_param,
+		leaf_fct_type=leaf_fct_type
 	} in
 	if memory.ccasts_map->getKeys()->select(k | k = key)->isEmpty() then
 		memory.ccasts_map->including(
@@ -8705,7 +8723,7 @@ helper def : includingPartialConnectorForLogical(
 		memory.ccasts_map->getKeys()->iterate(
 			tk ; newccast_map :  Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			) = Map{} |
 			newccast_map->including(
 				tk,
@@ -8744,7 +8762,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -8772,7 +8790,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -8887,7 +8905,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -8915,7 +8933,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -8984,8 +9002,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 			)
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+				-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
 				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_float.evaluate') -- How is it even possible?
@@ -9032,7 +9049,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9060,7 +9077,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = Tuple {
@@ -9129,8 +9146,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 			)
 		else 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				-- TO DO (but less urgent than the rest)
-				let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+				-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
 				memory.dataflows
 			else 
 				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_bool.evaluate') -- How is it even possible?
@@ -9176,7 +9192,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9204,7 +9220,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -9239,7 +9255,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -9353,7 +9369,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9381,7 +9397,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -9416,7 +9432,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -9530,7 +9546,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9558,7 +9574,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -9593,7 +9609,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
 			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 		) =  Tuple{
@@ -9706,7 +9722,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9734,7 +9750,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -9856,7 +9872,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -9884,7 +9900,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -10006,7 +10022,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
@@ -10034,7 +10050,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	) = 
@@ -10155,7 +10171,7 @@ helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(Integer) = self->collect(e | e.evaluate(memory).value->get(0));	
@@ -10188,7 +10204,7 @@ helper context chips!"chips::rvalues::system::direct_int" def : evaluate(memory:
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10224,7 +10240,7 @@ helper context chips!"chips::rvalues::system::direct_float" def : evaluate(memor
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10260,7 +10276,7 @@ helper context chips!"chips::rvalues::system::direct_bool" def : evaluate(memory
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10296,7 +10312,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10333,7 +10349,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10370,7 +10386,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10407,7 +10423,7 @@ helper context chips!"chips::rvalues::system::operators::int::plus" def : evalua
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10466,7 +10482,7 @@ helper context chips!"chips::rvalues::system::operators::float::plus" def : eval
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10525,7 +10541,7 @@ helper context chips!"chips::rvalues::system::operators::int::mult" def : evalua
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10584,7 +10600,7 @@ helper context chips!"chips::rvalues::system::operators::float::mult" def : eval
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10643,7 +10659,7 @@ helper context chips!"chips::rvalues::system::operators::int::div" def : evaluat
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10702,7 +10718,7 @@ helper context chips!"chips::rvalues::system::operators::float::div" def : evalu
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10761,7 +10777,7 @@ helper context chips!"chips::rvalues::system::operators::int::minus" def : evalu
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10820,7 +10836,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10879,7 +10895,7 @@ helper context chips!"chips::rvalues::system::operators::float::minus" def : eva
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10938,7 +10954,7 @@ helper context chips!"chips::rvalues::system::operators::float::cast_as_float" d
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -10985,7 +11001,7 @@ helper context chips!"chips::rvalues::system::operators::int::cast_as_int" def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11032,7 +11048,7 @@ helper def: lt(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -11091,7 +11107,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_int" def : eva
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11124,7 +11140,7 @@ helper context chips!"chips::rvalues::system::operators::bool::lt_float" def : e
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11157,7 +11173,7 @@ helper def : eq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -11216,7 +11232,7 @@ helper def : neq(loperand : OclAny, roperand: OclAny, memory:TupleType(
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -11275,7 +11291,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_int" def : eva
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11308,7 +11324,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_float" def : e
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11341,7 +11357,7 @@ helper context chips!"chips::rvalues::system::operators::bool::eq_bool" def : ev
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11374,7 +11390,7 @@ helper context chips!"chips::rvalues::system::operators::bool::neq_int" def : ev
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11407,7 +11423,7 @@ helper context chips!"chips::rvalues::system::operators::bool::neq_float" def : 
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11440,7 +11456,7 @@ helper context chips!"chips::rvalues::system::operators::bool::neq_bool" def : e
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
@@ -11474,7 +11490,7 @@ helper context chips!"chips::rvalues::system::function" def : evaluate(memory:Tu
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		ccasts_map : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String))
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
