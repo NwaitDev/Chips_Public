@@ -676,7 +676,17 @@ public class PetriNetImpl extends AnnotatedEObjectImpl implements PetriNet {
          */
         private void addUninitialized(State state,
                 Set<DataDeclaration> uninit) {
-            boolean modified = uninitialized.get(state).addAll(uninit);
+
+            boolean modified = false;
+
+            // cannot just use uninitialized.get(state).addAll(uninit)
+            // because sometimes, eclipse api mixes states of different components
+            // when they have the same names 
+            for (State s : uninitialized.keySet()){
+                if (s.equals(state)){
+                    modified = uninitialized.get(s).addAll(uninit);
+                }
+            }
 
             if (modified) {
                 for (Transition t : pn.getSuccessors(state)) {
@@ -757,12 +767,26 @@ public class PetriNetImpl extends AnnotatedEObjectImpl implements PetriNet {
 
             boolean first = true;
 
+
+            // cannot just use ret.addAll/retainAll(uninitialized.get(s))
+            // because sometimes, eclipse api mixes states of different components
+            // when they have the same names 
             for (State s : pn.getPredecessors(transition)) {
                 if (first) {
                     first = false;
-                    ret.addAll(uninitialized.get(s));
+                    for (State state : uninitialized.keySet()){
+                        if (s.equals(state)){
+                            ret.addAll(uninitialized.get(state));
+                            break;
+                        }
+                    }
                 } else {
-                    ret.retainAll(uninitialized.get(s));
+                    for (State state : uninitialized.keySet()){
+                        if (s.equals(state)){
+                            ret.retainAll(uninitialized.get(state));
+                            break;
+                        }
+                    }
                 }
             }
 
