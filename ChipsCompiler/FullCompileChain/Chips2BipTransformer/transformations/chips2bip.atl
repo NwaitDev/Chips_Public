@@ -70,7 +70,7 @@ unique lazy rule MakeBipDataType{
 
 lazy rule MakePrototypeParameterDeclaration{
 	from
-		t:String,
+		t:OclAny,
 		n:String
 
 	to pp:bip!PrototypeParameterDeclaration(
@@ -98,10 +98,9 @@ unique lazy rule MakeInitCtxFunctionPrototype{
 		rtype : String
 
 	to p : bip!FunctionCallPrototype(
-		functionName <- 'init_ctx',
+		functionName <- rtype+'_init_ctx',
 		parameterDeclarations <- Sequence{
-			thisModule.MakeBipNativePrototypeParameterDeclaration('string', rtype+'_ctx_name'),
-			thisModule.MakePrototypeParameterDeclaration(rtype, 'ctx_value')
+			thisModule.MakeBipNativePrototypeParameterDeclaration('string', rtype+'_ctx_name')
 		},
 		returnType <- thisModule.MakeBipDataType(rtype),
 		native <- false,
@@ -178,7 +177,7 @@ unique lazy rule MakeFunctionCallPrototypeWithReturn{
 unique lazy rule MakeFunctionCallPrototypeWithoutReturn{
 	from 
 		functionName:String,
-		ppdecls: Sequence(TupleType(t:String,n:String))
+		ppdecls: Sequence(TupleType(t:OclAny,n:String))
 
 	to p : bip!FunctionCallPrototype(
 		functionName <- functionName,
@@ -204,7 +203,7 @@ lazy rule MakeCppFunctionCall {
 	from
 		functionName : String, 
 		parameters : Sequence(OclAny),
-		ppdecls: Sequence(TupleType(t:String,n:String)),
+		ppdecls: Sequence(TupleType(t:OclAny,n:String)),
 		rtype : String
 
 	using {
@@ -229,11 +228,10 @@ lazy rule MakeCppFunctionCall {
 lazy rule MakeContextualInitializerCppFunctionCall {
 	from
 		name: bip!ValuedExpression,
-		ctx_value:bip!ValuedExpression,
 		type:String
 
 	using {
-		fname : String = 'init_ctx';
+		fname : String = type+'_init_ctx';
 		proto : OclAny = thisModule.MakeInitCtxFunctionPrototype(type);
 		error : String = 
 			if proto.oclIsUndefined() 
@@ -244,7 +242,7 @@ lazy rule MakeContextualInitializerCppFunctionCall {
 	to
 		e : bip!FunctionCallExpression (
 			functionName <- fname,
-			parameters   <- Sequence{name,ctx_value}
+			parameters   <- Sequence{name}
 		)
 }
 
@@ -477,15 +475,24 @@ helper def : MakeBipExpression(
     if r.oclIsTypeOf(
         chips!"chips::rvalues::collective::direct_int"
     ) then
-        thisModule.MakeDirectInt(r)
+        thisModule.MakeTypeConverterNativeToChips(
+			thisModule.MakeDirectInt(r),
+			'int'
+		)
     else if r.oclIsTypeOf(
         chips!"chips::rvalues::collective::direct_float"
     ) then
-        thisModule.MakeDirectFloat(r)
+		thisModule.MakeTypeConverterNativeToChips(
+			thisModule.MakeDirectFloat(r),
+			'float'
+		)
     else if r.oclIsTypeOf(
         chips!"chips::rvalues::collective::direct_bool"
     ) then
-        thisModule.MakeDirectBool(r)
+		thisModule.MakeTypeConverterNativeToChips(
+			thisModule.MakeDirectBool(r),
+			'bool'
+		)
     else if r.oclIsTypeOf(
         chips!"chips::rvalues::collective::function"
     ) then
@@ -1043,24 +1050,24 @@ lazy rule MakeLeqInt {
 
 --------------- (helpers to detect the type of the input in collective functions)
 
-helper context OclAny def : shortForTypeDeductionUnaryOp(operandtype:String) : String =
+helper context OclAny def : shortForTypeDeductionUnaryOp(operandtype:String) : Sequence(String) =
 	if self.operand->oclIsTypeOf(chips!input_kw) then 
-		operandtype
+		Sequence{operandtype}
 	else
 		self.operand->extract_input_type()
 	endif;
 
-helper context OclAny def : shortForTypeDeductionBinaryOp(operandtype:String) : String =
+helper context OclAny def : shortForTypeDeductionBinaryOp(operandtype:String) : Sequence(String) =
 	if self.left_operand->oclIsTypeOf(chips!input_kw)
 	or self.right_operand->oclIsTypeOf(chips!input_kw) then 
-		operandtype
+		Sequence{operandtype}
 	else
-		self.left_operand->extract_input_type_in_rvalue(operandtype)+self.right_operand->extract_input_type_in_rvalue(operandtype)
+		self.left_operand->extract_input_type_in_rvalue(operandtype)->union(self.right_operand->extract_input_type_in_rvalue(operandtype))
 	endif;
 
-helper context OclAny def: extract_input_type_in_rvalue(ctx_type : String) : String =
+helper context OclAny def: extract_input_type_in_rvalue(ctx_type : String) : Sequence(String) =
 	if self.oclIsTypeOf(chips!input_kw) then
-		ctx_type
+		Sequence{ctx_type}
 	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::leq_int")
 		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::geq_int")
 		or self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::lt_int")
@@ -1093,21 +1100,21 @@ helper context OclAny def: extract_input_type_in_rvalue(ctx_type : String) : Str
 		self.shortForTypeDeductionBinaryOp('bool')
 	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::cast_as_int") then
 		if self.numeric->oclIsTypeOf(chips!input_kw) then 
-			'float'
+			Sequence{'float'}
 		else
 			self.numeric->extract_input_type_in_rvalue('float')
 		endif
 	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::cast_as_float") then
 		if self.numeric->oclIsTypeOf(chips!input_kw) then 
-			'int'
+			Sequence{'int'}
 		else
 			self.numeric->extract_input_type_in_rvalue('int')
 		endif
 	else
-		''
+		Sequence{}
 	endif endif endif endif endif endif endif;
 
-helper context chips!collective_statement def: extract_input_type() : String =
+helper context chips!collective_statement def: extract_input_type() : Sequence(String) =
 	if self.oclIsTypeOf(chips!"chips::statements::collective::int_assignment") then
 		self.rvalue->extract_input_type_in_rvalue('int')
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::float_assignment") then
@@ -1115,29 +1122,57 @@ helper context chips!collective_statement def: extract_input_type() : String =
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::bool_assignment") then
 		self.rvalue->extract_input_type_in_rvalue('bool')
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::if") then
-		self.condition->extract_input_type_in_rvalue('bool') +
-		self.if_section.if_statements->iterate(
-			stt ; type : String = '' | type+stt->extract_input_type()
+		self.condition->extract_input_type_in_rvalue('bool')->union(
+			self.if_section.if_statements->iterate(
+				stt ; type : Sequence(String) = Sequence{} | type->union(stt->extract_input_type())
+			)
 		)
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::if_else") then
-		self.condition->extract_input_type_in_rvalue('bool') +
-		self.if_section.if_statements->iterate(
-			stt ; type : String = '' | type+stt->extract_input_type()
-		) +
-		self.else_section.else_statements->iterate(
-			stt ; type : String = '' | type+stt->extract_input_type()
-		)
+		self.condition->extract_input_type_in_rvalue('bool') ->union(
+			self.if_section.if_statements->iterate(
+				stt ; type : Sequence(String) = Sequence{} | type->union(stt->extract_input_type())
+			)
+		)->union(
+			self.else_section.else_statements->iterate(
+				stt ; type : Sequence(String) = Sequence{} | type->union(stt->extract_input_type())
+			)
+		)	
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::foreach") then
-		self.iterable_expr->extract_input_type_in_rvalue('any') +
-		self.statements->iterate(
-			stt ; type : String = '' | type+stt->extract_input_type()
+		self.iterable_expr->extract_input_type_in_rvalue('any')->union(
+			self.statements->iterate(
+				stt ; type : String = '' | type+stt->extract_input_type()
+			)
 		)
 	else 
-		''
+		Sequence{}
 	endif endif endif endif endif endif;
 
 helper context Sequence(chips!collective_statement) def : extract_input_type() : String =
-	self->iterate(stt ; type : String = '' | stt->extract_input_type());
+	let accccc : TupleType(possible_type:String, error:Boolean) =
+		self->iterate(
+			stt ; type : Sequence(String) = Sequence{} | 
+			type->union(stt->extract_input_type())
+		)->iterate(
+			typename ; accu : TupleType(possible_type:String, erro:Boolean) = Tuple{possible_type='', error=false} |
+			if (accu.possible_type = '') or (accu.possible_type = 'any')
+			then Tuple{possible_type=typename, error=accu.error}
+			else
+				if typename = accu.possible_type
+				then Tuple{possible_type=accu.possible_type, error=accu.error}
+				else Tuple{
+						possible_type=accu.possible_type+' '+typename,
+						error=true
+					} 
+				endif
+			endif
+		) in
+	if accccc.error
+	then 
+		let err : String = 'ATL transformation error'.debug('Multiple types for the input parameter of collective functions are forbidden\nConfusions between '+accccc.possible_type) in
+		OclUndefined
+	else
+		accccc.possible_type
+	endif;
 
 --------------- (helpers to detect which chips functions use contextual data)
 
@@ -1236,6 +1271,107 @@ helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Se
 
 helper context chips!function_definition def : all_contextuals() : Sequence(TupleType(name:String, type:String)) =
 self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type);
+
+
+--------------- (helpers to detect which chips COLLECTIVE functions use contextual data)
+
+helper context chips!collective_rvalue def : collective_uses_contextuals() : Set(TupleType(type:String, name:String)) =
+	if self.oclIsTypeOf(chips!"chips::xvalues::collective::contextual_bool_expression") then
+		Set{Tuple{ type='bool', name=self.variable.name, suffix='ctx'}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::leq_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::geq_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::lt_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::gt_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_int") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::leq_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::geq_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::lt_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::gt_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_float") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::not") then
+		self.operand->collective_uses_contextuals()
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::or") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::and") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::neq_bool") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::bool::eq_bool") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::xvalues::collective::contextual_int_expression") then
+		Set{Tuple{ type='int', name=self.variable.name, suffix='ctx'}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::minus") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::plus") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::mult") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::div") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::mod") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::int::cast_as_int") then
+		self.numeric->collective_uses_contextuals()
+	else if self.oclIsTypeOf(chips!"chips::xvalues::collective::contextual_float_expression") then
+		Set{Tuple{ type='float', name=self.variable.name, suffix='ctx'}}
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::minus") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::plus") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::mult") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::div") then
+		self.left_operand->collective_uses_contextuals()->union(self.right_operand->collective_uses_contextuals())
+	else if self.oclIsTypeOf(chips!"chips::rvalues::collective::operators::float::cast_as_float") then
+		self.numeric->collective_uses_contextuals()
+	else 
+		Set{}
+	endif endif endif endif endif endif	endif endif endif endif endif endif endif endif endif 
+	endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif endif;
+
+
+helper context chips!collective_statement def : collective_uses_contextuals() : Set(TupleType(type:String, name:String)) =
+	if self.oclIsTypeOf(chips!"chips::statements::collective::int_assignment")
+	or self.oclIsTypeOf(chips!"chips::statements::collective::float_assignment")
+	or self.oclIsTypeOf(chips!"chips::statements::collective::bool_assignment") then
+		self.rvalue->collective_uses_contextuals()
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::if_else") then
+		self.condition->collective_uses_contextuals()
+		->union(self.if_section.if_statements->collective_uses_contextuals()->asSet())
+		->union(self.else_section.else_statements->collective_uses_contextuals()->asSet())
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::if") then
+		self.condition->collective_uses_contextuals()
+		->union(self.if_section.if_statements->collective_uses_contextuals()->asSet())
+	else if self.oclIsTypeOf(chips!"chips::statements::collective::foreach") then
+		self.iterable_expr->collective_uses_contextuals()
+		->union(self.statements->collective_uses_contextuals()->asSet())
+	else 
+		Set{}
+	endif endif endif endif;
+
+helper context Sequence(chips!collective_statement) def : collective_uses_contextuals() : Sequence(TupleType(type:String, name:String)) =
+	self->collect(stt | stt->collective_uses_contextuals()->asSequence())->asSequence();
+
+
+helper context chips!collective_function_definition def : collective_all_contextuals() : Sequence(TupleType(name:String, type:String)) =
+if self.operations->oclIsUndefined() 
+then Sequence{}
+else self.operations.statements->collective_uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type)
+endif;
 
 unique lazy rule MakeBackendDataType {
 	from type: String
@@ -1391,10 +1527,6 @@ lazy rule MakeContextualPetriNet {
 				),
 				thisModule.MakeContextualInitializerCppFunctionCall(
 					thisModule.MakeDirectDataDeclarationReferenceExpression(ctxnamedecl),
-					thisModule.MakeTypeConverterNativeToChips(
-						type.typenameToDefaultDirectExpression(),
-						type
-					),
 					type
 				)
 			)
@@ -1512,6 +1644,24 @@ lazy rule MakeTransition{
 		)
 }
 
+lazy rule MakeTransitionWithOperations{
+	from 
+		source : bip!State,
+		target : bip!State,
+		port : bip!AtomInternalPortDeclaration,
+		guardedby : bip!ValuedExpression,
+		actions : Sequence(bip!Expression)
+
+	to 
+		trans : bip!Transition(
+			sources <- Sequence{source},
+			destinations <- Sequence{target},
+			triggerPort <- port,
+			guard <- guardedby,
+			actions <- actions
+		)
+}
+
 lazy rule MakeTrivialGuard{
 	from b:Boolean
 	to g:bip!DirectBooleanExpression(
@@ -1519,9 +1669,35 @@ lazy rule MakeTrivialGuard{
 	)
 }
 
+-- thisModule.MakeCppFunctionCall(
+-- 					'init_'+chipsfunction.name,
+-- 					aidd_input_data
+-- 						->union(aidd_ctx_data)
+-- 						->union(aidd_inner_data)
+-- 						->union(aidd_output_data)
+-- 						->collect(datum |
+-- 							thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+-- 						),
+-- 					aidd_input_data
+-- 						->union(aidd_ctx_data)
+-- 						->union(aidd_inner_data)
+-- 						->union(aidd_output_data)
+-- 						->collect(datum |
+-- 							Tuple{
+-- 								t=datum.first.type,
+-- 								n=datum.first.name
+-- 							}
+-- 						),
+-- 					'void'
+-- 				)
 
 
-helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequence(bip!AtomInternalPortDeclaration), starts_rcv:bip!ValuedExpression, starts_snd:bip!ValuedExpression) : Sequence(bip!Transition) =
+helper def: MakeTransitions(
+	stateslist : Sequence(bip!State), 
+	portslist : Sequence(bip!AtomInternalPortDeclaration), 
+	starts_rcv:bip!ValuedExpression, 
+	starts_snd:bip!ValuedExpression,
+	action: bip!Expression) : Sequence(bip!Transition) =
 
 	if (stateslist->size()=6) then 
 		Sequence{ -- contextual case
@@ -1529,7 +1705,13 @@ helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequen
 			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd / add guard
 			thisModule.MakeTransition(stateslist->get(1),stateslist->get(4),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to readctx
 			thisModule.MakeTransition(stateslist->get(4),stateslist->get(2),portslist->get(4),thisModule.MakeTrivialGuard(true)), -- readctx to then
-			thisModule.MakeTransition(stateslist->get(2),stateslist->get(5),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to writectx
+			thisModule.MakeTransitionWithOperations(
+				stateslist->get(2),
+				stateslist->get(5),
+				portslist->get(1),
+				thisModule.MakeTrivialGuard(true),
+				Sequence{action}
+			), -- then to writectx
 			thisModule.MakeTransition(stateslist->get(5),stateslist->get(3),portslist->get(5),thisModule.MakeTrivialGuard(true)), -- writectx to snd
 			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
 		}
@@ -1538,7 +1720,13 @@ helper def: MakeTransitions(stateslist : Sequence(bip!State), portslist : Sequen
 			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),starts_rcv), -- init to rcv
 			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd
 			thisModule.MakeTransition(stateslist->get(1),stateslist->get(2),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to then
-			thisModule.MakeTransition(stateslist->get(2),stateslist->get(3),portslist->get(1),thisModule.MakeTrivialGuard(true)), -- then to snd
+			thisModule.MakeTransitionWithOperations(
+				stateslist->get(2),
+				stateslist->get(3),
+				portslist->get(1),
+				thisModule.MakeTrivialGuard(true),
+				Sequence{action}
+			), -- then to snd
 			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
 		}
 	endif;
@@ -1785,8 +1973,8 @@ unique lazy rule MakeCoreAtomType {
 		-- generating ports (order matters)
 		-----------------------------------
 		all_aipdecl : Sequence(bip!AtomInternalPortDeclaration) = Sequence{
-			thisModule.MakeCoreAtomInternalPortDeclaration('start',Sequence{},Sequence{},chipsfunction), -- (start port AIPD) 
-			thisModule.MakeCoreAtomInternalPortDeclaration('then',Sequence{},Sequence{},chipsfunction), -- (then port AIPD),
+			thisModule.MakeCoreAtomInternalPortDeclaration('starts_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction), -- (start port AIPD) 
+			thisModule.MakeCoreAtomInternalPortDeclaration('then_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction), -- (then port AIPD),
 			output_aipd, -- (send port AIPD) 
 			input_aipd  -- (recv port AIPPD)
 		}->union(
@@ -1845,7 +2033,28 @@ unique lazy rule MakeCoreAtomType {
 			all_states, 
 			all_aipdecl,
 			thisModule.MakeNotExpression(thisModule.MakeDirectDataDeclarationReferenceExpression(starts)),
-			thisModule.MakeDirectDataDeclarationReferenceExpression(starts)
+			thisModule.MakeDirectDataDeclarationReferenceExpression(starts),
+			thisModule.MakeCppFunctionCall(
+				'then_'+chipsfunction.name,
+				aidd_input_data
+					->union(aidd_ctx_data)
+					->union(aidd_inner_data)
+					->union(aidd_output_data)
+					->collect(datum |
+						thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+					),
+				aidd_input_data
+					->union(aidd_ctx_data)
+					->union(aidd_inner_data)
+					->union(aidd_output_data)
+					->collect(datum |
+						Tuple{
+							t=datum.first.type,
+							n=datum.first.name
+						}
+					),
+				'void'
+			)
 		),
 		initialActions <- 
 			aidd_input_data
@@ -1891,7 +2100,7 @@ unique lazy rule MakeCoreAtomType {
 
 	starts : bip!ComponentDataParameterDeclaration(
 		dataType <- thisModule.MakeBackendDataType('bool'),
-		name <- 'starts',
+		name <- 'starts_'+chipsfunction.name,
 		const <- true
 	)
 
@@ -2260,7 +2469,7 @@ unique lazy rule MakeContextualAtomDeclaration {
 	),
 
 	dse:bip!DirectStringExpression(
-		value <- name
+		value <- '"'+name+'"'
 	)
 	do {
 		thisModule.temp_dic <- thisModule.dictionary->get('ContextualAtomDeclaration');
@@ -2825,7 +3034,20 @@ unique lazy rule MakeSpreadConnectorType{
 
 		support_node_type : String = cfd.support_object.name;
 
-		hascontextuals : Boolean = false; -- at the moment, not implemented because it's a pain to do
+		all_ctx : Sequence(TupleType(name:String,type:String)) = cfd->collective_all_contextuals();
+		ctx_datadecls: Sequence(TupleType(name:String,type:String, dd:bip!ConnectorDataDeclaration)) =
+			all_ctx->collect(
+				ctx |
+				Tuple{
+					name=ctx.name,
+					type=ctx.type,
+					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+						thisModule.MakeBipDataType(ctx.type),
+						ctx.name+'_ctx',
+						cfd
+					)
+				}
+			);
 		
 		node_data : TupleType(
 			channels:Map(String,String),
@@ -2851,77 +3073,154 @@ unique lazy rule MakeSpreadConnectorType{
 			'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
 		endif endif endif;
 
-		accu_sig_indexed : Sequence(TupleType(data:TupleType(type:String,name:String), iindex:Integer)) = 
-			accumulator_signature->augmentWithIindex();
-
-		up_datadecls : Sequence(bip!ConnectorDataDeclaration) =
-			accumulator_signature->collect(
-				t |
-				thisModule.MakeCollectiveConnectorDataDeclaration(
-					thisModule.MakeBipDataType(t.type),
-					t.name+'_of_upaccumulator',
-					cfd
-				)
-			)
-			->asSequence();
+		datadecls : Sequence(TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration)) =
+			node_data.channels->getKeys()->asSequence()->collect(
+				chan |
+				Tuple{
+					name= chan,
+					type=accumulator_signature->collect(t|t.type),
+					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+						thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
+						chan->protect()+'_accumulator',
+						cfd
+					)
+				}
+			);
+		
 
 		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
 			node_data.channels->getKeys()->iterate(
-				name ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
+				channame ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
 				themap->including(
-					name->protect(),
+					channame->protect(),
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
-						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), name, cfd
+						Sequence{
+							Tuple{
+								type=datadecls->any(d|d.name=channame).type,
+								iindex=0
+							}
+						},
+						channame->protect(), 
+						cfd
 					)
 				)
+			);
+		ctx_ports : Map(String,bip!ConnectorPortParameterDeclaration) = 
+			all_ctx->augmentWithIindex()->iterate(
+				ctx ; ports_map : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
+				ports_map->including(
+					ctx.data.name,
+					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+						Sequence{Tuple{iindex=ctx.iindex, type=ctx.data.type}},
+						ctx.data.name,
+						cfd
+					)
+				) 
 			);
 	}
 
 	to cct:bip!ConnectorType(
 		name<- fname+'_among_'+support_node_type+'_conn_t',
-		interactions<- Sequence{interaction},
+		interactions<- Sequence{down_interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
 			downports->getValues()->asSequence()
 			->append(target_cppd)
 		),
 		exportedPortDeclaration <- up_accumulator,
-		dataDeclarations <- up_datadecls,
-		ports <- downports->getValues()->including(target_cppd)
+		dataDeclarations <- datadecls->collect(d|d.dd)->union(ctx_datadecls->collect(d | d.dd)),
+		ports <- downports->getValues()->including(target_cppd)->union(ctx_ports->getValues())
 	),
 
-	interaction:bip!ConnectorInteractionAction(
+	down_interaction:bip!ConnectorInteractionAction(
 		onPorts<- downports->getValues()->asSequence()
-			->append(target_cppd), --(ConnectorPortParameterDeclaration)
-		down <- Sequence{thisModule.MakeCppFunctionCall(
-			fname+'_down',
-			Sequence{},
-			Sequence{},
-			'void'
-		)},
-		up <- if hascontextuals then
-			Sequence{thisModule.MakeCppFunctionCall(
-				fname+'_up',
-				Sequence{},
-				Sequence{},
+			->append(target_cppd)->union(ctx_ports->getValues()->asSequence()), --(ConnectorPortParameterDeclaration)
+		down <- Sequence{
+			thisModule.MakeCppFunctionCall(
+				fname+'_down',
+				datadecls->collect(
+					d |
+					thisModule.MakeAssignmentSubDataOperand(
+						downports->get(d.name->protect()),
+						thisModule.MakePortDataParameterDeclaration(
+							d.type,
+							0,
+							Sequence{d.type}
+						)
+					)
+				)->union(
+					ctx_datadecls->collect(
+						ctx |
+						thisModule.MakeDirectDataDeclarationReferenceExpression(
+							ctx.dd
+						)
+					)
+				)->append(
+					thisModule.MakeAssignmentSubDataOperand(
+						target_cppd,
+						thisModule.MakePortDataParameterDeclaration(
+							target_type,
+							0,
+							Sequence{target_type}
+						)
+					)
+				),
+				datadecls->collect(
+					d |
+					Tuple{
+						t=d.type,
+						n=d.name+'_acc'
+					}
+				)->union(
+					ctx_datadecls->collect(
+						ctx |
+						Tuple{
+							t=ctx.type,
+							n=ctx.name+'_ctx'
+						}
+					)
+				)->append(
+					Tuple{
+						t=target_type,
+						n='target_output'
+					}
+				),
 				'void'
-			)}
-		else
-			Sequence{}
-		endif
+			)
+		},
+		up <-ctx_datadecls->collect(
+				d |
+				thisModule.MakeAssignment(
+					thisModule.MakeAssignmentDataOperand(
+						d.dd
+					),
+					thisModule.MakeAssignmentSubDataOperand(
+						ctx_ports->get(d.name),
+						thisModule.MakePortDataParameterDeclaration(
+							d.type,
+							0,
+							Sequence{d.type}
+						)
+					)
+				)
+			)
 	),
 
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
-		portType <-thisModule.MakePortType(accu_sig_indexed->collect(tuple | tuple.data.type)),
+		portType <-thisModule.MakePortType(
+			datadecls->collect(d | d.type)
+		),
 		name <- 'up_accumulator',
-		dataParameters <- accu_sig_indexed
-			->collect(tuple | 
+		dataParameters <- datadecls->augmentWithIindex()
+			->collect( x | 
 				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-					tuple.data.type,
-					up_datadecls->get(tuple.iindex),
+					x.data.type,
+					x.data.dd,
 					thisModule.MakePortDataParameterDeclaration(
-						tuple.data.type,
-						tuple.iindex,
-						accu_sig_indexed->collect(t|t.data.type)
+						x.data.type,
+						x.iindex,
+						node_data.channels->getKeys()->asSequence()->collect(
+							chan | datadecls->collect(y | y.type)
+						)
 					)
 				)
 			)
@@ -2963,6 +3262,243 @@ unique lazy rule MakeSpreadConnectorType{
 	}
 }
 
+unique lazy rule MakeUpCropperConnectorType{
+	from 
+		cfd:chips!collective_function_definition,
+		channel_to_keep: String
+
+	using{
+		fname : String = cfd.name;
+
+		support_node_type : String = cfd.support_object.name;
+		
+		node_data : TupleType(
+			channels:Map(String,String),
+			contextuals:Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					instances:Sequence(bip!ComponentDeclaration)
+				)
+			)
+		) = thisModule.getNodeData(cfd.support_object);
+
+		accumulator_signature: Sequence(TupleType(name:String,type:String)) = cfd.getAccumulatorSig();
+
+		data : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
+			Tuple{
+				name=channel_to_keep+'_data',
+				type=accumulator_signature->collect(t|t.type),
+				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
+					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
+					channel_to_keep->protect()+'_acc',
+					cfd
+				)
+			};
+		
+	}
+
+	to cct:bip!ConnectorType(
+		name<- fname+'_cropper_for_'+channel_to_keep+'_conn_t',
+		interactions<- Sequence{interarctioon},
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(Sequence{downport}),
+		exportedPortDeclaration <- cepd,
+		dataDeclarations <-  Sequence{data.dd},
+		ports <- Sequence{downport}
+	),
+
+	interarctioon:bip!ConnectorInteractionAction(
+		onPorts<- Sequence{downport},
+		up <-Sequence{
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentDataOperand(
+					data.dd
+				),
+				thisModule.MakeAssignmentSubDataOperand(
+					downport,
+					thisModule.MakePortDataParameterDeclaration(
+						data.type,
+						node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+						Sequence{data.type}
+					)
+				)
+			)	
+		}
+	),
+
+	cepd: bip!ConnectorExportedPortDeclaration(
+		portType <- thisModule.MakePortType(
+			data.type
+		),
+		name <- 'cepd',
+		dataParameters <- Sequence{
+			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+				data.type,
+				data.dd,
+				thisModule.MakePortDataParameterDeclaration(
+					data.type,
+					node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+					data.type
+				)
+			)
+		}
+	),
+
+	downport: bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(data.type),
+		name <- 'p_to_crop_cppd'
+	)
+
+	do {
+
+		thisModule.temp_dic <- thisModule.dictionary->get('UpCropperConnectorType');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				Tuple{fct=fname,chan=channel_to_keep},
+				Map{
+					('cepd',cepd),
+					('down_port',downport)
+				}
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('UpCropperConnectorType', thisModule.temp_dic);
+
+		thisModule.temp <- thisModule.types->get('ConnectorType');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(cct);
+		thisModule.types <- thisModule.types->including('ConnectorType', thisModule.temp);
+		
+		cct;
+	}
+
+}
+
+
+unique lazy rule MakeDownCropperConnectorType{
+	from 
+		cfd:chips!collective_function_definition,
+		channel_to_keep: String
+
+	using{
+		fname : String = cfd.name;
+
+		support_node_type : String = cfd.support_object.name;
+		
+		node_data : TupleType(
+			channels:Map(String,String),
+			contextuals:Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					instances:Sequence(bip!ComponentDeclaration)
+				)
+			)
+		) = thisModule.getNodeData(cfd.support_object);
+
+		accumulator_signature: Sequence(TupleType(name:String,type:String)) = cfd.getAccumulatorSig();
+
+		data : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
+			Tuple{
+				name=channel_to_keep+'_data',
+				type=accumulator_signature->collect(t|t.type),
+				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
+					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
+					channel_to_keep->protect()+'_acc',
+					cfd
+				)
+			};
+		
+	}
+
+	to cct:bip!ConnectorType(
+		name<- fname+'_cropper_for_'+channel_to_keep+'_conn_t',
+		interactions<- Sequence{interarctioon},
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(Sequence{downport}),
+		exportedPortDeclaration <- cepd,
+		dataDeclarations <-  Sequence{data.dd},
+		ports <- Sequence{downport}
+	),
+
+	interarctioon:bip!ConnectorInteractionAction(
+		onPorts<- Sequence{downport},
+		down <-Sequence{
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentSubDataOperand(
+					downport,
+					thisModule.MakePortDataParameterDeclaration(
+						data.type,
+						node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+						Sequence{data.type}
+					)
+				),
+				thisModule.MakeAssignmentDataOperand(
+					data.dd
+				)
+			)	
+		}
+	),
+
+	cepd: bip!ConnectorExportedPortDeclaration(
+		portType <- thisModule.MakePortType(
+			data.type
+		),
+		name <- 'cepd',
+		dataParameters <- Sequence{
+			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+				data.type,
+				data.dd,
+				thisModule.MakePortDataParameterDeclaration(
+					data.type,
+					node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+					data.type
+				)
+			)
+		}
+	),
+
+	downport: bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(data.type),
+		name <- 'p_to_crop_cppd'
+	)
+
+	do {
+
+		thisModule.temp_dic <- thisModule.dictionary->get('DownCropperConnectorType');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				Tuple{fct=fname,chan=channel_to_keep},
+				Map{
+					('cepd',cepd),
+					('down_port',downport)
+				}
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('DownCropperConnectorType', thisModule.temp_dic);
+
+		thisModule.temp <- thisModule.types->get('ConnectorType');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(cct);
+		thisModule.types <- thisModule.types->including('ConnectorType', thisModule.temp);
+		
+		cct;
+	}
+
+}
+
 
 unique lazy rule MakeCollectConnectorType{
 	from 
@@ -2973,7 +3509,33 @@ unique lazy rule MakeCollectConnectorType{
 
 		support_node_type : String = cfd.support_object.name;
 
-		hascontextuals : Boolean = false; -- at the moment, not implemented because it's a pain to do
+		all_ctx : Sequence(TupleType(name:String,type:String)) = cfd->collective_all_contextuals();
+		ctx_datadecls: Sequence(TupleType(name:String,type:String, dd:bip!ConnectorDataDeclaration)) =
+			all_ctx->collect(
+				ctx |
+				Tuple{
+					name=ctx.name,
+					type=ctx.type,
+					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+						thisModule.MakeBipDataType(ctx.type),
+						ctx.name+'_ctx',
+						cfd
+					)
+				}
+			);
+		
+		ctx_ports : Map(String,bip!ConnectorPortParameterDeclaration) = 
+			all_ctx->augmentWithIindex()->iterate(
+				ctx ; ports_map : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
+				ports_map->including(
+					ctx.data.name,
+					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
+						Sequence{Tuple{iindex=ctx.iindex, type=ctx.data.type}},
+						ctx.data.name,
+						cfd
+					)
+				) 
+			);
 		
 		input_type : String = cfd.operations.statements->extract_input_type();
 		
@@ -3000,27 +3562,31 @@ unique lazy rule MakeCollectConnectorType{
 		else
 			'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
 		endif endif endif;
+		
+		datadecls : Sequence(TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration)) =
+			node_data.channels->getKeys()->asSequence()->collect(
+				chan |
+				Tuple{
+					name= chan,
+					type=accumulator_signature->collect(t|t.type),
+					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+						thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
+						chan->protect()+'_accumulator',
+						cfd
+					)
+				}
+			);
 
-		accu_sig_indexed : Sequence(TupleType(data:TupleType(type:String,name:String), iindex:Integer)) = 
-			accumulator_signature->augmentWithIindex();
-
-		up_datadecls : Sequence(bip!ConnectorDataDeclaration) =
-			Sequence{
-				thisModule.MakeCollectiveConnectorDataDeclaration(
+		target_decl : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
+			Tuple{
+				name='_target',
+				type=target_type,
+				dd=thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(target_type),
 					'target_data',
 					cfd
 				)
-			}->union(
-				node_data.channels->getKeys()->asSequence()->collect(
-					chan |
-					thisModule.MakeCollectiveConnectorDataDeclaration(
-						thisModule.MakeBipDataType(accumulator_signature->collect(t | t.type)),
-						chan+'_output',
-						cfd
-					)
-				)
-			);
+			};
 
 		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
 			node_data.channels->getKeys()->iterate(
@@ -3028,71 +3594,129 @@ unique lazy rule MakeCollectConnectorType{
 				themap->including(
 					channame->protect(),
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
-						accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
+						Sequence{Tuple{
+							type=datadecls->any(e | e.name = channame).type,
+							iindex=0
+						}},
 						channame->protect(), 
 						cfd
 					)
 				)
---			)->including(
--- it's actually not a port, just an inner variable ... unless it's the port through which provide the default value
--- in such case, it was only the way to make sure I coded correctly the first prototypes of transformations.
--- Now, default values should not be provided with an outer component but by the definition of the cpp function called
---				'_self',
---				thisModule.MakeCollectiveConnectorPortParameterDeclaration(
---					accu_sig_indexed->collect(t | Tuple{type=t.data.type, iindex=t.iindex}), 
---					'_self',
---					cfd
---				)
-			);
-		
-		up_port_type_seq : Sequence(OclAny) = 
-			Sequence{target_type}
-			->union(
-				node_data.channels->getKeys()->asSequence()
-				->collect(channame | accumulator_signature->collect(tuple | tuple.type))
 			);
 	}
 
 	to cct:bip!ConnectorType(
 		name<- fname+'_among_'+support_node_type+'_conn_t',
-		interactions<- Sequence{interaction},
+		interactions<- Sequence{up_interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
 			downports->getValues()->asSequence()->append(cppd_input)
 		),
 		exportedPortDeclaration <- up_accumulator,
-		dataDeclarations <- up_datadecls,
+		dataDeclarations <- datadecls->collect(d|d.dd)->append(target_decl.dd),
 		ports <- downports->getValues()->union(Bag{cppd_input})
 	),
 
-	interaction:bip!ConnectorInteractionAction(
+	up_interaction:bip!ConnectorInteractionAction(
 		onPorts<- downports->getValues()->union(Bag{cppd_input}), --(ConnectorPortParameterDeclaration)
-		up <- Sequence{thisModule.MakeCppFunctionCall(
-			fname+'_up',
-			Sequence{},
-			Sequence{},
-			'void'
-		)}
-	),
-
-	up_accumulator :bip!ConnectorExportedPortDeclaration(
-		portType <-thisModule.MakePortType(up_port_type_seq),
-		name <- 'up_accumulator',
-		dataParameters <- 
-			up_port_type_seq
-			->augmentWithIindex()
-			->collect(
-				t |
-				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-					up_port_type_seq->get(t.iindex),
-					up_datadecls->get(t.iindex), -- ddr:bip!ConnectorDataDeclaration,
+		up <- ctx_datadecls->collect(
+			d |
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentDataOperand(
+					d.dd
+				),
+				thisModule.MakeAssignmentSubDataOperand(
+					ctx_ports->get(d.name),
 					thisModule.MakePortDataParameterDeclaration(
-						up_port_type_seq->get(t.iindex), -- type:OclAny
-						t.iindex, --iindex:Integer
-						up_port_type_seq --type_ordered_sequence:Sequence(OclAny)
+						d.type,
+						0,
+						Sequence{d.type}
 					)
 				)
 			)
+		)->append(
+			thisModule.MakeCppFunctionCall(
+				fname+'_up',
+				datadecls->collect(
+					d |
+					thisModule.MakeAssignmentSubDataOperand(
+						downports->get(d.name->protect()),
+						thisModule.MakePortDataParameterDeclaration(
+							d.type,
+							0,
+							Sequence{d.type}
+						)
+					)
+				)->union(
+					ctx_datadecls->collect(
+						ctx |
+						thisModule.MakeDirectDataDeclarationReferenceExpression(
+							ctx.dd
+						)
+					)
+				)->append(
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						target_decl.dd
+					)
+				)->append(
+					thisModule.MakeAssignmentSubDataOperand(
+						cppd_input,
+						thisModule.MakePortDataParameterDeclaration(
+							input_type,
+							0,
+							Sequence{input_type}
+						)
+					)
+				),
+				datadecls->collect(
+					d |
+					Tuple{
+						t=d.type,
+						n=d.name+'_acc'
+					}
+				)->union(
+					ctx_datadecls->collect(
+						ctx |
+						Tuple{
+							t=ctx.type,
+							n=ctx.name+'_ctx'
+						}
+					)
+				)->append(
+					Tuple{
+						t=target_type,
+						n='target_output'
+					}
+				)->append(
+					Tuple{
+						t=input_type,
+						n='_input'
+					}
+				),
+				'void'
+			)
+		)
 	),
+
+	up_accumulator :bip!ConnectorExportedPortDeclaration(
+		portType <- thisModule.MakePortType(
+			datadecls->collect(d | d.type)->append(target_decl.type)
+		),
+		name <- 'up_accumulator',
+		dataParameters <- datadecls->append(target_decl)->augmentWithIindex()
+			->collect( x | 
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					x.data.type,
+					x.data.dd,
+					thisModule.MakePortDataParameterDeclaration(
+						x.data.type,
+						x.iindex,
+						node_data.channels->getKeys()->asSequence()->collect(
+							chan | datadecls->collect(y | y.type)
+						)
+					)
+				)
+			)
+		),
 
 	cppd_input : bip!ConnectorPortParameterDeclaration(
 		portType <- thisModule.MakePortType(Sequence{input_type}),
@@ -4048,7 +4672,7 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 				type:String,
 				value:OclAny,
 				name:String,
-				param:bip!ComponentDataParameterDeclaration
+				aidd:bip!AtomInternalDataDeclaration
 			)
 		) = collective_cast.accumulator.accumulator->collect( param |
 				let typename : String = 
@@ -4065,37 +4689,22 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 				Tuple{
 					type=typename,
 					name=param.declaration.variable.name,
-					value= if (param.default_value->oclIsTypeOf(chips!input_kw)) then 
-							typename.typenameToDefaultDirectExpression()
-						else 
-							thisModule.MakeBipExpression(param.default_value)
-						endif,
-					param=thisModule.MakeComponentDataParameterDeclaration(
-						param.declaration.variable.name,
-						typename
+					value= param,
+					aidd=thisModule.MakeAtomInternalDataDeclaration(
+						typename, param.declaration.variable.name, collective_cast
 					)
 				}
 			);
-		
-		aidds:Sequence(bip!AtomInternalDataDeclaration) = 
-			tuplesofparams->collect( t |
-				thisModule.MakeAtomInternalDataDeclaration(
-					t.type, t.name, collective_cast
-				)
-			);
-		aidds_data:Sequence(OclAny) = tuplesofparams->merge(aidds);
-
 	}
 	
 	to 
 	pht: bip!AtomType(
 		name <- collective_cast.name+'_placeholder_t',
 		native <- false,
-		dataParameterDeclarations <- tuplesofparams->collect(p | p.param),
 		exportedPortDeclarations <- Sequence{aepd},
 		internalPortDeclarations <- Sequence{aipd},
 		behavior <- pn,
-		internalDataDeclarations <- aidds,
+		internalDataDeclarations <- tuplesofparams->collect(t | t.aidd),
 		exportPortDeclarations <- Sequence{aepd}
 	),
 	
@@ -4103,17 +4712,16 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		states <- Sequence{stt},
 		initStates <- Sequence{stt},
 		transitions <- Sequence{only_tranz},
-		initialActions <- aidds_data->collect( datum |
+		initialActions <- tuplesofparams->collect( p |
 			thisModule.MakeAssignment(
 				thisModule.MakeDirectDataDeclarationReferenceExpression(
-					datum.second
+					p.aidd
 				),
-				thisModule.MakeTypeConverterNativeToChips(
-					thisModule.MakeDirectDataDeclarationReferenceExpression(
-						datum.first.param
-					),
-					datum.first.type
-				)
+				if (p.value.default_value->oclIsTypeOf(chips!input_kw)) then 
+					p.type.typenameToDefaultDirectExpression()
+				else 
+					thisModule.MakeBipExpression(p.value.default_value)
+				endif
 			)
 		)
 	),
@@ -4122,17 +4730,16 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		sources <- Sequence{stt},
 		destinations <- Sequence{stt},
 		triggerPort <- aipd,
-		actions <-aidds_data->collect( datum |
+		actions <-tuplesofparams->collect( p |
 			thisModule.MakeAssignment(
 				thisModule.MakeDirectDataDeclarationReferenceExpression(
-					datum.second
+					p.aidd
 				),
-				thisModule.MakeTypeConverterNativeToChips(
-					thisModule.MakeDirectDataDeclarationReferenceExpression(
-						datum.first.param
-					),
-					datum.first.type
-				)
+				if (p.value.default_value->oclIsTypeOf(chips!input_kw)) then 
+					p.type.typenameToDefaultDirectExpression()
+				else 
+					thisModule.MakeBipExpression(p.value.default_value)
+				endif
 			)
 		)
 	),
@@ -4150,7 +4757,10 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 	aipd : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(tuplesofparams->collect(p | p.type)),
 		name <- 'aipd',
-		dataParameters <- thisModule.MakeAtomPortDataParamDeclSequence(tuplesofparams->collect(p | p.type),aidds)
+		dataParameters <- thisModule.MakeAtomPortDataParamDeclSequence(
+			tuplesofparams->collect(p | p.type),
+			tuplesofparams->collect(p | p.aidd)
+		)
 	)
 	
 	do {
@@ -4163,7 +4773,7 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 			->including(
 				collective_cast.name,
 				Map{
-					('aidds',aidds),
+					('aidds',tuplesofparams->collect(t | t.aidd)),
 					('aipd',aipd),
 					('aepd',aepd)
 				}
@@ -4723,7 +5333,7 @@ helper context TupleType (
 ) : TupleType(
 	list:Sequence(OclAny), 
 	visited:Set(TupleType(obj:String,id:Integer))
-) =	let current : TupleType(obj:String,id:Integer) = Tuple{obj=self.obj, id=self.index}.debug('visiting') in
+) =	let current : TupleType(obj:String,id:Integer) = Tuple{obj=self.obj, id=self.index} in
 	if acc.visited->includes(current)
 	then Tuple{list=acc.list, visited=acc.visited}
 	else 
@@ -5270,7 +5880,7 @@ rule Program2BipPackage {
 					let all_stuff : Sequence(bip!ComponentDeclaration) = Sequence{} in
 					instantiated_collective_connectors_trees->get(key)->asSequence()->collect(
 						root | root->collect_all_placeholders_in_tree(Tuple{list=all_stuff, visited=Set{}}).list
-					)->flatten().debug()
+					)->flatten()
 				)
 			);
 
@@ -5743,7 +6353,7 @@ helper def: updatenodeswith(
 							Tuple{
 								dimensions = t.dims,
 								instances = thisModule.zeros(t.dims)->collect(z | thisModule.MakeContextualAtomDeclaration(
-									t.name->protect()+'_'+ndecl.variable.name->protect(),
+									t.name->protect()+'_'+id->toString()+'_'+ndecl.variable.name->protect(),
 									t.type,
 									id
 								))
