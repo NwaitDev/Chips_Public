@@ -3329,11 +3329,6 @@
                 </else_statements>
               </else_section>
             </if_statements>
-            <if_statements
-                xsi:type="chips.statements.collective:int_assignment">
-              <lvalue
-                  xsi:type="chips.xvalues.collective:int_variable_expression"/>
-            </if_statements>
           </if_section>
         </statements>
       </operations>
