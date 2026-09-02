@@ -3073,19 +3073,27 @@ unique lazy rule MakeSpreadConnectorType{
 			'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
 		endif endif endif;
 
-		datadecls : Sequence(TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration)) =
-			node_data.channels->getKeys()->asSequence()->collect(
-				chan |
-				Tuple{
-					name= chan,
-					type=accumulator_signature->collect(t|t.type),
-					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
-						thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
-						chan->protect()+'_accumulator',
-						cfd
-					)
-				}
-			);
+		accumulator_decl : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
+			Tuple{
+				name= 'accumulator',
+				type=accumulator_signature->collect(t|t.type),
+				dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
+					'_accumulator',
+					cfd
+				)
+			};
+		
+		indicator_decl : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
+			Tuple{
+				name='channel_indicator',
+				type='int',
+				dd=thisModule.MakeCollectiveConnectorDataDeclaration(
+					thisModule.MakeBipDataType('int'),
+					'channel_indicator',
+					cfd
+				)
+			};
 		
 
 		downports : Map(String,bip!ConnectorPortParameterDeclaration) = 
@@ -3096,8 +3104,12 @@ unique lazy rule MakeSpreadConnectorType{
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
 						Sequence{
 							Tuple{
-								type=datadecls->any(d|d.name=channame).type,
+								type=accumulator_decl.type,
 								iindex=0
+							-- },
+							-- Tuple{
+							-- 	type=indicator_decl.type,
+							-- 	iindex=1
 							}
 						},
 						channame->protect(), 
@@ -3124,10 +3136,10 @@ unique lazy rule MakeSpreadConnectorType{
 		interactions<- Sequence{down_interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(
 			downports->getValues()->asSequence()
-			->append(target_cppd)
+			->append(target_cppd)->union(ctx_ports->getValues()->asSequence())
 		),
 		exportedPortDeclaration <- up_accumulator,
-		dataDeclarations <- datadecls->collect(d|d.dd)->union(ctx_datadecls->collect(d | d.dd)),
+		dataDeclarations <- Sequence{indicator_decl.dd,accumulator_decl.dd}->union(ctx_datadecls->collect(d | d.dd)),
 		ports <- downports->getValues()->including(target_cppd)->union(ctx_ports->getValues())
 	),
 
@@ -3137,16 +3149,35 @@ unique lazy rule MakeSpreadConnectorType{
 		down <- Sequence{
 			thisModule.MakeCppFunctionCall(
 				fname+'_down',
-				datadecls->collect(
-					d |
-					thisModule.MakeAssignmentSubDataOperand(
-						downports->get(d.name->protect()),
-						thisModule.MakePortDataParameterDeclaration(
-							d.type,
-							0,
-							Sequence{d.type}
-						)
+				Sequence{
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						indicator_decl.dd
+					),
+					thisModule.MakeDirectDataDeclarationReferenceExpression(
+						accumulator_decl.dd
 					)
+				}->union(
+					downports->getKeys()->asSequence()->collect(
+						down |
+						Sequence{
+							thisModule.MakeAssignmentSubDataOperand(
+								downports->get(down),
+								thisModule.MakePortDataParameterDeclaration(
+									accumulator_decl.type,
+									0,
+									Sequence{accumulator_decl.type,indicator_decl.type}
+								)
+							-- ),
+							-- thisModule.MakeAssignmentSubDataOperand(
+							-- 	downports->get(down),
+							-- 	thisModule.MakePortDataParameterDeclaration(
+							-- 		indicator_decl.type,
+							-- 		1,
+							-- 		Sequence{accumulator_decl.type,indicator_decl.type}
+							-- 	)
+							)
+						}
+					)->flatten()
 				)->union(
 					ctx_datadecls->collect(
 						ctx |
@@ -3164,12 +3195,23 @@ unique lazy rule MakeSpreadConnectorType{
 						)
 					)
 				),
-				datadecls->collect(
-					d |
+				Sequence{
 					Tuple{
-						t=d.type,
-						n=d.name+'_acc'
+						t=indicator_decl.type,
+						n=indicator_decl.name
+					},
+					Tuple{
+						t=accumulator_decl.type,
+						n=accumulator_decl.name
 					}
+				}->union(
+					downports->getKeys()->asSequence()->collect(
+						p |
+						Tuple{
+							t=accumulator_decl.type,
+							n=p+'_acc'
+						}
+					)
 				)->union(
 					ctx_datadecls->collect(
 						ctx |
@@ -3207,23 +3249,21 @@ unique lazy rule MakeSpreadConnectorType{
 
 	up_accumulator :bip!ConnectorExportedPortDeclaration(
 		portType <-thisModule.MakePortType(
-			datadecls->collect(d | d.type)
+			Sequence{accumulator_decl.type,indicator_decl.type}
 		),
 		name <- 'up_accumulator',
-		dataParameters <- datadecls->augmentWithIindex()
-			->collect( x | 
-				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+		dataParameters <- Sequence{accumulator_decl,indicator_decl}->augmentWithIindex()
+		->collect( x | 
+			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+				x.data.type,
+				x.data.dd,
+				thisModule.MakePortDataParameterDeclaration(
 					x.data.type,
-					x.data.dd,
-					thisModule.MakePortDataParameterDeclaration(
-						x.data.type,
-						x.iindex,
-						node_data.channels->getKeys()->asSequence()->collect(
-							chan | datadecls->collect(y | y.type)
-						)
-					)
+					x.iindex,
+					Sequence{accumulator_decl.type,indicator_decl.type}
 				)
 			)
+		)
 	),
 	
 	target_cppd : bip!ConnectorPortParameterDeclaration(
