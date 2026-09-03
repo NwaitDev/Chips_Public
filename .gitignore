@@ -1,12 +1,13 @@
 ChipsCompiler/ATL Chips2BIP/models/output.xmi
 ChipsCompiler/ATL Chips2BIP/emftvm.class
 ChipsCompiler/ATL Chips2BIP/transformations/chips2bip.emftvm
-ChipsCompiler/Chips_Parser/build
-ChipsCompiler/Chips_Parser/generated
-ChipsCompiler/Chips_Parser/.antlr
+ChipsCompiler/FullCompileChain/Chips_Parser/build
+ChipsCompiler/FullCompileChain/Chips_Parser/generated
+ChipsCompiler/FullCompileChain/Chips_Parser/.antlr
 ChipsCompiler/ATL Chips2BIP/models/TeaStoreVariation.xmi
 *.bip.xmi
 *.class
+*.o
 venv/*
 *.emftvm
 *.antlr
@@ -23,7 +24,7 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariat
 */generated/*
 .vscode/*
 *.class
-ChipsCompiler/Chips_Parser/build/
-ChipsCompiler/Chips_Parser/generated/
+ChipsCompiler/FullCompileChain/Chips_Parser/build/
+ChipsCompiler/FullCompileChain/Chips_Parser/generated/
 *.log
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/venv
