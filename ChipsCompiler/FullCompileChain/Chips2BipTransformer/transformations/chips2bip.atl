@@ -10,8 +10,8 @@ helper def : id : Integer = 0;
 helper def : nodeId : Integer = 0;
 
 
-helper context String def : protect() : String = 
-	self.replaceAll('_','__');
+-- helper context String def : protect() : String = 
+-- 	self.replaceAll('_','__');
 
 helper def : inputCategory : String = 'input';
 helper def : outputCategory : String = 'output';
@@ -1739,7 +1739,7 @@ unique lazy rule MakeAtomInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <-name.protect()+'_aidd'
+		name <-name+'_aidd'
 	)
 }
 
@@ -1752,7 +1752,7 @@ unique lazy rule MakeCoreAtomInternalDataDeclaration{
 
 	to datadecl:bip!AtomInternalDataDeclaration(
 		dataType <- thisModule.MakeBipDataType(type),
-		name <-name.protect()+'_aidd_'+category
+		name <-name+'_aidd_'+category
 	)
 }
 
@@ -2298,7 +2298,7 @@ lazy rule MakeMonoTypeBufferComponentDeclaration{
 	to bufferdeclaration : bip!ComponentDeclaration(
 		type <- thisModule.MakeMonotypeBufferType(type),
 		parameters <- Sequence{},
-		name <- dataname.protect()+'_bd'
+		name <- dataname+'_bd'
 	)
 }
 
@@ -3100,7 +3100,7 @@ unique lazy rule MakeSpreadConnectorType{
 			node_data.channels->getKeys()->iterate(
 				channame ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
 				themap->including(
-					channame->protect(),
+					channame,
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
 						Sequence{
 							Tuple{
@@ -3112,7 +3112,7 @@ unique lazy rule MakeSpreadConnectorType{
 							-- 	iindex=1
 							}
 						},
-						channame->protect(), 
+						channame, 
 						cfd
 					)
 				)
@@ -3302,15 +3302,33 @@ unique lazy rule MakeSpreadConnectorType{
 	}
 }
 
-unique lazy rule MakeUpCropperConnectorType{
+unique lazy rule MakeUpAdapterConnectorType{
 	from 
 		cfd:chips!collective_function_definition,
-		channel_to_keep: String
+		to_keep: String
 
 	using{
 		fname : String = cfd.name;
 
 		support_node_type : String = cfd.support_object.name;
+
+		target_sig : TupleType(name:String,type:String) = 
+		let expr : OclAny = cfd.target_output.expression->at(1) in 
+		-- currently, target_output.expression is a sequence in anticipation for when we get anonymous datastructures 
+		-- as signals transmitted between components
+		Tuple{
+			name='_target',
+			type=if expr.oclIsKindOf(chips!collective_int_rvalue) then
+				'int'
+			else if expr.oclIsKindOf(chips!collective_float_rvalue) then
+				'float'
+			else if expr.oclIsKindOf(chips!collective_bool_rvalue) then
+				'bool'
+			else
+				'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
+			endif endif endif
+		};
+			
 		
 		node_data : TupleType(
 			channels:Map(String,String),
@@ -3327,11 +3345,11 @@ unique lazy rule MakeUpCropperConnectorType{
 
 		data : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
 			Tuple{
-				name=channel_to_keep+'_data',
-				type=accumulator_signature->collect(t|t.type),
+				name=to_keep+'_data',
+				type=accumulator_signature->append(target_sig)->collect(t|t.type),
 				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
-					channel_to_keep->protect()+'_acc',
+					to_keep+'_acc',
 					cfd
 				)
 			};
@@ -3339,7 +3357,7 @@ unique lazy rule MakeUpCropperConnectorType{
 	}
 
 	to cct:bip!ConnectorType(
-		name<- fname+'_cropper_for_'+channel_to_keep+'_conn_t',
+		name<- fname+'_Adapter_for_'+to_keep+'_conn_t',
 		interactions<- Sequence{interarctioon},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(Sequence{downport}),
 		exportedPortDeclaration <- cepd,
@@ -3358,7 +3376,10 @@ unique lazy rule MakeUpCropperConnectorType{
 					downport,
 					thisModule.MakePortDataParameterDeclaration(
 						data.type,
-						node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+						if to_keep = '_target'
+						then node_data.channels->getKeys()->size()
+						else (node_data.channels->getKeys()->asSequence()->indexOf(to_keep)-1)
+						endif, -- I know, not so robust
 						Sequence{data.type}
 					)
 				)
@@ -3377,7 +3398,10 @@ unique lazy rule MakeUpCropperConnectorType{
 				data.dd,
 				thisModule.MakePortDataParameterDeclaration(
 					data.type,
-					node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+					if to_keep = '_target'
+					then node_data.channels->getKeys()->size()
+					else (node_data.channels->getKeys()->asSequence()->indexOf(to_keep)-1)
+					endif,
 					data.type
 				)
 			)
@@ -3391,21 +3415,21 @@ unique lazy rule MakeUpCropperConnectorType{
 
 	do {
 
-		thisModule.temp_dic <- thisModule.dictionary->get('UpCropperConnectorType');
+		thisModule.temp_dic <- thisModule.dictionary->get('UpAdapterConnectorType');
 		if (thisModule.temp_dic.oclIsUndefined()) {
 			thisModule.temp_dic <- Map{};
 		}
 
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
-				Tuple{fct=fname,chan=channel_to_keep},
+				Tuple{fct=fname,chan=to_keep},
 				Map{
 					('cepd',cepd),
 					('down_port',downport)
 				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
-			->including('UpCropperConnectorType', thisModule.temp_dic);
+			->including('UpAdapterConnectorType', thisModule.temp_dic);
 
 		thisModule.temp <- thisModule.types->get('ConnectorType');
 		if (thisModule.temp.oclIsUndefined()) {
@@ -3421,10 +3445,10 @@ unique lazy rule MakeUpCropperConnectorType{
 }
 
 
-unique lazy rule MakeDownCropperConnectorType{
+unique lazy rule MakeDownAdapterConnectorType{
 	from 
 		cfd:chips!collective_function_definition,
-		channel_to_keep: String
+		receiving_chan: String
 
 	using{
 		fname : String = cfd.name;
@@ -3446,19 +3470,21 @@ unique lazy rule MakeDownCropperConnectorType{
 
 		data : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
 			Tuple{
-				name=channel_to_keep+'_data',
+				name=receiving_chan+'_data',
 				type=accumulator_signature->collect(t|t.type),
 				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
-					channel_to_keep->protect()+'_acc',
+					receiving_chan+'_acc',
 					cfd
 				)
 			};
 		
+		-- assuming getKeys always retrieves the keys in the same order (I know, not so robust)
+		channel_indicator : Integer = node_data.channels->getKeys()->asSequence()->indexOf(receiving_chan)-1;
 	}
 
 	to cct:bip!ConnectorType(
-		name<- fname+'_cropper_for_'+channel_to_keep+'_conn_t',
+		name<- fname+'_Adapter_for_'+receiving_chan+'_conn_t',
 		interactions<- Sequence{interarctioon},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(Sequence{downport}),
 		exportedPortDeclaration <- cepd,
@@ -3474,14 +3500,27 @@ unique lazy rule MakeDownCropperConnectorType{
 					downport,
 					thisModule.MakePortDataParameterDeclaration(
 						data.type,
-						node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
-						Sequence{data.type}
+						0,
+						Sequence{data.type,'int'}
 					)
 				),
 				thisModule.MakeAssignmentDataOperand(
 					data.dd
 				)
-			)	
+			),
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentSubDataOperand(
+					downport,
+					thisModule.MakePortDataParameterDeclaration(
+						'int',
+						1,
+						Sequence{data.type,'int'}
+					)
+				),
+				thisModule.MakeDirectIntegerExpression(
+					channel_indicator
+				)
+			)
 		}
 	),
 
@@ -3496,35 +3535,35 @@ unique lazy rule MakeDownCropperConnectorType{
 				data.dd,
 				thisModule.MakePortDataParameterDeclaration(
 					data.type,
-					node_data.channels->getKeys()->asSequence()->indexOf(channel_to_keep)-1,
+					0,
 					data.type
 				)
 			)
 		}
 	),
 
-	downport: bip!ConnectorPortParameterDeclaration(
-		portType <- thisModule.MakePortType(data.type),
-		name <- 'p_to_crop_cppd'
+	downport: bip!ConnectorPortParameterDeclaration( -- int is the type of the indicator
+		portType <- thisModule.MakePortType(Sequence{data.type, 'int'}),
+		name <- 'p_indicated_accumulator_cppd'
 	)
 
 	do {
 
-		thisModule.temp_dic <- thisModule.dictionary->get('DownCropperConnectorType');
+		thisModule.temp_dic <- thisModule.dictionary->get('DownAdapterConnectorType');
 		if (thisModule.temp_dic.oclIsUndefined()) {
 			thisModule.temp_dic <- Map{};
 		}
 
 		thisModule.temp_dic <- thisModule.temp_dic
 			->including(
-				Tuple{fct=fname,chan=channel_to_keep},
+				Tuple{fct=fname,chan=receiving_chan},
 				Map{
 					('cepd',cepd),
 					('down_port',downport)
 				}
 			);
 		thisModule.dictionary <- thisModule.dictionary
-			->including('DownCropperConnectorType', thisModule.temp_dic);
+			->including('DownAdapterConnectorType', thisModule.temp_dic);
 
 		thisModule.temp <- thisModule.types->get('ConnectorType');
 		if (thisModule.temp.oclIsUndefined()) {
@@ -3611,7 +3650,7 @@ unique lazy rule MakeCollectConnectorType{
 					type=accumulator_signature->collect(t|t.type),
 					dd=thisModule.MakeCollectiveConnectorDataDeclaration(
 						thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
-						chan->protect()+'_accumulator',
+						chan+'_accumulator',
 						cfd
 					)
 				}
@@ -3632,13 +3671,13 @@ unique lazy rule MakeCollectConnectorType{
 			node_data.channels->getKeys()->iterate(
 				channame ; themap : Map(String,bip!ConnectorPortParameterDeclaration) = Map{} |
 				themap->including(
-					channame->protect(),
+					channame,
 					thisModule.MakeCollectiveConnectorPortParameterDeclaration(
 						Sequence{Tuple{
 							type=datadecls->any(e | e.name = channame).type,
 							iindex=0
 						}},
-						channame->protect(), 
+						channame, 
 						cfd
 					)
 				)
@@ -3679,7 +3718,7 @@ unique lazy rule MakeCollectConnectorType{
 				datadecls->collect(
 					d |
 					thisModule.MakeAssignmentSubDataOperand(
-						downports->get(d.name->protect()),
+						downports->get(d.name),
 						thisModule.MakePortDataParameterDeclaration(
 							d.type,
 							0,
@@ -3803,7 +3842,7 @@ unique lazy rule MakeConnectorDeclaration{
 		conn:bip!ConnectorDeclaration(
 			type <- conntype,
 			portParameters <- portparameters,
-			name <- name.protect()+'_cd'
+			name <- name+'_cd'
 		)
 }
 
@@ -3816,7 +3855,7 @@ unique lazy rule MakeCollectiveConnectorDeclaration{
 		conn:bip!ConnectorDeclaration(
 			type <- conntype,
 			portParameters <- portparameters,
-			name <- name.protect()+'_cd'
+			name <- name+'_cd'
 		)
 	do {
 		thisModule.temp_dic <- thisModule.dictionary->get('CollectiveConnectorDeclaration');
@@ -4410,7 +4449,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 	}
 
     to compound_type:bip!CompoundType(
-		name <- chipsfunction.name.protect()+'_compoundtype',
+		name <- chipsfunction.name+'_compoundtype',
 		dataParameterDeclarations <- Sequence{only_parameter},
 		componentDeclarations <- 
 			Sequence{core_component_declaration}->union(buffers_sequence),
@@ -5208,7 +5247,7 @@ helper context Map(
 	all_chips_collective_defs:Sequence(chips!collective_function_definition)
 ) : Map(
 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-	Sequence(Map(String,OclAny))
+	Sequence(OclAny)
 ) = self->getKeys()->iterate(
 		key ; themap : Map(OclAny, OclAny) = Map{} |
 		themap->including(
@@ -5216,13 +5255,13 @@ helper context Map(
 			self->get(key)->collect(
 				root |
 				root->instantiation_visit(key, memory, Tuple{name='_origin',index=0,channel='_none'},all_chips_collective_defs)
-			)->toArray()
+			)
 		) 
 	);
 
 helper context TupleType(
 	visited_nodes:Set(Integer), 
-	obj:String, 
+	obj:String,
 	index:Integer, 
 	children:Map(String, OclAny)
 ) def : instantiation_visit(
@@ -5259,26 +5298,28 @@ helper context TupleType(
 	origin:TupleType(name:String,index:Integer,channel:String),
 	all_chips_collective_defs:Sequence(chips!collective_function_definition)
 ) : TupleType( 
-	obj:String, 
+	obj:String,
 	index:Integer,
+	adapters_list:Sequence(bip!ConnectorDeclaration),
 	instance:OclAny,
 	exported_port:OclAny,
 	children:Map(String, OclAny)
 ) = 
-	let connector_type: chips!collective_function_definition =  all_chips_collective_defs->any(ccast | ccast.name = collectiveop.collective_cast) in
+	let collfuncdef: chips!collective_function_definition =  all_chips_collective_defs->any(ccast | ccast.name = collectiveop.collective_cast) in
 	if self.obj='placeholder'
 	then
 		let compdecl : bip!ComponentDeclaration =
 			thisModule.MakeCollectiveCastPlaceholderDeclaration(
-				connector_type,
+				collfuncdef,
 				origin.name,
 				origin.channel,
 				origin.index
 			) in
 		Tuple{
-			obj='ph_from_chan_'+origin.channel->protect()+'_for_'+collectiveop.collective_cast,
+			obj='ph_of_'+origin.name+'_from_chan_'+origin.channel+'_for_'+collectiveop.collective_cast,
 			index=origin.index,
 			instance=compdecl,
+			adapters_list=Sequence{},
 			exported_port=thisModule.MakeComponentSubPortDeclarationReference(
 					thisModule.dictionary
 						->get('PlaceholderAtomTypes')
@@ -5293,6 +5334,7 @@ helper context TupleType(
 			obj:String, 
 			index:Integer,
 			instance:OclAny,
+			adapters_list:Sequence(bip!ConnectorDefinition),
 			exported_port:OclAny,
 			children:Map(String, OclAny)
 		)) = self.children->getKeys()->iterate(
@@ -5307,26 +5349,74 @@ helper context TupleType(
 				)
 			)
 		) in
-		let is_spread : Boolean = connector_type.collective_function_type = #spread in
+		let is_spread : Boolean = collfuncdef.collective_function_type = #spread in
+		let down_adapters : Map(
+			-- the channel name of the object the from which the signal originates if it is a collect operation
+			-- the channel name of the object to which the signal is sent if it is a spread operation
+			String,
+			bip!connectorDeclaration
+		) =
+			if is_spread
+			then 
+				instantiated_children->getKeys()->asSequence()
+				->iterate(
+					chan ; adapters_accu : Map(String, bip!connectorDeclaration) = Map{} |
+					let current_obj : String = instantiated_children->get(chan).obj in
+					if current_obj.startsWith('ph_of_') -- I know, it's not very robust
+					then adapters_accu
+					else 
+						adapters_accu->including(
+							chan,
+							thisModule.MakeConnectorDeclaration(
+								collfuncdef.name+'_'+chan+'_adapter_'+current_obj,
+								thisModule.MakeDownAdapterConnectorType(
+									collfuncdef,
+									chan
+								),
+								Sequence{
+									thisModule.MakePortDeclarationReferenceParameter(
+										thisModule.dictionary
+											->get('DownAdapterConnectorType')
+											->get(Tuple{fct=collfuncdef.name,chan=chan})
+											->get('down_port'),
+										instantiated_children->get(chan).exported_port
+									)	
+								}
+							)
+						)
+					endif
+				)
+			else Map{}
+			endif 
+		in
 		let instance : bip!ConnectorDeclaration = 
 			thisModule.MakeCollectiveConnectorDeclaration(
 				self.obj+'_'+self.index->toString()+'_'+collectiveop.collective_cast+'_connector', 
 				if is_spread
-				then thisModule.MakeSpreadConnectorType(connector_type)
-				else thisModule.MakeCollectConnectorType(connector_type)
+				then thisModule.MakeSpreadConnectorType(collfuncdef)
+				else thisModule.MakeCollectConnectorType(collfuncdef)
 				endif,
-				instantiated_children->getKeys()->collect(
+				instantiated_children->getKeys()->asSequence()->collect(
 					key |
 					thisModule.MakePortDeclarationReferenceParameter(
 						thisModule.dictionary
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
 							->get(collectiveop.collective_cast)
 							->get('down_ports')
-							->get(key->protect()),
-						instantiated_children->get(key).exported_port
+							->get(key),
+						let da : OclAny = down_adapters->get(key) in
+						if not da.oclIsUndefined()
+						then thisModule.MakeConnectorSubPortDeclarationReference(
+								thisModule.dictionary
+									->get('DownAdapterConnectorType')
+									->get(Tuple{fct=collfuncdef.name, chan=key})
+									->get('cepd'),
+								da
+							)
+						else instantiated_children->get(key).exported_port
+						endif
 					)
-				)->asSequence()
-				->append(
+				)->append(
 					thisModule.MakePortDeclarationReferenceParameter(
 						thisModule.dictionary
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
@@ -5343,18 +5433,117 @@ helper context TupleType(
 						)
 					)
 				)
-			) in
+			) 
+		in
+		let looking_for : OclAny = Tuple{from_ob=origin.name,from_index=origin.index,from_chan=origin.channel,to_ob=self.obj,to_index=self.index} in
+		let using_connection : OclAny = 
+			memory.connections->any(
+				conn | 
+				(conn.from_ob = origin.name) and 
+				(conn.from_index = origin.index) and 
+				(conn.from_chan = origin.channel) and
+				(conn.to_ob = self.obj) and
+				(conn.to_index = self.index)
+			)
+		in
+		
+		let up_adapter : bip!connectorDeclaration =
+			if is_spread
+			then OclUndefined
+			else
+				if using_connection.oclIsUndefined()
+				then
+					thisModule.MakeConnectorDeclaration(
+						collfuncdef.name+'_target_adapter_'+self.obj,
+						thisModule.MakeUpAdapterConnectorType(
+							collfuncdef,
+							'_target'
+						),
+						Sequence{
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('UpAdapterConnectorType')
+									->get(Tuple{fct=collfuncdef.name,chan='_target'})
+									->get('down_port'),
+								thisModule.MakeConnectorSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('CollectConnectorType')
+										->get(collfuncdef.name)
+										->get('cepd'),
+									instance
+								)	
+							)
+						}
+					)
+				else
+					thisModule.MakeConnectorDeclaration(
+						collfuncdef.name+'_'+using_connection.to_chan+'_adapter_'+self.obj,
+						thisModule.MakeUpAdapterConnectorType(
+							collfuncdef,
+							using_connection.to_chan
+						),
+						Sequence{
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('UpAdapterConnectorType')
+									->get(Tuple{fct=collfuncdef.name, chan=using_connection.to_chan})
+									->get('cepd'),
+								thisModule.MakeConnectorSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('CollectConnectorType')
+										->get(collfuncdef.name)
+										->get('cepd'),
+									instance
+								)
+							)
+						}
+					)
+				endif
+			endif
+		in
 		Tuple{
 			obj=self.obj,
 			index=self.index,
 			instance=instance,
-			exported_port = thisModule.MakeConnectorSubPortDeclarationReference(
-				thisModule.dictionary
-					->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
-					->get(collectiveop.collective_cast)
-					->get('cepd'),
-				instance
-			),
+			adapters_list= 
+				instantiated_children
+					->getValues()
+					->asSequence()
+					->collect(
+						t | t.adapters_list 
+					)->union(
+						if is_spread
+						then down_adapters->getValues()->asSequence()
+						else if up_adapter.oclIsUndefined()
+							then Sequence{}
+							else Sequence{up_adapter}
+							endif
+						endif
+					)->flatten(),
+			exported_port = 
+				if is_spread 
+				then
+					thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.dictionary
+							->get('SpreadConnectorType')
+							->get(collectiveop.collective_cast)
+							->get('cepd'),
+						instance
+					)
+				else
+					thisModule.MakeConnectorSubPortDeclarationReference(
+						thisModule.dictionary
+							->get('UpAdapterConnectorType')
+							->get(
+								Tuple{
+									fct=collfuncdef.name,
+									chan=if using_connection.oclIsUndefined() then '_target' else using_connection.to_chan endif
+								}
+							)
+							->get('cepd'),
+						up_adapter
+					)
+				endif,
 			children=instantiated_children
 		}
 	endif;
@@ -5381,7 +5570,7 @@ helper context TupleType (
 			channel ; newacc : TupleType(
 				list:Sequence(OclAny), 
 				visited:Set(TupleType(obj:String,id:Integer))
-			) = if not self.obj->startsWith('ph_from') then 
+			) = if not self.obj->startsWith('ph_of_') then --not very robust indeed
 					acc
 				else 
 					Tuple{
@@ -5393,6 +5582,40 @@ helper context TupleType (
 		)
 	endif;
 
+helper context TupleType (
+	obj:String,
+	index:Integer,
+	instance:OclAny,
+	adapter:OclAny,
+	exported_port:OclAny,
+	children:Map(String,OclAny)
+) def : collect_all_adapters_in_tree(
+	acc : TupleType(
+		list:Sequence(OclAny), 
+		visited:Set(TupleType(obj:String,id:Integer))
+	)
+) : TupleType(
+	list:Sequence(OclAny), 
+	visited:Set(TupleType(obj:String,id:Integer))
+) =	let current : TupleType(obj:String,id:Integer) = Tuple{obj=self.obj, id=self.index} in
+	if acc.visited->includes(current)
+	then Tuple{list=acc.list, visited=acc.visited}
+	else 
+		self.children->getKeys()->iterate(
+			channel ; newacc : TupleType(
+				list:Sequence(OclAny), 
+				visited:Set(TupleType(obj:String,id:Integer))
+			) = if self.obj->startsWith('ph_of_') then --not very robust indeed
+					acc
+				else 
+					Tuple{
+						list = acc.list->append(self.instance),
+						visited = acc.visited->including(current)
+					}
+				endif |
+			self.children->get(channel)->collect_all_placeholders_in_tree(newacc)
+		)
+	endif;
 
 -----------------------------------------------------------------------------------------
 ------------------------------- PACKAGE COMPOSITION (~main) -----------------------------
@@ -5924,7 +6147,8 @@ rule Program2BipPackage {
 				)
 			);
 
-
+		all_adapters : Sequence(bip!ConnectorDeclaration) = 
+			instantiated_collective_connectors_trees->getValues()->asSequence()->collect(list_of_roots | list_of_roots->collect(r | r.adapters_list))->flatten()->toArray();
 
 		bip_package : TupleType(
 			components: Sequence(bip!ComponentDeclaration),
@@ -5939,7 +6163,11 @@ rule Program2BipPackage {
 			)->union(
 				thisModule.dictionary->get('ContextualAtomDeclaration')->getValues()->asSequence()
 			),
-			connectors = memory.dataflows->getValues()->asSequence()->union(ctx_connectors)->union(thisModule.dictionary->get('CollectiveConnectorDeclaration')->getValues()->asSequence())
+			connectors = 
+				memory.dataflows->getValues()->asSequence()
+				->union(ctx_connectors)
+				->union(thisModule.dictionary->get('CollectiveConnectorDeclaration')->getValues()->asSequence())
+				->union(all_adapters)
 		};
 	}
 
@@ -6380,7 +6608,7 @@ helper def: updatenodeswith(
 	) = thisModule.getNodeData(ndecl."def") in
 	if lin_indices->size() <> 0 then 
 		memory.nodes->including(
-			ndecl.variable.name->protect(),
+			ndecl.variable.name,
 			Tuple{
 				dimensions = dims,
 				type = node_data.type,
@@ -6389,11 +6617,11 @@ helper def: updatenodeswith(
 				->collect( id |  node_data.contextuals->iterate(
 						t ; themap : Map(String, TupleType(dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))) = Map{} |
 						themap->including(
-							t.name->protect(), 
+							t.name, 
 							Tuple{
 								dimensions = t.dims,
 								instances = thisModule.zeros(t.dims)->collect(z | thisModule.MakeContextualAtomDeclaration(
-									t.name->protect()+'_'+id->toString()+'_'+ndecl.variable.name->protect(),
+									t.name+'_'+id->toString()+'_'+ndecl.variable.name,
 									t.type,
 									id
 								))
@@ -6405,7 +6633,7 @@ helper def: updatenodeswith(
 		)
 	else 
 		memory.nodes->including(
-			ndecl.variable.name->protect(), 
+			ndecl.variable.name, 
 			Tuple{
 				dimensions = Sequence{1},
 				channels = node_data.channels,
@@ -6414,11 +6642,11 @@ helper def: updatenodeswith(
 					node_data.contextuals->iterate(
 						t ; themap : Map(String, TupleType(dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))) = Map{} |
 						themap->including(
-							t.name->protect(), 
+							t.name, 
 							Tuple{
 								dimensions = t.dims,
 								instances = thisModule.zeros(t.dims)->collect(z | thisModule.MakeContextualAtomDeclaration(
-									t.name->protect()+'_'+ndecl.variable.name->protect(),
+									t.name+'_'+ndecl.variable.name,
 									t.type,
 									0
 								))
@@ -6473,7 +6701,7 @@ helper context chips!"chips::xvalues::primitive::int_variable_expression" def : 
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+		node_data.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'int') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
@@ -6486,7 +6714,7 @@ helper context chips!"chips::xvalues::primitive::float_variable_expression" def 
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+		node_data.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'float') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
@@ -6499,7 +6727,7 @@ helper context chips!"chips::xvalues::primitive::bool_variable_expression" def :
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.variables->any(e | (e.name = self.variable.name->protect())) in
+		node_data.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'bool') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
@@ -6512,7 +6740,7 @@ helper context chips!"chips::xvalues::primitive::contextual_int_expression" def 
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+		node_data.contextuals->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'int') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
@@ -6525,7 +6753,7 @@ helper context chips!"chips::xvalues::primitive::contextual_float_expression" de
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+		node_data.contextuals->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'float') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
@@ -6538,7 +6766,7 @@ helper context chips!"chips::xvalues::primitive::contextual_bool_expression" def
 		contextuals:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		node_data.contextuals->any(e | (e.name = self.variable.name->protect())) in
+		node_data.contextuals->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'bool') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
@@ -7281,10 +7509,10 @@ helper def : primitiveassignededupdate(
 	) = 
 
 	let new_variables : Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))) = 
-	if node_data.temp_memory.variables->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+	if node_data.temp_memory.variables->exists(e | e.name = assignment.lvalue.variable.name) then
 		-- do the assignment
 		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-			= node_data.temp_memory.variables->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+			= node_data.temp_memory.variables->any(e | e.name = assignment.lvalue.variable.name) in
 		
 		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
 			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
@@ -7321,10 +7549,10 @@ helper def : primitiveassignededupdate(
 	endif in
 
 	let new_contextuals : Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer))) = 
-	if node_data.contextuals->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+	if node_data.contextuals->exists(e | e.name = assignment.lvalue.variable.name) then
 		-- do the assignment
 		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-			= node_data.contextuals->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+			= node_data.contextuals->any(e | e.name = assignment.lvalue.variable.name) in
 		
 		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
 			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(node_data).value->get(0))) in
@@ -7565,7 +7793,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 	let lin_indices : Sequence(Integer) = thisModule.range(dims) in
 	if lin_indices->size() <> 0 then 
 		memory.fblocks->including(
-			fdecl.variable.name->protect(),
+			fdecl.variable.name,
 			Tuple{
 				ftype = fdecl."def",
 				dimensions = dims,
@@ -7583,7 +7811,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 		)
 	else 
 		memory.fblocks->including(
-			fdecl.variable.name->protect(), 
+			fdecl.variable.name, 
 			Tuple{
 				ftype = fdecl."def",
 				dimensions = dims,
@@ -7835,13 +8063,13 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
-	if memory.variables->exists(e | e.name = var.variable.name.protect()) then
+	if memory.variables->exists(e | e.name = var.variable.name) then
 		memory.variables
 	else	
 		memory.variables->including(
 			let dimensions : Sequence(Integer) = var.variable.dimensions->collect(e | e.evaluate(memory).value->get(0)) in
 			Tuple{
-				name = var.variable.name.protect(),
+				name = var.variable.name,
 				type = type,
 				value = thisModule.zeros(dimensions),
 				dims = if dimensions->isEmpty() then Sequence{1} else dimensions endif
@@ -8107,11 +8335,11 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer))) = 
-	if memory.variables->exists(e | e.name = assignment.lvalue.variable.name->protect()) then
+	if memory.variables->exists(e | e.name = assignment.lvalue.variable.name) then
 		-- do the assignment
 
 		let lvalue : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) 
-			= memory.variables->any(e | e.name = assignment.lvalue.variable.name->protect()) in
+			= memory.variables->any(e | e.name = assignment.lvalue.variable.name) in
 		
 		let lvalindexinterval : TupleType(start:Integer, end:Integer) =
 			lvalue->getIndexInterval(assignment.lvalue.index->collect(e | e.evaluate(memory).value->get(0))) in
@@ -9027,8 +9255,8 @@ helper context chips!"chips::statements::system::if_else" def :
 -- 	let isspread : Boolean = spreadtype <> OclUndefined in
 -- 	let collecttype : bip!ConnectorType = thisModule.dictionary->get('CollectConnectorType')->get(collective_func) in
 -- 	thisModule.MakeConnectorDeclaration(
--- 		root.root_function->protect()+root.root_index->toString()+root.root_parameter->protect()+'_to_'
--- 		+leaf.object->protect()+leaf.object_index->toString()+'_using_'+collective_func->protect(),
+-- 		root.root_function+root.root_index->toString()+root.root_parameter+'_to_'
+-- 		+leaf.object+leaf.object_index->toString()+'_using_'+collective_func,
 -- 		if isspread then spreadtype else collecttype endif,
 -- 		Sequence{
 			
@@ -9461,9 +9689,9 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 					tparam= self.eater.parameter.name
 				},
 				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
+					'from_'+self.feeder.variable_expression.variable.name
 					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name->protect()
+					+'_to_'+self.eater.variable.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'int'}),
 					Sequence{
@@ -9482,7 +9710,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 									->get('eoutputs')
 									->get(self.feeder.output.name),
 								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
+									->get(self.feeder.variable_expression.variable.name)
 									->get(findices)
 							)
 						),
@@ -9500,7 +9728,7 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								memory.fblocks
-									->get(self.eater.variable.variable.name->protect())
+									->get(self.eater.variable.variable.name)
 									->get(tindices)
 							)
 						)
@@ -9604,9 +9832,9 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 					tparam= self.eater.parameter.name
 				},
 				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
+					'from_'+self.feeder.variable_expression.variable.name
 					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name->protect()
+					+'_to_'+self.eater.variable.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'float'}),
 					Sequence{
@@ -9625,7 +9853,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 									->get('eoutputs')
 									->get(self.feeder.output.name),
 								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
+									->get(self.feeder.variable_expression.variable.name)
 									->get(findices)
 							)
 						),
@@ -9643,7 +9871,7 @@ helper context chips!"chips::statements::system::feeding_physical_float" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								memory.fblocks
-									->get(self.feeder.variable.variable.name->protect())
+									->get(self.feeder.variable.variable.name)
 									->get(tindices)
 							)
 						)
@@ -9748,9 +9976,9 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 					tparam= self.eater.parameter.name
 				},
 				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name->protect()
+					'from_'+self.feeder.variable_expression.variable.name
 					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name->protect()
+					+'_to_'+self.eater.variable.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
 					Sequence{
@@ -9769,7 +9997,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 									->get('eoutputs')
 									->get(self.feeder.output.name),
 								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name->protect())
+									->get(self.feeder.variable_expression.variable.name)
 									->get(findices)
 							)
 						),
@@ -9787,7 +10015,7 @@ helper context chips!"chips::statements::system::feeding_physical_bool" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								memory.fblocks
-									->get(self.eater.variable.variable.name->protect())
+									->get(self.eater.variable.variable.name)
 									->get(tindices)
 							)
 						)
@@ -9946,7 +10174,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				},
 				thisModule.MakeConnectorDeclaration(
 					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name->protect()
+					+'_to_'+self.eater.variable_expression.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'int'}),
 					Sequence{
@@ -9977,7 +10205,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name->protect())
+									->get(self.eater.variable_expression.variable.name)
 									.instances->get(tindices)
 							)
 						)
@@ -10123,7 +10351,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 				},
 				thisModule.MakeConnectorDeclaration(
 					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name->protect()
+					+'_to_'+self.eater.variable_expression.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'float'}),
 					Sequence{
@@ -10154,7 +10382,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name->protect())
+									->get(self.eater.variable_expression.variable.name)
 									.instances->get(tindices)
 							)
 						)
@@ -10300,7 +10528,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 				},
 				thisModule.MakeConnectorDeclaration(
 					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name->protect()
+					+'_to_'+self.eater.variable_expression.variable.name
 					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
 					Sequence{
@@ -10331,7 +10559,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 									->get('einputs')
 									->get(self.eater.parameter.name),
 								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name->protect())
+									->get(self.eater.variable_expression.variable.name)
 									.instances->get(tindices)
 							)
 						)
@@ -10428,9 +10656,9 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 						tparam= self.eater.parameter.name
 					},
 					thisModule.MakeConnectorDeclaration(
-						'from_'+self.feeder.variable_expression.variable.name->protect()
+						'from_'+self.feeder.variable_expression.variable.name
 						+'_'+findices.toString()+'_'+self.feeder.output.name
-						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_to_'+self.eater.variable_expression.variable.name
 						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 						thisModule.MakeFlowConnectorType(Sequence{'int'}),
 						Sequence{
@@ -10448,7 +10676,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 										->get('eoutputs')
 										->get(self.feeder.output.name),
 									memory.fblocks
-										->get(self.feeder.variable_expression.variable.name->protect())
+										->get(self.feeder.variable_expression.variable.name)
 										.instances->get(findices)
 								)
 							),
@@ -10466,7 +10694,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 										->get('einputs')
 										->get(self.eater.parameter.name),
 									memory.fblocks
-										->get(self.eater.variable_expression.variable.name->protect())
+										->get(self.eater.variable_expression.variable.name)
 										.instances->get(tindices)
 								)
 							)
@@ -10578,9 +10806,9 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 						tparam= self.eater.parameter.name
 					},
 					thisModule.MakeConnectorDeclaration(
-						'from_'+self.feeder.variable_expression.variable.name->protect()
+						'from_'+self.feeder.variable_expression.variable.name
 						+'_'+findices.toString()+'_'+self.feeder.output.name
-						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_to_'+self.eater.variable_expression.variable.name
 						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 						thisModule.MakeFlowConnectorType(Sequence{'float'}),
 						Sequence{
@@ -10598,7 +10826,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 										->get('eoutputs')
 										->get(self.feeder.output.name),
 									memory.fblocks
-										->get(self.feeder.variable_expression.variable.name->protect())
+										->get(self.feeder.variable_expression.variable.name)
 										.instances->get(findices)
 								)
 							),
@@ -10616,7 +10844,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 										->get('einputs')
 										->get(self.eater.parameter.name),
 									memory.fblocks
-										->get(self.eater.variable_expression.variable.name->protect())
+										->get(self.eater.variable_expression.variable.name)
 										.instances->get(tindices)
 								)
 							)
@@ -10728,9 +10956,9 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 						tparam= self.eater.parameter.name
 					},
 					thisModule.MakeConnectorDeclaration(
-						'from_'+self.feeder.variable_expression.variable.name->protect()
+						'from_'+self.feeder.variable_expression.variable.name
 						+'_'+findices.toString()+'_'+self.feeder.output.name
-						+'_to_'+self.eater.variable_expression.variable.name->protect()
+						+'_to_'+self.eater.variable_expression.variable.name
 						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 						thisModule.MakeFlowConnectorType(Sequence{'bool'}),
 						Sequence{
@@ -10748,7 +10976,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 										->get('eoutputs')
 										->get(self.feeder.output.name),
 									memory.fblocks
-										->get(self.feeder.variable_expression.variable.name->protect())
+										->get(self.feeder.variable_expression.variable.name)
 										.instances->get(findices)
 								)
 							),
@@ -10766,7 +10994,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 										->get('einputs')
 										->get(self.eater.parameter.name),
 									memory.fblocks
-										->get(self.eater.variable_expression.variable.name->protect())
+										->get(self.eater.variable_expression.variable.name)
 										.instances->get(tindices)
 								)
 							)
@@ -10967,7 +11195,7 @@ helper context chips!"chips::xvalues::system::int_variable_expression" def : eva
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name->protect())) in
+		memory.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'int') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', int expected')
 	else
@@ -11004,7 +11232,7 @@ helper context chips!"chips::xvalues::system::float_variable_expression" def : e
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name->protect())) in
+		memory.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'float') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', float expected')
 	else
@@ -11041,7 +11269,7 @@ helper context chips!"chips::xvalues::system::bool_variable_expression" def : ev
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(name:String, type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
 	let var : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) =
-		memory.variables->any(e | (e.name = self.variable.name->protect())) in
+		memory.variables->any(e | (e.name = self.variable.name)) in
 	if (var.type <> 'bool') then 
 		'ATL transformation Error'.debug(var.name+' is of type '+var.type+', bool expected')
 	else
