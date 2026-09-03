@@ -1,0 +1,44 @@
+@cpp(src="printing.cpp",include="printing.hpp")
+
+package printing
+
+    use base
+
+    extern data type CppOutStream
+
+    extern function openLogger(string)
+
+    extern function writeLogger(string)
+    extern function writeLogger(int)
+    extern function writeLogger(float)
+    extern function writeLogger(chips_float)
+
+    extern function loggerTime(chips_float)
+    extern function loggerTarget(chips_float)
+    extern function loggerMeasure(chips_float)
+    extern function loggerCommand(chips_float)
+    extern function loggerProportional(chips_float)
+    extern function loggerIntegral(chips_float)
+    extern function loggerDerivative(chips_float)
+    extern function loggerError(chips_float)
+    extern function writeAll()
+
+    extern function closeLogger()
+
+
+    extern function emptyFile(string)
+    extern function CppOutStream openStream(string)
+
+    extern function printInStream(CppOutStream, string)
+    extern function printfBIP(string)
+    extern function printInStream(CppOutStream, float)
+    extern function printfBIP(float)
+    extern function printInStream(CppOutStream, int)
+    extern function printfBIP(int)
+    extern function printInStream(CppOutStream, chips_float)
+    extern function printfBIP(chips_float)
+
+    extern function closeStream(CppOutStream)
+
+
+end

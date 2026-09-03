@@ -4517,7 +4517,7 @@ unique lazy rule MakeCoreComponentDeclaration {
 }
 
 
-unique lazy rule MakeFunctionComponentDataParameterDeclaration{
+unique lazy rule MakeComponentDataParameterDeclaration{
 	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
@@ -4706,7 +4706,7 @@ unique lazy rule MakeFloatConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		name <- 'cst'+id.toString(),
-		type <- thisModule.MakeConstantAtomType('int'),
+		type <- thisModule.MakeConstantAtomType('float'),
 		parameters <- Sequence{
 			thisModule.MakeDirectFloatExpression(value)
 		}
@@ -4724,7 +4724,7 @@ unique lazy rule MakeBoolConstantDeclaration{
 
 	to cst_component_decl: bip!ComponentDeclaration(
 		name <- 'cst'+id.toString(),
-		type <- thisModule.MakeConstantAtomType('int'),
+		type <- thisModule.MakeConstantAtomType('bool'),
 		parameters <- Sequence{
 			thisModule.MakeDirectBooleanExpression(value)
 		}

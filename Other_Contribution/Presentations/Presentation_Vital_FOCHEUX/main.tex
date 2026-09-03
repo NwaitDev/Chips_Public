@@ -1,0 +1,75 @@
+\documentclass[UTF8]{beamer}
+
+\input{header.tex}
+
+%-------------title here--------------------
+\title{Evolution du langage CHIPS : amélioration du compilateur et intégration de composants de la théorie du contrôle}
+% \subtitle{Stage}
+\course{Master 2 Ingénierie Systèmes et Logiciels}
+\author{\vspace{-5} Vital FOCHEUX \\
+        Tutrices : Sophie CERF\footnote{INRIA Lille}, Anna GALLONE\footnote{\label{fn:source}FEMTO-ST}, Olga KOUCHNARENKO\footnotemark{\label{fn:source}}}
+\IDnumber{}
+
+\usepackage{listings}
+\lstdefinelanguage{Chips}{
+  morekeywords={logical, physical,object,system,init,then,spread,collect,as,with,implementation,input,stop,among,ctx,using,actuator,sensor},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{red!60!black},
+  showstringspaces=false,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true
+}
+
+\date{15 juillet 2026}
+%--------------begin document--------------------
+\begin{document}
+\maketitle
+
+\themecolor{main}
+\footlinecolor{}
+\begin{frame}[noframenumbering]{}
+    \framesubtitle{Plan de la présentation}
+    \tableofcontents
+\end{frame}
+\themecolor{}
+
+% Start of the presentation
+\footlinecolor{maincolor}
+\setbeamercolor{block body}{fg=darkgray,bg=ufcgrey}
+
+% \section{Introduction}
+% \input{contents/intro}
+
+\section{Cadre d'accueil}
+\input{contents/femto}
+
+\section{Le parseur et la réalisation vers XMI}
+\input{contents/parseur_xmi}
+
+\section{Implantation des outils de la théorie du contrôle}
+\input{contents/outils_theorie_controle}
+
+\section{Conclusion}
+\input{contents/conclusion}
+
+\begingroup
+  \themecolor{main}
+  \begin{frame}[c]
+    \centering
+    \begin{minipage}{\textwidth}
+      \usebeamercolor[fg]{normal text}
+      \centering
+      \Huge \textsl{Merci de votre attention ! } \\
+      \Huge \textsl{Des questions ?}
+    \end{minipage}
+  \end{frame}
+\endgroup
+\end{document}

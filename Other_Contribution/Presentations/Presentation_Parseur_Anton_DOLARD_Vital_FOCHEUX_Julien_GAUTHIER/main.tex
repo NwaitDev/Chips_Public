@@ -1,0 +1,72 @@
+\documentclass[UTF8]{ctexbeamer}
+
+\input{header.tex}
+
+%-------------title here--------------------
+\title{Implantation d'un parseur et d'un jeu d'instructions pour le langage CHIPS}
+% \subtitle{Projet de Développement Agile de Machines Virtuelles}
+\course{Master 2 Informatique}
+\author{\vspace{-5}Anton DOLARD, Vital FOCHEUX, Julien GAUTHIER \\
+        Tutrices : Anna GALLONE, Olga KOUCHNARENKO}
+\IDnumber{}
+
+\usepackage{listings}
+\lstdefinelanguage{Chips}{
+  morekeywords={logical, physical,object,system,init,then,spread,collect,as,with,implementation,input,stop,among,ctx,using,actuator,sensor},
+  sensitive=true,
+  morecomment=[l]{//},
+  morestring=[b]"
+}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{red!60!black},
+  showstringspaces=false,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true
+}
+
+\date{26 février 2026}
+%--------------begin document--------------------
+\begin{document}
+\maketitle
+
+\themecolor{main}
+\footlinecolor{}
+\begin{frame}[noframenumbering]{}
+    \framesubtitle{Plan de la présentation}
+    \tableofcontents
+\end{frame}
+\themecolor{}
+
+% Start of the presentation
+\footlinecolor{maincolor}
+\setbeamercolor{block body}{fg=darkgray,bg=ufcgrey}
+
+\section{Introduction}
+\input{contents/intro}
+
+\section{Algorithmes et technologies}
+\input{contents/algo}
+
+\section{Conformité du langage}
+\input{contents/conformite}
+
+\section{Conclusion}
+\input{contents/conclusion}
+
+\begingroup
+  \themecolor{main}
+  \begin{frame}[c]
+    \centering
+    \begin{minipage}{\textwidth}
+      \usebeamercolor[fg]{normal text}
+      \centering
+      \Huge \textsl{Merci de votre attention ! } \\
+      \Huge \textsl{Des questions ?}
+    \end{minipage}
+  \end{frame}
+\endgroup
+\end{document}

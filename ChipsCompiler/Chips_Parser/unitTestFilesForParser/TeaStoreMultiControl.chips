@@ -1,0 +1,505 @@
+// random(), zeros(int*) and range(int*) not implemented yet in chips
+
+physical UserMachine(sensor int httpResponse, int startTime, int endTime, int id, int maxNbData = 10) 
+ // startTime >= 0 // endTime > startTime // 100 > id > 0
+with{
+    UserChannel next;
+    UserChannel prev;
+    ctx int computerID;
+} init {
+    bool active;
+    bool waiting = false;
+    int time = 0;
+    ctx.computerID = id;
+    bool requiresAuth;
+    bool newPage;
+
+    //nb of data requested
+    int currentRequest = (int) (random()*((float)maxNbData))+1; 
+
+     // (auth ? -1 : 1)*((maxNbData+1)*ID + nbData) with nbData in [1, maxNbData]
+    int httpRequest = (maxNbData+1)*ctx.computerID + currentRequest;
+
+    // httpResponse in the form of
+    // response ? (authRequired ? -1 : 1)*(ID) : 0
+} then {
+    newPage = httpResponse !=0;
+    requiresAuth = httpResponse < 0;
+    active = (time>=startTime) && (time<endTime);
+    if (!active) {
+        httpRequest = 0;
+    } else {
+        if (!waiting){
+            currentRequest = (int) (random()*(float)maxNbData)+1;
+            httpRequest = (maxNbData+1)*ctx.computerID + currentRequest;
+            if(requiresAuth){
+                httpRequest = -httpRequest;
+            }
+            waiting = true;
+        } else {
+            if (newPage){
+                waiting = false;
+                if(requiresAuth){
+                    httpRequest = -httpRequest;
+                }
+            } else {
+                waiting = true;
+                httpRequest = 0;
+            }
+        }
+    }
+    time = time+1;
+} -> actuator fromUserToInternet(httpRequest)
+
+
+// from internet is equal to (auth ? -1 : 1)*((maxNbData+1)*ID + nbData) with nbData in [1, maxNbData]
+physical ServerMachine(sensor int[100] fromInternet, 
+    int wpServed, int maxNbData = 10)
+with {
+    ServerChannel next;
+    ServerChannel prev;
+} init {
+    int httpResponse = 0;
+    int currentRequest = 1;
+    bool requestFound = false;
+
+    int [100] requestList = zeros(100);
+} then {
+
+    ////////////////// treating client requests one by one
+    requestList[currentRequest] = 0;
+
+    for i in range(100) {
+        if(fromInternet[i]!=0){
+            requestList[i] = fromInternet[i];
+        }
+    }
+
+    for reqShift in range(100) { // weird way to do it to avoid starvation of clients
+        if ( !requestFound && (requestList[(currentRequest + reqShift)%100] != 0)) {
+            requestFound = true;
+            currentRequest = (currentRequest + reqShift)%100;
+        }
+    }
+
+    ////////////////// treating server responses one by one
+    httpResponse = wpServed;
+} 
+-> actuator fromServerToInternet(httpResponse)
+-> nbData(requestList[currentRequest]%(maxNbData+1)) 
+-> userID(requestList[currentRequest]/(maxNbData+1))
+-> userAuth(requestList[currentRequest]<0)
+
+
+logical UserActionInterpreter(int nbDataRcvd, bool authDataRcvd, int userIDRcvd) 
+init {} then {}
+-> nbData(nbDataRcvd)
+-> reqID(userIDRcvd)
+-> authProvided(authDataRcvd)
+
+
+logical Authenticator(bool authProvided) 
+init {} then {} -> isAuthenticated(authProvided)
+
+
+logical RequestValidator(int nbData, int requestID, bool isAuthenticated) 
+init {
+    int nbDataToFetch;
+    bool needRedirection;
+} then {
+    needRedirection = (nbData > 5) && (!isAuthenticated);
+    if (!needRedirection){
+        nbDataToFetch = nbData;
+    } else {
+        nbDataToFetch = 0;
+    }
+} -> nbDataRequested(nbDataToFetch)
+-> userID(requestID)
+-> redirection(needRedirection)
+
+
+logical RequestLimiter(bool redirection, int maxRequests, int userID, int nbDataToFetch, int nbAnsweredReqs)
+init {
+    int currentNbRequests = 0;
+} then {
+    currentNbRequests = currentNbRequests - nbAnsweredReqs;
+    if(!redirection){
+        if ((currentNbRequests + 1) <= maxRequests) {
+            currentNbRequests = currentNbRequests + 1;
+        } else {
+            redirection = true;
+            nbDataToFetch = 0;
+        }
+    }
+} -> redirection(redirection)
+-> userID(userID)
+-> dataQty(nbDataToFetch)
+
+logical Cache (int requestedData, int cacheSize) init {
+    int maxCacheSize = 100;
+    int minCacheSize = 10;
+    int [maxCacheSize] cache = zeros(maxCacheSize);
+    int newestDataIndex=0;
+    bool found = false;
+    int foundIndex = 0;
+} then {
+    if(cacheSize > maxCacheSize){
+        cacheSize = maxCacheSize;
+    }
+    if (cacheSize < minCacheSize){
+        cacheSize = minCacheSize;
+    }
+    if(newestDataIndex >= cacheSize){
+        newestDataIndex = 0;
+    }
+
+    if (!(requestedData > 0)){
+        found = false;
+    } else {
+        found = false;
+        for i in range(cacheSize) {
+            if((!found) && (cache[i] == requestedData)){
+                found = true;
+                foundIndex = i;
+            }
+        }
+
+        if (!found) {
+            newestDataIndex = (newestDataIndex + 1) % cacheSize;
+            cache [newestDataIndex] = requestedData;
+        } else {
+            if(foundIndex < newestDataIndex){
+                int temp;
+                for i in range(newestDataIndex-foundIndex) {
+                    temp = cache[foundIndex+i+1];
+                    cache[foundIndex+i+1] = cache[foundIndex+i];
+                    cache[foundIndex+i] = temp;
+                }
+            } else {
+                int temp;
+                for i in range( cacheSize-foundIndex + newestDataIndex) {
+                    temp = cache[(foundIndex+i+1)%cacheSize];
+                    cache[(foundIndex+i+1)%cacheSize] = cache[(foundIndex+i)%cacheSize];
+                    cache[(foundIndex+i)%cacheSize] = temp;
+                }
+            }
+        }
+    }
+}
+-> foundInCache(found)
+
+
+logical DataProvider (bool redirection, int userID, int dataQty, bool cacheResponse)
+init {
+    int maxDifferentData = 40;
+    int maxUserID = 100;
+    int [maxUserID] dataPerUserID = zeros(maxUserID);
+    int currentlyTreatedUserRequest = -1;
+
+    ///////
+    // Function output
+    
+    int idToRespondTo = 0;
+    int dataToFetch = 0;
+
+    float time = 0.;
+    bool cacheSearching = false;
+    bool oneLessPendingRequest = false;
+} then {
+    oneLessPendingRequest = false;
+    idToRespondTo = 0;
+    if(userID != 0){
+        if(redirection){
+            idToRespondTo = -userID;
+        } else {
+            dataPerUserID[userID-1] = dataQty;
+            if (currentlyTreatedUserRequest < 0 ) {
+                currentlyTreatedUserRequest = userID-1;
+            }
+        }
+    }
+
+    // if we have pending requests and we are not occupied sending a response
+    if ((currentlyTreatedUserRequest >=0) && (idToRespondTo==0)) {
+
+        if(cacheSearching) {
+            if(cacheResponse){
+                // adding to current time a small increment
+                // because searching the cache was fast
+                time = time + 0.03;
+            } else {
+                // adding to current time a big increment
+                // because requesting the database was long
+                time = time + 2.0;
+            }
+            dataPerUserID[currentlyTreatedUserRequest] = dataPerUserID[currentlyTreatedUserRequest] -1;
+        }
+
+        if(dataPerUserID[currentlyTreatedUserRequest]>0){
+            dataToFetch = (int) (random()*((float)maxDifferentData))+1;
+            cacheSearching = true;
+        } else {
+            //we finished treating the current request
+            idToRespondTo = currentlyTreatedUserRequest +1;
+            oneLessPendingRequest = true;
+
+            bool foundNewRequestPending = false;
+            for userReqShift in range(maxUserID) {
+                if ((!foundNewRequestPending) && (dataPerUserID[(currentlyTreatedUserRequest + userReqShift)%maxUserID] > 0)){
+                    foundNewRequestPending = true;
+                    currentlyTreatedUserRequest = (currentlyTreatedUserRequest + userReqShift)%maxUserID;
+                }
+            }
+            if (!foundNewRequestPending){
+                cacheSearching = false;
+                currentlyTreatedUserRequest = -1;
+            } else {
+                dataToFetch = (int) (random()*((float)maxDifferentData))+1;
+                cacheSearching = true;
+            }
+        }
+    }
+}-> userID(idToRespondTo) // already formatted as the http answer
+-> cacheRequest(dataToFetch)
+-> oneLessPendingRequest(oneLessPendingRequest)
+-> timeSpentOnReq(time)
+-> enableTimeReading(oneLessPendingRequest)
+
+object UI with {
+    UIchannel next;
+    UIchannel prev;
+}
+
+object Backend with {
+    BackChannel next;
+    BackChannel prev;
+}
+
+collect (int [100] answers = zeros(100)) allDataProvidersOutputs
+among Backend {
+    if(input!=0){
+        if(input>0){
+            answers[input-1] = input;
+        } else {
+            answers[-input-1] = input;
+        }
+    }
+} -> @(answers)
+-> default(answers)
+
+logical WebPageService(int[100] respondToThisIDs = zeros(100)) 
+init {
+    int currentRequestAnswered = 0;
+    int [100] requestsToAnswerTo = zeros(100);
+    bool requestFound = false;
+} then {
+    requestsToAnswerTo[currentRequestAnswered] = 0;
+    requestFound = false;
+    for i in range(100) {
+        if(respondToThisIDs[i]!=0){
+            requestsToAnswerTo[i] = respondToThisIDs[i];
+        }
+    }
+
+    for reqShift in range(100) { // weird way to do it to avoid starvation of clients
+        if ( !requestFound && (requestsToAnswerTo[(currentRequestAnswered + reqShift)%100] != 0)) {
+            currentRequestAnswered = (currentRequestAnswered + reqShift)%100;
+            requestFound = true;
+        }
+    }
+} // this is already the content of the httpAnswer
+-> idToRespondTo(requestsToAnswerTo[currentRequestAnswered])
+
+// fromInternet is (supposedly) equal to (!isResponding ? 0 : (authRequired ? -1 : 1) * idOfUserToRespondTo)
+spread (int fromInternet = input)
+responseToTheRightUser among UserMachine {
+    int id = fromInternet;
+    if (fromInternet < 0){
+        id = -id;
+    }
+    int returned;
+    int transmitted;
+    if((fromInternet==0) || (id != ctx.computerID)){
+        returned = 0;
+        transmitted = fromInternet;
+    } else {
+        returned = fromInternet;
+        transmitted = stop;
+    }
+} -> @(returned)
+-> default(transmitted)
+
+collect (int [100] currentListOfRequests = zeros(100))
+aggregatingRequests among UserMachine {
+    if(input!=0){
+        if(input<0){
+            currentListOfRequests[-input] = input;
+        } else {
+            currentListOfRequests[input] = input;
+        }
+    }
+}->@(currentListOfRequests)
+-> default(currentListOfRequests)
+
+
+
+logical PidController(float requested_time, float resulting_time, bool enabled) init {
+    float derivative = 0.;
+    float integral = 0.;
+    float error = 0.;
+    float dt = 0.;
+
+    float p = -1.;
+    float i = -0.01;
+    float d = 0.;
+
+    int knob_value = 20;
+    int min_knob_value = 20;
+    int max_knob_value = 100;
+} then {
+    if (enabled){
+        dt = resulting_time;
+        error = requested_time - resulting_time;
+        integral = integral + error * dt;
+        derivative = error / dt;
+        knob_value = (int) (p*error + i*integral + d*derivative);
+
+        knob_value = min(max_knob_value, knob_value);
+        knob_value = max(min_knob_value, knob_value);
+    }
+} -> knob(knob_value)
+
+collect (int sum = 0) numberOfRespondedRequests
+among Backend {
+    if (input){
+        sum = sum + 1;
+    }
+} ->@(sum)
+-> default(sum)
+
+// in case of redirection, the component in charge of redirecting
+// the request is the component that will also receive the ID of
+// the redirected request, so we flood the network
+spread (bool redirection = input) broadcastRedirection 
+among Backend {}
+->@(redirection)
+-> default(redirection)
+
+spread (int dataQtyToFind = input) broadcastDataQty
+among Backend {}
+-> @(dataQtyToFind)
+-> default(dataQtyToFind)
+
+// assuming there are at least 4 backends,
+//  the current one and the 3 following (in the same direction, i.e next channel)
+// assuming there is exactly one image provider per Backend
+// assigns the id to the Backend with the same remainder mod 4
+spread (int userID = input, int nbJumps = 0) findRightDataProvider
+among Backend {
+    int currentBackendTransmittedID;
+    int nextBackendData;
+    if (nbJumps == userID%4){
+        currentBackendTransmittedID = userID;
+        nextBackendData = stop;
+    }else{
+        nbJumps = nbJumps+1;
+        currentBackendTransmittedID = 0;
+        nextBackendData = userID;
+    }
+} -> @(currentBackendTransmittedID)
+-> next(nextBackendData, nbJumps)
+-> prev(stop)
+
+system {
+    int maxUsers = 100;
+    int nbUsers = 10;
+
+    
+    int nbCaches = 4;
+    float controllerRequestedTime = 4.0;
+    
+
+
+    // instanciation of components
+    UserMachine [nbUsers] umachine;
+    ServerMachine smachine;
+
+    UserActionInterpreter uainterpreter;
+    WebPageService wpservice;
+    UI uiobject;
+    link uainterpreter to uiobject;
+    link wpservice to uiobject;
+    link uiobject to smachine;
+
+    
+    RequestValidator rvalidator;
+    RequestLimiter rlimiter;
+    
+    Cache[nbCaches] cache;
+    PidController[nbCaches] ctrl;
+    
+    Authenticator authenticator;
+    
+    DataProvider[nbCaches] dprovider;
+
+    Backend [nbCaches] bobject;
+    link rlimiter to smachine;
+    
+    for i in range(nbCaches){
+        link cache[i] to bobject[i];
+        link ctrl[i] to bobject[i];
+        link dprovider[i] to bobject[i];
+        link bobject[i] to smachine;
+    }
+
+    link rvalidator to smachine;
+    link authenticator to smachine;
+    
+
+    // connecting outputs to inputs
+    for i in range(nbUsers){
+        smachine.fromInternet((aggregatingRequests) umachine[i].fromUserToInternet);
+        umachine[i].httpResponse((responseToTheRightUser) smachine.fromServerToInternet);
+        umachine[i].startTime(2*i);
+        umachine[i].endTime(2*i+30);
+        umachine[i].id(i+1);
+        if (i<nbUsers-1){
+            umachine[i].next(umachine[i+1].prev);
+            umachine[i+1].prev(umachine[i].next);
+        }
+    }
+    
+    smachine.wpServed(wpservice.idToRespondTo);
+
+    uainterpreter.nbDataRcvd(smachine.nbData);
+    uainterpreter.authDataRcvd(smachine.userAuth);
+    uainterpreter.userIDRcvd(smachine.userID);
+
+    authenticator.authProvided(uainterpreter.authProvided);
+    
+    rvalidator.nbData(uainterpreter.nbData);
+    rvalidator.requestID(uainterpreter.reqID);
+    rvalidator.isAuthenticated(authenticator.isAuthenticated);
+
+    
+    rlimiter.maxRequests(maxUsers);
+    rlimiter.userID(rvalidator.userID);
+    rlimiter.nbDataToFetch(rvalidator.nbDataRequested);
+    rlimiter.redirection(rvalidator.redirection);
+    
+    
+    for i in range(nbCaches){
+        rlimiter.nbAnsweredReqs((numberOfRespondedRequests)dprovider[i].oneLessPendingRequest);
+        dprovider[i].redirection((broadcastRedirection)rlimiter.redirection);
+        dprovider[i].userID((findRightDataProvider)rlimiter.userID);
+        dprovider[i].dataQty((broadcastDataQty)rlimiter.dataQty);
+        dprovider[i].cacheResponse(cache[i].foundInCache);
+        cache[i].requestedData(dprovider[i].cacheRequest);
+        cache[i].cacheSize(ctrl[i].knob);
+        ctrl[i].requested_time(controllerRequestedTime);
+        ctrl[i].resulting_time(dprovider[i].timeSpentOnReq);
+        ctrl[i].enabled(dprovider[i].enableTimeReading);
+        wpservice.respondToThisIDs((allDataProvidersOutputs)dprovider[i].userID);
+    }
+
+}

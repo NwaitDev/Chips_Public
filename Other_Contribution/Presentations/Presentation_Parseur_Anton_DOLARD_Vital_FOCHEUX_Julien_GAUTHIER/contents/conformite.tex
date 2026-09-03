@@ -1,0 +1,157 @@
+
+\subsection{Vérification du XMI}
+\begin{frame}{XMIValidator.py}
+    \begin{block}{Explications}
+        \begin{itemize}
+            \item Programme Python de validation XMI basé sur PyEcore
+            \item Vérification qu’un fichier XMI respecte un métamodèle Ecore
+            \item Chargement automatique du métamodèle et de ses sous-packages
+            \item Validation de la structure et détection des erreurs
+        \end{itemize}
+    \end{block}
+\end{frame}
+\subsection{Grammar Based Testing}
+
+\begin{frame}{Le Grammar Based Testing c'est quoi ?}
+    \begin{block}{Explications}
+     Le Grammar Based Testing (GBT) consiste à :
+        \begin{itemize}
+            \item Générer automatiquement des programmes valides à partir de la grammaire du langage
+            \item Vérifier que le compilateur accepte ces programmes valides
+            \item Modifier certains programmes pour créer des erreurs syntaxiques (mutants)
+            \item Vérifier que le compilateur renvoie bien une erreur pour ces programmes invalides
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Comment on génère ?}
+    \begin{block}{Programmes valides}
+        \begin{itemize}
+            \item On construit un fichier .chips de haut en bas.
+            \item On génère d’abord les préambules : logical, physical, object, implementation.
+            \item On génère ensuite un bloc SYSTEM \{...\}.
+            \item Dans SYSTEM, le programme choisit une liste d’instructions valides.
+            \item La profondeur est limitée afin de garantir la terminaison.
+        \end{itemize}
+    \end{block}
+\end{frame}
+\begin{frame}{Comment on génère ?}
+    \begin{block}{Programmes invalides}
+        \begin{itemize}
+            \item On part d'un programme valide et on applique une mutation locale
+            \item Exemples : suppression de { ;}, {\{}, {\}}, {( )}, {[ ]}, insertion de tokens parasites, altération de mots-clés, etc.
+            \item Le générateur garantit que toutes les catégories de mutations sont présentes
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{La vérification automatique}
+    \begin{block}{run\_gbt\_valid}
+        \begin{itemize}
+            \item Parcourt le dossier \texttt{ShouldCompileSyntax/}
+            \item Exécute le compilateur sur tous les fichiers
+            \item Si la compilation échoue $\rightarrow$ erreur
+            \item Affiche le nombre total d'échecs
+        \end{itemize}
+    \end{block}
+
+    \begin{block}{run\_gbt\_invalid}
+        \begin{itemize}
+            \item Parcourt le dossier \texttt{ShouldNotCompileSyntax/}
+            \item Exécute le compilateur sur tous les fichiers
+            \item Si la compilation réussit $\rightarrow$ validation inattendue
+            \item Affiche le nombre total de validations inattendues
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Résultats}
+    \begin{block}{500 fichiers valides, 500 fichiers invalides}
+        \begin{itemize}
+            \item 0 erreurs inattendues
+            \item 0 validations inattendues
+            \item Toutes les mutations apparaissent au moins une fois
+            \item 182 règles apparaissent en réduction
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\subsection{Les erreurs syntaxiques}
+
+\begin{frame}[fragile]{Syntaxe}
+
+    \begin{figure}
+        \centering
+        \begin{verbatim}
+            physical test()
+            init{
+                int x = 0
+            } -> output()
+        \end{verbatim}
+        \caption{Exemple erreur de syntaxe}
+    \end{figure}
+
+    \begin{block}{Fonctionnement}
+        \begin{itemize}
+            \item Le parseur gère le non respect de la syntaxe
+            \item Il émet une erreur $\longrightarrow$ syntax error, unexpected R\_CURL, expecting SEMICOL
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\subsection{Les erreurs sémantiques}
+
+\begin{frame}{Sémantique de base}
+    \begin{block}{Fonctionnement}
+        Durant le parcours de l'AST, on utilise une table des symbôles pour :
+        \begin{itemize}
+            \item Garder en mémoire les variables et fonctions déclarées
+            \item Lever des erreurs par moment $\longrightarrow$ variable redéclarée, utilisation de variable non déclarée \dots
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Sémantique plus avancée}
+    \begin{block}{Graphe dirigé acyclique}
+        % Utilisation d'un graphe dirigé acyclique qui a :
+        \begin{itemize}
+            \item Sommet $\longrightarrow$ des fonctions physique ou logique
+            \item Arrête $\longrightarrow$ le lien entre ces fonctions lors de l'instruction link
+        \end{itemize}
+        
+    \end{block}
+        
+    \begin{block}{Vérification}
+        \begin{itemize}
+            \item Que les fonctions de source et/ou cible existe
+            \item Qu'une fonction physique n'est jamais la source
+            \item Qu'il n'y a pas de cycle dans le graphe final $\longrightarrow$ problème de dépendance (A $\xrightarrow{}$ B $\xrightarrow{}$ C $\xrightarrow{}$ A)
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{Exemple de dépendance}
+    \begin{columns}[c]
+    
+    \column{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{img/pistons.png}
+    
+    \column{0.05\textwidth}
+    \centering
+    $\rightarrow$
+    
+    \column{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{img/moteur.png}
+    
+    \column{0.05\textwidth}
+    \centering
+    $\rightarrow$
+    
+    \column{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{img/voiture.png}
+    
+    \end{columns}
+\end{frame}

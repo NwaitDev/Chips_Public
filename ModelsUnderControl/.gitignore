@@ -1,0 +1,6 @@
+output/
+*.csv
+.idea/
+build/
+results/
+venv/

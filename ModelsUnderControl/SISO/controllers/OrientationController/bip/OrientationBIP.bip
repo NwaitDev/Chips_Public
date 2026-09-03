@@ -1,0 +1,103 @@
+@cpp(src="../../controllers/ControllerBIPInterface.cpp,../../controllers/PController/PController.cpp,../../utils/printing.cpp", include="controllers/ControllerBIPInterface.hpp,utils/printing.hpp")
+
+package OrientationBIP
+
+    // --- Types externes ---
+    extern data type CppOutStream
+    extern data type ControllerPtr
+
+    // --- Fonctions du contrôleur ---
+    extern function ControllerPtr create_p_controller(float kp)
+    extern function ControllerPtr create_p_controller_with_limits(float kp, float minOutput, float maxOutput)
+    extern function float execute_controller_simple(ControllerPtr ptr, float targetValue, float currentValue)
+    extern function reset_controller(ControllerPtr ptr)
+    extern function destroy_controller(ControllerPtr ptr)
+
+    // --- Fonctions utilitaires ---
+    extern function float cast_as_float(float)
+
+    // --- Fonctions de logging ---
+    extern function CppOutStream openStream(string)
+    extern function printInStream(CppOutStream, float)
+    extern function printInStream(CppOutStream, string)
+    extern function printInStream(CppOutStream, int)
+    extern function closeStream(CppOutStream)
+
+
+    // --- Ports ---
+    port type port_t()
+
+
+    // --- Atome Robot ---
+    atom type robot()
+        data ControllerPtr controller
+        data CppOutStream logFile
+
+        data int cycle
+        data float currentOrientation
+        data float nextOrientation
+        data float action
+
+        port port_t fin()
+        port port_t out()
+        place START, END
+
+        initial to START do {
+            // Initialisation du fichier de log
+            logFile = openStream("data");
+            cycle = 0;
+            currentOrientation = 1;
+            
+            // Création du contrôleur P avec gain kp=1.0
+            // (sans limites pour commencer)
+            controller = create_p_controller(1.0);
+            
+            // Log de démarrage
+            printInStream(logFile, "On commence a l'orientation ");
+            printInStream(logFile, cast_as_float(currentOrientation));
+
+            // Choix de la première orientation cible (1-4)
+            nextOrientation = cast_as_float(1 + (cycle % 4));  // Remplace choisirEntre1et4()
+            printInStream(logFile, "\nOn decide d'aller vers ");
+            printInStream(logFile, cast_as_float(nextOrientation));
+            
+            // Calcul de l'action
+            action = execute_controller_simple(controller, nextOrientation, currentOrientation);
+        }
+
+        on out from START to START do {
+            // Log de l'action
+            printInStream(logFile, " -> action = ");
+            printInStream(logFile, cast_as_float(action));
+
+            // Application de l'action
+            currentOrientation = currentOrientation + action;
+
+            // Log du résultat
+            printInStream(logFile, ", resultat = ");
+            printInStream(logFile, cast_as_float(currentOrientation));
+
+            // Choix de la prochaine orientation
+            nextOrientation = cast_as_float(1 + ((cycle + 1) % 4));  // Cycle Nord->Est->Sud->Ouest
+            printInStream(logFile, "\nOn decide d'aller vers ");
+            printInStream(logFile, cast_as_float(nextOrientation));
+            
+            // Calcul de la nouvelle action
+            action = execute_controller_simple(controller, nextOrientation, currentOrientation);
+
+            cycle = cycle + 1;
+        }
+
+        on fin from START to END
+        provided(cycle >= 10) do {
+            printInStream(logFile, "\nFin de simulation\n");
+            closeStream(logFile);
+            destroy_controller(controller);  // Libération de la mémoire
+        }
+
+    end
+
+    compound type System()
+        component robot r()
+    end
+end

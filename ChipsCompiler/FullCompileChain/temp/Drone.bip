@@ -1,0 +1,600 @@
+@cpp(include="base.hpp,ControllerFunctions.hpp,printing.hpp")
+package Drone
+
+    use base
+    use ControllerFunctions
+    use printing
+
+    extern data type chips_int
+    
+    //extern data type chips_float
+    
+    extern data type chips_bool
+
+
+
+
+    
+    port type int_port_t (chips_int v0)
+    
+    port type float_port_t (chips_float v0)
+    
+    port type bool_port_t (chips_bool v0)
+    
+    port type port_t ()
+    
+    port type floatfloat_port_t (chips_float v0, chips_float v1)
+    
+    port type floatfloatfloat_port_t (chips_float v0, chips_float v1, chips_float v2)
+
+    
+    connector type many2one_floatfloat_t (float_port_t p0_cppd, float_port_t p1_cppd)
+        data chips_float v0
+        data chips_float v1
+        export port floatfloat_port_t r_exported_port(v0, v1)
+        define (p0_cppd
+         p1_cppd
+        )
+    
+        on p0_cppd p1_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+            }
+    end
+
+    
+    connector type many2one_floatfloatfloat_t (float_port_t p0_cppd, float_port_t p1_cppd, float_port_t p2_cppd)
+        data chips_float v0
+        data chips_float v1
+        data chips_float v2
+        export port floatfloatfloat_port_t r_exported_port(v0, v1, v2)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_float_t (float_port_t p0_cppd)
+        data chips_float v0
+        export port float_port_t s_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+            }
+    end
+
+    
+    connector type flow_floatfloat_t (floatfloat_port_t s, floatfloat_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+            }
+    end
+
+    
+    connector type flow_floatfloatfloat_t (floatfloatfloat_port_t s, floatfloatfloat_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+            }
+    end
+
+    
+    connector type flow_float_t (float_port_t s, float_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type flow_bool_t (bool_port_t s, bool_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type flow_int_t (int_port_t s, int_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    atom type Drone_core (bool starts)
+    
+        
+        data chips_float u_aidd
+        
+        data chips_float dt_aidd
+        
+        data chips_float m_aidd
+        
+        data chips_float altitude_aidd
+        
+        data chips_float altitude__max_aidd
+        
+        data chips_float velocity_aidd
+        
+        data chips_float prevError_aidd
+        
+        data chips_float GRAVITY_aidd
+        
+        data chips_float KP_aidd
+        
+        data chips_float DRAG__COEFF_aidd
+        
+        data chips_float update_aidd
+
+        data chips_float radian
+        data chips_float K
+        data chips_float Fp
+        data chips_float drag
+        data chips_float a
+        data chips_float zero_aidd
+        data float finish
+        
+        
+        export port float_port_t Drone_send_aipd(update_aidd)
+        
+        export port floatfloat_port_t Drone_recv_aipd(u_aidd, dt_aidd)
+        
+        port port_t start_aipd()
+        
+        port port_t then_aipd()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT do {
+
+            m_aidd = init_float(0.2);
+            altitude_aidd = init_float(0.0);
+            altitude__max_aidd = init_float(0.0);
+            velocity_aidd = init_float(0.0);
+            prevError_aidd = init_float(0.0);
+
+            GRAVITY_aidd = init_float(9.81);
+            KP_aidd = init_float(0.29);
+            DRAG__COEFF_aidd = init_float(0.8);
+            zero_aidd = init_float(0.0);
+            finish = 0.0;
+        }
+            
+            on start_aipd
+                from INIT
+                to RECEIVE
+                provided (starts)
+            
+            on start_aipd
+                from INIT
+                to SEND
+                provided (!starts)
+            
+            on Drone_recv_aipd
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_aipd from THEN to SEND do {
+
+                radian = ((init_float(2.0) * init_float(3.14159265358979323846)) / init_float(60.0));
+
+                K = init_float(4.0) * KP_aidd * radian * radian;
+                Fp = K * u_aidd * u_aidd;
+                drag = DRAG__COEFF_aidd * velocity_aidd;
+                a = (Fp / m_aidd) - GRAVITY_aidd - (drag / m_aidd);
+
+                velocity_aidd = velocity_aidd + a * dt_aidd;
+                altitude_aidd = altitude_aidd + velocity_aidd * dt_aidd;
+
+                altitude_aidd = max(altitude_aidd, 0.0);
+                velocity_aidd = max(velocity_aidd, 0.0);
+
+                if(finish < 10.0) then
+                    altitude_aidd = init_float(0.0);
+                fi
+
+                update_aidd = altitude_aidd;
+                printfBIP("altitude drone: ");
+                printfBIP(update_aidd);
+                printfBIP("\n");
+
+                loggerMeasure(update_aidd);
+                writeAll();
+                finish = finish + 0.1;
+            }
+            
+            on Drone_send_aipd
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type PID_core (bool starts)
+    
+        
+        data chips_float target_aidd
+        
+        data chips_float current_aidd
+        
+        data chips_float dt_aidd
+        
+        data chips_float prevError_aidd
+        
+        data chips_float proportional_aidd
+        
+        data chips_float integral_aidd
+        
+        data chips_float derivative_aidd
+        
+        data chips_float kp_aidd
+        
+        data chips_float ki_aidd
+        
+        data chips_float kd_aidd
+        
+        data chips_float minOutput_aidd
+        
+        data chips_float maxOutput_aidd
+        
+        data chips_float correction_aidd
+
+        data pid_controller controller_class
+
+        data float finish
+        
+        
+        export port float_port_t PID_send_aipd(correction_aidd)
+        
+        export port floatfloatfloat_port_t PID_recv_aipd(target_aidd, current_aidd, dt_aidd)
+        
+        port port_t start_aipd()
+        
+        port port_t then_aipd()
+        
+        place INIT, RECEIVE, THEN, SEND, DEADLOCK
+        initial to INIT do {
+
+            kp_aidd = init_float(1.5);
+            ki_aidd = init_float(0.6);
+            kd_aidd = init_float(0.0);
+
+            minOutput_aidd = init_float(0.0);
+            maxOutput_aidd = init_float(15.0);
+
+            prevError_aidd = init_float(0.0);
+
+            printfBIP("KP:");
+            printfBIP(kp_aidd);
+            printfBIP("\n");
+            controller_class = init_pid_controller(kp_aidd, ki_aidd, kd_aidd, minOutput_aidd, maxOutput_aidd);
+            finish = 0.0;
+            emptyFile("log_PID_BC.csv");
+            openLogger("log_PID_BC.csv");
+            writeLogger("time,target,measure,command,proportional,integral,derivative,error\n");
+        }
+            
+            on start_aipd
+                from INIT
+                to RECEIVE
+                provided (!starts)
+            
+            on start_aipd
+                from INIT
+                to SEND
+                provided (starts)
+            
+            on PID_recv_aipd
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_aipd from THEN to SEND provided(finish <= 60.0) do {
+                set_current_value(controller_class, current_aidd);
+                set_target_value(controller_class, target_aidd);
+                correction_aidd = pid_compute(controller_class, dt_aidd);
+
+                loggerTime(init_float(finish));
+                loggerTarget(target_aidd);
+
+                //writeLogger(current_aidd);
+                
+                loggerCommand(correction_aidd);
+                
+                proportional_aidd = get_proportional(controller_class);
+                integral_aidd = get_integral(controller_class);
+                derivative_aidd = get_derivative(controller_class);
+
+                loggerProportional(proportional_aidd);
+                loggerIntegral(integral_aidd);
+                loggerDerivative(derivative_aidd);
+
+                finish = finish + 0.1;
+            }
+
+            on then_aipd from THEN to DEADLOCK provided(finish > 60.0) do {
+                closeLogger();
+            }
+            
+            on PID_send_aipd
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type int_buffer_t ()
+    
+        
+        data chips_int int_data
+        
+        
+        export port int_port_t int_in(int_data)
+        
+        export port int_port_t int_out(int_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on int_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on int_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_buffer_t ()
+    
+        
+        data chips_float float_data
+        
+        
+        export port float_port_t float_in(float_data)
+        
+        export port float_port_t float_out(float_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on float_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on float_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_buffer_t ()
+    
+        
+        data chips_bool bool_data
+        
+        
+        export port bool_port_t bool_in(bool_data)
+        
+        export port bool_port_t bool_out(bool_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            
+            on bool_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on bool_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type int_constant_t (int int_param)
+    
+        
+        data chips_int int_value_aidd
+        
+        
+        export port int_port_t int_output_aipd(int_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            
+            on int_output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_constant_t (float float_param)
+    
+        
+        data chips_float float_value_aidd
+        
+        
+        export port float_port_t float_output_aipd(float_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING do {
+            float_value_aidd = init_float(float_param);
+        }
+            
+            on float_output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_constant_t (bool bool_param)
+    
+        
+        data chips_bool bool_value_aidd
+        
+        
+        export port bool_port_t bool_output_aipd(bool_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            
+            on bool_output_aipd
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    compound type float_output_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+    
+        connector one2many_float_t float_output_connector (float0_bd.float_in)
+    
+        export port float0_bd.float_out as float_output_0_cepd
+        export port float_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type floatfloat_input_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+        component float_buffer_t float1_bd ()
+    
+        connector many2one_floatfloat_t floatfloat_input_connector (float0_bd.float_out, float1_bd.float_out)
+    
+        export port float0_bd.float_in as float_input_0_cepd
+        export port float1_bd.float_in as float_input_1_cepd
+        export port floatfloat_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type floatfloatfloat_input_buffer_t ()
+    
+        component float_buffer_t float0_bd ()
+        component float_buffer_t float1_bd ()
+        component float_buffer_t float2_bd ()
+    
+        connector many2one_floatfloatfloat_t floatfloatfloat_input_connector (float0_bd.float_out, float1_bd.float_out, float2_bd.float_out)
+    
+        export port float0_bd.float_in as float_input_0_cepd
+        export port float1_bd.float_in as float_input_1_cepd
+        export port float2_bd.float_in as float_input_2_cepd
+        export port floatfloatfloat_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type Drone_compoundtype (bool starts_param)
+    
+        component Drone_core core (starts_param)
+        component floatfloat_input_buffer_t Drone_input_buffer_buffercompounddecl ()
+        component float_output_buffer_t Drone_output_buffer_buffercompounddecl ()
+    
+        connector flow_floatfloat_t input__to__core_cd (Drone_input_buffer_buffercompounddecl.one_cepd, core.Drone_recv_aipd)
+        connector flow_float_t core__to__output_cd (core.Drone_send_aipd, Drone_output_buffer_buffercompounddecl.one_cepd)
+    
+        export port Drone_input_buffer_buffercompounddecl.float_input_1_cepd as dt_input_cepd
+        export port Drone_input_buffer_buffercompounddecl.float_input_0_cepd as u_input_cepd
+        export port Drone_output_buffer_buffercompounddecl.float_output_0_cepd as update_output_cepd
+    
+    end
+
+    
+    compound type PID_compoundtype (bool starts_param)
+    
+        component PID_core core (starts_param)
+        component floatfloatfloat_input_buffer_t PID_input_buffer_buffercompounddecl ()
+        component float_output_buffer_t PID_output_buffer_buffercompounddecl ()
+    
+        connector flow_floatfloatfloat_t input__to__core_cd (PID_input_buffer_buffercompounddecl.one_cepd, core.PID_recv_aipd)
+        connector flow_float_t core__to__output_cd (core.PID_send_aipd, PID_output_buffer_buffercompounddecl.one_cepd)
+    
+        export port PID_input_buffer_buffercompounddecl.float_input_2_cepd as dt_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_1_cepd as current_input_cepd
+        export port PID_input_buffer_buffercompounddecl.float_input_0_cepd as target_input_cepd
+        export port PID_output_buffer_buffercompounddecl.float_output_0_cepd as correction_output_cepd
+    
+    end
+
+    
+    compound type SYSTEM_COMPOUND ()
+    
+        component float_constant_t cst2 (0.1)
+        component PID_compoundtype ctrl_1_compounddecl (true)
+        component Drone_compoundtype drone_1_compounddecl (true)
+        component float_constant_t cst1 (5.0)
+        component float_constant_t cst0 (0.1)
+    
+        connector flow_float_t from__ctrl__0__correction__to__drone__0__u_cd (ctrl_1_compounddecl.correction_output_cepd, drone_1_compounddecl.u_input_cepd)
+        connector flow_float_t from__direct__expression0__to__ctrl__0__dt_cd (cst0.float_output_aipd, ctrl_1_compounddecl.dt_input_cepd)
+        connector flow_float_t from__direct__expression1__to__ctrl__0__target_cd (cst1.float_output_aipd, ctrl_1_compounddecl.target_input_cepd)
+        connector flow_float_t from__direct__expression2__to__drone__0__dt_cd (cst2.float_output_aipd, drone_1_compounddecl.dt_input_cepd)
+        connector flow_float_t from__drone__0__update__to__ctrl__0__current_cd (drone_1_compounddecl.update_output_cepd, ctrl_1_compounddecl.current_input_cepd)
+    
+    end
+end

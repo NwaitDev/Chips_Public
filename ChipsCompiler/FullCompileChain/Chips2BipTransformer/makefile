@@ -1,6 +1,6 @@
 .PHONY: all clean transform compile
 
-FILE:=TeaStoreVariation
+FILE:=Drone#TeaStoreVariation
 
 all:emftvm.class
 
