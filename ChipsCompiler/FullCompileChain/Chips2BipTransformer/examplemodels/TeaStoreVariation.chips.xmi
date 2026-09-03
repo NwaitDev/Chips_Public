@@ -592,50 +592,6 @@
             xsi:type="chips.statements.node:channel_declaration"
             name="prev"
             type_identifier="ServerChannel"/>
-        <statements
-            xsi:type="chips.statements.node:contextual_int_declaration"
-            identifier="thcontextual">
-          <variable
-              name="thecontextual"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.primitive:int_assignment">
-          <lvalue
-              xsi:type="chips.xvalues.primitive:contextual_int_expression"
-              variable="//@preamble/@definitions.1/@with/@statements.2/@variable"/>
-          <rvalue
-              xsi:type="chips.rvalues.primitive:direct_int"/>
-        </statements>
-        <statements
-            xsi:type="chips.statements.primitive:foreach">
-          <iterator
-              xsi:type="chips.statements.primitive:int_declaration">
-            <variable
-                name="rangeiter"/>
-          </iterator>
-          <iterable_expr
-              xsi:type="chips.rvalues.primitive:function"
-              name="range">
-            <parameters
-                xsi:type="chips.rvalues.primitive:direct_int"
-                value="5"/>
-          </iterable_expr>
-          <statements
-              xsi:type="chips.statements.primitive:int_assignment">
-            <lvalue
-                xsi:type="chips.xvalues.primitive:contextual_int_expression"
-                variable="//@preamble/@definitions.1/@with/@statements.2/@variable"/>
-            <rvalue
-                xsi:type="chips.rvalues.primitive.operators.int:plus">
-              <left_operand
-                  xsi:type="chips.xvalues.primitive:contextual_int_expression"
-                  variable="//@preamble/@definitions.1/@with/@statements.2/@variable"/>
-              <right_operand
-                  xsi:type="chips.xvalues.primitive:int_variable_expression"
-                  variable="//@preamble/@definitions.1/@with/@statements.4/@iterator/@variable"/>
-            </rvalue>
-          </statements>
-        </statements>
       </with>
       <outputs
           xsi:type="chips.outputs.logical:int_output"
