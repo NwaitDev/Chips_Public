@@ -28,3 +28,4 @@ ChipsCompiler/FullCompileChain/Chips_Parser/build/
 ChipsCompiler/FullCompileChain/Chips_Parser/generated/
 *.log
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/venv
+ChipsCompiler/FullCompileChain/Chips2CppTransformer/build

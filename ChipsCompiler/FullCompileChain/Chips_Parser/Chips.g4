@@ -218,7 +218,7 @@ block
     ;
 
 loop_in
-    :  IDENTIFIER (L_PARENTH (expr (COMMA expr)*)? R_PARENTH)?
+    :  IDENTIFIER (L_PARENTH (expr (COMMA expr)*)? R_PARENTH)? suffixes
     ;
 
 loop_statement
