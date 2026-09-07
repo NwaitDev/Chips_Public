@@ -8,6 +8,49 @@
 #include "antlr4-runtime.h"
 #include "ChipsBaseListener.h"
 
+#include <variant>
+#include <utility>
+
+class Dictionary {
+public:
+   using Value = std::map<std::string,std::string>;
+
+    void addLogical(
+        ChipsParser::L_function_defContext* key,
+        const std::string& name,
+        const std::string& value);
+
+    void addPhysical(
+        ChipsParser::P_function_defContext* key,
+        const std::string& name,
+        const std::string& value);
+
+    void addSpread(
+        ChipsParser::Collective_op_defContext* key,
+        const std::string& name,
+        const std::string& value);
+
+    void addCollect(
+        ChipsParser::Collective_op_defContext* key,
+        const std::string& name,
+        const std::string& value);
+
+    std::string serializeL(
+        ChipsParser::L_function_defContext* key) const;
+
+    std::string serializeP(
+        ChipsParser::P_function_defContext* key) const;
+
+    std::string serializeCollective(
+        ChipsParser::Collective_op_defContext* key) const;
+
+private:
+    std::map<ChipsParser::L_function_defContext*, Value> logicals_;
+    std::map<ChipsParser::P_function_defContext*, Value> physicals_;
+    std::map<ChipsParser::Collective_op_defContext*, Value> spreads_;
+    std::map<ChipsParser::Collective_op_defContext*, Value> collects_;
+};
+
 
 class CodeGenListener : public ChipsBaseListener
 {
@@ -21,12 +64,19 @@ public:
     void exitP_function_def(ChipsParser::P_function_defContext *ctx) override;
 
 private:
+    
+    using DefType = std::variant<
+        ChipsParser::L_function_defContext*,
+        ChipsParser::P_function_defContext*,
+        ChipsParser::CollectiveOperationDefinitionContext*>;
+    DefType current_def;
+    Dictionary dico;
     void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params);
 
     std::string chipsTypeFor(ChipsParser::Df_typeContext *typeCtx);
     std::string translateParams(const std::vector<ChipsParser::Df_parameter_declContext *> &params);
     std::string translateParams(const std::vector<ChipsParser::Pdf_parameter_declContext *> &params);
-    
+
     // inScope parameter allows to specify if the declaration must be in the scope of the section only
     // or in the declaration of the parameters of the function call that models the init/then section
     std::string translateDecl(ChipsParser::StatementDeclarationContext *ctx, int indent, bool inScope);

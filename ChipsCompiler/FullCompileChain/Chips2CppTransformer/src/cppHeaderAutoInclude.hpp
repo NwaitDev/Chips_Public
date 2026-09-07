@@ -496,7 +496,7 @@ private:
 };
 
 /*=====================================================================
- *  Implementation of friend operators (inline, same header)
+ *  Implementation of friend operators
  *=====================================================================*/
 
 /*-----------------------  arithmetic (int / double)  -----------------------*/

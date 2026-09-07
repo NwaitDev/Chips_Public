@@ -2,6 +2,109 @@
 
 #include <sstream>
 
+void Dictionary::addLogical(
+    ChipsParser::L_function_defContext* key,
+    const std::string& name,
+    const std::string& value)
+{
+    logicals_[key][name] = value;
+}
+
+void Dictionary::addPhysical(
+    ChipsParser::P_function_defContext* key,
+    const std::string& name,
+    const std::string& value)
+{
+    physicals_[key][name] = value;
+}
+
+void Dictionary::addSpread(
+    ChipsParser::Collective_op_defContext* key,
+    const std::string& name,
+    const std::string& value)
+{
+    spreads_[key][name] = value;
+}
+
+void Dictionary::addCollect(
+    ChipsParser::Collective_op_defContext* key,
+    const std::string& name,
+    const std::string& value)
+{
+    collects_[key][name] = value;
+}
+
+namespace {
+
+std::string serializeValue(const Dictionary::Value& values)
+{
+    std::string result;
+    bool first = true;
+
+    for (const auto& [name, value] : values) {
+        if (!first) {
+            result += ", ";
+        }
+
+        const auto& type = value;
+
+        result += type;
+        result += "& ";
+        result += name;
+
+        first = false;
+    }
+
+    return result;
+}
+
+} // namespace
+
+std::string Dictionary::serializeL(
+    ChipsParser::L_function_defContext* key) const
+{
+    const auto it = logicals_.find(key);
+
+    if (it == logicals_.end()) {
+        return {};
+    }
+
+    return serializeValue(it->second);
+}
+
+std::string Dictionary::serializeP(
+    ChipsParser::P_function_defContext* key) const
+{
+    const auto it = physicals_.find(key);
+
+    if (it == physicals_.end()) {
+        return {};
+    }
+
+    return serializeValue(it->second);
+}
+
+std::string Dictionary::serializeCollective(
+    ChipsParser::Collective_op_defContext* key) const
+{
+    std::string result;
+
+    if (const auto it = spreads_.find(key); it != spreads_.end()) {
+        result += serializeValue(it->second);
+    }
+
+    if (const auto it = collects_.find(key); it != collects_.end()) {
+        if (!result.empty()) {
+            result += ", ";
+        }
+
+        result += serializeValue(it->second);
+    }
+
+    return result;
+}
+
+
 std::string CodeGenListener::translateStatements(
     const std::vector<ChipsParser::StatementContext *> &statements, int indent, bool inScope)
 {
@@ -144,11 +247,6 @@ std::string CodeGenListener::translateSuffixes(ChipsParser::SuffixesContext *s)
 
 std::string CodeGenListener::translateDecl(ChipsParser::StatementDeclarationContext *ctx, int indent, bool inScope)
 {
-    if (!inScope)
-        return std::string{};
-    
-    std::string pad(indent, ' ');
-
     std::string chipType;
     auto *typeCtx = ctx->df_type();
 
@@ -167,6 +265,22 @@ std::string CodeGenListener::translateDecl(ChipsParser::StatementDeclarationCont
     }
 
     std::string varName = ctx->IDENTIFIER()->getText();
+
+    if (!inScope){
+        if (std::holds_alternative<ChipsParser::CollectiveOperationDefinitionContext*>(current_def))
+        {
+            /* code */
+        } else if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def))
+        {
+            dico.addLogical(std::get<ChipsParser::L_function_defContext*>(current_def),varName,chipType);
+        } else if (std::holds_alternative<ChipsParser::P_function_defContext*>(current_def))
+        {
+            dico.addPhysical(std::get<ChipsParser::P_function_defContext*>(current_def),varName,chipType);
+        }
+        return std::string{};
+    }
+    
+    std::string pad(indent, ' ');
 
 
     std::string ctorArgs;
@@ -354,16 +468,28 @@ std::string CodeGenListener::translateParams(const std::vector<ChipsParser::Pdf_
 }
 
 void CodeGenListener::emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params)
-{
-    out_ << "void " << funcName << "_" << suffix << "(" << params << ")\n{\n";
-    out_ << translateStatements(statements, 4, false);
+{   
+
+    std::string inner_decls;
+    const std::string stmts_txt = translateStatements(statements, 4, false);
+    if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def)){
+        inner_decls = dico.serializeL(std::get<ChipsParser::L_function_defContext*>(current_def));
+    } else{
+        inner_decls = dico.serializeP(std::get<ChipsParser::P_function_defContext*>(current_def));
+    }
+
+    out_ << "void " << funcName << "_" << suffix << "(" 
+        << params + ((!params.empty()) && (!inner_decls.empty()) ? ", " : "") + inner_decls << ")\n{\n";
+    out_ << stmts_txt;
     out_ << "}\n\n";
 }
 
 void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx)
-{
+{   
+    current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
     const std::string params = translateParams(ctx->df_parameter_decl());
+    const std::string inner_decls = dico.serializeL(ctx);
 
     emitSection(name, "init", ctx->init_section()->statement(), params);
     emitSection(name, "then", ctx->then_section()->statement(), params);
@@ -371,8 +497,10 @@ void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx
 
 void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx)
 {
+    current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
     const std::string params = translateParams(ctx->pdf_parameter_decl());
+    const std::string inner_decls = dico.serializeP(ctx);
 
     emitSection(name, "init", ctx->init_section()->statement(), params);
     emitSection(name, "then", ctx->then_section()->statement(), params);
