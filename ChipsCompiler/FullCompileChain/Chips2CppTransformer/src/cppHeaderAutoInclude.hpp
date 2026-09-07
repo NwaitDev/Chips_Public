@@ -2,51 +2,46 @@
 #define CHIPS_HPP
 
 #include <vector>
-#include <numeric>      // std::accumulate
-#include <stdexcept>    // std::out_of_range, std::invalid_argument, std::domain_error
-#include <cstddef>      // std::size_t
-#include <functional>   // std::multiplies
-#include <type_traits>  // std::enable_if_t, std::conjunction_v, …
-#include <algorithm>    // std::transform
+#include <numeric>
+#include <stdexcept>
+#include <cstddef>
+#include <functional>
+#include <type_traits>
+#include <algorithm>
+#include <random>
 
 /**
  * @brief Multi‑dimensional container that stores its data linearly.
- *
- * The template parameter `T` is **restricted** to `int`, `bool` or `double`.
- * All element‑wise arithmetic / logical operators are provided, but
- * increment/decrement and compound‑assignment (`+=`, `*=`, …) are deliberately
- * omitted.  Operators are only defined for chips with the **same** underlying
- * type, so `chips<int>` and `chips<double>` can never be mixed.
- *
- * **New feature:** each chip now carries an `int age_` counter (initially 0)
- * together with `tick()`, `reset()` and `is_fresh()` utilities.
  */
 template <typename T>
-class chips {
-    static_assert(std::is_same_v<T, int>   ||
-                  std::is_same_v<T, bool> ||
-                  std::is_same_v<T, double>,
+class chips
+{
+    static_assert(std::is_same_v<T, int> ||
+                      std::is_same_v<T, bool> ||
+                      std::is_same_v<T, double>,
                   "chips<T> only supports T = int, bool or double");
+
 public:
     using value_type = T;
 
     /*--------------------------  ctors  --------------------------*/
     chips() = default;
 
-    explicit chips(const std::vector<int>& shape,
-                   const std::vector<T>& flat_data = {})
+    explicit chips(const std::vector<int> &shape,
+                   const std::vector<T> &flatdata_ = {})
         : dimensions_(static_cast<int>(shape.size())),
           shape_(shape),
-          _data(flat_data),
-          age_(0)                           // <-- initialise age_
+          data_(flatdata_),
+          age_(0)
     {
         const std::size_t needed = total_size();
-        if (!_data.empty() && _data.size() != needed) {
+        if (!data_.empty() && data_.size() != needed)
+        {
             throw std::invalid_argument(
-                "flat_data size does not match product of shape");
+                "flatdata_ size does not match product of shape");
         }
-        if (_data.empty())
-            _data.resize(needed);
+        if (data_.empty())
+            data_.resize(needed);
     }
 
     template <typename... Dims,
@@ -54,51 +49,78 @@ public:
                   std::conjunction_v<std::is_integral<Dims>...>>>
     explicit chips(Dims... dims)
         : chips(std::vector<int>{static_cast<int>(dims)...})
-    {}
+    {
+    }
 
     /*--------------------------  accessors  --------------------------*/
     int dimensions() const noexcept { return dimensions_; }
-    const std::vector<int>& shape() const noexcept { return shape_; }
-    const std::vector<T>& data() const noexcept { return _data; }
-    std::vector<T>& data() noexcept { return _data; }
+    const std::vector<int> &shape() const noexcept { return shape_; }
+    const std::vector<T> &data() const noexcept { return data_; }
+    std::vector<T> &data() noexcept { return data_; }
 
-    /** New: current age of the chip (read‑only). */
     int age() const noexcept { return age_; }
 
-    /** New: increase the internal age counter by one. */
     void tick() noexcept { ++age_; }
 
-    /** New: reset the internal age counter to zero. */
     void reset() noexcept { age_ = 0; }
 
     /*--------------------------  age check   --------------------------*/
 
-    chips<bool> is_fresh() const {
+    chips<bool> is_fresh() const
+    {
         std::vector<int> fresh_shape{1};
-        std::vector<bool> fresh_data{ age_ == 0 };
-        return chips<bool>(std::move(fresh_shape), std::move(fresh_data));
+        std::vector<bool> freshdata_{age_ == 0};
+        return chips<bool>(std::move(fresh_shape), std::move(freshdata_));
     }
 
     /*--------------------------  assignment   --------------------------*/
 
-    chips& operator=(const chips& rhs) {
-        // Guard against self‑assignment (does nothing but keeps the current age)
-        if (this == &rhs) return *this;
+    chips &operator=(const chips &rhs)
+    {
+        if (this == &rhs)
+            return *this;
 
-        // The two objects must describe the same multidimensional layout.
-        if (shape_ != rhs.shape_) {
+        if (shape_ != rhs.shape_)
+        {
             throw std::invalid_argument(
                 "chips::operator= – shape mismatch between lhs and rhs");
         }
 
-        // Copy the linearised data.
-        _data = rhs._data;          // std::vector<T>::operator= does the work
+        data_ = rhs.data_;
 
-        // Reset the age counter of the receiving object, as requested.
         age_ = 0;
 
-        // dimensions_ and shape_ are already equal, so nothing else to do.
         return *this;
+    }
+
+    template <typename U = T,
+              typename = std::enable_if_t<
+                  (std::is_same_v<U, int> && std::is_same_v<T, int>) ||
+                  (std::is_same_v<U, double> && std::is_same_v<T, double>) ||
+                  (std::is_same_v<U, bool> && std::is_same_v<T, bool>)>>
+    chips &operator=(U scalar)
+    {
+        // shape becomes a single element {1}
+        shape_ = std::vector<int>{1};
+        dimensions_ = 1;
+
+        data_.clear();
+        data_.push_back(static_cast<T>(scalar));
+        age_ = 0;
+        return *this;
+    }
+
+    template <typename U = T,
+              typename = std::enable_if_t<
+                  (std::is_same_v<U, int> && std::is_same_v<T, int>) ||
+                  (std::is_same_v<U, double> && std::is_same_v<T, double>) ||
+                  (std::is_same_v<U, bool> && std::is_same_v<T, bool>)>>
+    chips(U scalar)
+        : dimensions_(1),
+          shape_{1},
+          data_{static_cast<T>(scalar)},
+          age_(0)
+    {
     }
 
     /*--------------------------  numeric cast  --------------------------*/
@@ -109,71 +131,39 @@ public:
                   (std::is_same_v<T, double> && std::is_same_v<U, int>)>>
     explicit operator chips<U>() const
     {
-        // Same shape – just copy it.
         std::vector<int> new_shape = shape_;
 
-        // Cast every element from T to U.
-        std::vector<U> new_data;
-        new_data.reserve(_data.size());
-        for (const T& v : _data)
-            new_data.push_back(static_cast<U>(v));
+        std::vector<U> newdata_;
+        newdata_.reserve(data_.size());
+        for (const T &v : data_)
+            newdata_.push_back(static_cast<U>(v));
 
-        // Construct the target chip; its constructor will set age_ = 0.
-        return chips<U>(std::move(new_shape), std::move(new_data));
+        return chips<U>(std::move(new_shape), std::move(newdata_));
     }
 
     /*--------------------------  element access  --------------------------*/
-    T& operator()(const std::vector<int>& indices) {
-        return _data.at(linear_index(indices));
+    T &operator()(const std::vector<int> &indices)
+    {
+        return data_.at(linear_index(indices));
     }
-    T operator()(const std::vector<int>& indices) const {
-        return _data.at(linear_index(indices));
+    T operator()(const std::vector<int> &indices) const
+    {
+        return data_.at(linear_index(indices));
     }
 
     /*--------------------------  slice operator  --------------------------*/
-    chips<T> operator[](const std::vector<int>& fixed_coords) const {
-        if (fixed_coords.size() > static_cast<std::size_t>(dimensions_))
-            throw std::out_of_range("Too many coordinates for operator[]");
-
-        std::vector<int> full_idx = fixed_coords;
-        full_idx.resize(dimensions_, 0);
-        std::size_t start = linear_index(full_idx);
-
-        std::vector<int> sub_shape(shape_.begin() + fixed_coords.size(),
-                                   shape_.end());
-
-        std::size_t sub_len = sub_shape.empty()
-                                  ? 1
-                                  : std::accumulate(sub_shape.begin(),
-                                                    sub_shape.end(),
-                                                    std::size_t{1},
-                                                    std::multiplies<std::size_t>());
-
-        std::vector<T> sub_data(_data.begin() + start,
-                                _data.begin() + start + sub_len);
-
-        return chips<T>(std::move(sub_shape), std::move(sub_data));
-    }
-
-    /*--------------------------  utilities  --------------------------*/
-    std::size_t total_size() const noexcept {
-        if (shape_.empty())
-            return 0;
-        return std::accumulate(shape_.begin(),
-                               shape_.end(),
-                               std::size_t{1},
-                               std::multiplies<std::size_t>());
-    }
 
 private:
-    std::size_t linear_index(const std::vector<int>& indices) const {
+    std::size_t linear_index(const std::vector<int> &indices) const
+    {
         if (static_cast<int>(indices.size()) != dimensions_)
             throw std::out_of_range("Incorrect number of indices");
 
         std::size_t idx = 0;
-        std::size_t stride = 1;               // product of dimensions to the right
-        for (int d = dimensions_ - 1; d >= 0; --d) {
-            int i   = indices[d];
+        std::size_t stride = 1;
+        for (int d = dimensions_ - 1; d >= 0; --d)
+        {
+            int i = indices[d];
             int dim = shape_[d];
             if (i < 0 || i >= dim)
                 throw std::out_of_range("Index out of bounds");
@@ -183,10 +173,248 @@ private:
         return idx;
     }
 
-    int                     dimensions_{0};
-    std::vector<int>        shape_;
-    std::vector<T>          _data;
-    int                     age_{0};
+    class slice_proxy {
+        chips*                parent_;
+        std::vector<int>      fixed_;
+
+        std::size_t linear_index_in_parent(std::size_t pos) const {
+            std::vector<int> idx = fixed_;
+            std::size_t stride = 1;
+            for (int d = static_cast<int>(parent_->dimensions_) - 1;
+                 d >= static_cast<int>(fixed_.size()); --d) {
+                int cur = static_cast<int>((pos / stride) % parent_->shape_[d]);
+                idx.push_back(cur);
+                stride *= static_cast<std::size_t>(parent_->shape_[d]);
+            }
+            return parent_->linear_index(idx);
+        }
+
+    public:
+        explicit slice_proxy(chips* p, const chips_int& c)
+            : parent_(p) {
+            fixed_.push_back(static_cast<int>(c.data()[0]));
+        }
+
+        slice_proxy operator[](const chips_int& c) const {
+            slice_proxy nxt(*this);
+            nxt.fixed_.push_back(static_cast<int>(c.data()[0]));
+            return nxt;
+        }
+
+        operator chips<T>() const {
+            if (fixed_.size() > static_cast<std::size_t>(parent_->dimensions_))
+                throw std::out_of_range("Too many coordinates");
+            std::vector<int> full_idx = fixed_;
+            full_idx.resize(parent_->dimensions_, 0);
+            std::size_t start = parent_->linear_index(full_idx);
+            std::vector<int> sub_shape(parent_->shape_.begin() + fixed_.size(),
+                                       parent_->shape_.end());
+            std::size_t sub_len = sub_shape.empty()
+                ? 1
+                : std::accumulate(sub_shape.begin(), sub_shape.end(),
+                                  std::size_t{1}, std::multiplies<std::size_t>());
+            std::vector<T> sub_data(parent_->data_.begin() + static_cast<std::ptrdiff_t>(start),
+                                    parent_->data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
+            return chips<T>(std::move(sub_shape), std::move(sub_data));
+        }
+
+        class iterator {
+            const slice_proxy* owner_;
+            std::size_t        pos_;
+        public:
+            using iterator_category = std::random_access_iterator_tag;
+            using value_type        = T;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = T*;
+            using reference         = T&;
+
+            iterator(const slice_proxy* o, std::size_t p) : owner_(o), pos_(p) {}
+
+            reference operator*() const {
+                std::size_t lin = owner_->linear_index_in_parent(pos_);
+                return const_cast<T&>(owner_->parent_->data_[lin]);
+            }
+            pointer operator->() const { return &**this; }
+
+            iterator& operator++() { ++pos_; return *this; }
+            iterator  operator++(int) { iterator tmp=*this; ++(*this); return tmp; }
+            iterator& operator--() { --pos_; return *this; }
+            iterator  operator--(int) { iterator tmp=*this; --(*this); return tmp; }
+            iterator& operator+=(difference_type n){ pos_+=n; return *this; }
+            iterator  operator+ (difference_type n) const { return iterator(*this)+=n; }
+            iterator& operator-=(difference_type n){ pos_-=n; return *this; }
+            iterator  operator- (difference_type n) const { return iterator(*this)-=n; }
+            difference_type operator-(const iterator& o) const {
+                return static_cast<difference_type>(pos_) - static_cast<difference_type>(o.pos_);
+            }
+            bool operator==(const iterator& o) const { return pos_==o.pos_; }
+            bool operator!=(const iterator& o) const { return !(*this==o); }
+            bool operator<(const iterator& o) const { return pos_<o.pos_; }
+            bool operator>(const iterator& o) const { return pos_>o.pos_; }
+            bool operator<=(const iterator& o) const { return pos_<=o.pos_; }
+            bool operator>=(const iterator& o) const { return pos_>=o.pos_; }
+        };
+
+        iterator begin() const {
+            std::size_t len = 1;
+            for (std::size_t i = fixed_.size(); i < parent_->dimensions_; ++i)
+                len *= static_cast<std::size_t>(parent_->shape_[i]);
+            return iterator(this, 0);
+        }
+
+        iterator end() const {
+            std::size_t len = 1;
+            for (std::size_t i = fixed_.size(); i < parent_->dimensions_; ++i)
+                len *= static_cast<std::size_t>(parent_->shape_[i]);
+            return iterator(this, len);
+        }
+    };
+
+public:
+    slice_proxy operator[](const chips_int& coord) {
+        return slice_proxy(this, coord);
+    }
+
+    chips<T> operator[](const chips_int& coord) const {
+        std::vector<int> idx{ static_cast<int>(coord.data()[0]) };
+        idx.resize(dimensions_, 0);
+        std::size_t start = linear_index(idx);
+        std::vector<int> sub_shape(shape_.begin() + 1, shape_.end());
+        std::size_t sub_len = sub_shape.empty()
+            ? 1
+            : std::accumulate(sub_shape.begin(), sub_shape.end(),
+                              std::size_t{1}, std::multiplies<std::size_t>());
+        std::vector<T> sub_data(_data.begin() + static_cast<std::ptrdiff_t>(start),
+                                _data.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
+        return chips<T>(std::move(sub_shape), std::move(sub_data));
+    }
+
+    class slice_iterator {
+        chips* parent_;
+        std::size_t idx_;
+
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type        = chips;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = void;
+        using reference         = chips;
+
+        slice_iterator(chips* parent, std::size_t idx)
+            : parent_(parent), idx_(idx) {}
+        
+        slice_iterator& operator++() {
+            ++idx_;
+            return *this;
+        }
+        
+        slice_iterator operator++(int) {
+            slice_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        
+        bool operator==(const slice_iterator& other) const {
+            return parent_ == other.parent_ && idx_ == other.idx_;
+        }
+        bool operator!=(const slice_iterator& other) const {
+            return !(*this == other);
+        }
+
+        
+        chips operator*() const {
+            return (*parent_)[std::vector<int>{static_cast<int>(idx_)}];
+        }
+    };
+    
+    class const_slice_iterator {
+        const chips* parent_;
+        std::size_t idx_;
+
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type        = chips;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = void;
+        using reference         = chips;
+
+        const_slice_iterator(const chips* parent, std::size_t idx)
+            : parent_(parent), idx_(idx) {}
+
+        const_slice_iterator& operator++() { ++idx_; return *this; }
+        const_slice_iterator operator++(int) {
+            const_slice_iterator tmp = *this; ++(*this); return tmp;
+        }
+        bool operator==(const const_slice_iterator& o) const {
+            return parent_ == o.parent_ && idx_ == o.idx_;
+        }
+        bool operator!=(const const_slice_iterator& o) const { return !(*this == o); }
+
+        chips operator*() const {
+            return (*parent_)[std::vector<int>{static_cast<int>(idx_)}];
+        }
+    };
+
+    slice_iterator begin() {
+        return slice_iterator(this, 0);
+    }
+    slice_iterator end() {
+        // nombre de slices = taille de la première dimension
+        return slice_iterator(this, static_cast<std::size_t>(shape_.front()));
+    }
+
+    const_slice_iterator begin() const {
+        return const_slice_iterator(this, 0);
+    }
+    const_slice_iterator end() const {
+        return const_slice_iterator(this, static_cast<std::size_t>(shape_.front()));
+    }
+
+    const_slice_iterator cbegin() const { return begin(); }
+    const_slice_iterator cend()   const { return end();   }
+
+    /*---------------------  bool interpretable  ---------------------*/
+
+    template <typename U = T,
+              std::enable_if_t<std::is_same_v<U, bool>, int> = 0>
+    explicit operator bool() const
+    {
+        if (shape_.size() == 1 && shape_[0] == 1)
+        {
+            return data_.empty() ? false : data_[0];
+        }
+
+        return std::all_of(data_.begin(), data_.end(),
+                           [](bool v)
+                           { return v; });
+        // may be used with "any" instead of "all"
+    }
+
+    /*--------------------------  utilities  --------------------------*/
+    std::size_t total_size() const noexcept
+    {
+        if (shape_.empty())
+            return 0;
+        return std::accumulate(shape_.begin(),
+                               shape_.end(),
+                               std::size_t{1},
+                               std::multiplies<std::size_t>());
+    }
+
+    chips<int> size() const noexcept
+    {
+        if (shape_.empty())
+            return 0;
+        return chips<int>{shape_[0]};
+    }
+
+private:
+
+    int dimensions_{0};
+    std::vector<int> shape_;
+    std::vector<T> data_;
+    int age_{0};
 
     /*--------------------------------------------------------------------
      *  Friends – element‑wise operators (only same‑type operands)
@@ -462,8 +690,176 @@ operator>=(const chips<U> &lhs, const chips<U> &rhs)
 }
 
 /*-----------------------  convenient type aliases  -----------------------*/
+
 using chips_int = chips<int>;
 using chips_bool = chips<bool>;
 using chips_float = chips<double>; // float name used to match the BIP compiler namings
 
+/*=====================================================================
+ *  ones : fill with 1
+ *=====================================================================*/
+inline chips<int> ones(const chips<int> &first) // base‑case for one dimension
+{
+    // Verify that the argument really is a scalar chip (shape == {1})
+    if (first.shape().size() != 1 || first.shape()[0] != 1)
+        throw std::invalid_argument("ones(): each dimension argument must be a chips<int> of shape (1)");
+
+    // Extract the single integer value that defines the size of this dimension
+    int dim = first.data()[0]; // same as first({0}) but avoids extra vector creation
+
+    // Build the shape vector (just one element)
+    std::vector<int> shape{dim};
+
+    // Number of elements = product(shape) = dim
+    std::vector<int> data(static_cast<std::size_t>(dim), 1); // fill with 1s
+
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+template <typename... Rest>
+chips<int> ones(const chips<int> &first, const Rest &...rest)
+{
+    std::vector<int> shape;
+
+    auto push_dim = [&](const chips<int> &c)
+    {
+        if (c.shape().size() != 1 || c.shape()[0] != 1)
+            throw std::invalid_argument(
+                "ones(): each dimension argument must be a chips<int> of shape (1)");
+        shape.push_back(c.data()[0]); // scalar value stored in the chip
+    };
+
+    push_dim(first);
+    (push_dim(rest), ...);
+
+    std::size_t total = 1;
+    for (int d : shape)
+        total *= static_cast<std::size_t>(d);
+
+    std::vector<int> data(total, 1);
+
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+/*=====================================================================
+ *  range : 0 … (product‑of‑dims – 1)
+ *=====================================================================*/
+inline chips<int> range(const chips<int> &first) // 1‑dim overload
+{
+    if (first.shape().size() != 1 || first.shape()[0] != 1)
+        throw std::invalid_argument(
+            "range(): each dimension argument must be a chips<int> of shape (1)");
+
+    int dim = first.data()[0];
+    std::vector<int> shape{dim};
+
+    std::vector<int> data;
+    data.reserve(static_cast<std::size_t>(dim));
+    for (int i = 0; i < dim; ++i)
+        data.push_back(i); // 0,1,…,dim‑1
+
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+template <typename... Rest>
+chips<int> range(const chips<int> &first, const Rest &...rest) // variadic overload
+{
+    std::vector<int> shape;
+    auto push_dim = [&](const chips<int> &c)
+    {
+        if (c.shape().size() != 1 || c.shape()[0] != 1)
+            throw std::invalid_argument(
+                "range(): each dimension argument must be a chips<int> of shape (1)");
+        shape.push_back(c.data()[0]);
+    };
+    push_dim(first);
+    (push_dim(rest), ...);
+
+    std::size_t total = 1;
+    for (int d : shape)
+        total *= static_cast<std::size_t>(d);
+
+    std::vector<int> data;
+    data.reserve(total);
+    for (std::size_t i = 0; i < total; ++i)
+        data.push_back(static_cast<int>(i));
+
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+/*=====================================================================
+ *  zeros : fill with 0
+ *=====================================================================*/
+inline chips<int> zeros(const chips<int> &first) // 1‑dim overload
+{
+    if (first.shape().size() != 1 || first.shape()[0] != 1)
+        throw std::invalid_argument(
+            "zeros(): each dimension argument must be a chips<int> of shape (1)");
+
+    int dim = first.data()[0];
+    std::vector<int> shape{dim};
+
+    std::vector<int> data(static_cast<std::size_t>(dim), 0); // all zeros
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+template <typename... Rest>
+chips<int> zeros(const chips<int> &first, const Rest &...rest) // variadic overload
+{
+    std::vector<int> shape;
+    auto push_dim = [&](const chips<int> &c)
+    {
+        if (c.shape().size() != 1 || c.shape()[0] != 1)
+            throw std::invalid_argument(
+                "zeros(): each dimension argument must be a chips<int> of shape (1)");
+        shape.push_back(c.data()[0]);
+    };
+    push_dim(first);
+    (push_dim(rest), ...);
+
+    std::size_t total = 1;
+    for (int d : shape)
+        total *= static_cast<std::size_t>(d);
+
+    std::vector<int> data(total, 0); // all zeros
+    return chips<int>(std::move(shape), std::move(data));
+}
+
+/*=====================================================================
+ *  randin01 : returns a chips<double> conatining a single random number
+ *  uniformly distributed in [0,1)
+ *=====================================================================*/
+inline chips_float randin01()
+{
+    // Thread‑local generator – each thread gets its own engine.
+    thread_local static std::mt19937 engine{
+        []
+        {
+            std::random_device rd;
+            return rd();
+        }()};
+
+    // Uniform distribution on [0,1)
+    // we need to use the next value after 1.0 to avoid rounding errors
+    // (uniform_real_distribution is based on computation over integers and not doubles)
+    static thread_local std::uniform_real_distribution<double> dist(0.0, std::nextafter(1.0, 2.0));
+
+    double value = dist(engine);
+
+    std::vector<int> shape{1};
+    std::vector<double> data{value};
+
+    return chips_float(std::move(shape), std::move(data));
+}
+
 #endif // CHIPS_HPP
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//----------------Code section generated from chips sources---------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+
