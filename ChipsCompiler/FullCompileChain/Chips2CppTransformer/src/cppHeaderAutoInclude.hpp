@@ -414,8 +414,12 @@ public:
     chips<T> operator-() const
     {
         chips<T> res(shape_);
-        std::transform(data_.begin(), data_.end(), res.data().begin(),
-                       [](const T &v) { return -v; });
+        res.stopFlag = stopFlag;
+        if (!res.stopFlag)
+        {
+            std::transform(data_.begin(), data_.end(), res.data().begin(),
+                           [](const T &v) { return -v; });
+        }
         return res;
     }
 
@@ -424,8 +428,12 @@ public:
     chips<bool> operator!() const
     {
         chips<bool> res(shape_);
-        std::transform(data_.begin(), data_.end(), res.data().begin(),
-                       [](bool v) { return !v; });
+        res.stopFlag = stopFlag;
+        if (!res.stopFlag)
+        {
+            std::transform(data_.begin(), data_.end(), res.data().begin(),
+                           [](bool v) { return !v; });
+        }
         return res;
     }
 
@@ -453,6 +461,11 @@ private:
     std::vector<int> shape_;
     std::vector<T> data_;
     int age_{0};
+
+public:
+    bool stopFlag{false};
+
+private:
 
     /*--------------------------------------------------------------------
      *  Friends – element‑wise operators (only same‑type operands)
@@ -548,10 +561,14 @@ operator+(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator+ : shape mismatch");
     chips<U> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::plus<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::plus<U>());
+    }
     return res;
 }
 
@@ -562,10 +579,14 @@ operator-(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator- : shape mismatch");
     chips<U> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::minus<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::minus<U>());
+    }
     return res;
 }
 
@@ -576,10 +597,14 @@ operator*(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator* : shape mismatch");
     chips<U> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::multiplies<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::multiplies<U>());
+    }
     return res;
 }
 
@@ -590,15 +615,19 @@ operator/(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator/ : shape mismatch");
     chips<U> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   [](U a, U b)
-                   {
-                       if (b == U{0})
-                           throw std::domain_error("division by zero in chips operator/");
-                       return a / b;
-                   });
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](U a, U b)
+                       {
+                           if (b == U{0})
+                               throw std::domain_error("division by zero in chips operator/");
+                           return a / b;
+                       });
+    }
     return res;
 }
 
@@ -608,15 +637,19 @@ chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator% : shape mismatch");
     chips<int> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   [](int a, int b)
-                   {
-                       if (b == 0)
-                           throw std::domain_error("modulo by zero in chips operator%");
-                       return a%b;
-                   });
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](int a, int b)
+                       {
+                           if (b == 0)
+                               throw std::domain_error("modulo by zero in chips operator%");
+                           return a%b;
+                       });
+    }
     return res;
 }
 
@@ -628,10 +661,14 @@ operator&&(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator&& : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::logical_and<bool>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::logical_and<bool>());
+    }
     return res;
 }
 
@@ -642,10 +679,14 @@ operator||(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator|| : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::logical_or<bool>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::logical_or<bool>());
+    }
     return res;
 }
 
@@ -656,10 +697,14 @@ operator^(const chips<U> &lhs, const chips<U> &rhs) // exclusive‑or
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator^ : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::bit_xor<bool>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::bit_xor<bool>());
+    }
     return res;
 }
 
@@ -671,10 +716,14 @@ operator==(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator== : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::equal_to<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::equal_to<U>());
+    }
     return res;
 }
 
@@ -685,10 +734,14 @@ operator!=(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator!= : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::not_equal_to<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::not_equal_to<U>());
+    }
     return res;
 }
 
@@ -699,10 +752,14 @@ operator<(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator< : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::less<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::less<U>());
+    }
     return res;
 }
 
@@ -713,10 +770,14 @@ operator<=(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator<= : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::less_equal<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::less_equal<U>());
+    }
     return res;
 }
 
@@ -727,10 +788,14 @@ operator>(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator> : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::greater<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::greater<U>());
+    }
     return res;
 }
 
@@ -741,10 +806,14 @@ operator>=(const chips<U> &lhs, const chips<U> &rhs)
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator>= : shape mismatch");
     chips<bool> res(lhs.shape());
-    std::transform(lhs.data().begin(), lhs.data().end(),
-                   rhs.data().begin(),
-                   res.data().begin(),
-                   std::greater_equal<U>());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       std::greater_equal<U>());
+    }
     return res;
 }
 
@@ -895,6 +964,13 @@ inline chips<int> ones(const chips<int> &first) // base‑case for one dimension
     // Build the shape vector (just one element)
     std::vector<int> shape{dim};
 
+    if (first.stopFlag)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
+
     // Number of elements = product(shape) = dim
     std::vector<int> data(static_cast<std::size_t>(dim), 1); // fill with 1s
 
@@ -905,6 +981,7 @@ template <typename... Rest>
 chips<int> ones(const chips<int> &first, const Rest &...rest)
 {
     std::vector<int> shape;
+    bool anyStop = false;
 
     auto push_dim = [&](const chips<int> &c)
     {
@@ -912,10 +989,18 @@ chips<int> ones(const chips<int> &first, const Rest &...rest)
             throw std::invalid_argument(
                 "ones(): each dimension argument must be a chips<int> of shape (1)");
         shape.push_back(c.data()[0]); // scalar value stored in the chip
+        anyStop = anyStop || c.stopFlag;
     };
 
     push_dim(first);
     (push_dim(rest), ...);
+
+    if (anyStop)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
 
     std::size_t total = 1;
     for (int d : shape)
@@ -938,6 +1023,13 @@ inline chips<int> range(const chips<int> &first) // 1‑dim overload
     int dim = first.data()[0];
     std::vector<int> shape{dim};
 
+    if (first.stopFlag)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
+
     std::vector<int> data;
     data.reserve(static_cast<std::size_t>(dim));
     for (int i = 0; i < dim; ++i)
@@ -950,15 +1042,24 @@ template <typename... Rest>
 chips<int> range(const chips<int> &first, const Rest &...rest) // variadic overload
 {
     std::vector<int> shape;
+    bool anyStop = false;
     auto push_dim = [&](const chips<int> &c)
     {
         if (c.shape().size() != 1 || c.shape()[0] != 1)
             throw std::invalid_argument(
                 "range(): each dimension argument must be a chips<int> of shape (1)");
         shape.push_back(c.data()[0]);
+        anyStop = anyStop || c.stopFlag;
     };
     push_dim(first);
     (push_dim(rest), ...);
+
+    if (anyStop)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
 
     std::size_t total = 1;
     for (int d : shape)
@@ -984,6 +1085,13 @@ inline chips<int> zeros(const chips<int> &first) // 1‑dim overload
     int dim = first.data()[0];
     std::vector<int> shape{dim};
 
+    if (first.stopFlag)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
+
     std::vector<int> data(static_cast<std::size_t>(dim), 0); // all zeros
     return chips<int>(std::move(shape), std::move(data));
 }
@@ -992,15 +1100,24 @@ template <typename... Rest>
 chips<int> zeros(const chips<int> &first, const Rest &...rest) // variadic overload
 {
     std::vector<int> shape;
+    bool anyStop = false;
     auto push_dim = [&](const chips<int> &c)
     {
         if (c.shape().size() != 1 || c.shape()[0] != 1)
             throw std::invalid_argument(
                 "zeros(): each dimension argument must be a chips<int> of shape (1)");
         shape.push_back(c.data()[0]);
+        anyStop = anyStop || c.stopFlag;
     };
     push_dim(first);
     (push_dim(rest), ...);
+
+    if (anyStop)
+    {
+        chips<int> res(std::move(shape));
+        res.stopFlag = true;
+        return res;
+    }
 
     std::size_t total = 1;
     for (int d : shape)

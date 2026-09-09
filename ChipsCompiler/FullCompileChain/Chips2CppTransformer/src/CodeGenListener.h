@@ -20,22 +20,41 @@ public:
     }
 
     void exitL_function_def(ChipsParser::L_function_defContext *ctx) override;
+    void exitObject_def(ChipsParser::Object_defContext *ctx) override;
     void exitP_function_def(ChipsParser::P_function_defContext *ctx) override;
+    void exitCollective_op_def(ChipsParser::Collective_op_defContext *ctx) override;
 
 private:
-    
+    std::set<std::string> emittedAggrStructs_;
+
+    static std::string capitalize(const std::string &s);
+    std::string aggregateStructName(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
+    std::string aggregateStructDef(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
+    void emitAggregateStructIfNeeded(ChipsParser::Collective_op_defContext *ctx);
+
+
     using DefType = std::variant<
         ChipsParser::L_function_defContext*,
         ChipsParser::P_function_defContext*,
-        ChipsParser::CollectiveOperationDefinitionContext*>;
+        ChipsParser::Collective_op_defContext*>;
+
+    using ObjectType = std::variant<
+        ChipsParser::P_function_defContext*,
+        ChipsParser::Object_defContext*>;
     
     DefType current_def;
     Dictionary dico;
     std::map<std::string, std::string> varTypes_;
+    std::map<ObjectType, std::set<std::pair<std::string, std::string>>> channels_;
+    std::map<ChipsParser::Collective_op_defContext*, std::map<std::string, std::string>> collective_vars_;
+    
+
+    void registerChannels(const ObjectType &key);
 
     void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params, const std::string &outputs, const bool& inScope);
 
     bool lookupVarType(const std::string &name, std::string &type) const;
+    bool isSpreadOp(ChipsParser::Collective_op_defContext *ctx) const;
 
     std::string chipsTypeFor(ChipsParser::Df_typeContext *typeCtx);
     std::string chipsTypeFor(ChipsParser::ExprContext *ctx);
@@ -43,6 +62,13 @@ private:
     std::string chipsTypeFor(ChipsParser::Expr01Context *ctx);
     std::string chipsTypeFor(ChipsParser::Expr1Context *ctx);
     std::string chipsTypeFor(ChipsParser::Expr2Context *ctx);
+
+    std::string chipsTypeFor(ChipsParser::C_exprContext *ctx);
+    std::string chipsTypeFor(ChipsParser::C_stopless_exprContext *ctx);
+    std::string chipsTypeFor(ChipsParser::C_stopless_expr0Context *ctx);
+    std::string chipsTypeFor(ChipsParser::C_stopless_expr01Context *ctx);
+    std::string chipsTypeFor(ChipsParser::C_stopless_expr1Context *ctx);
+    std::string chipsTypeFor(ChipsParser::C_stopless_expr2Context *ctx);
 
     std::string translateParams(const std::vector<ChipsParser::Df_parameter_declContext *> &params);
     std::string translateParams(const std::vector<ChipsParser::Pdf_parameter_declContext *> &params);
@@ -68,8 +94,29 @@ private:
     std::string translateExpr1(ChipsParser::Expr1Context* ctx);
     std::string translateExpr2(ChipsParser::Expr2Context* ctx);
 
-    
+    // c_statement / c_expr family (collective_op_def bodies)
+    std::string translateCStatements(const std::vector<ChipsParser::C_statementContext *> &statements, int indent);
+    std::string translateCStatement(ChipsParser::C_statementContext *stmt, int indent);
+    std::string translateCLoop(ChipsParser::C_loop_statementContext *ctx, int indent);
+    std::string translateCIf(ChipsParser::C_if_statementContext *ctx, int indent);
+    std::string translateCIfElse(ChipsParser::C_if_else_statementContext *ctx, int indent);
+    std::string translateCDecl(ChipsParser::Cdf_full_declarationContext *ctx, int indent);
+    std::string translateCAssignment(ChipsParser::CollectiveAssignmentContext *ctx, int indent);
+    std::string translateCContextualAssignment(ChipsParser::ContextualAssignmentContext *ctx, int indent);
 
+    std::string translateCSuffixes(ChipsParser::C_suffixesContext *s);
+    std::string translateCFunctionCall(ChipsParser::FunctionCallContext *ctx);
+    std::string translateCCast(ChipsParser::C_castContext *ctx);
+    std::string translateCExpr(ChipsParser::C_exprContext *ctx);
+    std::string translateCStoplessExpr(ChipsParser::C_stopless_exprContext *ctx);
+    std::string translateCStoplessExpr0(ChipsParser::C_stopless_expr0Context *ctx);
+    std::string translateCStoplessExpr01(ChipsParser::C_stopless_expr01Context *ctx);
+    std::string translateCStoplessExpr1(ChipsParser::C_stopless_expr1Context *ctx);
+    std::string translateCStoplessExpr2(ChipsParser::C_stopless_expr2Context *ctx);
+
+
+    std::string extractParameters(ChipsParser::Collective_op_defContext *ctx);
+    const std::set<std::pair<std::string, std::string>> *findChannelsForObjectName(const std::string &name) const;
 
     std::string outputText();
 

@@ -137,3 +137,32 @@ bool Dictionary::lookupP(ChipsParser::P_function_defContext* key, const std::str
     outType = valIt->second;
     return true;
 }
+
+// ---------- Dictionary.cpp (additions) ----------
+bool Dictionary::lookupSpread(ChipsParser::Collective_op_defContext* key, const std::string& name, std::string& outType) const
+{
+    auto it = spreads_.find(key);
+    if (it == spreads_.end())
+        return false;
+
+    auto valIt = it->second.find(name);
+    if (valIt == it->second.end())
+        return false;
+
+    outType = valIt->second;
+    return true;
+}
+
+bool Dictionary::lookupCollect(ChipsParser::Collective_op_defContext* key, const std::string& name, std::string& outType) const
+{
+    auto it = collects_.find(key);
+    if (it == collects_.end())
+        return false;
+
+    auto valIt = it->second.find(name);
+    if (valIt == it->second.end())
+        return false;
+
+    outType = valIt->second;
+    return true;
+}

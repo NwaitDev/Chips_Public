@@ -29,6 +29,8 @@ public:
     
     bool lookupL(ChipsParser::L_function_defContext* key, const std::string& name, std::string& outType) const;
     bool lookupP(ChipsParser::P_function_defContext* key, const std::string& name, std::string& outType) const;
+    bool lookupSpread(ChipsParser::Collective_op_defContext* key, const std::string& name, std::string& outType) const;
+    bool lookupCollect(ChipsParser::Collective_op_defContext* key, const std::string& name, std::string& outType) const;
 
 private:
     std::map<ChipsParser::L_function_defContext*, Value> logicals_;
