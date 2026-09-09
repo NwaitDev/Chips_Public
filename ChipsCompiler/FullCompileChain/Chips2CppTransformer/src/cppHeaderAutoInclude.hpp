@@ -9,6 +9,10 @@
 #include <type_traits>
 #include <algorithm>
 #include <random>
+#include <variant>
+
+class chips_any;
+
 
 /**
  * @brief Multi‑dimensional container that stores its data linearly.
@@ -92,6 +96,11 @@ public:
 
         return *this;
     }
+
+    /*--------------------------  chips_any interop  --------------------------*/
+    // Definitions are out-of-line, after chips_any is fully declared below.
+    explicit chips(const chips_any &rhs);
+    chips &operator=(const chips_any &rhs);
 
     template <typename U = T,
               typename = std::enable_if_t<
@@ -190,12 +199,12 @@ private:
         }
 
     public:
-        explicit slice_proxy(chips* p, const chips_int& c)
+        explicit slice_proxy(chips* p, const chips<int>& c)
             : parent_(p) {
             fixed_.push_back(static_cast<int>(c.data()[0]));
         }
 
-        slice_proxy operator[](const chips_int& c) const {
+        slice_proxy operator[](const chips<int>& c) const {
             slice_proxy nxt(*this);
             nxt.fixed_.push_back(static_cast<int>(c.data()[0]));
             return nxt;
@@ -216,6 +225,13 @@ private:
             std::vector<T> sub_data(parent_->data_.begin() + static_cast<std::ptrdiff_t>(start),
                                     parent_->data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
             return chips<T>(std::move(sub_shape), std::move(sub_data));
+        }
+
+        // Explicit equivalent of the implicit conversion above, for contexts
+        // (auto deduction, template argument deduction) where the implicit
+        // conversion operator is not considered by the compiler.
+        chips<T> to_chips() const {
+            return static_cast<chips<T>>(*this);
         }
 
         class iterator {
@@ -271,11 +287,11 @@ private:
     };
 
 public:
-    slice_proxy operator[](const chips_int& coord) {
+    slice_proxy operator[](const chips<int>& coord) {
         return slice_proxy(this, coord);
     }
 
-    chips<T> operator[](const chips_int& coord) const {
+    chips<T> operator[](const chips<int>& coord) const {
         std::vector<int> idx{ static_cast<int>(coord.data()[0]) };
         idx.resize(dimensions_, 0);
         std::size_t start = linear_index(idx);
@@ -284,8 +300,8 @@ public:
             ? 1
             : std::accumulate(sub_shape.begin(), sub_shape.end(),
                               std::size_t{1}, std::multiplies<std::size_t>());
-        std::vector<T> sub_data(_data.begin() + static_cast<std::ptrdiff_t>(start),
-                                _data.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
+        std::vector<T> sub_data(data_.begin() + static_cast<std::ptrdiff_t>(start),
+                                data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
         return chips<T>(std::move(sub_shape), std::move(sub_data));
     }
 
@@ -391,6 +407,28 @@ public:
         // may be used with "any" instead of "all"
     }
 
+    /*--------------------------  unary operators  --------------------------*/
+    template <typename U = T,
+              typename = std::enable_if_t<
+                  std::is_same_v<U, int> || std::is_same_v<U, double>>>
+    chips<T> operator-() const
+    {
+        chips<T> res(shape_);
+        std::transform(data_.begin(), data_.end(), res.data().begin(),
+                       [](const T &v) { return -v; });
+        return res;
+    }
+
+    template <typename U = T,
+              typename = std::enable_if_t<std::is_same_v<U, bool>>>
+    chips<bool> operator!() const
+    {
+        chips<bool> res(shape_);
+        std::transform(data_.begin(), data_.end(), res.data().begin(),
+                       [](bool v) { return !v; });
+        return res;
+    }
+
     /*--------------------------  utilities  --------------------------*/
     std::size_t total_size() const noexcept
     {
@@ -443,6 +481,9 @@ private:
         (std::is_same_v<U, int> || std::is_same_v<U, double>),
         chips<U>>
     operator/(const chips<U> &lhs, const chips<U> &rhs);
+
+    // mod operator only for integers
+    friend chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs);
 
     // Logical operators – only for bool
     template <typename U>
@@ -557,6 +598,24 @@ operator/(const chips<U> &lhs, const chips<U> &rhs)
                        if (b == U{0})
                            throw std::domain_error("division by zero in chips operator/");
                        return a / b;
+                   });
+    return res;
+}
+
+/*-----------------------  modulo (int only)  ---------------------*/
+chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
+{
+    if (lhs.shape() != rhs.shape())
+        throw std::invalid_argument("operator% : shape mismatch");
+    chips<int> res(lhs.shape());
+    std::transform(lhs.data().begin(), lhs.data().end(),
+                   rhs.data().begin(),
+                   res.data().begin(),
+                   [](int a, int b)
+                   {
+                       if (b == 0)
+                           throw std::domain_error("modulo by zero in chips operator%");
+                       return a%b;
                    });
     return res;
 }
@@ -695,6 +754,132 @@ using chips_int = chips<int>;
 using chips_bool = chips<bool>;
 using chips_float = chips<double>; // float name used to match the BIP compiler namings
 
+
+
+
+/*=====================================================================
+ *  chips_any : type-erased holder for one of chips_int/chips_bool/chips_float
+ *  Used by the code generator when a static type cannot be resolved
+ *  (e.g. forward-referenced loop variables, unresolved function returns).
+ *=====================================================================*/
+class chips_any
+{
+public:
+    using storage_type = std::variant<chips_int, chips_bool, chips_float>;
+
+    chips_any() = default;
+    chips_any(chips_int v) : value_(std::move(v)) {}
+    chips_any(chips_bool v) : value_(std::move(v)) {}
+    chips_any(chips_float v) : value_(std::move(v)) {}
+
+    const storage_type &value() const noexcept { return value_; }
+    storage_type &value() noexcept { return value_; }
+
+    // enables static_cast<chips_int>(someChipsAny), etc.
+    template <typename U>
+    explicit operator U() const
+    {
+        if (const U *p = std::get_if<U>(&value_))
+            return *p;
+        throw std::bad_variant_access();
+    }
+
+private:
+    storage_type value_;
+};
+
+namespace chips_any_detail
+{
+    template <typename BinOp>
+    chips_any visit_binary(const chips_any &lhs, const chips_any &rhs, BinOp &&op, const char *opName)
+    {
+        return std::visit([&](const auto &a, const auto &b) -> chips_any
+        {
+            using L = std::decay_t<decltype(a)>;
+            using R = std::decay_t<decltype(b)>;
+            if constexpr (std::is_same_v<L, R>)
+                return op(a, b);
+            else
+                throw std::invalid_argument(std::string("chips_any ") + opName + " : mismatched underlying types");
+        }, lhs.value(), rhs.value());
+    }
+
+    template <typename UnOp>
+    chips_any visit_unary(const chips_any &v, UnOp &&op, const char *opName)
+    {
+        return std::visit([&](const auto &a) -> chips_any
+        {
+            using A = std::decay_t<decltype(a)>;
+            if constexpr (std::is_invocable_v<UnOp, const A &>)
+                return op(a);
+            else
+                throw std::invalid_argument(std::string("chips_any ") + opName + " : unsupported underlying type");
+        }, v.value());
+    }
+}
+
+inline chips_any operator+(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a + b; }, "operator+"); }
+
+inline chips_any operator-(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a - b; }, "operator-"); }
+
+inline chips_any operator*(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a * b; }, "operator*"); }
+
+inline chips_any operator/(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a / b; }, "operator/"); }
+
+inline chips_any operator%(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a % b; }, "operator%"); }
+
+inline chips_any operator&&(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a && b; }, "operator&&"); }
+
+inline chips_any operator||(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a || b; }, "operator||"); }
+
+inline chips_any operator==(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a == b; }, "operator=="); }
+
+inline chips_any operator!=(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a != b; }, "operator!="); }
+
+inline chips_any operator<(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a < b; }, "operator<"); }
+
+inline chips_any operator<=(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a <= b; }, "operator<="); }
+
+inline chips_any operator>(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a > b; }, "operator>"); }
+
+inline chips_any operator>=(const chips_any &lhs, const chips_any &rhs)
+{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a >= b; }, "operator>="); }
+
+inline chips_any operator-(const chips_any &v)
+{ return chips_any_detail::visit_unary(v, [](const auto &a) { return -a; }, "unary operator-"); }
+
+inline chips_any operator!(const chips_any &v)
+{ return chips_any_detail::visit_unary(v, [](const auto &a) { return !a; }, "unary operator!"); }
+
+
+template <typename T>
+chips<T>::chips(const chips_any &rhs)
+{
+    *this = static_cast<chips<T>>(rhs);
+}
+
+template <typename T>
+chips<T> &chips<T>::operator=(const chips_any &rhs)
+{
+    *this = static_cast<chips<T>>(rhs);
+    return *this;
+}
+
+
+
+
 /*=====================================================================
  *  ones : fill with 1
  *=====================================================================*/
@@ -826,7 +1011,7 @@ chips<int> zeros(const chips<int> &first, const Rest &...rest) // variadic overl
 }
 
 /*=====================================================================
- *  randin01 : returns a chips<double> conatining a single random number
+ *  randin01 : returns a chips<double> containing a single random number
  *  uniformly distributed in [0,1)
  *=====================================================================*/
 inline chips_float randin01()
@@ -852,6 +1037,17 @@ inline chips_float randin01()
     return chips_float(std::move(shape), std::move(data));
 }
 
+/*=====================================================================
+ *  is_fresh : returns a chips<bool> containing a single true if the
+ *  variable has been updated since the last component clk cycle
+ *=====================================================================*/
+template <typename U>
+chips<bool> is_fresh(chips<U> var)
+{
+    return var.is_fresh();
+}
+
+
 #endif // CHIPS_HPP
 
 //------------------------------------------------------------------------------
@@ -861,5 +1057,3 @@ inline chips_float randin01()
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-
-

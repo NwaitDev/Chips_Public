@@ -92,6 +92,7 @@ find_library(ANTLR4_LIBRARY
 add_executable(Chips2Cpp
     src/main.cpp
     src/CodeGenListener.cpp
+    src/Dictionary.cpp
     ${ANTLR_GENERATED_FILES}
 )
 

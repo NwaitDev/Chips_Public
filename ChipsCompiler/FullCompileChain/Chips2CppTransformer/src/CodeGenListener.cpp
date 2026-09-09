@@ -1,107 +1,17 @@
 #include "CodeGenListener.h"
+#include "Dictionary.hpp"
 
 #include <sstream>
 
-void Dictionary::addLogical(
-    ChipsParser::L_function_defContext* key,
-    const std::string& name,
-    const std::string& value)
+bool CodeGenListener::lookupVarType(const std::string &name, std::string &type) const
 {
-    logicals_[key][name] = value;
-}
+    if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def))
+        return dico.lookupL(std::get<ChipsParser::L_function_defContext*>(current_def), name, type);
 
-void Dictionary::addPhysical(
-    ChipsParser::P_function_defContext* key,
-    const std::string& name,
-    const std::string& value)
-{
-    physicals_[key][name] = value;
-}
+    if (std::holds_alternative<ChipsParser::P_function_defContext*>(current_def))
+        return dico.lookupP(std::get<ChipsParser::P_function_defContext*>(current_def), name, type);
 
-void Dictionary::addSpread(
-    ChipsParser::Collective_op_defContext* key,
-    const std::string& name,
-    const std::string& value)
-{
-    spreads_[key][name] = value;
-}
-
-void Dictionary::addCollect(
-    ChipsParser::Collective_op_defContext* key,
-    const std::string& name,
-    const std::string& value)
-{
-    collects_[key][name] = value;
-}
-
-namespace {
-
-std::string serializeValue(const Dictionary::Value& values)
-{
-    std::string result;
-    bool first = true;
-
-    for (const auto& [name, value] : values) {
-        if (!first) {
-            result += ", ";
-        }
-
-        const auto& type = value;
-
-        result += type;
-        result += "& ";
-        result += name;
-
-        first = false;
-    }
-
-    return result;
-}
-
-} // namespace
-
-std::string Dictionary::serializeL(
-    ChipsParser::L_function_defContext* key) const
-{
-    const auto it = logicals_.find(key);
-
-    if (it == logicals_.end()) {
-        return {};
-    }
-
-    return serializeValue(it->second);
-}
-
-std::string Dictionary::serializeP(
-    ChipsParser::P_function_defContext* key) const
-{
-    const auto it = physicals_.find(key);
-
-    if (it == physicals_.end()) {
-        return {};
-    }
-
-    return serializeValue(it->second);
-}
-
-std::string Dictionary::serializeCollective(
-    ChipsParser::Collective_op_defContext* key) const
-{
-    std::string result;
-
-    if (const auto it = spreads_.find(key); it != spreads_.end()) {
-        result += serializeValue(it->second);
-    }
-
-    if (const auto it = collects_.find(key); it != collects_.end()) {
-        if (!result.empty()) {
-            result += ", ";
-        }
-
-        result += serializeValue(it->second);
-    }
-
-    return result;
+    return false;
 }
 
 
@@ -135,15 +45,29 @@ std::string CodeGenListener::translateStatement(ChipsParser::StatementContext *s
         return translateIf(ifOnly->if_statement(), indent);
     }
 
-    if (auto *decl = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stmt)){
+    if (auto *decl = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stmt))
+    {
         return translateDecl(decl, indent, inScope);
+    }
+
+    if (auto *assign = dynamic_cast<ChipsParser::StatementAssignmentContext *>(stmt))
+    {
+        return translateAssignment(assign, indent);
+    }
+
+    if (auto *assign = dynamic_cast<ChipsParser::StatementContextualAssignmentContext *>(stmt))
+    {
+        return translateContextualAssignment(assign, indent);
     }
 
     std::string text("");
     antlr4::misc::Interval interval = stmt->getSourceInterval();
-    for (int i = interval.a; i <= interval.b; i++) {
-        text += tokens_.get(i)->getText()+" ";
+    for (int i = interval.a; i <= interval.b; i++)
+    {
+        text += tokens_.get(i)->getText();
     }
+    std::cout << "unhandled: " << text << std::endl;
+    std::cout << "(it has been copied verbatim)" << std::endl;
     return pad + text + "\n";
 }
 
@@ -153,14 +77,14 @@ std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *c
     std::string varName = ctx->IDENTIFIER()->getText();
     auto *loopIn = ctx->loop_in();
     std::string source = loopIn->IDENTIFIER()->getText();
-    
+
     std::ostringstream oss;
 
     if (loopIn->expr().empty())
     {
         for (auto *idx : loopIn->suffixes()->expr())
         {
-            source += "["+translateExpr(idx)+"]";
+            source += "[" + translateExpr(idx) + "]";
         }
 
         oss << pad << "for (auto " << varName << " : " << source << ")\n";
@@ -177,7 +101,8 @@ std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *c
         auto args = loopIn->expr();
         for (size_t i = 0; i < args.size(); ++i)
         {
-            if (i) argList += ", ";
+            if (i)
+                argList += ", ";
             argList += tokens_.getText(args[i]);
         }
 
@@ -189,8 +114,8 @@ std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *c
         }
 
         oss << pad << "{\n";
-        oss << pad << "    auto " << genVar << " = " << source << "(" << argList << ")"+indices+";\n";
-        oss << pad << "    for(chips_int i{0}; i<"+genVar+".size(); i = i+chips_int{1}) {\n";
+        oss << pad << "    auto " << genVar << " = " << source << "(" << argList << ")" + indices + ";\n";
+        oss << pad << "    for(chips_int i{0}; i<" + genVar + ".size(); i = i+chips_int{1}) {\n";
         oss << translateStatements(ctx->statement(), indent + 8, true);
         oss << pad << "    }\n";
         oss << pad << "}\n";
@@ -202,7 +127,7 @@ std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *c
 std::string CodeGenListener::translateIf(ChipsParser::If_statementContext *ctx, int indent)
 {
     std::string pad(indent, ' ');
-    std::string cond = tokens_.getText(ctx->expr());
+    std::string cond = translateExpr(ctx->expr());
 
     std::ostringstream oss;
     oss << pad << "if (" << cond << ")\n";
@@ -227,86 +152,108 @@ std::string CodeGenListener::translateIfElse(ChipsParser::If_else_statementConte
 
 std::string CodeGenListener::translateSuffixes(ChipsParser::SuffixesContext *s)
 {
-    // The generated context normally contains a std::vector<ExprContext*> called
-    // `expr()` (one for each pair of brackets).  If your grammar uses a
-    // different accessor, replace the loop accordingly.
+
     std::vector<std::string> dimExprs;
-    for (auto *e : s->expr()) {                     // iterate over every size expr
-        dimExprs.emplace_back(translateExpr(e));    // reuse the existing expr helper
+    for (auto *e : s->expr())
+    {
+        dimExprs.emplace_back(translateExpr(e));
     }
 
-    // Join with commas: "3, 5, n+2"
     std::ostringstream oss;
-    for (size_t i = 0; i < dimExprs.size(); ++i) {
-        if (i) oss << ", ";
-        oss << dimExprs[i];
+    if(dimExprs.size()!=0){
+        for (size_t i = 0; i < dimExprs.size(); ++i)
+        {
+            oss << '[' << dimExprs[i] << ']';
+        }
+        oss << ".to_chips()";
     }
     return oss.str();
 }
 
-
 std::string CodeGenListener::translateDecl(ChipsParser::StatementDeclarationContext *ctx, int indent, bool inScope)
 {
-    std::string chipType;
-    auto *typeCtx = ctx->df_type();
-
-    if (auto *b = dynamic_cast<ChipsParser::BoolTypeContext*>(typeCtx)) {
-        chipType = "chips_bool";
-    }
-    else if (auto *i = dynamic_cast<ChipsParser::IntTypeContext*>(typeCtx)) {
-        chipType = "chips_int";
-    }
-    else if (auto *f = dynamic_cast<ChipsParser::FloatTypeContext*>(typeCtx)) {
-        chipType = "chips_float";
-    }
-    else {
-        // Should never happen
-        chipType = "/* unknown type */";
-    }
-
+    std::string chipType = chipsTypeFor(ctx->df_type());
     std::string varName = ctx->IDENTIFIER()->getText();
+    std::string pad(indent, ' ');
 
-    if (!inScope){
-        if (std::holds_alternative<ChipsParser::CollectiveOperationDefinitionContext*>(current_def))
+    if (!inScope)
+    {
+        if (std::holds_alternative<ChipsParser::CollectiveOperationDefinitionContext *>(current_def))
         {
             /* code */
-        } else if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def))
+        }
+        else if (std::holds_alternative<ChipsParser::L_function_defContext *>(current_def))
         {
-            dico.addLogical(std::get<ChipsParser::L_function_defContext*>(current_def),varName,chipType);
-        } else if (std::holds_alternative<ChipsParser::P_function_defContext*>(current_def))
+            dico.addLogical(std::get<ChipsParser::L_function_defContext *>(current_def), varName, chipType);
+        }
+        else if (std::holds_alternative<ChipsParser::P_function_defContext *>(current_def))
         {
-            dico.addPhysical(std::get<ChipsParser::P_function_defContext*>(current_def),varName,chipType);
+            dico.addPhysical(std::get<ChipsParser::P_function_defContext *>(current_def), varName, chipType);
+        }
+        if (ctx->ASSIGN())
+        {
+            return pad + ctx->IDENTIFIER()->getText() +" = " + translateExpr(ctx->expr())+";\n";
         }
         return std::string{};
     }
-    
-    std::string pad(indent, ' ');
-
 
     std::string ctorArgs;
-    if (auto *suffixes = ctx->suffixes()) {
+    if (auto *suffixes = ctx->suffixes())
+    {
         ctorArgs = translateSuffixes(suffixes);
     }
 
     std::string initializer;
-    if (ctx->ASSIGN()) {
-        // we already have a helper that turns an ExprContext into a C++ string
+    if (ctx->ASSIGN())
+    {
         initializer = " = " + translateExpr(ctx->expr());
     }
 
     std::ostringstream out;
     out << pad << chipType << ' ' << varName;
 
-    if (!ctorArgs.empty()) {
+    if (!ctorArgs.empty())
+    {
         out << '(' << ctorArgs << ");\n";
-    } else{
+    }
+    else
+    {
         out << ";\n";
     }
 
-    if(!initializer.empty())
+    if (!initializer.empty())
         out << pad << varName << initializer << ";\n";
 
     return out.str();
+}
+
+std::string CodeGenListener::translateAssignment(ChipsParser::StatementAssignmentContext *ctx, int indent)
+{
+    std::string varName = ctx->IDENTIFIER()->getText();
+    std::string pad(indent, ' ');
+    return pad + varName + " = " + translateExpr(ctx->expr()) + ";\n";
+}
+
+std::string CodeGenListener::translateContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx, int indent)
+{
+    std::string pad(indent, ' ');
+    std::string varName = ctx->IDENTIFIER()->getText();
+    std::string rhs = translateExpr(ctx->expr());
+
+    std::string type;
+    if (!lookupVarType(varName, type))
+    {
+        type = chipsTypeFor(ctx->expr());
+
+        if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def))
+            dico.addLogical(std::get<ChipsParser::L_function_defContext*>(current_def), varName, type);
+        else if (std::holds_alternative<ChipsParser::P_function_defContext*>(current_def))
+            dico.addPhysical(std::get<ChipsParser::P_function_defContext*>(current_def), varName, type);
+    }
+
+    std::ostringstream oss;
+    oss << pad << varName << translateSuffixes(ctx->suffixes()) << " = " << rhs << ";\n";
+    return oss.str();
 }
 
 std::string CodeGenListener::translateFunction(ChipsParser::FunctionContext *ctx)
@@ -315,115 +262,125 @@ std::string CodeGenListener::translateFunction(ChipsParser::FunctionContext *ctx
     out << ctx->IDENTIFIER()->getText() << '(';
 
     const auto &args = ctx->expr();
-    for (size_t i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i)
+    {
         out << translateExpr(args[i]);
-        if (i + 1 < args.size()) out << ", ";
+        if (i + 1 < args.size())
+            out << ", ";
     }
     out << ')';
     return out.str();
 }
 
-std::string CodeGenListener::translateExpr(ChipsParser::ExprContext* ctx)
+std::string CodeGenListener::translateExpr(ChipsParser::ExprContext *ctx)
 {
-    if (auto *geq = dynamic_cast<ChipsParser::GEQContext*>(ctx))
-        return translateExpr0(geq->expr0()) + " >= " + translateExpr(geq->expr()); 
+    if (auto *geq = dynamic_cast<ChipsParser::GEQContext *>(ctx))
+        return translateExpr0(geq->expr0()) + " >= " + translateExpr(geq->expr());
 
-    if (auto *gt = dynamic_cast<ChipsParser::GTContext*>(ctx))
+    if (auto *gt = dynamic_cast<ChipsParser::GTContext *>(ctx))
         return translateExpr0(gt->expr0()) + " > " + translateExpr(gt->expr());
 
-    if (auto *orctx = dynamic_cast<ChipsParser::ORContext*>(ctx))
+    if (auto *orctx = dynamic_cast<ChipsParser::ORContext *>(ctx))
         return translateExpr0(orctx->expr0()) + " || " + translateExpr(orctx->expr());
 
-    if (auto *andctx = dynamic_cast<ChipsParser::ANDContext*>(ctx))
+    if (auto *andctx = dynamic_cast<ChipsParser::ANDContext *>(ctx))
         return translateExpr0(andctx->expr0()) + " && " + translateExpr(andctx->expr());
 
-    if (auto *lt = dynamic_cast<ChipsParser::LTContext*>(ctx))
+    if (auto *lt = dynamic_cast<ChipsParser::LTContext *>(ctx))
         return translateExpr0(lt->expr0()) + " < " + translateExpr(lt->expr());
 
-    if (auto *leq = dynamic_cast<ChipsParser::LEQContext*>(ctx))
+    if (auto *leq = dynamic_cast<ChipsParser::LEQContext *>(ctx))
         return translateExpr0(leq->expr0()) + " <= " + translateExpr(leq->expr());
-    
-    if (auto *neq = dynamic_cast<ChipsParser::NEQContext*>(ctx))
+
+    if (auto *neq = dynamic_cast<ChipsParser::NEQContext *>(ctx))
         return translateExpr0(neq->expr0()) + " != " + translateExpr(neq->expr());
-    
-    if (auto *eq = dynamic_cast<ChipsParser::EQContext*>(ctx))
+
+    if (auto *eq = dynamic_cast<ChipsParser::EQContext *>(ctx))
         return translateExpr0(eq->expr0()) + " == " + translateExpr(eq->expr());
-    
-    if (auto *pass0 = dynamic_cast<ChipsParser::PassExpr0Context*>(ctx))
+
+    if (auto *pass0 = dynamic_cast<ChipsParser::PassExpr0Context *>(ctx))
         return translateExpr0(pass0->expr0());
 
-    return ctx->getText();   // fallback for any unhandled rule
+    std::cout << "unhandled: " << ctx->getText() <<std::endl;
+    throw ctx;
 }
 
-std::string CodeGenListener::translateExpr0(ChipsParser::Expr0Context* ctx)
+std::string CodeGenListener::translateExpr0(ChipsParser::Expr0Context *ctx)
 {
-    if (auto *sub = dynamic_cast<ChipsParser::SUBContext*>(ctx))
+    if (auto *sub = dynamic_cast<ChipsParser::SUBContext *>(ctx))
         return translateExpr01(sub->expr01()) + " - " + translateExpr0(sub->expr0());
-    
-    if (auto *plus = dynamic_cast<ChipsParser::PLUSContext*>(ctx))
+
+    if (auto *plus = dynamic_cast<ChipsParser::PLUSContext *>(ctx))
         return translateExpr01(plus->expr01()) + " + " + translateExpr0(plus->expr0());
 
-    if (auto *pass01 = dynamic_cast<ChipsParser::PassExpr01Context*>(ctx))
+    if (auto *pass01 = dynamic_cast<ChipsParser::PassExpr01Context *>(ctx))
         return translateExpr01(pass01->expr01());
 
-    return ctx->getText();   // fallback for any unhandled rule
+    std::cout << "unhandled: " << ctx->getText() <<std::endl;
+    throw ctx;
 }
 
-std::string CodeGenListener::translateExpr01(ChipsParser::Expr01Context* ctx)
-{        
-    if (auto *neg = dynamic_cast<ChipsParser::NegateContext*>(ctx))
-        return "-" + translateExpr1(neg->expr1());
-    
-    if (auto *pass1 = dynamic_cast<ChipsParser::PassExpr1Context*>(ctx))
-        return translateExpr1(pass1->expr1());
-    
-    return ctx->getText();   // fallback for any unhandled rule
-}
-
-std::string CodeGenListener::translateExpr1(ChipsParser::Expr1Context* ctx)
+std::string CodeGenListener::translateExpr01(ChipsParser::Expr01Context *ctx)
 {
-    if (auto *div = dynamic_cast<ChipsParser::DIVContext*>(ctx))
+    if (auto *neg = dynamic_cast<ChipsParser::NegateContext *>(ctx))
+        return "-" + translateExpr1(neg->expr1());
+
+    if (auto *pass1 = dynamic_cast<ChipsParser::PassExpr1Context *>(ctx))
+        return translateExpr1(pass1->expr1());
+
+    std::cout << "unhandled: " << ctx->getText() <<std::endl;
+    throw ctx;
+}
+
+std::string CodeGenListener::translateExpr1(ChipsParser::Expr1Context *ctx)
+{
+    if (auto *div = dynamic_cast<ChipsParser::DIVContext *>(ctx))
         return translateExpr2(div->expr2()) + " / " + translateExpr1(div->expr1());
-    
-    if (auto *notexpr = dynamic_cast<ChipsParser::NOTContext*>(ctx))
+
+    if (auto *notexpr = dynamic_cast<ChipsParser::NOTContext *>(ctx))
         return "!" + translateExpr2(notexpr->expr2());
-    
-    if (auto *mod = dynamic_cast<ChipsParser::MODContext*>(ctx))
+
+    if (auto *mod = dynamic_cast<ChipsParser::MODContext *>(ctx))
         return translateExpr2(mod->expr2()) + " % " + translateExpr1(mod->expr1());
-    
-    if (auto *mult = dynamic_cast<ChipsParser::MULTContext*>(ctx))
+
+    if (auto *mult = dynamic_cast<ChipsParser::MULTContext *>(ctx))
         return translateExpr2(mult->expr2()) + " * " + translateExpr1(mult->expr1());
-    
-    if (auto *pass2 = dynamic_cast<ChipsParser::PassExpr2Context*>(ctx))
+
+    if (auto *pass2 = dynamic_cast<ChipsParser::PassExpr2Context *>(ctx))
         return translateExpr2(pass2->expr2());
 
-    return ctx->getText();   // fallback for any unhandled rule
+    std::cout << "unhandled: " << ctx->getText() <<std::endl;
+    throw ctx;
 }
 
-std::string CodeGenListener::translateExpr2(ChipsParser::Expr2Context* ctx)
-{   
-    if (auto *casting = dynamic_cast<ChipsParser::CastAsContext*>(ctx))
-        return "static_cast<chips_"+ casting->cast()->df_type()->getText() +">("+translateExpr(casting->cast()->expr())+")";
-    
-    if (auto* fctcall = dynamic_cast<ChipsParser::FunctionContext*>(ctx))
+std::string CodeGenListener::translateExpr2(ChipsParser::Expr2Context *ctx)
+{
+    if (auto *casting = dynamic_cast<ChipsParser::CastAsContext *>(ctx))
+        return "static_cast<chips_" + casting->cast()->df_type()->getText() + ">(" + translateExpr(casting->cast()->expr()) + ")";
+
+    if (auto *fctcall = dynamic_cast<ChipsParser::FunctionContext *>(ctx))
         return translateFunction(fctcall);
-    
-    if (auto* literal = dynamic_cast<ChipsParser::BoolLiteralContext*>(ctx))
-        return literal->BOOL()->getText();
-    
-    if (auto* literal = dynamic_cast<ChipsParser::FloatLiteralContext*>(ctx))
-        return literal->FLOAT()->getText();
-    
-    if (auto* literal = dynamic_cast<ChipsParser::IntLiteralContext*>(ctx))
-        return literal->INT()->getText();
-    
-    if (auto* variable = dynamic_cast<ChipsParser::VarContext*>(ctx))
-        return variable->IDENTIFIER()->getText()+translateSuffixes(variable->suffixes());
 
-    if (auto* parens = dynamic_cast<ChipsParser::ParensContext*>(ctx))
-        return "("+translateExpr(parens->expr())+")";
+    if (auto *literal = dynamic_cast<ChipsParser::BoolLiteralContext *>(ctx))
+        return "chips_bool{" + literal->BOOL()->getText() + "}";
 
-    return ctx->getText();   // fallback for any unhandled rule
+    if (auto *literal = dynamic_cast<ChipsParser::FloatLiteralContext *>(ctx))
+        return "chips_float{" + literal->FLOAT()->getText() + "}";
+
+    if (auto *literal = dynamic_cast<ChipsParser::IntLiteralContext *>(ctx))
+        return "chips_int{" + literal->INT()->getText() + "}";
+
+    if (auto *variable = dynamic_cast<ChipsParser::VarContext *>(ctx))
+        return variable->IDENTIFIER()->getText() + translateSuffixes(variable->suffixes());
+
+    if (auto *parens = dynamic_cast<ChipsParser::ParensContext *>(ctx))
+        return "(" + translateExpr(parens->expr()) + ")";
+    
+    if (auto *ctxvar = dynamic_cast<ChipsParser::VarContextContext *>(ctx))
+        return ctxvar->IDENTIFIER()->getText() + translateSuffixes(ctxvar->suffixes());
+
+    std::cout << "unhandled: " << ctx->getText() <<std::endl;
+    throw ctx;
 }
 
 std::string CodeGenListener::chipsTypeFor(ChipsParser::Df_typeContext *typeCtx)
@@ -437,13 +394,117 @@ std::string CodeGenListener::chipsTypeFor(ChipsParser::Df_typeContext *typeCtx)
     return "/* unknown type */";
 }
 
+std::string CodeGenListener::chipsTypeFor(ChipsParser::ExprContext *ctx)
+{
+    if (auto *geq = dynamic_cast<ChipsParser::GEQContext *>(ctx))
+        return "chips_bool";
+    if (auto *gt = dynamic_cast<ChipsParser::GTContext *>(ctx))
+        return "chips_bool";
+    if (auto *orctx = dynamic_cast<ChipsParser::ORContext *>(ctx))
+        return "chips_bool";
+    if (auto *andctx = dynamic_cast<ChipsParser::ANDContext *>(ctx))
+        return "chips_bool";
+    if (auto *lt = dynamic_cast<ChipsParser::LTContext *>(ctx))
+        return "chips_bool";
+    if (auto *leq = dynamic_cast<ChipsParser::LEQContext *>(ctx))
+        return "chips_bool";
+    if (auto *neq = dynamic_cast<ChipsParser::NEQContext *>(ctx))
+        return "chips_bool";
+    if (auto *eq = dynamic_cast<ChipsParser::EQContext *>(ctx))
+        return "chips_bool";
+
+    if (auto *pass0 = dynamic_cast<ChipsParser::PassExpr0Context *>(ctx))
+        return chipsTypeFor(pass0->expr0());
+
+    return "/* unknown type */";
+}
+
+std::string CodeGenListener::chipsTypeFor(ChipsParser::Expr0Context *ctx)
+{
+    if (auto *sub = dynamic_cast<ChipsParser::SUBContext *>(ctx))
+        return chipsTypeFor(sub->expr01());
+
+    if (auto *plus = dynamic_cast<ChipsParser::PLUSContext *>(ctx))
+        return chipsTypeFor(plus->expr01());
+
+    if (auto *pass01 = dynamic_cast<ChipsParser::PassExpr01Context *>(ctx))
+        return chipsTypeFor(pass01->expr01());
+
+    return "/* unknown type */";
+}
+
+std::string CodeGenListener::chipsTypeFor(ChipsParser::Expr01Context *ctx)
+{
+    if (auto *neg = dynamic_cast<ChipsParser::NegateContext *>(ctx))
+        return chipsTypeFor(neg->expr1());
+
+    if (auto *pass1 = dynamic_cast<ChipsParser::PassExpr1Context *>(ctx))
+        return chipsTypeFor(pass1->expr1());
+
+    return "/* unknown type */";
+}
+
+std::string CodeGenListener::chipsTypeFor(ChipsParser::Expr1Context *ctx)
+{
+    if (auto *div = dynamic_cast<ChipsParser::DIVContext *>(ctx))
+        return chipsTypeFor(div->expr2());
+
+    if (auto *notexpr = dynamic_cast<ChipsParser::NOTContext *>(ctx))
+        return "chips_bool";
+
+    if (auto *mod = dynamic_cast<ChipsParser::MODContext *>(ctx))
+        return chipsTypeFor(mod->expr2());
+
+    if (auto *mult = dynamic_cast<ChipsParser::MULTContext *>(ctx))
+        return chipsTypeFor(mult->expr2());
+
+    if (auto *pass2 = dynamic_cast<ChipsParser::PassExpr2Context *>(ctx))
+        return chipsTypeFor(pass2->expr2());
+
+    return "/* unknown type */";
+}
+
+std::string CodeGenListener::chipsTypeFor(ChipsParser::Expr2Context *ctx)
+{
+    if (auto *casting = dynamic_cast<ChipsParser::CastAsContext *>(ctx))
+        return "chips_" + casting->cast()->df_type()->getText();
+
+    if (auto *fctcall = dynamic_cast<ChipsParser::FunctionContext *>(ctx))
+        return "chips_int /* unresolved function return type */";
+
+    if (dynamic_cast<ChipsParser::BoolLiteralContext *>(ctx))
+        return "chips_bool";
+
+    if (dynamic_cast<ChipsParser::FloatLiteralContext *>(ctx))
+        return "chips_float";
+
+    if (dynamic_cast<ChipsParser::IntLiteralContext *>(ctx))
+        return "chips_int";
+
+    if (auto *variable = dynamic_cast<ChipsParser::VarContext *>(ctx))
+    {
+        std::string type;
+        if (lookupVarType(variable->IDENTIFIER()->getText(), type))
+            return type;
+        return "chips_any";
+    }
+
+    if (auto *parens = dynamic_cast<ChipsParser::ParensContext *>(ctx))
+        return chipsTypeFor(parens->expr());
+
+    return "/* unknown type */";
+}
+
 std::string CodeGenListener::translateParams(const std::vector<ChipsParser::Df_parameter_declContext *> &params)
 {
     std::ostringstream oss;
     for (size_t i = 0; i < params.size(); ++i)
     {
-        if (i) oss << ", ";
-        oss << chipsTypeFor(params[i]->df_type()) << "& " << params[i]->IDENTIFIER()->getText();
+        if (i)
+            oss << ", ";
+        std::string param_type = chipsTypeFor(params[i]->df_type());
+        oss << param_type << "& " << params[i]->IDENTIFIER()->getText();
+        
     }
     return oss.str();
 }
@@ -453,46 +514,145 @@ std::string CodeGenListener::translateParams(const std::vector<ChipsParser::Pdf_
     std::ostringstream oss;
     for (size_t i = 0; i < params.size(); ++i)
     {
-        if (i) oss << ", ";
+        if (i)
+            oss << ", ";
 
         ChipsParser::Df_typeContext *typeCtx = nullptr;
         auto *ptype = params[i]->pdf_parameter_type();
-        if (auto *f = dynamic_cast<ChipsParser::FunctionParameterTypeContext *>(ptype))
-            typeCtx = f->df_type();
-        else if (auto *s = dynamic_cast<ChipsParser::SensorParameterTypeContext *>(ptype))
-            typeCtx = s->df_type();
+        if (auto *f = dynamic_cast<ChipsParser::FunctionParameterTypeContext *>(ptype)) /*then*/ typeCtx = f->df_type();
+        else if (auto *s = dynamic_cast<ChipsParser::SensorParameterTypeContext *>(ptype)) /*then*/ typeCtx = s->df_type();
 
-        oss << chipsTypeFor(typeCtx) << "& " << params[i]->IDENTIFIER()->getText();
+        std::string param_type = chipsTypeFor(typeCtx);
+        oss << param_type << "& " << params[i]->IDENTIFIER()->getText();
     }
     return oss.str();
 }
 
-void CodeGenListener::emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params)
-{   
+std::string CodeGenListener::translateOutputs(const std::vector<ChipsParser::Named_outputContext *> &outputs)
+{
+    std::ostringstream oss;
+    for (size_t i = 0; i < outputs.size(); ++i)
+    {
+        if (i)
+            oss << ", ";
+        const std::string &name = outputs[i]->IDENTIFIER()->getText();
+        ChipsParser::ExprContext *firstExpr = outputs[i]->expr(0);
+        oss << chipsTypeFor(firstExpr) << "& " << name << "_out";
+    }
+    return oss.str();
+}
+
+std::string CodeGenListener::translateOutputs(const std::vector<ChipsParser::P_named_outputContext *> &outputs)
+{
+    std::ostringstream oss;
+    for (size_t i = 0; i < outputs.size(); ++i)
+    {
+        if (i)
+            oss << ", ";
+
+        std::string name;
+        ChipsParser::ExprContext *firstExpr = nullptr;
+
+        if (auto *actuator = dynamic_cast<ChipsParser::ActuatorOutputContext *>(outputs[i]))
+        {
+            name = actuator->IDENTIFIER()->getText();
+            firstExpr = actuator->expr(0);
+        }
+        else if (auto *fctOut = dynamic_cast<ChipsParser::FunctionOutputContext *>(outputs[i]))
+        {
+            auto *namedOut = fctOut->named_output();
+            name = namedOut->IDENTIFIER()->getText();
+            firstExpr = namedOut->expr(0);
+        }
+
+        oss << chipsTypeFor(firstExpr) << "& " << name <<"_out";
+    }
+    return oss.str();
+}
+
+std::string CodeGenListener::outputText(){
+
+    std::string pad(4, ' ');
+    std::string out{};
+
+    if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def))
+    {
+        for(auto *output : std::get<ChipsParser::L_function_defContext*>(current_def)->named_output())
+        {
+            out += pad + output->IDENTIFIER()->getText() + "_out = " + translateExpr(output->expr()[0]) + ";\n";
+        }
+    }
+    if (std::holds_alternative<ChipsParser::P_function_defContext*>(current_def))
+    {
+        for(auto *output : std::get<ChipsParser::P_function_defContext*>(current_def)->p_named_output())
+        {
+            ChipsParser::ExprContext *firstExpr = nullptr;
+
+            if (auto *actuator = dynamic_cast<ChipsParser::ActuatorOutputContext *>(output))
+            {
+                firstExpr = actuator->expr(0);
+                out += pad + actuator->IDENTIFIER()->getText() + "_out = " + translateExpr(firstExpr) + ";\n";
+            }
+            else if (auto *fctOut = dynamic_cast<ChipsParser::FunctionOutputContext *>(output))
+            {
+                auto *namedOut = fctOut->named_output();
+                firstExpr = namedOut->expr(0);
+                out += pad + namedOut->IDENTIFIER()->getText() + "_out = " + translateExpr(firstExpr) + ";\n";
+            }
+        }
+    }
+    return out;
+}
+
+void CodeGenListener::emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params, const std::string &outputs, const bool& inScope)
+{
 
     std::string inner_decls;
-    const std::string stmts_txt = translateStatements(statements, 4, false);
-    if (std::holds_alternative<ChipsParser::L_function_defContext*>(current_def)){
-        inner_decls = dico.serializeL(std::get<ChipsParser::L_function_defContext*>(current_def));
-    } else{
-        inner_decls = dico.serializeP(std::get<ChipsParser::P_function_defContext*>(current_def));
+    const std::string stmts_txt = translateStatements(statements, 4, inScope);
+    if (std::holds_alternative<ChipsParser::L_function_defContext *>(current_def))
+    {
+        inner_decls = dico.serializeL(std::get<ChipsParser::L_function_defContext *>(current_def));
+    }
+    else
+    {
+        inner_decls = dico.serializeP(std::get<ChipsParser::P_function_defContext *>(current_def));
     }
 
-    out_ << "void " << funcName << "_" << suffix << "(" 
-        << params + ((!params.empty()) && (!inner_decls.empty()) ? ", " : "") + inner_decls << ")\n{\n";
+
+    std::vector<std::string> parts;
+    if (!params.empty())
+        parts.push_back(params);
+    if (!inner_decls.empty())
+        parts.push_back(inner_decls);
+    if (!outputs.empty())
+        parts.push_back(outputs);
+
+    std::ostringstream signature;
+    for (size_t i = 0; i < parts.size(); ++i)
+    {
+        if (i)
+            signature << ", ";
+        signature << parts[i];
+    }
+
+    out_ << "void " << funcName << "_" << suffix << "(" << signature.str() << ")\n{\n";
     out_ << stmts_txt;
+    if (suffix.compare("then") == 0)
+    {
+        out_ << outputText();
+    }
     out_ << "}\n\n";
 }
 
 void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx)
-{   
+{
     current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
     const std::string params = translateParams(ctx->df_parameter_decl());
-    const std::string inner_decls = dico.serializeL(ctx);
+    const std::string outputs = translateOutputs(ctx->named_output());
 
-    emitSection(name, "init", ctx->init_section()->statement(), params);
-    emitSection(name, "then", ctx->then_section()->statement(), params);
+    emitSection(name, "init", ctx->init_section()->statement(), params, outputs,false);
+    emitSection(name, "then", ctx->then_section()->statement(), params, outputs,true);
 }
 
 void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx)
@@ -500,8 +660,8 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
     current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
     const std::string params = translateParams(ctx->pdf_parameter_decl());
-    const std::string inner_decls = dico.serializeP(ctx);
+    const std::string outputs = translateOutputs(ctx->p_named_output());
 
-    emitSection(name, "init", ctx->init_section()->statement(), params);
-    emitSection(name, "then", ctx->then_section()->statement(), params);
+    emitSection(name, "init", ctx->init_section()->statement(), params, outputs,false);
+    emitSection(name, "then", ctx->then_section()->statement(), params, outputs,true);
 }

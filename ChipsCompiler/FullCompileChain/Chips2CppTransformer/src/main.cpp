@@ -1,16 +1,120 @@
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
+#include <map>
+#include <filesystem>
 
 #include "antlr4-runtime.h"
 #include "ChipsLexer.h"
 #include "ChipsParser.h"
 #include "CodeGenListener.h"
 
-
-void cppGenerated_file(const char* dstPath)
+void print_usage(const char *progName, const std::map<std::string, std::string> &paramDescriptions)
 {
-    std::string input = "logical SimulationPhysique(float y, float u, float perturbation)init{int i=0; int[3] three = range(3);int[2][3] six=range(2,3);for l in six[1]{i=1;}for j in zeros(10){i=j;} for k in three{i=k;}}then{} -> simulation((0.9 * y) + (0.1 * u * 10.) - perturbation) logical Compute(float tension) init {  int t = 0;    float test_tension = 5.;    float test_perturbation = 0.;}then{    if(t > 0){        test_tension = tension;    }    t = t + 1;    if((t >= 30) && (t < 60)){        test_perturbation = 0.5;    }else{        test_perturbation = 0.;    }} -> perturbation(test_perturbation)-> tension(test_tension)object Broadcast with {}spread() spreadTension among Broadcast {}-> @(input)-> default(input)system {    int horizon = 20;    float target = 5.;    float a = 0.9;    float b = 1.;    float utest_min = 0.;    float utest_max = 1.;    float ytest_safetest_min = 4.;    float ytest_safetest_max = 100;    Compute compute;    MPCController ctrl;    SimulationPhysique simulate;    Broadcast broadcaster;    link compute to broadcaster;    ctrl.targetValue(target);    ctrl.a(a);    ctrl.b(b);    ctrl.N(horizon);    ctrl.utest_min(utest_min);    ctrl.utest_max(utest_max);    ctrl.ytest_safetest_min(ytest_safetest_min);    ctrl.ytest_safetest_max(ytest_safetest_max);    ctrl.currentValue((spreadTension) compute.tension);    simulate.y((spreadTension) compute.tension);    simulate.u(ctrl.correction);    simulate.perturbation(compute.perturbation);    compute.tension(simulate.simulation);}";
+    std::cerr << "Usage: " << progName;
+    for (const auto &[name, desc] : paramDescriptions)
+    {
+        if (name.rfind("-", 0) == 0)
+            std::cerr << " [" << name << " <value>]";
+        else
+            std::cerr << " <" << name << ">";
+    }
+    std::cerr << "\n\n";
+    for (const auto &[name, desc] : paramDescriptions)
+        std::cerr << "  " << name << "\t\t" << desc << "\n";
+}
+
+// paramDescriptions: keys starting with '-' are optional named parameters taking a value;
+// keys not starting with '-' are required positional parameters (at most one supported).
+std::map<std::string, std::string> parseCommandLine(int argc, char **argv, const std::map<std::string, std::string> &paramDescriptions)
+{
+    std::map<std::string, std::string> result;
+
+    std::string positionalKey;
+    for (const auto &[name, desc] : paramDescriptions)
+    {
+        if (name.rfind("-", 0) != 0)
+        {
+            if (!positionalKey.empty())
+            {
+                std::cerr << "Internal error: more than one positional parameter declared." << std::endl;
+                exit(1);
+            }
+            positionalKey = name;
+        }
+    }
+
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string arg = argv[i];
+
+        if (arg.rfind("-", 0) == 0)
+        {
+            if (paramDescriptions.find(arg) == paramDescriptions.end())
+            {
+                std::cerr << "Unknown option: " << arg << std::endl;
+                print_usage(argv[0], paramDescriptions);
+                exit(1);
+            }
+            if (i + 1 >= argc)
+            {
+                std::cerr << "Missing argument for " << arg << std::endl;
+                print_usage(argv[0], paramDescriptions);
+                exit(1);
+            }
+            result[arg] = argv[++i];
+        }
+        else
+        {
+            if (positionalKey.empty())
+            {
+                std::cerr << "Unexpected argument: " << arg << std::endl;
+                print_usage(argv[0], paramDescriptions);
+                exit(1);
+            }
+            if (result.find(positionalKey) != result.end())
+            {
+                std::cerr << "Unexpected extra argument: " << arg << std::endl;
+                print_usage(argv[0], paramDescriptions);
+                exit(1);
+            }
+            result[positionalKey] = arg;
+        }
+    }
+
+    if (!positionalKey.empty() && result.find(positionalKey) == result.end())
+    {
+        std::cerr << "Missing required argument: " << positionalKey << std::endl;
+        print_usage(argv[0], paramDescriptions);
+        exit(1);
+    }
+
+    return result;
+}
+
+void ensure_parent_dirs(const std::string &path)
+{
+    std::filesystem::path p(path);
+    std::filesystem::path parent = p.parent_path();
+    if (!parent.empty() && !std::filesystem::exists(parent))
+    {
+        std::filesystem::create_directories(parent);
+    }
+}
+
+void cppGenerated_file(const char *srcPath, const std::string &dstPath)
+{
+    std::ifstream in(srcPath);
+    if (!in)
+    {
+        std::cerr << "Failed to open input file for reading." << std::endl;
+        exit(1);
+    }
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    std::string input = buffer.str();
 
     antlr4::ANTLRInputStream inputStream(input);
 
@@ -22,6 +126,7 @@ void cppGenerated_file(const char* dstPath)
 
     antlr4::tree::ParseTree *tree = parser.program();
 
+    ensure_parent_dirs(dstPath);
     std::ofstream out(dstPath);
     if (!out)
     {
@@ -33,42 +138,55 @@ void cppGenerated_file(const char* dstPath)
     out.close();
 }
 
-
-void copy_file(const char* srcPath, const char* dstPath)
+void copy_file(const char *srcPath, const std::string &dstPath)
 {
+    ensure_parent_dirs(dstPath);
     std::ifstream src(srcPath, std::ios::binary);
     std::ofstream dst(dstPath, std::ios::binary);
     const std::size_t bufSize = 65536;
     std::vector<char> buf(bufSize);
 
-    while (src) {
+    while (src)
+    {
         src.read(buf.data(), static_cast<std::streamsize>(bufSize));
         std::streamsize n = src.gcount();
-        if (n > 0) dst.write(buf.data(), n);
+        if (n > 0)
+            dst.write(buf.data(), n);
     }
 }
 
-void append_file(const char* srcPath, const char* dstPath)
+void append_file(const std::string &srcPath, const std::string &dstPath)
 {
     std::ifstream src(srcPath, std::ios::binary);
     std::ofstream dst(dstPath, std::ios::binary | std::ios::app);
     const std::size_t bufSize = 65536;
     std::vector<char> buf(bufSize);
 
-    while (src) {
+    while (src)
+    {
         src.read(buf.data(), static_cast<std::streamsize>(bufSize));
         std::streamsize n = src.gcount();
-        if (n > 0) dst.write(buf.data(), n);
+        if (n > 0)
+            dst.write(buf.data(), n);
     }
 }
 
-
-int main()
+int main(int argc, char **argv)
 {
-    copy_file("../src/cppHeaderAutoInclude.hpp", "bip_importable.cpp");
-    cppGenerated_file("generated_functions.cpp");
-    append_file("generated_functions.cpp","bip_importable.cpp");
-    std::cout << "Generated code written to bip_importable.cpp" << std::endl;
+    const std::map<std::string, std::string> paramDescriptions{
+        {"input", "path to the chips file to compile"},
+        {"-o", "path of the file in which to output the generated cpp code (default: bip_importable.cpp)"}};
+
+    std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
+
+    const std::string chipsPath = args.at("input");
+    const std::string outputPath = args.count("-o") ? args.at("-o") : "bip_importable.cpp";
+    const std::string generatedPath = "generated_functions.cpp";
+
+    copy_file("../src/cppHeaderAutoInclude.hpp", outputPath);
+    cppGenerated_file(chipsPath.c_str(), generatedPath);
+    append_file(generatedPath, outputPath);
+    std::cout << "Generated code written to " << outputPath << std::endl;
 
     return 0;
 }

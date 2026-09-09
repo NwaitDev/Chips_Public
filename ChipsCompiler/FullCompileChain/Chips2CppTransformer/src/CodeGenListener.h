@@ -4,53 +4,12 @@
 #include <string>
 #include <vector>
 #include <map>
-
-#include "antlr4-runtime.h"
-#include "ChipsBaseListener.h"
-
 #include <variant>
 #include <utility>
 
-class Dictionary {
-public:
-   using Value = std::map<std::string,std::string>;
-
-    void addLogical(
-        ChipsParser::L_function_defContext* key,
-        const std::string& name,
-        const std::string& value);
-
-    void addPhysical(
-        ChipsParser::P_function_defContext* key,
-        const std::string& name,
-        const std::string& value);
-
-    void addSpread(
-        ChipsParser::Collective_op_defContext* key,
-        const std::string& name,
-        const std::string& value);
-
-    void addCollect(
-        ChipsParser::Collective_op_defContext* key,
-        const std::string& name,
-        const std::string& value);
-
-    std::string serializeL(
-        ChipsParser::L_function_defContext* key) const;
-
-    std::string serializeP(
-        ChipsParser::P_function_defContext* key) const;
-
-    std::string serializeCollective(
-        ChipsParser::Collective_op_defContext* key) const;
-
-private:
-    std::map<ChipsParser::L_function_defContext*, Value> logicals_;
-    std::map<ChipsParser::P_function_defContext*, Value> physicals_;
-    std::map<ChipsParser::Collective_op_defContext*, Value> spreads_;
-    std::map<ChipsParser::Collective_op_defContext*, Value> collects_;
-};
-
+#include "antlr4-runtime.h"
+#include "ChipsBaseListener.h"
+#include "Dictionary.hpp"
 
 class CodeGenListener : public ChipsBaseListener
 {
@@ -69,13 +28,26 @@ private:
         ChipsParser::L_function_defContext*,
         ChipsParser::P_function_defContext*,
         ChipsParser::CollectiveOperationDefinitionContext*>;
+    
     DefType current_def;
     Dictionary dico;
-    void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params);
+    std::map<std::string, std::string> varTypes_;
+
+    void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params, const std::string &outputs, const bool& inScope);
+
+    bool lookupVarType(const std::string &name, std::string &type) const;
 
     std::string chipsTypeFor(ChipsParser::Df_typeContext *typeCtx);
+    std::string chipsTypeFor(ChipsParser::ExprContext *ctx);
+    std::string chipsTypeFor(ChipsParser::Expr0Context *ctx);
+    std::string chipsTypeFor(ChipsParser::Expr01Context *ctx);
+    std::string chipsTypeFor(ChipsParser::Expr1Context *ctx);
+    std::string chipsTypeFor(ChipsParser::Expr2Context *ctx);
+
     std::string translateParams(const std::vector<ChipsParser::Df_parameter_declContext *> &params);
     std::string translateParams(const std::vector<ChipsParser::Pdf_parameter_declContext *> &params);
+    std::string translateOutputs(const std::vector<ChipsParser::Named_outputContext *> &outputs);
+    std::string translateOutputs(const std::vector<ChipsParser::P_named_outputContext *> &outputs);
 
     // inScope parameter allows to specify if the declaration must be in the scope of the section only
     // or in the declaration of the parameters of the function call that models the init/then section
@@ -85,6 +57,8 @@ private:
     std::string translateLoop(ChipsParser::Loop_statementContext *ctx, int indent);
     std::string translateIf(ChipsParser::If_statementContext *ctx, int indent);
     std::string translateIfElse(ChipsParser::If_else_statementContext *ctx, int indent);
+    std::string translateAssignment(ChipsParser::StatementAssignmentContext *ctx, int indent);
+    std::string translateContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx, int indent);
 
     std::string translateSuffixes(ChipsParser::SuffixesContext *ctx);
     std::string translateFunction(ChipsParser::FunctionContext *ctx);
@@ -93,6 +67,11 @@ private:
     std::string translateExpr01(ChipsParser::Expr01Context* ctx);
     std::string translateExpr1(ChipsParser::Expr1Context* ctx);
     std::string translateExpr2(ChipsParser::Expr2Context* ctx);
+
+    
+
+
+    std::string outputText();
 
     antlr4::CommonTokenStream &tokens_;
     std::ostream &out_;
