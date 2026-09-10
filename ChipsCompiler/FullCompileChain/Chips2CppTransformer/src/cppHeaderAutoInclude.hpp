@@ -946,7 +946,73 @@ chips<T> &chips<T>::operator=(const chips_any &rhs)
     return *this;
 }
 
+/*=====================================================================
+ *  imin,imax,fmin and fmax : min and max functions for chips numerics
+ *=====================================================================*/
 
+inline chips_int imin(const chips_int &lhs, const chips_int &rhs)
+{
+    if (lhs.shape() != rhs.shape())
+        throw std::invalid_argument("imin : shape mismatch");
+    chips_int res(lhs.shape());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](int a, int b) { return std::min(a, b); });
+    }
+    return res;
+}
+
+inline chips_int imax(const chips_int &lhs, const chips_int &rhs)
+{
+    if (lhs.shape() != rhs.shape())
+        throw std::invalid_argument("imax : shape mismatch");
+    chips_int res(lhs.shape());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](int a, int b) { return std::max(a, b); });
+    }
+    return res;
+}
+
+inline chips_float fmin(const chips_float &lhs, const chips_float &rhs)
+{
+    if (lhs.shape() != rhs.shape())
+        throw std::invalid_argument("fmin : shape mismatch");
+    chips_float res(lhs.shape());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](double a, double b) { return std::min(a, b); });
+    }
+    return res;
+}
+
+inline chips_float fmax(const chips_float &lhs, const chips_float &rhs)
+{
+    if (lhs.shape() != rhs.shape())
+        throw std::invalid_argument("fmax : shape mismatch");
+    chips_float res(lhs.shape());
+    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
+    if (!res.stopFlag)
+    {
+        std::transform(lhs.data().begin(), lhs.data().end(),
+                       rhs.data().begin(),
+                       res.data().begin(),
+                       [](double a, double b) { return std::max(a, b); });
+    }
+    return res;
+}
 
 
 /*=====================================================================

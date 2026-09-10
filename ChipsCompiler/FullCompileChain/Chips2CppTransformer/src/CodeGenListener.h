@@ -25,13 +25,6 @@ public:
     void exitCollective_op_def(ChipsParser::Collective_op_defContext *ctx) override;
 
 private:
-    std::set<std::string> emittedAggrStructs_;
-
-    static std::string capitalize(const std::string &s);
-    std::string aggregateStructName(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
-    std::string aggregateStructDef(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
-    void emitAggregateStructIfNeeded(ChipsParser::Collective_op_defContext *ctx);
-
 
     using DefType = std::variant<
         ChipsParser::L_function_defContext*,
@@ -46,10 +39,20 @@ private:
     Dictionary dico;
     std::map<std::string, std::string> varTypes_;
     std::map<ObjectType, std::set<std::pair<std::string, std::string>>> channels_;
-    std::map<ChipsParser::Collective_op_defContext*, std::map<std::string, std::string>> collective_vars_;
-    
+    std::map<DefType, std::map<std::string, std::string>> vars_for_def_;
+    std::map<ObjectType, std::set<std::pair<std::string, std::string>>> ctx_vars_;
+    bool substituteInputDefaults_ = false;
+    std::set<std::string> emittedAggrStructs_;
+
+    static std::string capitalize(const std::string &s);
+    std::string aggregateStructName(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
+    std::string aggregateStructDef(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
+    void emitAggregateStructIfNeeded(ChipsParser::Collective_op_defContext *ctx);
 
     void registerChannels(const ObjectType &key);
+    void registerContextualVars(const ObjectType &key);
+    void storeVar(DefType ctx,const std::string& var_name, const std::string& type);
+    const std::set<std::pair<std::string, std::string>> *findContextualVarsForSupportName(const std::string &name) const;
 
     void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params, const std::string &outputs, const bool& inScope);
 
@@ -69,6 +72,12 @@ private:
     std::string chipsTypeFor(ChipsParser::C_stopless_expr01Context *ctx);
     std::string chipsTypeFor(ChipsParser::C_stopless_expr1Context *ctx);
     std::string chipsTypeFor(ChipsParser::C_stopless_expr2Context *ctx);
+
+    std::map<ChipsParser::Collective_op_defContext*, std::string> inputTypeCache_;
+
+    static void collectInputContexts(antlr4::tree::ParseTree *node, std::vector<ChipsParser::INPUTContext*> &out);
+    std::string inferInputTypeLocal(ChipsParser::INPUTContext *inputCtx);
+    std::string inferInputType(ChipsParser::INPUTContext *inputCtx);
 
     std::string translateParams(const std::vector<ChipsParser::Df_parameter_declContext *> &params);
     std::string translateParams(const std::vector<ChipsParser::Pdf_parameter_declContext *> &params);

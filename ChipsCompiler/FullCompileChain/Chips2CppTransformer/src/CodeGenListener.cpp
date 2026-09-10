@@ -3,6 +3,42 @@
 
 #include <sstream>
 #include <cctype>
+#include <algorithm>
+
+
+namespace
+{
+    // Registry of built-in ("native") functions whose parameter types are
+    // known statically. Each entry lists the expected type per argument
+    // position; if a function takes more arguments than entries listed
+    // (e.g. variadic dimension arguments to ones/zeros/range), the last
+    // entry is reused for every remaining position. Functions not present
+    // here are treated as unknown/user-defined, so no type can be inferred.
+    const std::map<std::string, std::vector<std::string>> &nativeFunctionArgTypes()
+    {
+        static const std::map<std::string, std::vector<std::string>> table{
+            {"ones",  {"chips_int"}},
+            {"zeros", {"chips_int"}},
+            {"range", {"chips_int"}},
+            {"imin", {"chips_int"}},
+            {"fmin", {"chips_float"}},
+            {"imax", {"chips_int"}},
+            {"fmax", {"chips_float"}}
+        };
+        return table;
+    }
+
+    std::string nativeFunctionArgType(const std::string &fname, std::size_t argIndex)
+    {
+        const auto &table = nativeFunctionArgTypes();
+        const auto it = table.find(fname);
+        if (it == table.end() || it->second.empty())
+            return "chips_any";
+
+        const auto &types = it->second;
+        return types[std::min(argIndex, types.size() - 1)];
+    }
+}
 
 std::string CodeGenListener::capitalize(const std::string &s)
 {
@@ -86,6 +122,15 @@ std::string CodeGenListener::translateStatement(ChipsParser::StatementContext *s
     return pad + text + "\n";
 }
 
+std::string generateUniqueiterableName(const std::map<std::string, std::string>& used_names) {
+    std::size_t idx = 0;
+    while (true) {
+        std::string candidate = "i" + std::to_string(idx);
+        if (used_names.find(candidate) == used_names.end()) return candidate;
+        ++idx;
+    }
+}
+
 std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *ctx, int indent)
 {
     std::string pad(indent, ' ');
@@ -128,9 +173,12 @@ std::string CodeGenListener::translateLoop(ChipsParser::Loop_statementContext *c
             indices += "[" + tokens_.getText(idx) + "]";
         }
 
+        std::string iterableName = generateUniqueiterableName(vars_for_def_[current_def]);
+        storeVar(current_def,genVar,"chips_int");
+
         oss << pad << "{\n";
-        oss << pad << "    auto " << genVar << " = " << source << "(" << argList << ")" + indices + ";\n";
-        oss << pad << "    for(chips_int i{0}; i<" + genVar + ".size(); i = i+chips_int{1}) {\n";
+        oss << pad << "    auto " << iterableName << " = " << source << "(" << argList << ")" + indices + ";\n";
+        oss << pad << "    for(chips_int "+genVar+"{0}; "+genVar+" < " + iterableName + ".size(); "+genVar+" = "+genVar+"+chips_int{1}) {\n";
         oss << translateStatements(ctx->statement(), indent + 8, true);
         oss << pad << "    }\n";
         oss << pad << "}\n";
@@ -677,6 +725,7 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
     const std::string params = translateParams(ctx->pdf_parameter_decl());
     const std::string outputs = translateOutputs(ctx->p_named_output());
     registerChannels(ObjectType{ctx});
+    registerContextualVars(ObjectType{ctx});
 
     emitSection(name, "init", ctx->init_section()->statement(), params, outputs,false);
     emitSection(name, "then", ctx->then_section()->statement(), params, outputs,true);
@@ -688,6 +737,20 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
 bool CodeGenListener::isSpreadOp(ChipsParser::Collective_op_defContext *ctx) const
 {
     return ctx->c_signature()->c_keywords()->SPREAD_KW() != nullptr;
+}
+
+const std::set<std::pair<std::string, std::string>> *CodeGenListener::findContextualVarsForSupportName(const std::string &name) const
+{
+    for (const auto &[key, vars] : ctx_vars_)
+    {
+        const std::string keyName = std::visit(
+            [](auto *ctx) -> std::string { return ctx->IDENTIFIER()->getText(); },
+            key);
+
+        if (keyName == name)
+            return &vars;
+    }
+    return nullptr;
 }
 
 std::string CodeGenListener::translateCStatements(const std::vector<ChipsParser::C_statementContext *> &statements, int indent)
@@ -770,9 +833,12 @@ std::string CodeGenListener::translateCLoop(ChipsParser::C_loop_statementContext
             indices += "[" + tokens_.getText(idx) + "]";
         }
 
+        std::string iterableName = generateUniqueiterableName(vars_for_def_[current_def]);
+        storeVar(current_def,genVar,"chips_int");
+
         oss << pad << "{\n";
-        oss << pad << "    auto " << genVar << " = " << source << "(" << argList << ")" + indices + ";\n";
-        oss << pad << "    for(chips_int i{0}; i<" + genVar + ".size(); i = i+chips_int{1}) {\n";
+        oss << pad << "    auto " << iterableName << " = " << source << "(" << argList << ")" + indices + ";\n";
+        oss << pad << "    for(chips_int "+genVar+"{0}; "+genVar+" < " + iterableName + ".size(); "+genVar+" = "+genVar+"+chips_int{1}) {\n";
         oss << translateCStatements(ctx->c_statement(), indent + 8);
         oss << pad << "    }\n";
         oss << pad << "}\n";
@@ -814,10 +880,7 @@ std::string CodeGenListener::translateCDecl(ChipsParser::Cdf_full_declarationCon
     std::string pad(indent, ' ');
 
     auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
-    if (isSpreadOp(cctx))
-        dico.addSpread(cctx, varName, chipType);
-    else
-        dico.addCollect(cctx, varName, chipType);
+    storeVar(cctx, varName, chipType);
 
     std::string ctorArgs;
     if (auto *suffixes = ctx->suffixes())
@@ -853,6 +916,11 @@ std::string CodeGenListener::translateCAssignment(ChipsParser::CollectiveAssignm
 {
     std::string pad(indent, ' ');
     std::string varName = ctx->IDENTIFIER()->getText();
+    auto varmap = vars_for_def_[std::get<ChipsParser::Collective_op_defContext*>(current_def)];
+    if (varmap.count(varName) == 0)
+    {
+        varName = std::string("_accumulator.")+varName;
+    }
     std::string lhs = varName + translateCSuffixes(ctx->c_suffixes());
 
     if (dynamic_cast<ChipsParser::StopContext *>(ctx->c_expr()))
@@ -1019,6 +1087,20 @@ std::string CodeGenListener::translateCStoplessExpr1(ChipsParser::C_stopless_exp
     throw ctx;
 }
 
+namespace
+{
+    // Restores a bool flag to its previous value on scope exit, even if an
+    // exception is thrown while the flag is set (e.g. translateCExpr throwing).
+    struct ScopedFlag
+    {
+        bool &flag;
+        bool old;
+        ScopedFlag(bool &f, bool val) : flag(f), old(f) { flag = val; }
+        ~ScopedFlag() { flag = old; }
+    };
+}
+
+
 std::string CodeGenListener::translateCStoplessExpr2(ChipsParser::C_stopless_expr2Context *ctx)
 {
     if (auto *casting = dynamic_cast<ChipsParser::CCastAsContext *>(ctx))
@@ -1036,19 +1118,80 @@ std::string CodeGenListener::translateCStoplessExpr2(ChipsParser::C_stopless_exp
     if (auto *literal = dynamic_cast<ChipsParser::CINTContext *>(ctx))
         return "chips_int{" + literal->INT()->getText() + "}";
 
-    if (dynamic_cast<ChipsParser::INPUTContext *>(ctx))
-        return "input";
+    if (auto *inp = dynamic_cast<ChipsParser::INPUTContext *>(ctx))
+    {
+        if (!substituteInputDefaults_)
+            return "input";
+
+        const std::string type = inferInputType(inp);
+        if (type == "chips_int")
+            return "chips_int{0}";
+        if (type == "chips_float")
+            return "chips_float{.0}";
+        if (type == "chips_bool")
+            return "chips_bool{false}";
+        return "chips_any{}";
+    }
 
     if (auto *variable = dynamic_cast<ChipsParser::CVariableExpressionContext *>(ctx))
     {
-        return variable->IDENTIFIER()->getText() + translateCSuffixes(variable->c_suffixes());
+        std::string varName = variable->IDENTIFIER()->getText();
+
+        auto varmap = vars_for_def_[std::get<ChipsParser::Collective_op_defContext*>(current_def)];
+        if (varmap.count(varName) == 0)
+        {
+            varName = std::string("_accumulator.")+varName;
+        }
+        return varName + translateCSuffixes(variable->c_suffixes());
     }
+        
 
     if (auto *ctxvar = dynamic_cast<ChipsParser::CtxVariableExpressionContext *>(ctx))
-        return ctxvar->IDENTIFIER()->getText() + translateCSuffixes(ctxvar->c_suffixes());
+    {
+        const std::string varName = ctxvar->IDENTIFIER()->getText();
+
+        if (std::holds_alternative<ChipsParser::Collective_op_defContext*>(current_def))
+        {
+            auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
+            const std::string supportTypeName = cctx->c_signature()->IDENTIFIER(1)->getText();
+
+            const auto *ctxVars = findContextualVarsForSupportName(supportTypeName);
+            const bool declared = ctxVars && std::any_of(ctxVars->begin(), ctxVars->end(),
+                [&](const std::pair<std::string, std::string> &p) { return p.second == varName; });
+
+            if (!declared)
+            {
+                throw std::runtime_error(
+                    "ctx variable '" + varName + "' referenced in collective definition is not "
+                    "declared in the with-section of support object/physical function '" + supportTypeName + "'");
+            }
+        }
+
+        return std::string{"ctx_"} + varName + translateCSuffixes(ctxvar->c_suffixes());
+    }
 
     if (auto *accu = dynamic_cast<ChipsParser::ChanneledAccuExpressionContext *>(ctx))
-        return accu->IDENTIFIER(0)->getText() + "." + accu->IDENTIFIER(1)->getText() + translateCSuffixes(accu->c_suffixes());
+    {
+        std::string chanName = accu->IDENTIFIER(0)->getText();
+        const std::string fieldName = accu->IDENTIFIER(1)->getText();
+
+        if (std::holds_alternative<ChipsParser::Collective_op_defContext*>(current_def))
+        {
+            auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
+            const std::string supportTypeName = cctx->c_signature()->IDENTIFIER(1)->getText();
+
+            if (const auto *chans = findChannelsForObjectName(supportTypeName))
+            {
+                const bool isDeclaredChannel = std::any_of(chans->begin(), chans->end(),
+                    [&](const std::pair<std::string, std::string> &p) { return p.second == chanName; });
+
+                if (isDeclaredChannel)
+                    chanName = chanName + "_acc";
+            }
+        }
+
+        return chanName + "." + fieldName + translateCSuffixes(accu->c_suffixes());
+    }
 
     if (auto *parens = dynamic_cast<ChipsParser::CParenthesisContext *>(ctx))
         return "(" + translateCStoplessExpr(parens->c_stopless_expr()) + ")";
@@ -1147,8 +1290,8 @@ std::string CodeGenListener::chipsTypeFor(ChipsParser::C_stopless_expr2Context *
     if (dynamic_cast<ChipsParser::CINTContext *>(ctx))
         return "chips_int";
 
-    if (dynamic_cast<ChipsParser::INPUTContext *>(ctx))
-        return "chips_any /* input */";
+    if (auto *inp = dynamic_cast<ChipsParser::INPUTContext *>(ctx))
+        return inferInputType(inp);
 
     if (auto *variable = dynamic_cast<ChipsParser::CVariableExpressionContext *>(ctx))
     {
@@ -1165,12 +1308,184 @@ std::string CodeGenListener::chipsTypeFor(ChipsParser::C_stopless_expr2Context *
 }
 
 
+// ---------- CodeGenListener.cpp ----------
+
+void CodeGenListener::collectInputContexts(antlr4::tree::ParseTree *node, std::vector<ChipsParser::INPUTContext*> &out)
+{
+    if (auto *inp = dynamic_cast<ChipsParser::INPUTContext *>(node))
+        out.push_back(inp);
+
+    for (auto *child : node->children)
+        collectInputContexts(child, out);
+}
+
+
+std::string CodeGenListener::inferInputTypeLocal(ChipsParser::INPUTContext *inputCtx)
+{
+    antlr4::tree::ParseTree *node   = inputCtx;
+    antlr4::tree::ParseTree *parent = node->parent;
+
+    while (parent)
+    {
+        if (auto *op = dynamic_cast<ChipsParser::CMULTContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr2()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr1())
+                       : chipsTypeFor(op->c_stopless_expr2());
+
+        if (auto *op = dynamic_cast<ChipsParser::CDIVContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr2()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr1())
+                       : chipsTypeFor(op->c_stopless_expr2());
+
+        if (dynamic_cast<ChipsParser::CMODContext *>(parent))
+            return "chips_int";
+
+        if (dynamic_cast<ChipsParser::CNOTContext *>(parent))
+            return "chips_bool";
+
+        if (dynamic_cast<ChipsParser::CNegateContext *>(parent))
+        {
+            node = parent;
+            parent = parent->parent;
+            continue;
+        }
+
+        if (auto *op = dynamic_cast<ChipsParser::CPLUSContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr01()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr0())
+                       : chipsTypeFor(op->c_stopless_expr01());
+
+        if (auto *op = dynamic_cast<ChipsParser::CSUBContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr01()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr0())
+                       : chipsTypeFor(op->c_stopless_expr01());
+
+        if (dynamic_cast<ChipsParser::CANDContext *>(parent) || dynamic_cast<ChipsParser::CORContext *>(parent))
+            return "chips_bool";
+
+        if (auto *op = dynamic_cast<ChipsParser::CLTContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+        if (auto *op = dynamic_cast<ChipsParser::CGTContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+        if (auto *op = dynamic_cast<ChipsParser::CLEQContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+        if (auto *op = dynamic_cast<ChipsParser::CGEQContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+        if (auto *op = dynamic_cast<ChipsParser::CNEQContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+        if (auto *op = dynamic_cast<ChipsParser::CEQContext *>(parent))
+            return (static_cast<antlr4::tree::ParseTree*>(op->c_stopless_expr0()) == node)
+                       ? chipsTypeFor(op->c_stopless_expr()) : chipsTypeFor(op->c_stopless_expr0());
+
+        if (dynamic_cast<ChipsParser::CParenthesisContext *>(parent)      ||
+            dynamic_cast<ChipsParser::PassCExpr2Context *>(parent)        ||
+            dynamic_cast<ChipsParser::PassCExpr1Context *>(parent)        ||
+            dynamic_cast<ChipsParser::PassCExpr01Context *>(parent)       ||
+            dynamic_cast<ChipsParser::PassCExpr0Context *>(parent)        ||
+            dynamic_cast<ChipsParser::CStoplessExpressionContext *>(parent))
+        {
+            node = parent;
+            parent = parent->parent;
+            continue;
+        }
+
+        if (dynamic_cast<ChipsParser::C_suffixesContext *>(parent))
+            return "chips_int";
+
+        if (auto *fc = dynamic_cast<ChipsParser::FunctionCallContext *>(parent))
+        {
+            const std::string fname = fc->IDENTIFIER()->getText();
+            if (fname == "ones" || fname == "zeros" || fname == "range")
+                return "chips_int";
+            return "chips_any";
+        }
+
+        if (auto *decl = dynamic_cast<ChipsParser::Cdf_defaulted_declContext *>(parent))
+            return chipsTypeFor(decl->df_type());
+
+        if (auto *decl = dynamic_cast<ChipsParser::Cdf_full_declarationContext *>(parent))
+            return chipsTypeFor(decl->df_type());
+
+        if (auto *assign = dynamic_cast<ChipsParser::CollectiveAssignmentContext *>(parent))
+        {
+            std::string type;
+            if (lookupVarType(assign->IDENTIFIER()->getText(), type))
+                return type;
+            return "chips_any";
+        }
+
+        if (auto *assign = dynamic_cast<ChipsParser::ContextualAssignmentContext *>(parent))
+        {
+            std::string type;
+            if (lookupVarType(assign->IDENTIFIER()->getText(), type))
+                return type;
+            return "chips_any";
+        }
+
+        if (dynamic_cast<ChipsParser::C_if_statementContext *>(parent))
+            return "chips_bool";
+
+        if (dynamic_cast<ChipsParser::C_castContext *>(parent))
+            return "chips_any";
+
+        node = parent;
+        parent = parent->parent;
+    }
+
+    return "chips_any";
+}
+
+// Resolves 'input's type across every occurrence within the enclosing
+// collective_op_def, since they all denote the same data. Throws if two
+// occurrences yield incompatible concrete types; an occurrence inferred as
+// chips_any never conflicts and is refined away by any concrete finding.
+std::string CodeGenListener::inferInputType(ChipsParser::INPUTContext *inputCtx)
+{
+    if (!std::holds_alternative<ChipsParser::Collective_op_defContext*>(current_def))
+        return inferInputTypeLocal(inputCtx);
+
+    auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
+
+    if (auto cached = inputTypeCache_.find(cctx); cached != inputTypeCache_.end())
+        return cached->second;
+
+    std::vector<ChipsParser::INPUTContext*> allInputs;
+    collectInputContexts(cctx, allInputs);
+
+    std::string resolved = "chips_any";
+    for (auto *inp : allInputs)
+    {
+        const std::string local = inferInputTypeLocal(inp);
+
+        if (local == "chips_any")
+            continue;
+
+        if (resolved == "chips_any")
+        {
+            resolved = local;
+        }
+        else if (resolved != local)
+        {
+            throw std::runtime_error(
+                "conflicting types inferred for 'input' within the same collective "
+                "definition: '" + resolved + "' vs '" + local + "'");
+        }
+    }
+
+    inputTypeCache_[cctx] = resolved;
+    return resolved;
+}
 
 std::string CodeGenListener::aggregateStructName(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params)
 {
     std::string name = "Aggr";
     for (auto *p : params)
-        name += capitalize(p->df_type()->getText());
+        name += capitalize(p->IDENTIFIER()->getText());
     name += "_t";
     return name;
 }
@@ -1179,11 +1494,14 @@ std::string CodeGenListener::aggregateStructDef(const std::vector<ChipsParser::C
 {
     std::ostringstream oss;
     oss << "struct " << aggregateStructName(params) << "{\n";
+
+    ScopedFlag guard(substituteInputDefaults_, true);
     for (auto *p : params)
     {
         oss << "    " << chipsTypeFor(p->df_type()) << ' ' << p->IDENTIFIER()->getText()
             << '{' << translateCExpr(p->c_expr()) << "};\n";
     }
+
     oss << "};\n\n";
     return oss.str();
 }
@@ -1202,6 +1520,29 @@ void CodeGenListener::emitAggregateStructIfNeeded(ChipsParser::Collective_op_def
     emittedAggrStructs_.insert(name);
 }
 
+void CodeGenListener::registerContextualVars(const ObjectType &key)
+{
+    ChipsParser::With_sectionContext *withSection = std::visit(
+        [](auto *ctx) -> ChipsParser::With_sectionContext*
+        {
+            return ctx->with_section();
+        },
+        key);
+
+    if (!withSection)
+        return;
+
+    for (auto *stmt : withSection->with_statement())
+    {
+        auto *ctxDecl = dynamic_cast<ChipsParser::ContextualDeclarationContext *>(stmt);
+        if (!ctxDecl)
+            continue;
+
+        const std::string type = chipsTypeFor(ctxDecl->df_type());
+        const std::string name = ctxDecl->IDENTIFIER()->getText();
+        ctx_vars_[key].insert({type, name});
+    }
+}
 
 void CodeGenListener::registerChannels(const ObjectType &key)
 {
@@ -1230,6 +1571,7 @@ void CodeGenListener::registerChannels(const ObjectType &key)
 void CodeGenListener::exitObject_def(ChipsParser::Object_defContext *ctx)
 {
     registerChannels(ObjectType{ctx});
+    registerContextualVars(ObjectType{ctx});
 }
 
 const std::set<std::pair<std::string, std::string>> *CodeGenListener::findChannelsForObjectName(const std::string &name) const
@@ -1250,16 +1592,16 @@ const std::set<std::pair<std::string, std::string>> *CodeGenListener::findChanne
     return nullptr;
 }
 
-// // // // // // // // // // // // // // // // // // // // // // // // // // // // void CodeGenListener::storeCollectiveVar(
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     ChipsParser::Collective_op_defContext* ctx,
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     const std::string& var_name,
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     const std::string& type)
-// // // // // // // // // // // // // // // // // // // // // // // // // // // // {
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     if (!ctx || var_name.empty()) {
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //         throw std::invalid_argument("Invalid arguments");
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     }
-// // // // // // // // // // // // // // // // // // // // // // // // // // // //     collective_vars_[ctx][var_name] = type;
-// // // // // // // // // // // // // // // // // // // // // // // // // // // // }
+void CodeGenListener::storeVar(
+    DefType ctx,
+    const std::string& var_name,
+    const std::string& type)
+{
+    if (var_name.empty()) {
+        throw std::invalid_argument("Invalid arguments");
+    }
+    vars_for_def_[ctx][var_name] = type;
+}
 
 std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defContext *ctx)
 {
@@ -1267,16 +1609,47 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
     const std::string structName = aggregateStructName(signature->cdf_defaulted_decl());
 
     std::ostringstream oss;
-    oss << "chips_int& channel_indicator";
+
+    storeVar(ctx, "channel_indicator", "chips_int");
+    oss << "chips_int channel_indicator";
+
+    storeVar(ctx, "_accumulator", structName);
     oss << ", " << structName << "& _accumulator";
 
     const std::string supportTypeName = signature->IDENTIFIER(1)->getText();
+
     if (const auto *chans = findChannelsForObjectName(supportTypeName))
     {
         for (const auto &[type, name] : *chans)
         {
-            oss << ", " << structName << "& " << name << "_acc";
+            const std::string paramName = name + "_acc";
+            storeVar(ctx, paramName, structName);
+            oss << ", " << structName << "& " << paramName;
         }
+    } else {
+        throw std::runtime_error("Undefined channels for '" + supportTypeName + "' referenced in collective definition '" + ctx->c_signature()->IDENTIFIER(0)->getText() + "'");
+    }
+
+    if (const auto *ctxVars = findContextualVarsForSupportName(supportTypeName))
+    {
+        for (const auto &[type, name] : *ctxVars)
+        {
+            storeVar(ctx, name, type);
+            oss << ", " << type << "& ctx_" << name;
+        }
+    }
+
+    if (!isSpreadOp(ctx))
+    {
+        std::vector<ChipsParser::INPUTContext*> inputs;
+        collectInputContexts(ctx, inputs);
+
+        std::string inputType = "chips_any";
+        if (!inputs.empty())
+            inputType = inferInputType(inputs.front());
+
+        storeVar(ctx, "input", inputType);
+        oss << ", " << inputType << "& input";
     }
 
     return oss.str();
@@ -1288,7 +1661,6 @@ void CodeGenListener::exitCollective_op_def(ChipsParser::Collective_op_defContex
     const std::string suffix = isSpreadOp(ctx) ? "_down" : "_up";
     
     emitAggregateStructIfNeeded(ctx);
-
 
     out_ << "\nvoid " << ctx->c_signature()->IDENTIFIER(0)->getText()<< suffix << "("<< extractParameters(ctx) <<")\n{\n";
     out_ << translateCStatements(ctx->c_statement(), 4);
