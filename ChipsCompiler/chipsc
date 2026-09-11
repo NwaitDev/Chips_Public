@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+
+declare -A DESCRIPTIONS=(
+    ["file"]="Source file to work with. Accepted formats are .chips, .chips.xmi or .bip.xmi."
+    ["--chips-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> chips model. Only works with .chips files."
+    ["--bip-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> equivalent bip model. Only works with .chips and .chips.xmi files."
+    ["--cpp-only"]="Stop the compilation after having generated the c++ procedures relative to <file> components. Only works with .chips files."
+    ["-o"]="The name of the folder in which to store the model elements generated. If no <folder> is specified, artifacts will be stored in CHIPS_GENERATED."
+    ["-h"]="Print this message."
+)
+
+print_usage() {
+    echo "Usage: $(basename "$0") [options] <file>"
+    echo
+    echo "Positional arguments:"
+    printf "  %-15s %s\n" "file" "${DESCRIPTIONS["file"]}"
+    echo
+    echo "Options:"
+    printf "  %-15s %s\n" "--chips-xmi" "${DESCRIPTIONS["--chips-xmi"]}"
+    printf "  %-15s %s\n" "--bip-xmi" "${DESCRIPTIONS["--bip-xmi"]}"
+    printf "  %-15s %s\n" "--cpp-only" "${DESCRIPTIONS["--cpp-only"]}"
+    printf "  %-15s %s\n" "-o <folder>" "${DESCRIPTIONS["-o"]}"
+    printf "  %-15s %s\n" "-h" "${DESCRIPTIONS["-h"]}"
+}
+
+
+FILE=""
+CHIPS_XMI=0
+BIP_XMI=0
+CPP_ONLY=0
+OUTPUT_DIR=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --chips-xmi)
+            CHIPS_XMI=1
+            shift
+            ;;
+        --bip-xmi)
+            BIP_XMI=1
+            shift
+            ;;
+        --cpp-only)
+            CPP_ONLY=1
+            shift
+            ;;
+        -o)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: -o requires a value." >&2
+                print_usage
+                exit 1
+            fi
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -h)
+            print_usage
+            exit 0
+            ;;
+        -*)
+            echo "Error: unknown option '$1'." >&2
+            print_usage
+            exit 1
+            ;;
+        *)
+            if [[ -n "$FILE" ]]; then
+                echo "Error: unexpected extra positional argument '$1'." >&2
+                print_usage
+                exit 1
+            fi
+            FILE="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$FILE" ]]; then
+    echo "Error: missing required <file> argument." >&2
+    print_usage
+    exit 1
+fi
+
+case "$FILE" in
+    *.chips.xmi)
+        FORMAT="chips.xmi"
+        ;;
+    *.bip.xmi)
+        FORMAT="bip.xmi"
+        ;;
+    *.chips)
+        FORMAT="chips"
+        ;;
+    *)
+        echo "Error: unrecognized file format for '$FILE'." >&2
+        echo "Accepted formats are .chips, .chips.xmi or .bip.xmi." >&2
+        exit 1
+        ;;
+esac
+
+
+if [[ "$CHIPS_XMI" -eq 1 && "$FORMAT" != "chips" ]]; then
+    echo "Error: --chips-xmi only works with .chips files." >&2
+    exit 1
+fi
+ 
+if [[ "$BIP_XMI" -eq 1 && "$FORMAT" != "chips" && "$FORMAT" != "chips.xmi" ]]; then
+    echo "Error: --bip-xmi only works with .chips and .chips.xmi files." >&2
+    exit 1
+fi
+ 
+if [[ "$CPP_ONLY" -eq 1 && "$FORMAT" != "chips" ]]; then
+    echo "Error: --cpp-only only works with .chips files." >&2
+    exit 1
+fi
+
+if [[ -z "$OUTPUT_DIR" ]]; then
+    OUTPUT_DIR="CHIPS_GENERATED"
+fi
+ 
+mkdir -p "$OUTPUT_DIR"
+
+
+# ---------------------------------------------------------------------------
+# Decide which steps to run
+# ---------------------------------------------------------------------------
+NO_FLAGS=0
+if [[ "$CHIPS_XMI" -eq 0 && "$BIP_XMI" -eq 0 && "$CPP_ONLY" -eq 0 ]]; then
+    NO_FLAGS=1
+fi
+ 
+DO_CHIPS_XMI=0
+DO_BIP_XMI=0
+DO_CPP=0
+ 
+if [[ "$CHIPS_XMI" -eq 1 || ("$NO_FLAGS" -eq 1 && "$FORMAT" == "chips") ]]; then
+    DO_CHIPS_XMI=1
+fi
+ 
+if [[ "$BIP_XMI" -eq 1 || ("$NO_FLAGS" -eq 1 && ("$FORMAT" == "chips" || "$FORMAT" == "chips.xmi")) ]]; then
+    DO_BIP_XMI=1
+fi
+ 
+if [[ "$CPP_ONLY" -eq 1 || ("$NO_FLAGS" -eq 1 && "$FORMAT" == "chips") ]]; then
+    DO_CPP=1
+fi
+ 
+# The bip-xmi step reads its input from "$OUTPUT_DIR"/out.chips.xmi, so if we
+# start from a .chips file we must generate that intermediate file first,
+# even if --chips-xmi was not explicitly requested.
+if [[ "$DO_BIP_XMI" -eq 1 && "$FORMAT" == "chips" ]]; then
+    DO_CHIPS_XMI=1
+fi
+ 
+# ---------------------------------------------------------------------------
+# Run the steps
+# ---------------------------------------------------------------------------
+if [[ "$DO_CHIPS_XMI" -eq 1 ]]; then
+    FullCompileChain/ChipsXmiGenerator/chipsparser "$FILE" "$OUTPUT_DIR"/out.chips.xmi
+fi
+ 
+if [[ "$DO_BIP_XMI" -eq 1 ]]; then
+    if [[ "$FORMAT" == "chips.xmi" ]]; then
+        BIP_XMI_INPUT="$FILE"
+    else
+        BIP_XMI_INPUT="$OUTPUT_DIR"/out.chips.xmi
+    fi
+ 
+    FullCompileChain/BipXmiGenerator/emftvm.sh \
+        FullCompileChain/BipXmiGenerator/metamodels/chips1.1.ecore \
+        FullCompileChain/BipXmiGenerator/metamodels/BIP.ecore \
+        "$BIP_XMI_INPUT" \
+        FullCompileChain/BipXmiGenerator/transformations/chips2bip.atl \
+        "$OUTPUT_DIR"/out.bip.xmi 2>"$OUTPUT_DIR"/AtlDebug.log
+fi
+ 
+if [[ "$DO_CPP" -eq 1 ]]; then
+    FullCompileChain/CppGenerator/build/Chips2Cpp -o "$OUTPUT_DIR"/out.cpp "$FILE"
+fi

@@ -20,7 +20,7 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariat
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/output/TeaStoreVariation.bip
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariation.bip.xmi
 *.emftvm
-*/build/*
+**/build/*
 */generated/*
 .vscode/*
 *.class
