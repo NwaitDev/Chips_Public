@@ -59,6 +59,9 @@ private:
     bool lookupVarType(const std::string &name, std::string &type) const;
     bool isSpreadOp(ChipsParser::Collective_op_defContext *ctx) const;
 
+    std::string collectiveFunctionName(ChipsParser::Collective_op_defContext *ctx);
+    std::string translateCTarget(ChipsParser::Collective_op_defContext *ctx, int indent);
+
     std::string chipsTypeFor(ChipsParser::Df_typeContext *typeCtx);
     std::string chipsTypeFor(ChipsParser::ExprContext *ctx);
     std::string chipsTypeFor(ChipsParser::Expr0Context *ctx);
@@ -125,6 +128,7 @@ private:
 
 
     std::string extractParameters(ChipsParser::Collective_op_defContext *ctx);
+    std::string translateCOutputs(ChipsParser::Collective_op_defContext *ctx, int indent);
     const std::set<std::pair<std::string, std::string>> *findChannelsForObjectName(const std::string &name) const;
 
     std::string outputText();

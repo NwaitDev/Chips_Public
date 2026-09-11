@@ -1603,6 +1603,89 @@ void CodeGenListener::storeVar(
     vars_for_def_[ctx][var_name] = type;
 }
 
+std::string CodeGenListener::translateCOutputs(ChipsParser::Collective_op_defContext *ctx, int indent)
+{
+    std::string pad(indent, ' ');
+    std::ostringstream oss;
+
+    const auto &sigParams = ctx->c_signature()->cdf_defaulted_decl();
+    const std::string supportTypeName = ctx->c_signature()->IDENTIFIER(1)->getText();
+    const auto *chans = findChannelsForObjectName(supportTypeName);
+
+    // Emits either per-field assignments (targetVar.field = expr;) or, for the
+    // "single stop" shorthand, targetVar.stopFlag = true;
+    auto emitAssignment = [&](const std::string &targetVar, const std::vector<ChipsParser::C_exprContext*> &exprs)
+    {
+        if (exprs.size() != sigParams.size())
+        {
+            const bool isSingleStop = exprs.size() == 1 &&
+                dynamic_cast<ChipsParser::StopContext *>(exprs.front());
+
+            if (!isSingleStop)
+            {
+                throw std::runtime_error(
+                    "output for '" + targetVar + "' provides " + std::to_string(exprs.size()) +
+                    " expression(s), expected " + std::to_string(sigParams.size()) +
+                    " (or a single stop) to match the collective signature of " + ctx->c_signature()->IDENTIFIER(0)->getText());
+            }
+            for(auto member : sigParams)
+                oss << pad << targetVar << '.' << member->IDENTIFIER()->getText() << ".stopFlag = true;\n";
+            return;
+        }
+
+        for (std::size_t i = 0; i < exprs.size(); ++i)
+        {
+            const std::string fieldName = sigParams[i]->IDENTIFIER()->getText();
+            oss << pad << targetVar << '.' << fieldName << " = " << translateCExpr(exprs[i]) << ";\n";
+        }
+    };
+
+    std::vector<ChipsParser::C_exprContext*> defaultExprs;
+    bool hasDefault = false;
+    std::set<std::string> coveredChannels;
+
+    for (auto *output : ctx->c_output())
+    {
+        if (auto *chan = dynamic_cast<ChipsParser::ChanneledOutputContext *>(output))
+        {
+            const std::string chanName = chan->IDENTIFIER()->getText();
+
+            const bool declared = chans && std::any_of(chans->begin(), chans->end(),
+                [&](const std::pair<std::string, std::string> &p) { return p.second == chanName; });
+
+            if (!declared)
+            {
+                throw std::runtime_error(
+                    "channeled output '" + chanName + "' does not match any channel declared "
+                    "for support object/physical function '" + supportTypeName + "'");
+            }
+
+            coveredChannels.insert(chanName);
+            emitAssignment(chanName + "_acc", chan->c_expr());
+        }
+    }
+
+    // Any declared channel not explicitly targeted by a #ChanneledOutput
+    // falls back to receiving the values specified by the default output.
+    if (hasDefault && chans)
+    {
+        for (const auto &[type, chanName] : *chans)
+        {
+            if (coveredChannels.count(chanName))
+                continue;
+
+            emitAssignment(chanName + "_acc", defaultExprs);
+        }
+    }
+
+    return oss.str();
+}
+
+std::string CodeGenListener::collectiveFunctionName(ChipsParser::Collective_op_defContext *ctx)
+{
+    return ctx->c_signature()->IDENTIFIER(0)->getText();
+}
+
 std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defContext *ctx)
 {
     auto *signature = ctx->c_signature();
@@ -1614,7 +1697,7 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
     oss << "chips_int channel_indicator";
 
     storeVar(ctx, "_accumulator", structName);
-    oss << ", " << structName << "& _accumulator";
+    oss << ", " << structName << " _accumulator";
 
     const std::string supportTypeName = signature->IDENTIFIER(1)->getText();
 
@@ -1624,10 +1707,8 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
         {
             const std::string paramName = name + "_acc";
             storeVar(ctx, paramName, structName);
-            oss << ", " << structName << "& " << paramName;
+            oss << ", " << structName << " " << paramName;
         }
-    } else {
-        throw std::runtime_error("Undefined channels for '" + supportTypeName + "' referenced in collective definition '" + ctx->c_signature()->IDENTIFIER(0)->getText() + "'");
     }
 
     if (const auto *ctxVars = findContextualVarsForSupportName(supportTypeName))
@@ -1635,7 +1716,7 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
         for (const auto &[type, name] : *ctxVars)
         {
             storeVar(ctx, name, type);
-            oss << ", " << type << "& ctx_" << name;
+            oss << ", " << type << "& " << name;
         }
     }
 
@@ -1649,20 +1730,35 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
             inputType = inferInputType(inputs.front());
 
         storeVar(ctx, "input", inputType);
-        oss << ", " << inputType << "& input";
+        oss << ", " << inputType << " input";
     }
 
+    const std::string targetParamName = collectiveFunctionName(ctx) + "_target";
+    const std::string targetType = chipsTypeFor(ctx->c_expr(0));
+    storeVar(ctx, targetParamName, targetType);
+    oss << ", " << targetType << " " << targetParamName;
+
     return oss.str();
+}
+
+std::string CodeGenListener::translateCTarget(ChipsParser::Collective_op_defContext *ctx, int indent)
+{
+    std::string pad(indent, ' ');
+    const std::string targetParamName = collectiveFunctionName(ctx) + "_target";
+    return pad + targetParamName + " = " + translateCExpr(ctx->c_expr(0)) + ";\n";
 }
 
 void CodeGenListener::exitCollective_op_def(ChipsParser::Collective_op_defContext *ctx)
 {
     current_def = ctx;
-    const std::string suffix = isSpreadOp(ctx) ? "_down" : "_up";
-    
     emitAggregateStructIfNeeded(ctx);
 
-    out_ << "\nvoid " << ctx->c_signature()->IDENTIFIER(0)->getText()<< suffix << "("<< extractParameters(ctx) <<")\n{\n";
+    const std::string funcName = collectiveFunctionName(ctx);
+    const std::string params = extractParameters(ctx);
+
+    out_ << "void " << funcName << "(" << params << ")\n{\n";
     out_ << translateCStatements(ctx->c_statement(), 4);
-    out_ << "}\n";
+    out_ << translateCOutputs(ctx, 4);
+    out_ << translateCTarget(ctx, 4);
+    out_ << "}\n\n";
 }
