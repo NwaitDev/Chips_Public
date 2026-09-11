@@ -1435,13 +1435,13 @@ std::any ASTBuilder::visitCAND(ChipsParser::CANDContext *ctx)
 {
     // std::cout << "visit &&" << std::endl;
     return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
-        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "AND");
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "AND", ctx);
 }
 
 std::any ASTBuilder::visitCOR(ChipsParser::CORContext *ctx)
 {
     return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
-        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "OR");
+        visit(ctx->c_stopless_expr0()), visit(ctx->c_stopless_expr()), "OR", ctx);
 }
 
 std::any ASTBuilder::visitPassCExpr0(ChipsParser::PassCExpr0Context *ctx)
@@ -3009,13 +3009,13 @@ std::any ASTBuilder::visitAND(ChipsParser::ANDContext *ctx)
 {
     // std::cout << "visit &&" << std::endl;
     return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ANDBuilder>(
-        visit(ctx->expr0()), visit(ctx->expr()), "AND");
+        visit(ctx->expr0()), visit(ctx->expr()), "AND", ctx);
 }
 
 std::any ASTBuilder::visitOR(ChipsParser::ORContext *ctx)
 {
     return ast_builder_detail::dispatch_boolean_binary<ast_builder_detail::ORBuilder>(
-        visit(ctx->expr0()), visit(ctx->expr()), "OR");
+        visit(ctx->expr0()), visit(ctx->expr()), "OR", ctx);
 }
 
 std::any ASTBuilder::visitPLUS(ChipsParser::PLUSContext *ctx)

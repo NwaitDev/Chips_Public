@@ -535,7 +535,8 @@ namespace ast_builder_detail
     std::any dispatch_boolean_binary(
         const std::any &left_any,
         const std::any &right_any,
-        const char *op_name)
+        const char *op_name,
+        antlr4::ParserRuleContext* ctx)
     {
 
 #define TRY_BINARY(EXPENV)                                                                    \
@@ -565,8 +566,11 @@ namespace ast_builder_detail
 #undef TRY_BINARY
 
 #define ITSAWHAT(DFT, EXPENV, TXT)          \
-    if (try_extract<DFT, EXPENV>(left_any)) \
-        throw std::runtime_error(TXT);
+    if (try_extract<DFT, EXPENV>(left_any)){ \
+        std::cerr<< "parse error at line " << ctx->getStart()->getLine() << std::endl;\
+        throw std::runtime_error(TXT); \
+    }
+        
 
         ITSAWHAT(dataflow_type::FLOAT, expression_env::PRIMITIVE, "Its a primitive float");
         ITSAWHAT(dataflow_type::FLOAT, expression_env::COLLECTIVE, "Its a collective float");

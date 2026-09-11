@@ -533,7 +533,7 @@ public:
     /**
      * @brief Permet de créer un function<DT, ENV> où DT et ENV sont le dataflow_type et expression_env
      *        Fonctions prises en compte :
-     *          - int random()
+     *          - float randin01()
      *          - int range(n)
      *          - int[] zeros(n)
      *          - int[] ones(n)
@@ -548,14 +548,13 @@ public:
      */
     template<expression_env expenv>
     std::any make_function(const std::string& fname, std::vector<ChipsParser::C_exprContext*> exprs){
-        // std::cout << "make function symbol: " << fname << std::endl;
 
-        if (fname.compare("random") == 0){
+        if (fname.compare("randin01") == 0){
             return std::make_shared<function<dataflow_type::FLOAT, expenv>>(fname);
         }
 
         if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
-            fname.compare("max") == 0 || fname.compare("min") == 0){
+            fname.compare("imax") == 0 || fname.compare("imin") == 0){
             // std::cout << "MAKE FUNCTION MINMAX exprs size: " << exprs.size() << std::endl;
             std::vector<rvalue_variant<expenv>> parameters;
             for (auto expr : exprs){
@@ -574,17 +573,42 @@ public:
         }
 
         if (fname.compare("is_fresh") == 0){
-            // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
-            std::cerr << "WARNING : Recognized the function " + fname + " but it is not fully handled yet, currently replaced by a \"false\"" << std::endl;
-            return std::make_shared<direct<dataflow_type::BOOL, expenv>>(false);
+            std::vector<rvalue_variant<expenv>> parameters;
+            for (auto expr : exprs){
+                std::any val = visit(expr);
+                auto nodeint = ast_builder_detail::try_extract<dataflow_type::INT, expenv>(val);
+                if (!nodeint)
+                {
+                    auto nodefloat = ast_builder_detail::try_extract<dataflow_type::FLOAT, expenv>(val);
+                    if (!nodefloat)
+                    {
+                        auto nodebool = ast_builder_detail::try_extract<dataflow_type::BOOL, expenv>(val);
+                        if (!nodebool)
+                        {
+                            std::cerr << "error at line " << expr->getStart()->getLine()<< std::endl;
+                            throw std::runtime_error("could not recognize the type of the parameter in call to " + fname);
+                        } else {
+                            node_arena.push_back(nodebool);
+                            parameters.push_back(make_variant_from_node(nodebool));
+                        }
+                    } else {
+                        node_arena.push_back(nodefloat);
+                        parameters.push_back(make_variant_from_node(nodefloat));
+                    }
+                }else{
+                    node_arena.push_back(nodeint);
+                    parameters.push_back(make_variant_from_node(nodeint));
+                }
+            }
+            return std::make_shared<function<dataflow_type::BOOL, expenv>>(fname,parameters);
         }
-        throw std::runtime_error("could not recognize the function" + fname);
+        throw std::runtime_error("could not recognize the function " + fname);
     };
 
     /**
      * @brief Permet de créer un function<DT, ENV> où DT et ENV sont le dataflow_type et expression_env
      *        Fonctions prises en compte :
-     *          - int random()
+     *          - float randin01()
      *          - int range(n)
      *          - int[] zeros(n)
      *          - int[] ones(n)
@@ -602,7 +626,7 @@ public:
     {
         // std::cout << "make function symbol: " << fname << std::endl;
 
-        if (fname.compare("random") == 0)
+        if (fname.compare("randin01") == 0)
         {
             return std::make_shared<function<dataflow_type::FLOAT, expenv>>(fname);
         }
@@ -627,13 +651,37 @@ public:
             return std::make_shared<function<dataflow_type::INT, expenv>>(fname, parameters);
         }
 
-        if (fname.compare("is_fresh") == 0)
-        {
-            // PRENDS UN DATAFLOW_PRIMITIVE_VARIABLE
-            std::cerr << "WARNING : Recognized the function " + fname + " but it is not fully handled yet, currently replaced by a \"false\"" << std::endl;
-            return std::make_shared<direct<dataflow_type::BOOL, expenv>>(false);
+        if (fname.compare("is_fresh") == 0){
+            std::vector<rvalue_variant<expenv>> parameters;
+            for (auto expr : exprs){
+                std::any val = visit(expr);
+                auto nodeint = ast_builder_detail::try_extract<dataflow_type::INT, expenv>(val);
+                if (!nodeint)
+                {
+                    auto nodefloat = ast_builder_detail::try_extract<dataflow_type::FLOAT, expenv>(val);
+                    if (!nodefloat)
+                    {
+                        auto nodebool = ast_builder_detail::try_extract<dataflow_type::BOOL, expenv>(val);
+                        if (!nodebool)
+                        {
+                            std::cerr << "error at line " << expr->getStart()->getLine()<< std::endl;
+                            throw std::runtime_error("could not recognize the type of the parameter in call to " + fname);
+                        } else {
+                            node_arena.push_back(nodebool);
+                            parameters.push_back(make_variant_from_node(nodebool));
+                        }
+                    } else {
+                        node_arena.push_back(nodefloat);
+                        parameters.push_back(make_variant_from_node(nodefloat));
+                    }
+                }else{
+                    node_arena.push_back(nodeint);
+                    parameters.push_back(make_variant_from_node(nodeint));
+                }
+            }
+            return std::make_shared<function<dataflow_type::BOOL, expenv>>(fname,parameters);
         }
-        throw std::runtime_error("could not recognize the function" + fname);
+        throw std::runtime_error("could not recognize the function " + fname);
     }
 
     std::any visitFunction(ChipsParser::FunctionContext *ctx);
