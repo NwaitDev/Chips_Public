@@ -763,7 +763,7 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
             std::optional<std::any> channel = SymbolTable::getInstance().lookupChannel(stuff->IDENTIFIER()->getText());
 
             if(!channel.has_value()){
-                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was never declarated before");
+                throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(stuff->getStart()->getLine())+":'"+stuff->IDENTIFIER()->getText()+"' was never declarated before");
             }
 
             auto chan = std::any_cast<node_element_declaration<node_element::CHANNEL>*>(channel.value());
@@ -773,7 +773,7 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
             channeled_outputs.push_back(channel_output);
 
             if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, stuff->IDENTIFIER()->getText(), channel_output)){
-                throw std::runtime_error("'"+stuff->IDENTIFIER()->getText()+"' was already declarated before");
+                throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(stuff->getStart()->getLine())+":'"+"'"+stuff->IDENTIFIER()->getText()+"' was already declarated before");
             }
         }
     }
@@ -782,11 +782,11 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
     default_output default_o(default_output_exprs);
 
     if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "@", target)){
-        throw std::runtime_error("'@' was already declarated before");
+        throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(ctx->getStart()->getLine())+":'"+"'@' was already declarated before");
     }
 
     if(!SymbolTable::getInstance().declareFunctionOutput(fname_current, "default", default_o)){
-        throw std::runtime_error("'default' was already declarated before");
+        throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(ctx->getStart()->getLine())+":'"+"'default' was already declarated before");
     }
 
     SymbolTable::getInstance().exitScope();
@@ -804,14 +804,14 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
 
     if(keyword == "collect"){
         if(!SymbolTable::getInstance().declareFunctionCollect(fname, *collective)){
-            throw std::runtime_error("'"+fname+"' was already defined before");
+            throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(ctx->getStart()->getLine())+":'"+"'"+fname+"' was already defined before");
         }
     }else if(keyword == "spread"){
         if(!SymbolTable::getInstance().declareFunctionSpread(fname, *collective)){
-            throw std::runtime_error("'"+fname+"' was already defined before");
+            throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(ctx->getStart()->getLine())+":'"+"'"+fname+"' was already defined before");
         }
     }else{
-        throw std::runtime_error("The keyword of this collective function doesn't exist");
+        throw std::runtime_error(std::string{"Line "}+antlrcpp::toString(ctx->getStart()->getLine())+":'"+"The keyword of this collective function doesn't exist");
     }
 
     return collective.get();
