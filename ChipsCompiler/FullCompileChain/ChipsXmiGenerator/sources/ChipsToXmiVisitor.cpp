@@ -24,7 +24,7 @@ namespace chips {
 
 template<expression_env expenv>
 void ChipsToXmiVisitor::visit(mod<expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(mod<" << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(mod<" << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "mod");
 }
 
@@ -46,7 +46,7 @@ void ChipsToXmiVisitor::visit(variable_expression<dft,expenv>& node){
 
     std::string name = node.get_variable()->get_name();
     // dumpSymbolTable();
-    std::cerr << "NAME VAIRABLE " << name << std::endl;
+    // std::cerr << "NAME VAIRABLE " << name << std::endl;
     std::string path = get_ast_path_by_name(name);
     std::vector<int_rvalue_expression_variant<expenv>>& index = node.get_index();
 
@@ -93,38 +93,38 @@ void ChipsToXmiVisitor::visit(variable_expression<dft,expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(chips::div<dft,expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(div<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(div<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "div");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(mult<dft,expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(mult<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(mult<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "mult");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(minus<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(minus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(minus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "minus");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(uminus_operator<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(uminus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(uminus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     direct<dft,expenv> zero(0);
     handle_binary_expression(&zero, node.get_rhs(), "minus");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(plus<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(plus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(plus<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "plus");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(cast_as<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(cast_as<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     writeAttribute("xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":cast_as_"+dft_to_string(dft));
     
     
@@ -135,7 +135,7 @@ void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
         out() << ">\n" << repeat("\t", --nbTab) << "<numeric\n" << repeat("\t", ++nbTab);
         nbTab++;    
 
-        std::cerr << "VISIT CHILDREN CAST AS " << ast_builder_detail::type_name(std::any{numeric}.type()) << std::endl;
+        // std::cerr << "VISIT CHILDREN CAST AS " << ast_builder_detail::type_name(std::any{numeric}.type()) << std::endl;
 
         if constexpr(dft == dataflow_type::INT){
             void* raw = dynamic_cast<void*>(numeric); // pointe vers l'objet réel
@@ -167,55 +167,55 @@ void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(gt<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(gt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(gt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "gt");
 }
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(geq<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(geq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(geq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "geq");
 }
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(lt<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(lt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(lt<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "lt");
 }
 
 template<expression_env expenv, dataflow_type dft>
 void ChipsToXmiVisitor::visit(leq<expenv, dft>& node){
-    std::cerr << "[DEBUG Visitor] visit(leq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(leq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "leq");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(eq<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(eq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(eq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "eq");
 }
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(neq<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(neq<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "neq");
 }
 
 template<expression_env expenv>
 void ChipsToXmiVisitor::visit(or_operator<expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(or_operator<" << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(or_operator<" << expenv_to_string(expenv) << std::endl;
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "or");
 }
 
 template<expression_env expenv>
 void ChipsToXmiVisitor::visit(and_operator<expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(and_operator<" << expenv_to_string(expenv) << std::endl; 
+    // std::cerr << "[DEBUG Visitor] visit(and_operator<" << expenv_to_string(expenv) << std::endl; 
     handle_binary_boolean(node.get_lhs(), node.get_rhs(), "and");
 }
 
 template<expression_env expenv>
 void ChipsToXmiVisitor::visit(not_operator<expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(not_operator<" << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(not_operator<" << expenv_to_string(expenv) << std::endl;
 
     writeAttribute("xsi:type", get_op_prefix(expenv)+"bool:not");
     out() << ">\n";
@@ -235,7 +235,7 @@ void ChipsToXmiVisitor::visit(not_operator<expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(function<dft,expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(function<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(function<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     
     std::string name = node.get_name();
     std::vector<rvalue_variant<expenv>>& parameters = node.get_parameters();
@@ -257,11 +257,11 @@ void ChipsToXmiVisitor::visit(function<dft,expenv>& node){
                 using ParamT = std::remove_cv_t<std::remove_pointer_t<decltype(param)>>;
 
                 if constexpr(std::is_same_v<ParamT, rvalue<dataflow_type::BOOL, expenv>>){
-                    std::cerr << "BINARY 2" << name << "\n";
+                    // std::cerr << "BINARY 2" << name << "\n";
                     binary_boolean_visit(*param);
                 }else if constexpr(std::is_same_v<ParamT, rvalue<dataflow_type::INT, expenv>> || 
                                     std::is_same_v<ParamT, rvalue<dataflow_type::FLOAT, expenv>>){
-                    std::cerr << "ARITH 2" << name << "\n";
+                    // std::cerr << "ARITH 2" << name << "\n";
                     arithmetic_visit(*param);
                 }else{
                     out() << ast_builder_detail::type_name(std::any{param}.type()) << "\n";
@@ -287,7 +287,7 @@ void ChipsToXmiVisitor::visit(stop& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(rvalue<dft, expenv>& node){
-    std::cerr << "[DEBUG Visitor] visit(rvalue<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(rvalue<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     // out() << "          <rvalue\n";
     std::string rvalue_prefix;
 
@@ -333,7 +333,7 @@ void ChipsToXmiVisitor::visit(rvalue<dft, expenv>& node){
 
 void ChipsToXmiVisitor::visit(ast_node& node){
     UNUSED(node);
-    std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
+    // std::cerr << "[DEBUG Visitor] visit(ast_node) - fallback générique" << std::endl;
     // out() << "    <!-- ast_node générique -->\n";
 
     if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>*>(&node)){
@@ -361,8 +361,8 @@ void ChipsToXmiVisitor::visit(ast_node& node){
 void ChipsToXmiVisitor::visit(program_node& node){
     auto preamble = node.get_preamble();
     auto system = node.get_system();
-    std::cerr << "PREAMBLE SIZE: " << preamble.get_definitions().size() << std::endl;
-    std::cerr << "SYSTEM SIZE: " << system.get_statements().size() << std::endl;
+    // std::cerr << "PREAMBLE SIZE: " << preamble.get_definitions().size() << std::endl;
+    // std::cerr << "SYSTEM SIZE: " << system.get_statements().size() << std::endl;
     if(!preamble.get_definitions().empty()){
         push_ast_path("/@preamble");
         out() << repeat("\t", nbTab) << "<preamble>\n";
@@ -513,7 +513,7 @@ void ChipsToXmiVisitor::visit(physical_definition& node){
     register_definition(node.get_name(), "physical", get_ast_path(), def_index);
     m_current_definition = node.get_name();
 
-    std::cerr << "[DEBUG] Physical definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+    // std::cerr << "[DEBUG] Physical definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     nbTab++;
     out() << repeat("\t", nbTab);
@@ -678,10 +678,10 @@ void ChipsToXmiVisitor::handle_outputs(std::vector<function_output_variant>& out
                     using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
 
                     if constexpr (std::is_same_v<ExprT, rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>>) {
-                        std::cerr << "OUTPUT BOOL EXPR" << std::endl;
+                        // std::cerr << "OUTPUT BOOL EXPR" << std::endl;
                         binary_boolean_visit(*expr);
                     } else {
-                        std::cerr << "OUTPUT ARITH" << std::endl;
+                        // std::cerr << "OUTPUT ARITH" << std::endl;
                         arithmetic_visit(*expr);
                     }
 
@@ -748,7 +748,7 @@ void ChipsToXmiVisitor::handle_binary_expression(rvalue<dft,expenv>* left, rvalu
     out() << repeat("\t", ++nbTab);
 
     if(left){
-        std::cerr << "left->accept()" << std::endl;
+        // std::cerr << "left->accept()" << std::endl;
         arithmetic_visit(*left);
     }
 
@@ -761,7 +761,7 @@ void ChipsToXmiVisitor::handle_binary_expression(rvalue<dft,expenv>* left, rvalu
     out() << repeat("\t", ++nbTab);
 
     if(right){
-        std::cerr << "right->accept()" << std::endl;
+        // std::cerr << "right->accept()" << std::endl;
         arithmetic_visit(*right);
     } 
 
@@ -782,7 +782,7 @@ void ChipsToXmiVisitor::handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<d
     out() << ">\n" << repeat("\t", nbTab) << "<left_operand\n" << repeat("\t", nbTab);
 
     if(left){
-        std::cerr << "left->accept()" << std::endl;
+        // std::cerr << "left->accept()" << std::endl;
         binary_boolean_visit(*left);
     }
 
@@ -793,7 +793,7 @@ void ChipsToXmiVisitor::handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<d
     out() << repeat("\t", nbTab) << "<right_operand\n" << repeat("\t", nbTab);
 
     if(right){
-        std::cerr << "right->accept()" << std::endl;
+        // std::cerr << "right->accept()" << std::endl;
         binary_boolean_visit(*right);
     }
 
@@ -830,7 +830,7 @@ void ChipsToXmiVisitor::visit(with_section& node){
                 register_definition_variable(m_current_definition, name, get_ast_path(), "channel");
             }
 
-            std::cerr << "[DEBUG] Channel '" << name << "' enregistré avec le chemin: " << get_ast_path() << std::endl;
+            // std::cerr << "[DEBUG] Channel '" << name << "' enregistré avec le chemin: " << get_ast_path() << std::endl;
 
             nbTab++;
             out() << repeat("\t", nbTab);
@@ -893,7 +893,7 @@ void ChipsToXmiVisitor::handle_statement_declaration(block_declaration<bt>& node
             std::visit([&](auto dim){
                 // Null pointer safety check
                 if(dim == nullptr){
-                    std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
+                    // std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
                     return;
                 }
                 
@@ -930,7 +930,7 @@ void ChipsToXmiVisitor::handle_statement_declaration(dataflow_declaration<dft, s
     register_variable(name, declarated_var_path, type);
     auto dims = node.get_variable().get_dimensions();  // Now returns a copy, safe to use
     
-    std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << declarated_var_path << std::endl;
+    // std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << declarated_var_path << std::endl;
 
     out() << repeat("\t", nbTab++) << "<variable\n" << repeat("\t", nbTab);
     writeAttribute("name", name);
@@ -945,7 +945,7 @@ void ChipsToXmiVisitor::handle_statement_declaration(dataflow_declaration<dft, s
             std::visit([&](auto dim){
                 // Null pointer safety check
                 if(dim == nullptr){
-                    std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
+                    // std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
                     return;
                 }
                 
@@ -1523,7 +1523,7 @@ void ChipsToXmiVisitor::visit(init_section& node){
 
         std::string segment = "/@statements."+std::to_string(index++);
         push_ast_path(segment);
-        std::cerr << "[XMI DEBUG] init_section statement variant index=" << statement.index() << std::endl;
+        // std::cerr << "[XMI DEBUG] init_section statement variant index=" << statement.index() << std::endl;
         out() << repeat("\t", nbTab) << "<statements\n";
         nbTab++;
         handle_statement<statement_env::DEFINITION>(statement);
@@ -1543,7 +1543,7 @@ void ChipsToXmiVisitor::visit(then_section& node){
 
         std::string segment = "/@statements."+std::to_string(index++);
         push_ast_path(segment);
-        std::cerr << "[XMI DEBUG] then_section statement variant index=" << statement.index() << std::endl;
+        // std::cerr << "[XMI DEBUG] then_section statement variant index=" << statement.index() << std::endl;
         out() << repeat("\t", nbTab) << "<statements\n";
         nbTab++;
 
@@ -1629,7 +1629,7 @@ void ChipsToXmiVisitor::visit(std::vector<physical_parameter_variant>& node){
             }
 
 
-            std::cerr << "[DEBUG] Balise <parameters> terminée pour '" << sensor_name << "'" << std::endl;
+            // std::cerr << "[DEBUG] Balise <parameters> terminée pour '" << sensor_name << "'" << std::endl;
             pop_ast_path(sensor_path);
             // dumpSymbolTable();
             param_index++;
@@ -1691,12 +1691,12 @@ void ChipsToXmiVisitor::visit(std::vector<int_rvalue_expression_variant<expenv>>
             out() << repeat("\t", nbTab) << "<dimensions\n"
                 << repeat("\t", ++nbTab);
 
-                std::cerr << "ARITH INDEX PARAM" << std::endl;
+                // std::cerr << "ARITH INDEX PARAM" << std::endl;
             if(auto* r = dynamic_cast<rvalue<dataflow_type::INT, expenv>*>(dim)){
-                std::cerr << "INDEX PARAM" << std::endl;
+                // std::cerr << "INDEX PARAM" << std::endl;
                 arithmetic_visit(*r);
             }else{
-                std::cerr << "PB INDEX PARAM " << ast_builder_detail::type_name(std::any{*dim}.type()) << std::endl;
+                // std::cerr << "PB INDEX PARAM " << ast_builder_detail::type_name(std::any{*dim}.type()) << std::endl;
             }            
         }, dimension);
     }
@@ -1720,9 +1720,9 @@ void ChipsToXmiVisitor::visit(std::vector<function_parameter_variant>& node){
                 std::string param_base_path = get_ast_path() + "/@parameters." + std::to_string(param_index);
                 std::string param_path = param_base_path + "/@declaration/@variable";
 
-                std::cerr << "[DEBUG] Paramètre logique '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
+                // std::cerr << "[DEBUG] Paramètre logique '" << param_name << "' enregistré avec le chemin: " << param_path << std::endl;
 
-                std::cerr << "[DEBUG] Génération balise <parameters> pour '" << param_name << "'" << std::endl;
+                // std::cerr << "[DEBUG] Génération balise <parameters> pour '" << param_name << "'" << std::endl;
                 push_ast_path(param_path);
                 register_variable(param_name, param_path,"logical_parameter_"+dft);
                 register_parameter(current_fname, param_name, param_path);
@@ -1766,11 +1766,11 @@ void ChipsToXmiVisitor::visit(std::vector<function_parameter_variant>& node){
                         using ParamT = std::remove_cv_t<std::remove_pointer_t<decltype(default_v)>>;
 
                         if constexpr(std::is_same_v<ParamT, rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>>){
-                            std::cerr << "BINARY" << param_name << "\n";
+                            // std::cerr << "BINARY" << param_name << "\n";
                             binary_boolean_visit(*default_v);
                         }else if constexpr(std::is_same_v<ParamT, rvalue<dataflow_type::INT, expression_env::PRIMITIVE>> || 
                                             std::is_same_v<ParamT, rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>){
-                            std::cerr << "ARITH" << param_name << "\n";
+                            // std::cerr << "ARITH" << param_name << "\n";
                             arithmetic_visit(*default_v);
                         }else{
                             out() << ast_builder_detail::type_name(std::any{default_v}.type()) << "\n";
@@ -1789,7 +1789,7 @@ void ChipsToXmiVisitor::visit(std::vector<function_parameter_variant>& node){
                     // // writeAttribute("value", )
                 }
 
-                std::cerr << "[DEBUG] Balise <parameters> terminée pour '" << param_name << "'" << std::endl;
+                // std::cerr << "[DEBUG] Balise <parameters> terminée pour '" << param_name << "'" << std::endl;
                 pop_ast_path(param_path);
                 // dumpSymbolTable();
                 param_index++;
@@ -1810,7 +1810,7 @@ void ChipsToXmiVisitor::visit(logical_definition& node){
     register_definition(node.get_name(), "logical", get_ast_path(), def_index);
     m_current_definition = node.get_name();
 
-    std::cerr << "[DEBUG] Logical definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+    // std::cerr << "[DEBUG] Logical definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     nbTab++;
     out() << repeat("\t", nbTab);
@@ -1871,7 +1871,7 @@ void ChipsToXmiVisitor::visit(object_definition& node){
     register_definition(node.get_name(), "object", get_ast_path(), def_index);
     m_current_definition = node.get_name();
 
-    std::cerr << "[DEBUG] Object definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+    // std::cerr << "[DEBUG] Object definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     nbTab++;
     out() << repeat("\t", nbTab);
@@ -1921,7 +1921,7 @@ void ChipsToXmiVisitor::visit(collective_function_definition& node){
     std::string support_object_name = support_object->get_name();
 
 
-    std::cerr << "[DEBUG] Collective definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
+    // std::cerr << "[DEBUG] Collective definition '" << node.get_name() << "' enregistrée avec le chemin: " << get_ast_path() << std::endl;
 
     nbTab++;
     out() << repeat("\t", nbTab);
@@ -2251,11 +2251,11 @@ void ChipsToXmiVisitor::visit(target_output& node){
 
             using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
 
-            std::cerr << "CURRENT OUTPUT " << std::endl;
+            // std::cerr << "CURRENT OUTPUT " << std::endl;
             if(expr){
-                std::cerr << "CURRENT OUTPUT dynamic type: " << typeid(*expr).name() << std::endl;
+                // std::cerr << "CURRENT OUTPUT dynamic type: " << typeid(*expr).name() << std::endl;
             }else{
-                std::cerr << "CURRENT OUTPUT dynamic type: <null>" << std::endl;
+                // std::cerr << "CURRENT OUTPUT dynamic type: <null>" << std::endl;
             }
 
             if constexpr (std::is_same_v<ExprT, rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>>) {
@@ -2289,11 +2289,11 @@ void ChipsToXmiVisitor::visit(default_output& node){
             nbTab++;
             out() << repeat("\t", nbTab) << "<accumulator_expressions\n";
 
-            std::cerr << "DEFAULT OUTPUT " << std::endl;
+            // std::cerr << "DEFAULT OUTPUT " << std::endl;
             if(expr){
-                std::cerr << "DEFAULT OUTPUT dynamic type: " << typeid(*expr).name() << std::endl;
+                // std::cerr << "DEFAULT OUTPUT dynamic type: " << typeid(*expr).name() << std::endl;
             }else{
-                std::cerr << "DEFAULT OUTPUT dynamic type: <null>" << std::endl;
+                // std::cerr << "DEFAULT OUTPUT dynamic type: <null>" << std::endl;
             }
 
             using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
@@ -2347,7 +2347,7 @@ void ChipsToXmiVisitor::visit(accumulator_definition& node){
             writeAttribute("xsi:type","chips.parameters.collective:"+dft+"_collective_parameter");
             out() << ">\n" << repeat("\t", --nbTab) << "<default_value\n" << repeat("\t", ++nbTab);
 
-            std::cerr << "DEFAULT VALUE COLLECT " << pname << std::endl;
+            // std::cerr << "DEFAULT VALUE COLLECT " << pname << std::endl;
             
             using AccumT = std::remove_cv_t<std::remove_pointer_t<decltype(accum)>>;
             if constexpr(std::is_same_v<AccumT, collective_parameter<dataflow_type::BOOL>>){
@@ -2394,7 +2394,7 @@ void ChipsToXmiVisitor::visit(collectiveops_section& node){
 
         std::string segment = "/@statements." + std::to_string(index++);
         push_ast_path(segment);
-        std::cerr << "[XMI DEBUG] collectiveops_section statement variant index=" << statement.index() << std::endl;
+        // std::cerr << "[XMI DEBUG] collectiveops_section statement variant index=" << statement.index() << std::endl;
         out() << repeat("\t", nbTab) << "<statements\n";
         nbTab++;
 
@@ -2509,7 +2509,7 @@ std::string ChipsToXmiVisitor::statement_type(const std::string &suffix, Stateme
 void ChipsToXmiVisitor::report_semantic_error(const std::string &message)
 {
     m_semantic_errors.push_back(message);
-    std::cerr << "[SEMANTIC ERROR] " << message << std::endl;
+    // std::cerr << "[SEMANTIC ERROR] " << message << std::endl;
 }
 
 std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
@@ -2518,7 +2518,7 @@ std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
     auto it = m_symbol_table.find(name);
     if (it != m_symbol_table.end())
     {
-        std::cerr << ">>>>>>>>>[DEBUG PATH] Variable '" << name << "' trouvée dans la table des symboles: " << it->second.path << " (type: " << it->second.type << ")" << std::endl;
+        // std::cerr << ">>>>>>>>>[DEBUG PATH] Variable '" << name << "' trouvée dans la table des symboles: " << it->second.path << " (type: " << it->second.type << ")" << std::endl;
         return it->second.path;
     }
 
@@ -2533,12 +2533,12 @@ std::string ChipsToXmiVisitor::get_ast_path_by_name(const std::string &name)
         
         if (lower_key == lower_name)
         {
-            std::cerr << ">>>>>>>>>[DEBUG PATH] Variable '" << name << "' trouvée (case-insensitive, clé: '" << entry.first << "'): " << entry.second.path << " (type: " << entry.second.type << ")" << std::endl;
+            // std::cerr << ">>>>>>>>>[DEBUG PATH] Variable '" << name << "' trouvée (case-insensitive, clé: '" << entry.first << "'): " << entry.second.path << " (type: " << entry.second.type << ")" << std::endl;
             return entry.second.path;
         }
     }
 
-    std::cerr << ">>>>>>>>>[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
+    // std::cerr << ">>>>>>>>>[WARNING] Variable '" << name << "' NON trouvée dans la table des symboles" << std::endl;
     // report_semantic_error("Undefined variable: " + name);
     // return name; // Fallback: retourner juste le nom
     return get_ast_path_by_name_parameter(current_fname, name);

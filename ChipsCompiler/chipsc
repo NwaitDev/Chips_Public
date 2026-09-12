@@ -3,12 +3,13 @@ set -euo pipefail
 
 
 declare -A DESCRIPTIONS=(
+    ["-h"]="Print this message."
+    ["-i"]="Print information about this software."
     ["file"]="Source file to work with. Accepted formats are .chips, .chips.xmi or .bip.xmi."
     ["--chips-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> chips model. Only works with .chips files."
     ["--bip-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> equivalent bip model. Only works with .chips and .chips.xmi files."
     ["--cpp-only"]="Stop the compilation after having generated the c++ procedures relative to <file> components. Only works with .chips files."
     ["-o"]="The name of the folder in which to store the model elements generated. If no <folder> is specified, artifacts will be stored in CHIPS_GENERATED."
-    ["-h"]="Print this message."
 )
 
 print_usage() {
@@ -18,11 +19,24 @@ print_usage() {
     printf "  %-15s %s\n" "file" "${DESCRIPTIONS["file"]}"
     echo
     echo "Options:"
+    printf "  %-15s %s\n" "-h" "${DESCRIPTIONS["-h"]}"
+    printf "  %-15s %s\n" "-i" "${DESCRIPTIONS["-i"]}"
     printf "  %-15s %s\n" "--chips-xmi" "${DESCRIPTIONS["--chips-xmi"]}"
     printf "  %-15s %s\n" "--bip-xmi" "${DESCRIPTIONS["--bip-xmi"]}"
     printf "  %-15s %s\n" "--cpp-only" "${DESCRIPTIONS["--cpp-only"]}"
     printf "  %-15s %s\n" "-o <folder>" "${DESCRIPTIONS["-o"]}"
-    printf "  %-15s %s\n" "-h" "${DESCRIPTIONS["-h"]}"
+}
+
+print_info() {
+
+    echo "  _                 _                          "
+    echo " /  |_  o ._   _   /   _  ._ _  ._  o |  _  ._ "
+    echo " \_ | | | |_) _>   \_ (_) | | | |_) | | (/_ |  "
+    echo "          |                     |              "
+    echo "v1.0.0 September 2026"
+    echo "The command line interface for the interpretation of"
+    echo "Distributed Cyber-Physical Systems specifications in"
+    echo "the Chips language."
 }
 
 
@@ -123,6 +137,48 @@ mkdir -p "$OUTPUT_DIR"
 
 
 # ---------------------------------------------------------------------------
+# Pipeline error handling
+# ---------------------------------------------------------------------------
+run_step() {
+    local step_name="$1"
+    local log_file="$2"
+    shift 2
+
+    echo
+    echo "================================================================"
+    echo "Running step: $step_name"
+    echo "================================================================"
+
+    # Run the command and capture stderr in the step-specific log file.
+    set +e
+    "$@" 2>"$log_file"
+    local status=$?
+    set -e
+
+    if [[ $status -ne 0 ]]; then
+        echo
+        echo "PIPELINE FAILED"
+        echo "Step: $step_name"
+        echo "Exit code: $status"
+        echo "Log file: $log_file"
+        echo
+
+        if [[ -f "$log_file" ]]; then
+            echo "-------------------- BEGIN LOG --------------------"
+            cat "$log_file"
+            echo "--------------------- END LOG ---------------------"
+        else
+            echo "WARNING: Log file '$log_file' does not exist."
+        fi
+
+        echo
+        exit "$status"
+    fi
+
+    echo "Step '$step_name' completed successfully."
+}
+
+# ---------------------------------------------------------------------------
 # Decide which steps to run
 # ---------------------------------------------------------------------------
 NO_FLAGS=0
@@ -152,29 +208,46 @@ fi
 if [[ "$DO_BIP_XMI" -eq 1 && "$FORMAT" == "chips" ]]; then
     DO_CHIPS_XMI=1
 fi
- 
+
+
 # ---------------------------------------------------------------------------
 # Run the steps
 # ---------------------------------------------------------------------------
+
 if [[ "$DO_CHIPS_XMI" -eq 1 ]]; then
-    FullCompileChain/ChipsXmiGenerator/chipsparser "$FILE" "$OUTPUT_DIR"/out.chips.xmi
+    run_step \
+        "CHIPS -> CHIPS XMI" \
+        "$OUTPUT_DIR/ChipsXmiGeneratorDebug.log" \
+        FullCompileChain/ChipsXmiGenerator/chipsparser \
+        "$FILE" \
+        "$OUTPUT_DIR/out.chips.xmi"
 fi
- 
+
+
 if [[ "$DO_BIP_XMI" -eq 1 ]]; then
     if [[ "$FORMAT" == "chips.xmi" ]]; then
         BIP_XMI_INPUT="$FILE"
     else
-        BIP_XMI_INPUT="$OUTPUT_DIR"/out.chips.xmi
+        BIP_XMI_INPUT="$OUTPUT_DIR/out.chips.xmi"
     fi
- 
-    FullCompileChain/BipXmiGenerator/emftvm.sh \
+
+    run_step \
+        "CHIPS XMI -> BIP XMI" \
+        "$OUTPUT_DIR/BipXmiGeneratorDebug.log" \
+        FullCompileChain/BipXmiGenerator/emftvm.sh \
         FullCompileChain/BipXmiGenerator/metamodels/chips1.1.ecore \
         FullCompileChain/BipXmiGenerator/metamodels/BIP.ecore \
         "$BIP_XMI_INPUT" \
         FullCompileChain/BipXmiGenerator/transformations/chips2bip.atl \
-        "$OUTPUT_DIR"/out.bip.xmi 2>"$OUTPUT_DIR"/AtlDebug.log
+        "$OUTPUT_DIR/out.bip.xmi"
 fi
- 
+
+
 if [[ "$DO_CPP" -eq 1 ]]; then
-    FullCompileChain/CppGenerator/build/Chips2Cpp -o "$OUTPUT_DIR"/out.cpp "$FILE"
+    run_step \
+        "CHIPS -> C++" \
+        "$OUTPUT_DIR/CppGeneratorDebug.log" \
+        FullCompileChain/CppGenerator/build/Chips2Cpp \
+        -o "$OUTPUT_DIR/out.cpp" \
+        "$FILE"
 fi

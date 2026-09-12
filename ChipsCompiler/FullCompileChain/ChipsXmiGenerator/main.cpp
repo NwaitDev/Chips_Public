@@ -58,7 +58,7 @@ void parse(std::istream& input, std::string output, std::string filename) {
     program_node* rootPtr = std::any_cast<program_node>(&result);
 
     if(rootPtr){
-        SymbolTable::getInstance().dump();
+        // SymbolTable::getInstance().dump();
 
         rootPtr->accept(visitor);
 
@@ -72,7 +72,7 @@ void parse(std::istream& input, std::string output, std::string filename) {
 
         out.close();
 
-        std::cout << "XMI généré: " << output << std::endl;
+        // std::cout << "XMI généré: " << output << std::endl;
 
     }
 }

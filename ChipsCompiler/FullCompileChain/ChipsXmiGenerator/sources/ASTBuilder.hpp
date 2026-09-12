@@ -446,6 +446,64 @@ public:
         return node;
     }
 
+    /**
+     * @brief Permet d'ajouter les statements à un foreach_statement
+     * 
+     * @param node Le foreach_statement
+     * @param statement Le tableau contenant tous les instructions à l'intérieur du foreach
+     * 
+     * @return le paramètre node avec les instructions d'ajouter
+     */
+     template <dataflow_type dft, statement_env stenv>
+     std::any make_statement_foreach(foreach_statement<stenv, dft> &node, std::vector<ChipsParser::C_statementContext *> statement)
+     {
+         // std::cout << "make statement of foreach" << std::endl;
+         for (ChipsParser::C_statementContext *stt : statement)
+         {
+             std::any followup = visit(stt);
+ 
+             try{
+ 
+                 if (ChipsParser::StatementDeclarationContext *stuff = dynamic_cast<ChipsParser::StatementDeclarationContext *>(stt); (stuff != nullptr) && (stuff->expr() != nullptr)){
+                     // std::cout << "LA TRY EXTRACT RECCURING" << std::endl;
+                     if (dynamic_cast<ChipsParser::IntTypeContext *>(stuff->df_type())){
+                         using chiant = std::pair<
+                             dataflow_declaration<dataflow_type::INT, stenv>,
+                             dataflow_assignment<dataflow_type::INT, stenv>>;
+                         chiant followup_pair = std::any_cast<chiant>(followup);
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                     }else if (dynamic_cast<ChipsParser::FloatTypeContext *>(stuff->df_type())){
+                         using chiant = std::pair<
+                             dataflow_declaration<dataflow_type::FLOAT, stenv>,
+                             dataflow_assignment<dataflow_type::FLOAT, stenv>>;
+                         chiant followup_pair = std::any_cast<chiant>(followup);
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                     }else if (dynamic_cast<ChipsParser::BoolTypeContext *>(stuff->df_type())){
+                         using chiant = std::pair<
+                             dataflow_declaration<dataflow_type::BOOL, stenv>,
+                             dataflow_assignment<dataflow_type::BOOL, stenv>>;
+                         chiant followup_pair = std::any_cast<chiant>(followup);
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.first)));
+                         node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup_pair.second)));
+                     }else{
+                         throw std::runtime_error("unrecognized variable type");
+                     }
+                     continue;
+                 }else{
+                     node.add_statement(std::get<collective_statement_variant>(ast_builder_detail::try_extract_recurring_statement<statement_env::SYSTEM>(followup)));
+                     continue;
+                 }
+             }
+             catch (const std::runtime_error &e)
+             {
+                 // std::cout << e.what() << std::endl;
+             }
+         }
+         return node;
+     }
+
     std::any visitLoop_statement(ChipsParser::Loop_statementContext *ctx);
 
     std::any visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx);

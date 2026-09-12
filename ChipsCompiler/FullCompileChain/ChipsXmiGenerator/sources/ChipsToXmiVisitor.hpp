@@ -238,7 +238,7 @@ class ChipsToXmiVisitor : public visitor{
                     }
                 }
             }
-            std::cerr << ">>>>>>>>>[WARNING] output '" << output << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            // std::cerr << ">>>>>>>>>[WARNING] output '" << output << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
             report_semantic_error("Undefined output: " + output);
             return output;
         }
@@ -254,13 +254,13 @@ class ChipsToXmiVisitor : public visitor{
                     }
                 }
             }
-            std::cerr << ">>>>>>>>>[WARNING] channel '" << channel << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            // std::cerr << ">>>>>>>>>[WARNING] channel '" << channel << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
             report_semantic_error("Undefined channel: " + channel);
             return channel;
         }
 
         std::string get_type_of_declarated_block(const std::string& variable){
-            std::cerr << "type of " << variable << " " << declarated_block_system[variable] << std::endl;
+            // std::cerr << "type of " << variable << " " << declarated_block_system[variable] << std::endl;
             return declarated_block_system[variable];
         }
 
@@ -275,7 +275,7 @@ class ChipsToXmiVisitor : public visitor{
                     }
                 }
             }
-            std::cerr << ">>>>>>>>>[WARNING] Paramètre '" << parameter << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
+            // std::cerr << ">>>>>>>>>[WARNING] Paramètre '" << parameter << "' in " << fname << " NON trouvée dans la table des symboles" << std::endl;
             report_semantic_error("Undefined parameter: " + parameter);
             return parameter;
         }
@@ -299,7 +299,7 @@ class ChipsToXmiVisitor : public visitor{
         // Track a definition (called when visiting definition nodes)
         void register_definition(const std::string &name, const std::string &type, const std::string &path, int index) {
             m_definitions_table[name] = DefinitionInfo(name, type, path, index);
-            std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
+            // std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
         }
         
         // Register a variable within a definition (called when visiting with/init/then statements)
@@ -307,7 +307,7 @@ class ChipsToXmiVisitor : public visitor{
             auto it = m_definitions_table.find(def_name);
             if (it != m_definitions_table.end()) {
                 it->second.variables[var_name] = SymbolInfo(var_path, var_type);
-                std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
+                // std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
             }
         }
         
@@ -358,43 +358,43 @@ class ChipsToXmiVisitor : public visitor{
         template<dataflow_type dft, expression_env expenv>
         void arithmetic_visit(rvalue<dft, expenv>& node){
             if(auto* dir = dynamic_cast<direct<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is direct" << std::endl;
+                // std::cerr << "rvalue is direct" << std::endl;
                 visit(*dir);
             }else if(auto* pl = dynamic_cast<plus<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is plus" << std::endl;
+                // std::cerr << "rvalue is plus" << std::endl;
                 visit(*pl); 
             }else if(auto* min = dynamic_cast<minus<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is minus" << std::endl;
+                // std::cerr << "rvalue is minus" << std::endl;
                 visit(*min);
             }else if(auto* min = dynamic_cast<uminus_operator<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is uminus" << std::endl;
+                // std::cerr << "rvalue is uminus" << std::endl;
                 visit(*min);
             }else if(auto* mu = dynamic_cast<mult<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is mult" << std::endl;
+                // std::cerr << "rvalue is mult" << std::endl;
                 visit(*mu); 
             }else if(auto* di = dynamic_cast<chips::div<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is div" << std::endl;
+                // std::cerr << "rvalue is div" << std::endl;
                 visit(*di); 
             }else if(auto* mo = dynamic_cast<mod<expenv>*>(&node)){
-                std::cerr << "rvaleue is mod" << std::endl;
+                // std::cerr << "rvalue is mod" << std::endl;
                 visit(*mo); 
             }else if(auto* cast = dynamic_cast<cast_as<dft, expenv>*>(&node)){
-                std::cerr << "rvaleue is cast" << std::endl;
+                // std::cerr << "rvalue is cast" << std::endl;
                 visit(*cast);
             }else if(auto* var = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
-                std::cerr << "rvaleue is var" << std::endl;
+                // std::cerr << "rvalue is var" << std::endl;
                 visit(*var);
             }else if(auto* func = dynamic_cast<function<dft,expenv>*>(&node)){
-                std::cerr << "rvalue is func" << std::endl;
+                // std::cerr << "rvalue is func" << std::endl;
                 visit(*func);
             }else if(auto* in = dynamic_cast<input*>(&node)){
-                std::cerr << "rvalue is input" << std::endl;
+                // std::cerr << "rvalue is input" << std::endl;
                 visit(*in);
             }else if(auto* st = dynamic_cast<stop*>(&node)){
-                std::cerr << "rvalue is stop" << std::endl;
+                // std::cerr << "rvalue is stop" << std::endl;
                 visit(*st);
             }else{
-                std::cerr << "ERROR RVALUE IS NOTHING UP THERE: " << typeid(node).name() << std::endl;
+                // std::cerr << "ERROR RVALUE IS NOTHING UP THERE: " << typeid(node).name() << std::endl;
             }
         }
 
@@ -533,22 +533,23 @@ class ChipsToXmiVisitor : public visitor{
                 visit(*p);
             }
 
-            std::cerr << "NOTHING UP THERE" << std::endl;
+            // std::cerr << "NOTHING UP THERE" << std::endl;
         }
 
         std::string repeat(const std::string&  s, int n){
-            std::string out;
-            // Protection: éviter les allocations massives si n est négatif
-            if(n < 0) {
-                std::cerr << "[WARNING] repeat() called with negative count: " << n << std::endl;
-                n = 0;
-            }
-            std::size_t count = static_cast<std::size_t>(n);
-            out.reserve(s.size() * count);
-            for(std::size_t i = 0; i < count; i++){
-                out += s;
-            }
-            return out;
+            // std::string out;
+            // // Protection: éviter les allocations massives si n est négatif
+            // if(n < 0) {
+            //     // std::cerr << "[WARNING] repeat() called with negative count: " << n << std::endl;
+            //     n = 0;
+            // }
+            // std::size_t count = static_cast<std::size_t>(n);
+            // out.reserve(s.size() * count);
+            // for(std::size_t i = 0; i < count; i++){
+            //     out += s;
+            // }
+            // return out;
+            return s;
         }
 
         std::string toLower(const std::string& str) {
@@ -603,7 +604,7 @@ class ChipsToXmiVisitor : public visitor{
         bool only_one_child(rvalue<dft,expenv>& node){
             if(dynamic_cast<direct<dft,expenv>*>(&node) ||  dynamic_cast<input*>(&node) || dynamic_cast<stop*>(&node) ||
                dynamic_cast<variable_contextual_expression<dft,expenv>*>(&node)){
-                std::cerr << "ONLY ONE CHILD" << std::endl;
+                // std::cerr << "ONLY ONE CHILD" << std::endl;
                 return true;
             }
             if(auto* var = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
@@ -613,7 +614,7 @@ class ChipsToXmiVisitor : public visitor{
             if(auto* func = dynamic_cast<function<dft,expenv>*>(&node)){
                 return func->get_parameters().empty();
             }
-            std::cerr << "NOT ONLY ONE CHILD" << std::endl;
+            // std::cerr << "NOT ONLY ONE CHILD" << std::endl;
             return false;
         }
 

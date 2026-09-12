@@ -235,7 +235,7 @@ private:
     // Track a definition (called when visiting definition nodes)
     void register_definition(const std::string &name, const std::string &type, const std::string &path, int index) {
         m_definitions_table[name] = DefinitionInfo(name, type, path, index);
-        std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
+        // std::cerr << "[DEBUG] Definition '" << name << "' enregistrée avec le chemin: " << path << std::endl;
     }
     
     // Register a variable within a definition (called when visiting with/init/then statements)
@@ -243,7 +243,7 @@ private:
         auto it = m_definitions_table.find(def_name);
         if (it != m_definitions_table.end()) {
             it->second.variables[var_name] = SymbolInfo(var_path, var_type);
-            std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
+            // std::cerr << "[DEBUG] Variable '" << var_name << "' registered in definition '" << def_name << "' with path: " << var_path << std::endl;
         }
     }
     

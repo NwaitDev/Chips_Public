@@ -31,3 +31,4 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/venv
 ChipsCompiler/FullCompileChain/Chips2CppTransformer/build
 ChipsCompiler/FullCompileChain/ChipsXmiGenerator/chipsparser
 ChipsCompiler/FullCompileChain/BipCompiler/Compiler/Frontend/ujf.verimag.bip.userinterface.cli/src/main/java/ujf/verimag/bip/userinterface/cli/Version.java
+**/CHIPS_GENERATED/out.chips.xmi

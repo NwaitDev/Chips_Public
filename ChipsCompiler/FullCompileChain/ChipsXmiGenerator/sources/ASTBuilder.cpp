@@ -1565,7 +1565,10 @@ std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressi
 
 std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method ChanneledAccuExpressionContext");
+    std::cerr << "WARNING:\tCurrently parsing ChannelAccuExpression with a stop expression." << std::endl;
+    std::cerr << "\t  \t  \tDo not base any xmi transformation on such element as long as" << std::endl;
+    std::cerr << "\t  \t  \tthis behavior hasn't been corrected." << std::endl;
+    return std::make_shared<stop>();
 }
 
 std::any ASTBuilder::visitFunctionCall(ChipsParser::FunctionCallContext *ctx)
@@ -1758,7 +1761,56 @@ std::any ASTBuilder::visitLoop_statement(ChipsParser::Loop_statementContext *ctx
 
 std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method C_loop_statementContext");
+    
+    // std::cout << "visit loop statement" << std::endl;
+
+    SymbolTable::getInstance().enterScope();
+    //SymbolTable::getInstance().dump();
+
+    std::string identifier = ctx->IDENTIFIER()->getText();
+
+    // std::cout << "ENter new Scope foreach " << identifier << std::endl;
+
+    std::any suffixable_expr = visit(ctx->loop_in());
+    dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::COLLECTIVE>(suffixable_expr);
+
+    switch(type){
+        case dataflow_type::INT:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::INT, expression_env::COLLECTIVE>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::INT, statement_env::COLLECTIVE>>(iterator);
+            foreach_statement<statement_env::COLLECTIVE, dataflow_type::INT> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->c_statement());
+            SymbolTable::getInstance().exitScope();
+            // std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+        case dataflow_type::FLOAT:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::FLOAT, expression_env::COLLECTIVE>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::COLLECTIVE>>(iterator);
+            foreach_statement<statement_env::COLLECTIVE, dataflow_type::FLOAT> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->c_statement());
+            SymbolTable::getInstance().exitScope();
+            // std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+        case dataflow_type::BOOL:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::BOOL, expression_env::COLLECTIVE>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::COLLECTIVE>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::COLLECTIVE>>(iterator);
+            foreach_statement<statement_env::COLLECTIVE, dataflow_type::BOOL> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->c_statement());
+            SymbolTable::getInstance().exitScope();
+            // std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+    }
+
+    throw std::runtime_error("Something wrong happened during the handling of C_loop_statementContext");
 }
 
 std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx)
@@ -1775,8 +1827,6 @@ std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext 
     std::any suffixable_expr = visit(ctx->s_suffixable_expr());
     dataflow_type type = ast_builder_detail::get_dataflow_type<expression_env::SYSTEM>(suffixable_expr);
 
-    
-
     switch(type){
         case dataflow_type::INT:{
             std::any iterator = handle_statement_declaration_foreach<dataflow_type::INT, expression_env::SYSTEM>(identifier);
@@ -1789,13 +1839,31 @@ std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext 
             // std::cout << "Exit scope foreach" << std::endl;
             return res;
         }
-        case dataflow_type::FLOAT:
-            break;
-        case dataflow_type::BOOL:
-            break;
+        case dataflow_type::FLOAT:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::FLOAT, expression_env::SYSTEM>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::FLOAT, statement_env::SYSTEM>>(iterator);
+            foreach_statement<statement_env::SYSTEM, dataflow_type::FLOAT> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->s_statement());
+            SymbolTable::getInstance().exitScope();
+            // std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
+        case dataflow_type::BOOL:{
+            std::any iterator = handle_statement_declaration_foreach<dataflow_type::BOOL, expression_env::SYSTEM>(identifier);
+            auto iterable = make_primitive_iterable_variant_from_node(
+                ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(suffixable_expr));
+            auto it = std::any_cast<dataflow_declaration<dataflow_type::BOOL, statement_env::SYSTEM>>(iterator);
+            foreach_statement<statement_env::SYSTEM, dataflow_type::BOOL> foreach(it, iterable);
+            std::any res = make_statement_foreach(foreach, ctx->s_statement());
+            SymbolTable::getInstance().exitScope();
+            // std::cout << "Exit scope foreach" << std::endl;
+            return res;
+        }
     }
 
-    throw std::runtime_error("Faut faire le reste mais ya pas dans l'exemple encore");
+    throw std::runtime_error("Something wrong happened during the handling of S_loop_statementContext");
 }
 
 std::any ASTBuilder::visitIf_else_statement(ChipsParser::If_else_statementContext *ctx)
@@ -2820,7 +2888,8 @@ std::any ASTBuilder::visitContextualAssignment(ChipsParser::ContextualAssignment
 
 std::any ASTBuilder::visitCollectiveLoopStatement(ChipsParser::CollectiveLoopStatementContext *ctx)
 {
-    throw std::runtime_error("Unimplemented visit method CollectiveLoopStatementContext");
+    return visit(ctx->c_loop_statement());
+    //throw std::runtime_error("Unimplemented visit method CollectiveLoopStatementContext");
 }
 
 std::any ASTBuilder::visitCollectiveIfElseStatement(ChipsParser::CollectiveIfElseStatementContext *ctx)
