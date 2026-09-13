@@ -7,8 +7,8 @@
 #include <filesystem>
 
 #include "antlr4-runtime.h"
-#include "../build/generated/ChipsLexer.h"
-#include "../build/generated/ChipsParser.h"
+#include "ChipsLexer.h"
+#include "ChipsParser.h"
 #include "CodeGenListener.h"
 
 void print_usage(const char *progName, const std::map<std::string, std::string> &paramDescriptions)
@@ -94,6 +94,14 @@ std::map<std::string, std::string> parseCommandLine(int argc, char **argv, const
     return result;
 }
 
+// Resolves the absolute directory containing the currently running
+// executable, so paths relative to the binary (e.g. its ../src folder)
+// no longer depend on the caller's current working directory.
+std::filesystem::path executable_dir()
+{
+    return std::filesystem::canonical("/proc/self/exe").parent_path();
+}
+
 void ensure_parent_dirs(const std::string &path)
 {
     std::filesystem::path p(path);
@@ -127,7 +135,7 @@ void cppGenerated_file(const char *srcPath, const std::string &dstPath)
     antlr4::tree::ParseTree *tree = parser.program();
 
     ensure_parent_dirs(dstPath);
-    std::ofstream out(dstPath);
+    std::ofstream out(dstPath, std::ios::app);
     if (!out)
     {
         std::cerr << "Failed to open output file for writing." << std::endl;
@@ -155,22 +163,6 @@ void copy_file(const char *srcPath, const std::string &dstPath)
     }
 }
 
-void append_file(const std::string &srcPath, const std::string &dstPath)
-{
-    std::ifstream src(srcPath, std::ios::binary);
-    std::ofstream dst(dstPath, std::ios::binary | std::ios::app);
-    const std::size_t bufSize = 65536;
-    std::vector<char> buf(bufSize);
-
-    while (src)
-    {
-        src.read(buf.data(), static_cast<std::streamsize>(bufSize));
-        std::streamsize n = src.gcount();
-        if (n > 0)
-            dst.write(buf.data(), n);
-    }
-}
-
 int main(int argc, char **argv)
 {
     const std::map<std::string, std::string> paramDescriptions{
@@ -179,14 +171,17 @@ int main(int argc, char **argv)
 
     std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
 
-    const std::string chipsPath = args.at("input");
-    const std::string outputPath = args.count("-o") ? args.at("-o") : "bip_importable.cpp";
-    const std::string generatedPath = "generated_functions.cpp";
+    const std::filesystem::path exeDir = executable_dir();
 
-    copy_file("../src/cppHeaderAutoInclude.hpp", outputPath);
-    cppGenerated_file(chipsPath.c_str(), generatedPath);
-    append_file(generatedPath, outputPath);
-    std::cout << "Generated code written to " << outputPath << std::endl;
+    const std::string chipsPath = std::filesystem::absolute(args.at("input")).string();
+    const std::string outputPath = std::filesystem::absolute(
+        args.count("-o") ? args.at("-o") : "bip_importable.cpp").string();
+    const std::string headerPath = std::filesystem::canonical(
+        exeDir / ".." / "src" / "cppHeaderAutoInclude.hpp").string();
+
+    copy_file(headerPath.c_str(), outputPath);
+    cppGenerated_file(chipsPath.c_str(), outputPath);
+    // std::cout << "Generated code written to " << outputPath << std::endl;
 
     return 0;
 }

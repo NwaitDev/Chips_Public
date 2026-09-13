@@ -440,6 +440,7 @@ public:
             }
             catch (const std::runtime_error &e)
             {
+                throw e;
                 // std::cout << e.what() << std::endl;
             }
         }

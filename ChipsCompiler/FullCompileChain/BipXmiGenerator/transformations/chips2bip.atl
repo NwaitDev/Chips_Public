@@ -1111,7 +1111,7 @@ helper context OclAny def: extract_input_type_in_rvalue(ctx_type : String) : Seq
 			self.numeric->extract_input_type_in_rvalue('int')
 		endif
 	else
-		Sequence{}
+		Sequence{'any'}
 	endif endif endif endif endif endif endif;
 
 helper context chips!collective_statement def: extract_input_type() : Sequence(String) =
@@ -1138,11 +1138,11 @@ helper context chips!collective_statement def: extract_input_type() : Sequence(S
 			)
 		)	
 	else if self.oclIsTypeOf(chips!"chips::statements::collective::foreach") then
-		self.iterable_expr->extract_input_type_in_rvalue('any')->union(
+		self.iterable_expr->extract_input_type_in_rvalue('any')->append(
 			self.statements->iterate(
-				stt ; type : String = '' | type+stt->extract_input_type()
+				stt ; type : Sequence(String) = Sequence{} | type->union(stt->extract_input_type())
 			)
-		)
+		)->flatten()
 	else 
 		Sequence{}
 	endif endif endif endif endif endif;
@@ -1153,14 +1153,14 @@ helper context Sequence(chips!collective_statement) def : extract_input_type() :
 			stt ; type : Sequence(String) = Sequence{} | 
 			type->union(stt->extract_input_type())
 		)->iterate(
-			typename ; accu : TupleType(possible_type:String, erro:Boolean) = Tuple{possible_type='', error=false} |
-			if (accu.possible_type = '') or (accu.possible_type = 'any')
+			typename ; accu : TupleType(possible_type:String, error:Boolean) = Tuple{possible_type='any', error=false} |
+			if accu.possible_type = 'any'
 			then Tuple{possible_type=typename, error=accu.error}
 			else
-				if typename = accu.possible_type
+				if ((accu.possible_type = typename) or (typename = 'any'))
 				then Tuple{possible_type=accu.possible_type, error=accu.error}
 				else Tuple{
-						possible_type=accu.possible_type+' '+typename,
+						possible_type=accu.possible_type+' and '+typename,
 						error=true
 					} 
 				endif
@@ -4517,7 +4517,7 @@ unique lazy rule MakeCoreComponentDeclaration {
 }
 
 
-unique lazy rule MakeComponentDataParameterDeclaration{
+unique lazy rule MakeFunctionComponentDataParameterDeclaration{
 	from name:String, type:String, fd:chips!function_definition
 
 	to cdpd: bip!ComponentDataParameterDeclaration(
@@ -5422,7 +5422,7 @@ helper context TupleType(
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
 							->get(collectiveop.collective_cast)
 							->get(if is_spread then 'target' else 'input' endif),
-						let theleaf : OclAny = memory.ccasts_map->get(collectiveop)->any(leaf | (leaf.obj = self.obj) and (leaf.obj_index = self.index)) in 
+						let theleaf : OclAny = memory.ccasts_map->get(collectiveop)->any(leaf | (leaf.obj = self.obj.debug()) and (leaf.obj_index = self.index.debug())) in 
 						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('FunctionalBlockCompoundTypes')
@@ -5940,36 +5940,39 @@ rule Program2BipPackage {
 			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 		) =
 		chipsprogram.system.system_statements->iterate(
-			stt ; mem :TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-				nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
+			stt ; pc_and_mem : TupleType(
+				pc:Integer,
+				mem:TupleType(
+					fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+					dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+					links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+					nodes: Map(
 						String,
 						TupleType(
 							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+							type:String,
+							channels:Map(String,String),
+							type:String,
+							instances:Sequence(
+								Map(
+									String,
+									TupleType(
+										dimensions:Sequence(Integer),
+										instances:Sequence(bip!ComponentDeclaration)
+									)
+								)
+							)
 						)
-					)
+					),
+					connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+					ccasts_map : Map(
+						TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+						Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+					),
+					variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 				)
-			)
-		),
-				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-				ccasts_map : Map(
-					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-				),
-				variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-			) = Tuple{fblocks=Map{}, dataflows=Map{}, links=Set{},  nodes=Map{}, connections=Sequence{}, ccasts_map=Map{}, variables=Sequence{}} |
-			stt.evaluate(mem)
+			) = Tuple{pc=0, mem=Tuple{fblocks=Map{}, dataflows=Map{}, links=Set{},  nodes=Map{}, connections=Sequence{}, ccasts_map=Map{}, variables=Sequence{}}} |
+			stt.evaluate(pc_and_mem.pc, pc_and_mem.mem)
 		);--.debug('\n----------------------memory state------------------------\n')
 		
 		all_contextuals -- We need to do this to force the evaluation of lazy stuffs that are used all arround ATL
@@ -7827,7 +7830,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 	endif;
 
 helper context chips!"chips::statements::system::physical_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer, memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -7856,47 +7859,53 @@ helper context chips!"chips::statements::system::physical_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = thisModule.updatefblockswith(self, memory),
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = thisModule.updatenodeswith(self, memory),
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = memory.variables
+	Tuple{
+		pc = pc +1,
+		mem = Tuple {
+			fblocks = thisModule.updatefblockswith(self, memory),
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = thisModule.updatenodeswith(self, memory),
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = memory.variables
+		}
 	};
 
 
 helper context chips!"chips::statements::system::logical_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -7925,46 +7934,52 @@ helper context chips!"chips::statements::system::logical_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = thisModule.updatefblockswith(self, memory),
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = memory.variables
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = thisModule.updatefblockswith(self, memory),
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = memory.variables
+		}
 	};
 
 helper context chips!"chips::statements::system::object_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -7993,42 +8008,48 @@ helper context chips!"chips::statements::system::object_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = thisModule.updatenodeswith(self, memory),
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = memory.variables
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = thisModule.updatenodeswith(self, memory),
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = memory.variables
+		}
 	};
 
 -- -- Declarations of primitive variables in system context
@@ -8078,7 +8099,7 @@ helper def : variableaddedupdate(var:OclAny, type:String, memory:TupleType(
 	endif;
 
 helper context chips!"chips::statements::system::int_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8107,47 +8128,53 @@ helper context chips!"chips::statements::system::int_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableaddedupdate(self,'int',memory)
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableaddedupdate(self,'int',memory)
+		}
 	};
 
 
 helper context chips!"chips::statements::system::float_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8176,46 +8203,52 @@ helper context chips!"chips::statements::system::float_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableaddedupdate(self,'float',memory)
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableaddedupdate(self,'float',memory)
+		}
 	};
 
 helper context chips!"chips::statements::system::bool_declaration" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8244,42 +8277,48 @@ helper context chips!"chips::statements::system::bool_declaration" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableaddedupdate(self,'bool',memory)
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableaddedupdate(self,'bool',memory)
+		}
 	};
 
 
@@ -8414,7 +8453,7 @@ helper def : variableassignededupdate(assignment:OclAny, memory:TupleType(
 	endif;
 
 helper context chips!"chips::statements::system::int_assignment" def : 
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8443,46 +8482,52 @@ helper context chips!"chips::statements::system::int_assignment" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableassignededupdate(self,memory)
+	Tuple{
+		pc=pc+1,
+		mem =Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableassignededupdate(self,memory)
+		}
 	};
 
 helper context chips!"chips::statements::system::float_assignment" def : 
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8511,46 +8556,52 @@ helper context chips!"chips::statements::system::float_assignment" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableassignededupdate(self,memory)
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableassignededupdate(self,memory)
+		}
 	};
 
 helper context chips!"chips::statements::system::bool_assignment" def : 
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8579,49 +8630,55 @@ helper context chips!"chips::statements::system::bool_assignment" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = thisModule.variableassignededupdate(self,memory)
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = thisModule.variableassignededupdate(self,memory)
+		}
 	};
 
 -- -- linking instructions evaluation in system context
 -- ----------------------------------------------------
 
 helper context chips!link def : 
-	evaluate(memory:TupleType(
+	evaluate(pc:Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8650,33 +8707,36 @@ helper context chips!link def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
 	let reference : TupleType(src:String, src_index:Integer, src_type:String, src_type:String, trg:String, trg_index:String, trg_type:String, trg_type:String) =
 		Tuple{
@@ -8688,32 +8748,35 @@ helper context chips!link def :
 			trg_type = self.support_node.variable.declaration."def".name
 		} in
 	Tuple{
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = 
-		if memory.links->exists(e | 
-			((e.src = reference.src) and 
-			(e.src_index = reference.src_index)) and
-			((e.trg = reference.trg) and
-			(e.trg_index = reference.trg_index))) then 
-			let a : OclAny = reference.debug('Cannot link the same components twice') in
-			memory.links
-		else
-			memory.links->including(
-				reference
-			)
-		endif,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		ccasts_map = memory.ccasts_map,
-		variables = memory.variables
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = 
+			if memory.links->exists(e | 
+				((e.src = reference.src) and 
+				(e.src_index = reference.src_index)) and
+				((e.trg = reference.trg) and
+				(e.trg_index = reference.trg_index))) then 
+				let a : OclAny = reference.debug('Cannot link the same components twice') in
+				memory.links
+			else
+				memory.links->including(
+					reference
+				)
+			endif,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			ccasts_map = memory.ccasts_map,
+			variables = memory.variables
+		}
 	};
 
 -- -- channel plugging evaluation in system context
 -- ------------------------------------------------
 
 helper context chips!channel_plugging def : 
-	evaluate(memory:TupleType(
+	evaluate(pc:Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8738,82 +8801,90 @@ helper context chips!channel_plugging def :
 		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows = memory.dataflows,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = 
-			let from_ob_name : String = self.feeder.node.variable.name in
-			let from_ob_index : Integer = self.feeder.node.index.evaluate(memory)->linearize(memory.nodes->get(from_ob_name).dimensions) in
-			let from_chan : String = self.feeder.feeding_channel.name in
-			let from_chan_type : String = self.feeder.feeding_channel.type_identifier in
-			let from_type : String = self.feeder.node.variable.declaration."def".name in
-			let to_ob_name : String = self.eater.node.variable.name in
-			let to_ob_index : Integer = self.eater.node.index.evaluate(memory)->linearize(memory.nodes->get(from_ob_name).dimensions) in
-			let to_chan : String = self.eater.eating_channel.name in
-			let to_chan_type : String = self.eater.eating_channel.type_identifier in
-			let to_type : String = self.eater.node.variable.declaration."def".name in
-			if (not memory.connections->select(e | (e.from_ob = from_ob_name) and (e.from_index = from_ob_index) and (e.from_chan = from_chan))->isEmpty()) then
-				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', feeding channel output is already connected') in
-				memory.connections
-			else if (not memory.connections->select(e | (e.to_ob = to_ob_name) and (e.to_index = to_ob_index) and (e.to_chan = to_chan))->isEmpty()) then
-				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', eating channel input is already connected') in
-				memory.connections
-			else if (from_chan_type<>to_chan_type) then
-				let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', incompatible channel types') in
-				memory.connections
-			else
-				memory.connections->including(
-					Tuple{
-						from_ob = from_ob_name, 
-						from_index = from_ob_index,
-						from_chan = from_chan,
-						from_type = from_type,
-						to_ob = to_ob_name,
-						to_index = to_ob_index,
-						to_chan = to_chan,
-						to_type = to_type
-					}
-				)
-			endif endif endif
-		,
-		ccasts_map = memory.ccasts_map,
-		variables = memory.variables
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc=pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows = memory.dataflows,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = 
+				let from_ob_name : String = self.feeder.node.variable.name in
+				let from_ob_index : Integer = self.feeder.node.index.evaluate(memory)->linearize(memory.nodes->get(from_ob_name).dimensions) in
+				let from_chan : String = self.feeder.feeding_channel.name in
+				let from_chan_type : String = self.feeder.feeding_channel.type_identifier in
+				let from_type : String = self.feeder.node.variable.declaration."def".name in
+				let to_ob_name : String = self.eater.node.variable.name in
+				let to_ob_index : Integer = self.eater.node.index.evaluate(memory)->linearize(memory.nodes->get(from_ob_name).dimensions) in
+				let to_chan : String = self.eater.eating_channel.name in
+				let to_chan_type : String = self.eater.eating_channel.type_identifier in
+				let to_type : String = self.eater.node.variable.declaration."def".name in
+				if (not memory.connections->select(e | (e.from_ob = from_ob_name) and (e.from_index = from_ob_index) and (e.from_chan = from_chan))->isEmpty()) then
+					let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', feeding channel output is already connected') in
+					memory.connections
+				else if (not memory.connections->select(e | (e.to_ob = to_ob_name) and (e.to_index = to_ob_index) and (e.to_chan = to_chan))->isEmpty()) then
+					let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', eating channel input is already connected') in
+					memory.connections
+				else if (from_chan_type<>to_chan_type) then
+					let a :OclAny = 'ATL transformation Error'.debug('Cannot plug (feeding) '+from_ob_name+'.'+from_chan+' into (eating) '+to_ob_name+'.'+to_chan+', incompatible channel types') in
+					memory.connections
+				else
+					memory.connections->including(
+						Tuple{
+							from_ob = from_ob_name, 
+							from_index = from_ob_index,
+							from_chan = from_chan,
+							from_type = from_type,
+							to_ob = to_ob_name,
+							to_index = to_ob_index,
+							to_chan = to_chan,
+							to_type = to_type
+						}
+					)
+				endif endif endif
+			,
+			ccasts_map = memory.ccasts_map,
+			variables = memory.variables
+		}
 	};
 
 -- -- Flow control structures interpretation in system section
 -- -------------------------------------------
 
-helper context chips!"chips::statements::system::foreach" def : 
-	evaluate(memory:TupleType(
+helper context chips!"chips::statements::system::foreach" def : evaluate(
+	pc : Integer,
+	memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -8841,34 +8912,38 @@ helper context chips!"chips::statements::system::foreach" def :
 			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+	)
+) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
 	let expr : TupleType(name:String, type: String, value:Sequence(OclAny), dims:Sequence(Integer)) = self.iterable_expr.evaluate(memory) in
 	let iterable : TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)) = 
@@ -8893,101 +8968,21 @@ helper context chips!"chips::statements::system::foreach" def :
 	} in
 	iterable.value->iterate(
 		iterator ; 
-		m1: TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-			nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-			ccasts_map : Map(
-				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-			),
-			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-		) = memory |
-		let m1_prime : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-			nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-			ccasts_map : Map(
-				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-			),
-			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-		) = self.statements->iterate( 
+		m1: OclAny = Tuple{pc=pc,mem=memory} |
+		let m1_prime : OclAny = self.statements->iterate( 
 			stt ; 
-			m2: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-				nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-				ccasts_map : Map(
-					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-				),
-				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-			) = Tuple{
-					fblocks = m1.fblocks,
-					dataflows = m1.dataflows,
-					links = m1.links,
-					nodes = m1.nodes,
-					connections = m1.connections,
-					ccasts_map = m1.ccasts_map,
-					variables = m1.variables->including(Tuple{
+			m2: OclAny = m1 |
+			let actually_used_memory : OclAny = Tuple{
+				fblocks = m2.mem.fblocks,
+				dataflows = m2.mem.dataflows,
+				links = m2.mem.links,
+				nodes = m2.mem.nodes,
+				connections = m2.mem.connections,
+				ccasts_map = m2.mem.ccasts_map,
+				variables = m2.mem.variables->reject(
+					e | (e.name = self.iterator.variable.name) and (e.type = iterable.type)
+				)->including(
+					Tuple{
 						name=self.iterator.variable.name,
 						value=Sequence{iterator},
 						type=iterable.type,
@@ -9001,24 +8996,29 @@ helper context chips!"chips::statements::system::foreach" def :
 								OclUndefined -- what happened??? How did you get here?
 							endif
 						endif
-					})
-				} | 
-			stt.evaluate(m2)
+					}
+				)
+			} in
+			let mecheck : OclAny = Tuple{pc = m2.pc, vars=actually_used_memory.variables}.debug() in
+			stt.evaluate(m2.pc, actually_used_memory)
 		) in
 		Tuple{
-			fblocks = m1_prime.fblocks,
-			dataflows = m1_prime.dataflows,
-			links = m1_prime.links,
-			nodes = m1_prime.nodes,
-			connections = m1_prime.connections,
-			ccasts_map = m1_prime.ccasts_map,
-			variables = m1_prime.variables->reject(e | (e.name = self.iterator.variable.name) and (e.type = iterable.type))
+			pc = m1_prime.pc,
+			mem = Tuple{
+				fblocks = m1_prime.mem.fblocks,
+				dataflows = m1_prime.mem.dataflows,
+				links = m1_prime.mem.links,
+				nodes = m1_prime.mem.nodes,
+				connections = m1_prime.mem.connections,
+				ccasts_map = m1_prime.mem.ccasts_map,
+				variables = m1_prime.mem.variables->reject(e | (e.name = self.iterator.variable.name) and (e.type = iterable.type))
+			}
 		}
 	);
 
 
 helper context chips!"chips::statements::system::if" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -9047,75 +9047,82 @@ helper context chips!"chips::statements::system::if" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
 	let condition : Boolean = self.condition.evaluate(memory).value->get(0) in
 	if (condition) then 
 		self.if_section.if_statements->iterate(
 			stt ;
-			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-				nodes: Map(
-			String,
+			m1: 
 			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
+				pc:Integer,
+				mem:TupleType(
+					fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+					dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+					links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+					nodes: Map(
 						String,
 						TupleType(
 							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+							type:String,
+							channels:Map(String,String),
+							type:String,
+							instances:Sequence(
+								Map(
+									String,
+									TupleType(
+										dimensions:Sequence(Integer),
+										instances:Sequence(bip!ComponentDeclaration)
+									)
+								)
+							)
 						)
-					)
+					),
+					connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+					ccasts_map : Map(
+						TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+						Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+					),
+					variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 				)
-			)
-		),
-				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-				ccasts_map : Map(
-					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-				),
-				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-			) = memory |
-			stt.evaluate(m1)
+		 	) = Tuple{pc=pc, mem=memory} |
+			stt.evaluate(m1.pc, m1.mem)
 		)
 	else
-		memory
+		Tuple{pc=pc, mem=memory}
 	endif;
 
 helper context chips!"chips::statements::system::if_else" def :
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -9144,102 +9151,113 @@ helper context chips!"chips::statements::system::if_else" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
 	let condition : Boolean = self.condition.evaluate(memory).value->get(0) in
 	if (condition) then 
 		self.if_section.if_statements->iterate(
 			stt ;
-			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-				nodes: Map(
-			String,
+			m1: 
 			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
+				pc:Integer,
+				mem:TupleType(
+					fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+					dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+					links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+					nodes: Map(
 						String,
 						TupleType(
 							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+							type:String,
+							channels:Map(String,String),
+							type:String,
+							instances:Sequence(
+								Map(
+									String,
+									TupleType(
+										dimensions:Sequence(Integer),
+										instances:Sequence(bip!ComponentDeclaration)
+									)
+								)
+							)
 						)
-					)
+					),
+					connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+					ccasts_map : Map(
+						TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+						Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+					),
+					variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 				)
-			)
-		),
-				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-			) = memory |
-			stt.evaluate(m1)
+		 	) = Tuple{pc=pc, mem=memory} |
+			stt.evaluate(m1.pc, m1.mem)
 		)
 	else
 		self.else_section.else_statements->iterate(
 			stt ;
-			m1: TupleType(
-				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-				nodes: Map(
-			String,
+			m1: 
 			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
+				pc:Integer,
+				mem:TupleType(
+					fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+					dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+					links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+					nodes: Map(
 						String,
 						TupleType(
 							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+							type:String,
+							channels:Map(String,String),
+							type:String,
+							instances:Sequence(
+								Map(
+									String,
+									TupleType(
+										dimensions:Sequence(Integer),
+										instances:Sequence(bip!ComponentDeclaration)
+									)
+								)
+							)
 						)
-					)
+					),
+					connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+					ccasts_map : Map(
+						TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+						Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+					),
+					variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 				)
-			)
-		),
-				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-				ccasts_map : Map(
-					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-				),
-				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-			) = memory |
-			stt.evaluate(m1)
+		 	) = Tuple{pc=pc, mem=memory} |
+			stt.evaluate(m1.pc, m1.mem)
 		)
 	endif;
 
@@ -9367,13 +9385,13 @@ helper def : includingPartialConnectorForPhysical(
 	then
 		stt.feeder.physical_feeder_expression.variable_expression.variable.name
 	else 
-		stt.eater.variable.variable.name
+		stt.eater.variable_expression.variable.name
 	endif --.debug('root function used')
 	in
 	let root_index_prime : Sequence(Integer) = if isspread then
 		stt.feeder.physical_feeder_expression.variable_expression.index->evaluate(memory)
 	else 
-		stt.eater.variable.index->evaluate(memory)
+		stt.eater.variable_expression.index->evaluate(memory)
 	endif in
 	let root_index : Integer = 
 	if root_index_prime->isEmpty() then
@@ -9391,19 +9409,19 @@ helper def : includingPartialConnectorForPhysical(
 	let leaf_fct : String = if not isspread then
 		stt.feeder.physical_feeder_expression.variable_expression.variable.name
 	else 
-		stt.eater.variable.variable.name
+		stt.eater.variable_expression.variable.name
 	endif
 	in
 	let leaf_fct_type : String = if not isspread then
 		stt.feeder.physical_feeder_expression.variable_expression.variable.declaration."def".name
 	else 
-		stt.eater.variable.variable.declaration."def".name
+		stt.eater.variable_expression.variable.declaration."def".name
 	endif
 	in
 	let leaf_index_prime : Sequence(Integer) = if not isspread then
 		stt.feeder.physical_feeder_expression.variable_expression.index->evaluate(memory)
 	else 
-		stt.eater.variable.index->evaluate(memory)
+		stt.eater.variable_expression.index->evaluate(memory)
 	endif in
 	let leaf_index : Integer = 
 	if leaf_index_prime->isEmpty() then
@@ -9615,7 +9633,7 @@ helper def : includingPartialConnectorForLogical(
 
 
 helper context chips!"chips::statements::system::feeding_physical_int" def : 
-	evaluate(memory:TupleType(
+	evaluate(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -9644,1021 +9662,60 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_physical_output") then 
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
-				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
-					tcomp= self.eater.variable.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name
-					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'int'}),
-					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'int'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('int')
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name)
-									->get(findices)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'int'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								memory.fblocks
-									->get(self.eater.variable.variable.name)
-									->get(tindices)
-							)
-						)
-					}
-				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				memory.dataflows
-			else 
-				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_int.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		ccasts_map = 
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-			thisModule.includingPartialConnectorForPhysical(memory,self)
-		else 
-			memory.ccasts_map
-		endif,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
-
-
-helper context chips!"chips::statements::system::feeding_physical_float" def : 
-	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_physical_output") then
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
-				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
-					tcomp= self.eater.variable.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name
-					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'float'}),
-					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('float')
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name)
-									->get(findices)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								memory.fblocks
-									->get(self.feeder.variable.variable.name)
-									->get(tindices)
-							)
-						)
-					}
-				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
-				memory.dataflows
-			else 
-				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_float.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		ccasts_map = 
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-			thisModule.includingPartialConnectorForPhysical(memory,self)
-		else 
-			memory.ccasts_map
-		endif,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
-
-
-helper context chips!"chips::statements::system::feeding_physical_bool" def : 
-	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = Tuple {
-		fblocks = memory.fblocks,
-		dataflows =
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_physical_output") then 
-			let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-			let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-			let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-			memory.dataflows->including(
-				Tuple{
-					fcomp= self.feeder.variable_expression.variable.name,
-					findex = findices,
-					fparam= self.feeder.output.name,
-					tcomp= self.eater.variable.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+self.feeder.variable_expression.variable.name
-					+'_'+findices.toString()+'_'+self.feeder.output.name
-					+'_to_'+self.eater.variable.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
-					Sequence{
-						let fdef : chips!function_definition = 
-							self.feeder.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('bool')
-									->get('eoutputs')
-									->get(self.feeder.output.name),
-								memory.fblocks
-									->get(self.feeder.variable_expression.variable.name)
-									->get(findices)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								memory.fblocks
-									->get(self.eater.variable.variable.name)
-									->get(tindices)
-							)
-						)
-					}
-				)
-			)
-		else 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-				-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
-				memory.dataflows
-			else 
-				let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_bool.evaluate') -- How is it even possible?
-				in
-				memory.dataflows
-			endif 
-		endif,
-		ccasts_map = 
-		if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
-			thisModule.includingPartialConnectorForPhysical(memory,self)
-		else 
-			memory.ccasts_map
-		endif,
-		links = memory.links,
-		nodes = memory.nodes,
-		connections = memory.connections,
-		variables = memory.variables
-	};
-
-helper context chips!"chips::statements::system::feeding_logical_int" def : 
-	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = 
-	let expression : OclAny = self.feeder.evaluate(memory) in
-	if expression.dims->get(0) <> 1 then 
-		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
-		memory
-	else
-		let name : String = 'direct_expression'+thisModule.id->toString() in
-		let partial_next_mem : TupleType(
+		pc:Integer,
+		mem:TupleType(
 			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
 			nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
+			),
 			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
 			ccasts_map : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 			),
-			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-		) =  Tuple{
-			fblocks = memory.fblocks
-				->including(
-					name,
-					Tuple{
-						ftype = OclUndefined,
-						dimensions = Sequence{1},
-						instances = Sequence{
-							thisModule.MakeIntegerConstantDeclaration(
-								expression.value->get(0),
-								thisModule.id
-							)
-						}
-					}
-				),
-			dataflows = memory.dataflows,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = memory.ccasts_map,
-			variables = memory.variables
-		} in
-		Tuple{
-			fblocks = partial_next_mem.fblocks,
-			dataflows = 
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-				partial_next_mem.dataflows->including(
-				Tuple{
-					fcomp= name,
-					findex = 0,
-					fparam= 'out',
-					tcomp= self.eater.variable_expression.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'int'}),
-					Sequence{
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'int'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('ConstantAtomTypes')
-									->get('int')
-									->get('aepd'),
-								partial_next_mem.fblocks->get(name).instances->get(0)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'int'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name)
-									.instances->get(tindices)
-							)
-						)
-					}
-				)
-			),
-			links = partial_next_mem.links,
-			nodes = partial_next_mem.nodes,
-			connections = partial_next_mem.connections,
-			ccasts_map = partial_next_mem.ccasts_map,
-			variables = partial_next_mem.variables
-		}
-	endif;
-
-
-helper context chips!"chips::statements::system::feeding_logical_float" def : 
-	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = 
-	let expression : OclAny = self.feeder.evaluate(memory) in
-	if expression.dims->get(0) <> 1 then 
-		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
-		memory
-	else
-		let name : String = 'direct_expression'+thisModule.id->toString() in
-		let partial_next_mem : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-			nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-			ccasts_map : Map(
-				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-			),
-			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-		) =  Tuple{
-			fblocks = memory.fblocks
-				->including(
-					name,
-					Tuple{
-						ftype = OclUndefined,
-						dimensions = Sequence{1},
-						instances = Sequence{
-							thisModule.MakeFloatConstantDeclaration(
-								expression.value->get(0),
-								thisModule.id
-							)
-						}
-					}
-				),
-			dataflows = memory.dataflows,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = memory.ccasts_map,
-			variables = memory.variables
-		} in
-		Tuple{
-			fblocks = partial_next_mem.fblocks,
-			dataflows = 
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-				partial_next_mem.dataflows->including(
-				Tuple{
-					fcomp= name,
-					findex = 0,
-					fparam= 'out',
-					tcomp= self.eater.variable_expression.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'float'}),
-					Sequence{
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('ConstantAtomTypes')
-									->get('float')
-									->get('aepd'),
-								partial_next_mem.fblocks->get(name).instances->get(0)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'float'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name)
-									.instances->get(tindices)
-							)
-						)
-					}
-				)
-			),
-			links = partial_next_mem.links,
-			nodes = partial_next_mem.nodes,
-			connections = partial_next_mem.connections,
-			ccasts_map = partial_next_mem.ccasts_map,
-			variables = partial_next_mem.variables
-		}
-	endif;
-
-
-helper context chips!"chips::statements::system::feeding_logical_bool" def : 
-	handleSystemExpressions(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = 
-	let expression : OclAny = self.feeder.evaluate(memory) in
-	if expression.dims->get(0) <> 1 then 
-		let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
-		memory
-	else
-		let name : String = 'direct_expression'+thisModule.id->toString() in
-		let partial_next_mem : TupleType(
-			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-			nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-			ccasts_map : Map(
-				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-			),
-			variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-		) =  Tuple{
-			fblocks = memory.fblocks
-				->including(
-					name,
-					Tuple{
-						ftype = OclUndefined,
-						dimensions = Sequence{1},
-						instances = Sequence{
-							thisModule.MakeBoolConstantDeclaration(
-								expression.value->get(0),
-								thisModule.id
-							)
-						}
-					}
-				),
-			dataflows = memory.dataflows,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = memory.ccasts_map,
-			variables = memory.variables
-		} in
-		Tuple{
-			fblocks = partial_next_mem.fblocks,
-			dataflows = 
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-				partial_next_mem.dataflows->including(
-				Tuple{
-					fcomp= name,
-					findex = 0,
-					fparam= 'out',
-					tcomp= self.eater.variable_expression.variable.name,
-					tindex= tindices,
-					tparam= self.eater.parameter.name
-				},
-				thisModule.MakeConnectorDeclaration(
-					'from_'+name
-					+'_to_'+self.eater.variable_expression.variable.name
-					+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-					thisModule.MakeFlowConnectorType(Sequence{'bool'}),
-					Sequence{
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('s_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('ConstantAtomTypes')
-									->get('bool')
-									->get('aepd'),
-								partial_next_mem.fblocks->get(name).instances->get(0)
-							)
-						),
-						let fdef :chips!function_definition = 
-							self.eater.variable_expression.variable.declaration."def" in
-						thisModule.MakePortDeclarationReferenceParameter(
-							thisModule.dictionary
-								->get('FlowConnectorTypes')
-								->get(Sequence{'bool'})
-								->get('r_port'),
-							thisModule.MakeComponentSubPortDeclarationReference(
-								thisModule.dictionary
-									->get('FunctionalBlockCompoundTypes')
-									->get(fdef.name)
-									->get('einputs')
-									->get(self.eater.parameter.name),
-								partial_next_mem.fblocks
-									->get(self.eater.variable_expression.variable.name)
-									.instances->get(tindices)
-							)
-						)
-					}
-				)
-			),
-			links = partial_next_mem.links,
-			nodes = partial_next_mem.nodes,
-			connections = partial_next_mem.connections,
-			ccasts_map = partial_next_mem.ccasts_map,
-			variables = partial_next_mem.variables
-		}
-	endif;
-
-helper context chips!"chips::statements::system::feeding_logical_int" def : 
-	evaluate(memory:TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
-						)
-					)
-				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = 
-	if Sequence{
-			chips!"chips::systemspecific::expressions::feeder::int_logical_output",
-			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
-		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-		self->handleSystemExpressions(memory)
-	else
-		Tuple {
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) =
+	Tuple{
+		pc=pc+1,
+		mem= Tuple {
 			fblocks = memory.fblocks,
 			dataflows =
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_logical_output") then
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_physical_output") then 
 				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
 				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
 				memory.dataflows->including(
 					Tuple{
 						fcomp= self.feeder.variable_expression.variable.name,
 						findex = findices,
 						fparam= self.feeder.output.name,
-						tcomp= self.eater.variable_expression.variable.name,
+						tcomp= self.eater.variable.variable.name,
 						tindex= tindices,
 						tparam= self.eater.parameter.name
 					},
 					thisModule.MakeConnectorDeclaration(
 						'from_'+self.feeder.variable_expression.variable.name
 						+'_'+findices.toString()+'_'+self.feeder.output.name
-						+'_to_'+self.eater.variable_expression.variable.name
+						+'_to_'+self.eater.variable.variable.name
 						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 						thisModule.MakeFlowConnectorType(Sequence{'int'}),
 						Sequence{
@@ -10673,11 +9730,519 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 									thisModule.dictionary
 										->get('FunctionalBlockCompoundTypes')
 										->get(fdef.name)
+										->get('int')
 										->get('eoutputs')
 										->get(self.feeder.output.name),
 									memory.fblocks
 										->get(self.feeder.variable_expression.variable.name)
-										.instances->get(findices)
+										->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'int'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.eater.variable.variable.name)
+										->get(tindices)
+								)
+							)
+						}
+					)
+				)
+			else 
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_int.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
+			endif,
+			ccasts_map = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+				let fdim : Sequence(Integer) = self.feeder.physical_feeder_expression.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.physical_feeder_expression.variable_expression.index->collect( i | i.debug('partial from index chips').evaluate(memory).value.debug('partial from index evaluated')->get(0))->linearize(fdim).debug('from index linearized by fdim='+fdim->toString()) in
+				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				let used : OclAny = Tuple{
+					from=self.feeder.physical_feeder_expression.variable_expression.variable.name, 
+					fid=findices, 
+					toob=self.eater.variable_expression.variable.name,
+					tid=tindices 
+				}.debug() in
+				thisModule.includingPartialConnectorForPhysical(memory,self)
+			else 
+				memory.ccasts_map
+			endif,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}
+	};
+
+
+helper context chips!"chips::statements::system::feeding_physical_float" def : 
+	evaluate(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+		nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+		ccasts_map : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+		),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc=pc+1,
+		mem=Tuple {
+			fblocks = memory.fblocks,
+			dataflows =
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_physical_output") then
+				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+				let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				memory.dataflows->including(
+					Tuple{
+						fcomp= self.feeder.variable_expression.variable.name,
+						findex = findices,
+						fparam= self.feeder.output.name,
+						tcomp= self.eater.variable.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+self.feeder.variable_expression.variable.name
+						+'_'+findices.toString()+'_'+self.feeder.output.name
+						+'_to_'+self.eater.variable.variable.name
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'float'}),
+						Sequence{
+							let fdef : chips!function_definition = 
+								self.feeder.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'float'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('float')
+										->get('eoutputs')
+										->get(self.feeder.output.name),
+									memory.fblocks
+										->get(self.feeder.variable_expression.variable.name)
+										->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'float'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.feeder.variable.variable.name)
+										->get(tindices)
+								)
+							)
+						}
+					)
+				)
+			else 
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+					-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_float.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
+			endif,
+			ccasts_map = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+				thisModule.includingPartialConnectorForPhysical(memory,self)
+			else 
+				memory.ccasts_map
+			endif,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}
+	};
+
+
+helper context chips!"chips::statements::system::feeding_physical_bool" def : 
+	evaluate(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+		nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+		ccasts_map : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+		),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc = pc+1,
+		mem = Tuple {
+			fblocks = memory.fblocks,
+			dataflows =
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_physical_output") then 
+				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+				let tdim : Sequence(Integer) = self.eater.variable.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+				let tindices : Sequence(Integer) = self.eater.variable.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+				memory.dataflows->including(
+					Tuple{
+						fcomp= self.feeder.variable_expression.variable.name,
+						findex = findices,
+						fparam= self.feeder.output.name,
+						tcomp= self.eater.variable.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+self.feeder.variable_expression.variable.name
+						+'_'+findices.toString()+'_'+self.feeder.output.name
+						+'_to_'+self.eater.variable.variable.name
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'bool'}),
+						Sequence{
+							let fdef : chips!function_definition = 
+								self.feeder.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('bool')
+										->get('eoutputs')
+										->get(self.feeder.output.name),
+									memory.fblocks
+										->get(self.feeder.variable_expression.variable.name)
+										->get(findices)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									memory.fblocks
+										->get(self.eater.variable.variable.name)
+										->get(tindices)
+								)
+							)
+						}
+					)
+				)
+			else 
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+					-- let a : OclAny = 'ATL transformation Error'.debug('Collective cast operator not handled by the compiler yet') in
+					memory.dataflows
+				else 
+					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_physical_bool.evaluate') -- How is it even possible?
+					in
+					memory.dataflows
+				endif 
+			endif,
+			ccasts_map = 
+			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
+				thisModule.includingPartialConnectorForPhysical(memory,self)
+			else 
+				memory.ccasts_map
+			endif,
+			links = memory.links,
+			nodes = memory.nodes,
+			connections = memory.connections,
+			variables = memory.variables
+		}	
+	};
+
+helper context chips!"chips::statements::system::feeding_logical_int" def : 
+	handleSystemExpressions(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+		nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+		ccasts_map : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+		),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	Tuple{
+		pc = pc+1,
+		mem = if expression.dims->get(0) <> 1 then 
+			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+			memory
+		else
+			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let partial_next_mem : TupleType(
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+				nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+				ccasts_map : Map(
+					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+				),
+				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			) =  Tuple{
+				fblocks = memory.fblocks
+					->including(
+						name,
+						Tuple{
+							ftype = OclUndefined,
+							dimensions = Sequence{1},
+							instances = Sequence{
+								thisModule.MakeIntegerConstantDeclaration(
+									expression.value->get(0),
+									thisModule.id
+								)
+							}
+						}
+					),
+				dataflows = memory.dataflows,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = memory.ccasts_map,
+				variables = memory.variables
+			} in
+			Tuple{
+				fblocks = partial_next_mem.fblocks,
+				dataflows = 
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					partial_next_mem.dataflows->including(
+					Tuple{
+						fcomp= name,
+						findex = 0,
+						fparam= 'out',
+						tcomp= self.eater.variable_expression.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+name
+						+'_to_'+self.eater.variable_expression.variable.name
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'int'}),
+						Sequence{
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'int'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('ConstantAtomTypes')
+										->get('int')
+										->get('aepd'),
+									partial_next_mem.fblocks->get(name).instances->get(0)
 								)
 							),
 							let fdef :chips!function_definition = 
@@ -10693,39 +10258,26 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 										->get(fdef.name)
 										->get('einputs')
 										->get(self.eater.parameter.name),
-									memory.fblocks
+									partial_next_mem.fblocks
 										->get(self.eater.variable_expression.variable.name)
 										.instances->get(tindices)
 								)
 							)
 						}
 					)
-				)
-			else
-				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-					memory.dataflows
-				else 
-					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_int.evaluate') -- How is it even possible?
-					in
-					memory.dataflows
-				endif 
-			endif,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-				thisModule.includingPartialConnectorForLogical(memory,self)
-			else 
-				memory.ccasts_map
-			endif,
-			variables = memory.variables
-		}
-	endif;
+				),
+				links = partial_next_mem.links,
+				nodes = partial_next_mem.nodes,
+				connections = partial_next_mem.connections,
+				ccasts_map = partial_next_mem.ccasts_map,
+				variables = partial_next_mem.variables
+			}
+		endif
+	};
 
 
 helper context chips!"chips::statements::system::feeding_logical_float" def : 
-	evaluate(memory:TupleType(
+	handleSystemExpressions(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -10754,66 +10306,115 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
-		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
-		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
-		nodes: Map(
-			String,
-			TupleType(
-				dimensions:Sequence(Integer),
-				type:String,
-				channels:Map(String,String),
-				type:String,
-				instances:Sequence(
-					Map(
-						String,
-						TupleType(
-							dimensions:Sequence(Integer),
-							instances:Sequence(bip!ComponentDeclaration)
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
 						)
 					)
 				)
-			)
-		),
-		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
-			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
-		),
-		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
 	) = 
-	if Sequence{
-			chips!"chips::systemspecific::expressions::feeder::float_logical_output",
-			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
-		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-		self->handleSystemExpressions(memory)
-	else
-		Tuple {
-			fblocks = memory.fblocks,
-			dataflows =
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_logical_output") then
-				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-				memory.dataflows->including(
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	Tuple{	
+		pc = pc+1,
+		mem = if expression.dims->get(0) <> 1 then 
+			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+			memory
+		else
+			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let partial_next_mem : TupleType(
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+				nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+				ccasts_map : Map(
+					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+				),
+				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			) =  Tuple{
+				fblocks = memory.fblocks
+					->including(
+						name,
+						Tuple{
+							ftype = OclUndefined,
+							dimensions = Sequence{1},
+							instances = Sequence{
+								thisModule.MakeFloatConstantDeclaration(
+									expression.value->get(0),
+									thisModule.id
+								)
+							}
+						}
+					),
+				dataflows = memory.dataflows,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = memory.ccasts_map,
+				variables = memory.variables
+			} in
+			Tuple{
+				fblocks = partial_next_mem.fblocks,
+				dataflows = 
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					partial_next_mem.dataflows->including(
 					Tuple{
-						fcomp= self.feeder.variable_expression.variable.name,
-						findex = findices,
-						fparam= self.feeder.output.name,
+						fcomp= name,
+						findex = 0,
+						fparam= 'out',
 						tcomp= self.eater.variable_expression.variable.name,
 						tindex= tindices,
 						tparam= self.eater.parameter.name
 					},
 					thisModule.MakeConnectorDeclaration(
-						'from_'+self.feeder.variable_expression.variable.name
-						+'_'+findices.toString()+'_'+self.feeder.output.name
+						'from_'+name
 						+'_to_'+self.eater.variable_expression.variable.name
 						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
 						thisModule.MakeFlowConnectorType(Sequence{'float'}),
 						Sequence{
-							let fdef : chips!function_definition = 
-								self.feeder.variable_expression.variable.declaration."def" in
 							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
 									->get('FlowConnectorTypes')
@@ -10821,13 +10422,10 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 									->get('s_port'),
 								thisModule.MakeComponentSubPortDeclarationReference(
 									thisModule.dictionary
-										->get('FunctionalBlockCompoundTypes')
-										->get(fdef.name)
-										->get('eoutputs')
-										->get(self.feeder.output.name),
-									memory.fblocks
-										->get(self.feeder.variable_expression.variable.name)
-										.instances->get(findices)
+										->get('ConstantAtomTypes')
+										->get('float')
+										->get('aepd'),
+									partial_next_mem.fblocks->get(name).instances->get(0)
 								)
 							),
 							let fdef :chips!function_definition = 
@@ -10843,39 +10441,26 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 										->get(fdef.name)
 										->get('einputs')
 										->get(self.eater.parameter.name),
-									memory.fblocks
+									partial_next_mem.fblocks
 										->get(self.eater.variable_expression.variable.name)
 										.instances->get(tindices)
 								)
 							)
 						}
 					)
-				)
-			else
-				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-					memory.dataflows
-				else 
-					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_float.evaluate') -- How is it even possible?
-					in
-					memory.dataflows
-				endif 
-			endif,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-				thisModule.includingPartialConnectorForLogical(memory,self)
-			else 
-				memory.ccasts_map
-			endif,
-			variables = memory.variables
-		}
-	endif;
+				),
+				links = partial_next_mem.links,
+				nodes = partial_next_mem.nodes,
+				connections = partial_next_mem.connections,
+				ccasts_map = partial_next_mem.ccasts_map,
+				variables = partial_next_mem.variables
+			}
+		endif
+	};
 
 
 helper context chips!"chips::statements::system::feeding_logical_bool" def : 
-	evaluate(memory:TupleType(
+	handleSystemExpressions(pc : Integer,memory:TupleType(
 		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
@@ -10904,7 +10489,161 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
 	)) : TupleType(
-		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	let expression : OclAny = self.feeder.evaluate(memory) in
+	Tuple{
+		pc = pc +1,	
+		mem = if expression.dims->get(0) <> 1 then 
+			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
+			memory
+		else
+			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let partial_next_mem : TupleType(
+				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+				links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+				nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+				connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+				ccasts_map : Map(
+					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+					Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+				),
+				variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+			) =  Tuple{
+				fblocks = memory.fblocks
+					->including(
+						name,
+						Tuple{
+							ftype = OclUndefined,
+							dimensions = Sequence{1},
+							instances = Sequence{
+								thisModule.MakeBoolConstantDeclaration(
+									expression.value->get(0),
+									thisModule.id
+								)
+							}
+						}
+					),
+				dataflows = memory.dataflows,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = memory.ccasts_map,
+				variables = memory.variables
+			} in
+			Tuple{
+				fblocks = partial_next_mem.fblocks,
+				dataflows = 
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					partial_next_mem.dataflows->including(
+					Tuple{
+						fcomp= name,
+						findex = 0,
+						fparam= 'out',
+						tcomp= self.eater.variable_expression.variable.name,
+						tindex= tindices,
+						tparam= self.eater.parameter.name
+					},
+					thisModule.MakeConnectorDeclaration(
+						'from_'+name
+						+'_to_'+self.eater.variable_expression.variable.name
+						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+						thisModule.MakeFlowConnectorType(Sequence{'bool'}),
+						Sequence{
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('s_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('ConstantAtomTypes')
+										->get('bool')
+										->get('aepd'),
+									partial_next_mem.fblocks->get(name).instances->get(0)
+								)
+							),
+							let fdef :chips!function_definition = 
+								self.eater.variable_expression.variable.declaration."def" in
+							thisModule.MakePortDeclarationReferenceParameter(
+								thisModule.dictionary
+									->get('FlowConnectorTypes')
+									->get(Sequence{'bool'})
+									->get('r_port'),
+								thisModule.MakeComponentSubPortDeclarationReference(
+									thisModule.dictionary
+										->get('FunctionalBlockCompoundTypes')
+										->get(fdef.name)
+										->get('einputs')
+										->get(self.eater.parameter.name),
+									partial_next_mem.fblocks
+										->get(self.eater.variable_expression.variable.name)
+										.instances->get(tindices)
+								)
+							)
+						}
+					)
+				),
+				links = partial_next_mem.links,
+				nodes = partial_next_mem.nodes,
+				connections = partial_next_mem.connections,
+				ccasts_map = partial_next_mem.ccasts_map,
+				variables = partial_next_mem.variables
+			}
+		endif
+	};
+
+helper context chips!"chips::statements::system::feeding_logical_int" def : 
+	evaluate(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
 		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
 		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
 		nodes: Map(
@@ -10931,97 +10670,443 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 		),
 		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
-	) = 
-	if Sequence{
-			chips!"chips::systemspecific::expressions::feeder::bool_logical_output",
-			chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
-		}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-		self->handleSystemExpressions(memory)
-	else
-		Tuple {
-			fblocks = memory.fblocks,
-			dataflows =
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_logical_output") then
-				let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
-				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
-				memory.dataflows->including(
-					Tuple{
-						fcomp= self.feeder.variable_expression.variable.name,
-						findex = findices,
-						fparam= self.feeder.output.name,
-						tcomp= self.eater.variable_expression.variable.name,
-						tindex= tindices,
-						tparam= self.eater.parameter.name
-					},
-					thisModule.MakeConnectorDeclaration(
-						'from_'+self.feeder.variable_expression.variable.name
-						+'_'+findices.toString()+'_'+self.feeder.output.name
-						+'_to_'+self.eater.variable_expression.variable.name
-						+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
-						thisModule.MakeFlowConnectorType(Sequence{'bool'}),
-						Sequence{
-							let fdef : chips!function_definition = 
-								self.feeder.variable_expression.variable.declaration."def" in
-							thisModule.MakePortDeclarationReferenceParameter(
-								thisModule.dictionary
-									->get('FlowConnectorTypes')
-									->get(Sequence{'bool'})
-									->get('s_port'),
-								thisModule.MakeComponentSubPortDeclarationReference(
-									thisModule.dictionary
-										->get('FunctionalBlockCompoundTypes')
-										->get(fdef.name)
-										->get('eoutputs')
-										->get(self.feeder.output.name),
-									memory.fblocks
-										->get(self.feeder.variable_expression.variable.name)
-										.instances->get(findices)
-								)
-							),
-							let fdef :chips!function_definition = 
-								self.eater.variable_expression.variable.declaration."def" in
-							thisModule.MakePortDeclarationReferenceParameter(
-								thisModule.dictionary
-									->get('FlowConnectorTypes')
-									->get(Sequence{'bool'})
-									->get('r_port'),
-								thisModule.MakeComponentSubPortDeclarationReference(
-									thisModule.dictionary
-										->get('FunctionalBlockCompoundTypes')
-										->get(fdef.name)
-										->get('einputs')
-										->get(self.eater.parameter.name),
-									memory.fblocks
-										->get(self.eater.variable_expression.variable.name)
-										.instances->get(tindices)
-								)
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
 							)
-						}
+						)
 					)
 				)
-			else
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc = pc +1,
+		mem = if Sequence{
+				chips!"chips::systemspecific::expressions::feeder::int_logical_output",
+				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+			self->handleSystemExpressions(pc,memory)
+		else
+			Tuple {
+				fblocks = memory.fblocks,
+				dataflows =
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::int_logical_output") then
+					let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					memory.dataflows->including(
+						Tuple{
+							fcomp= self.feeder.variable_expression.variable.name,
+							findex = findices,
+							fparam= self.feeder.output.name,
+							tcomp= self.eater.variable_expression.variable.name,
+							tindex= tindices,
+							tparam= self.eater.parameter.name
+						},
+						thisModule.MakeConnectorDeclaration(
+							'from_'+self.feeder.variable_expression.variable.name
+							+'_'+findices.toString()+'_'+self.feeder.output.name
+							+'_to_'+self.eater.variable_expression.variable.name
+							+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+							thisModule.MakeFlowConnectorType(Sequence{'int'}),
+							Sequence{
+								let fdef : chips!function_definition = 
+									self.feeder.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'int'})
+										->get('s_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('eoutputs')
+											->get(self.feeder.output.name),
+										memory.fblocks
+											->get(self.feeder.variable_expression.variable.name)
+											.instances->get(findices)
+									)
+								),
+								let fdef :chips!function_definition = 
+									self.eater.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'int'})
+										->get('r_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('einputs')
+											->get(self.eater.parameter.name),
+										memory.fblocks
+											->get(self.eater.variable_expression.variable.name)
+											.instances->get(tindices)
+									)
+								)
+							}
+						)
+					)
+				else
+					if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+						memory.dataflows
+					else 
+						let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_int.evaluate') -- How is it even possible?
+						in
+						memory.dataflows
+					endif 
+				endif,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = 
 				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-					memory.dataflows
+					thisModule.includingPartialConnectorForLogical(memory,self)
 				else 
-					let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_bool.evaluate') -- How is it even possible?
-					in
-					memory.dataflows
-				endif 
-			endif,
-			links = memory.links,
-			nodes = memory.nodes,
-			connections = memory.connections,
-			ccasts_map = 
-			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
-				thisModule.includingPartialConnectorForLogical(memory,self)
-			else 
-				memory.ccasts_map
-			endif,
-			variables = memory.variables
-		}
-	endif;
+					memory.ccasts_map
+				endif,
+				variables = memory.variables
+			}
+		endif
+	};
+
+
+helper context chips!"chips::statements::system::feeding_logical_float" def : 
+	evaluate(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+		nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+		ccasts_map : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+		),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc = pc +1,
+		mem = if Sequence{
+				chips!"chips::systemspecific::expressions::feeder::float_logical_output",
+				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+			self->handleSystemExpressions(pc,memory)
+		else
+			Tuple {
+				fblocks = memory.fblocks,
+				dataflows =
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::float_logical_output") then
+					let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					memory.dataflows->including(
+						Tuple{
+							fcomp= self.feeder.variable_expression.variable.name,
+							findex = findices,
+							fparam= self.feeder.output.name,
+							tcomp= self.eater.variable_expression.variable.name,
+							tindex= tindices,
+							tparam= self.eater.parameter.name
+						},
+						thisModule.MakeConnectorDeclaration(
+							'from_'+self.feeder.variable_expression.variable.name
+							+'_'+findices.toString()+'_'+self.feeder.output.name
+							+'_to_'+self.eater.variable_expression.variable.name
+							+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+							thisModule.MakeFlowConnectorType(Sequence{'float'}),
+							Sequence{
+								let fdef : chips!function_definition = 
+									self.feeder.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'float'})
+										->get('s_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('eoutputs')
+											->get(self.feeder.output.name),
+										memory.fblocks
+											->get(self.feeder.variable_expression.variable.name)
+											.instances->get(findices)
+									)
+								),
+								let fdef :chips!function_definition = 
+									self.eater.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'float'})
+										->get('r_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('einputs')
+											->get(self.eater.parameter.name),
+										memory.fblocks
+											->get(self.eater.variable_expression.variable.name)
+											.instances->get(tindices)
+									)
+								)
+							}
+						)
+					)
+				else
+					if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+						memory.dataflows
+					else 
+						let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_float.evaluate') -- How is it even possible?
+						in
+						memory.dataflows
+					endif 
+				endif,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = 
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+					thisModule.includingPartialConnectorForLogical(memory,self)
+				else 
+					memory.ccasts_map
+				endif,
+				variables = memory.variables
+			}
+		endif
+	};
+
+
+helper context chips!"chips::statements::system::feeding_logical_bool" def : 
+	evaluate(pc : Integer,memory:TupleType(
+		fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+		dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+		links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+		nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+		connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+		ccasts_map : Map(
+			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+			Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+		),
+		variables:Sequence(TupleType(name:String,type:String,value:Sequence(OclAny),dims:Sequence(Integer)))
+	)) : TupleType(
+		pc:Integer,
+		mem:TupleType(
+			fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
+			dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+			links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+			nodes: Map(
+				String,
+				TupleType(
+					dimensions:Sequence(Integer),
+					type:String,
+					channels:Map(String,String),
+					type:String,
+					instances:Sequence(
+						Map(
+							String,
+							TupleType(
+								dimensions:Sequence(Integer),
+								instances:Sequence(bip!ComponentDeclaration)
+							)
+						)
+					)
+				)
+			),
+			connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+			ccasts_map : Map(
+				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+				Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+			),
+			variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+		)
+	) = 
+	Tuple{
+		pc = pc +1,
+		mem = if Sequence{
+				chips!"chips::systemspecific::expressions::feeder::bool_logical_output",
+				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
+			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
+			self->handleSystemExpressions(pc,memory)
+		else
+			Tuple {
+				fblocks = memory.fblocks,
+				dataflows =
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::bool_logical_output") then
+					let fdim : Sequence(Integer) = self.feeder.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let findices : Sequence(Integer) = self.feeder.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in
+					let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
+					let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
+					memory.dataflows->including(
+						Tuple{
+							fcomp= self.feeder.variable_expression.variable.name,
+							findex = findices,
+							fparam= self.feeder.output.name,
+							tcomp= self.eater.variable_expression.variable.name,
+							tindex= tindices,
+							tparam= self.eater.parameter.name
+						},
+						thisModule.MakeConnectorDeclaration(
+							'from_'+self.feeder.variable_expression.variable.name
+							+'_'+findices.toString()+'_'+self.feeder.output.name
+							+'_to_'+self.eater.variable_expression.variable.name
+							+'_'+ tindices.toString()+'_'+self.eater.parameter.name,
+							thisModule.MakeFlowConnectorType(Sequence{'bool'}),
+							Sequence{
+								let fdef : chips!function_definition = 
+									self.feeder.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'bool'})
+										->get('s_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('eoutputs')
+											->get(self.feeder.output.name),
+										memory.fblocks
+											->get(self.feeder.variable_expression.variable.name)
+											.instances->get(findices)
+									)
+								),
+								let fdef :chips!function_definition = 
+									self.eater.variable_expression.variable.declaration."def" in
+								thisModule.MakePortDeclarationReferenceParameter(
+									thisModule.dictionary
+										->get('FlowConnectorTypes')
+										->get(Sequence{'bool'})
+										->get('r_port'),
+									thisModule.MakeComponentSubPortDeclarationReference(
+										thisModule.dictionary
+											->get('FunctionalBlockCompoundTypes')
+											->get(fdef.name)
+											->get('einputs')
+											->get(self.eater.parameter.name),
+										memory.fblocks
+											->get(self.eater.variable_expression.variable.name)
+											.instances->get(tindices)
+									)
+								)
+							}
+						)
+					)
+				else
+					if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+						memory.dataflows
+					else 
+						let a : OclAny = 'ATL transformation Error'.debug('Somthing went wrong in helper chips::statements::system::feeding_logical_bool.evaluate') -- How is it even possible?
+						in
+						memory.dataflows
+					endif 
+				endif,
+				links = memory.links,
+				nodes = memory.nodes,
+				connections = memory.connections,
+				ccasts_map = 
+				if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::logical_collective_cast") then
+					thisModule.includingPartialConnectorForLogical(memory,self)
+				else 
+					memory.ccasts_map
+				endif,
+				variables = memory.variables
+			}
+		endif
+	};
 
 -- evaluation of the arrays of indices
 helper context Sequence(chips!system_int_rvalue) def : evaluate(memory:TupleType(

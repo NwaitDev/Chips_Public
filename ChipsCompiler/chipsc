@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 declare -A DESCRIPTIONS=(
     ["-h"]="Print this message."
@@ -73,6 +74,10 @@ while [[ $# -gt 0 ]]; do
             print_usage
             exit 0
             ;;
+        -i)
+            print_info
+            exit 0
+            ;;
         -*)
             echo "Error: unknown option '$1'." >&2
             print_usage
@@ -139,6 +144,9 @@ mkdir -p "$OUTPUT_DIR"
 # ---------------------------------------------------------------------------
 # Pipeline error handling
 # ---------------------------------------------------------------------------
+STEP_NAMES=()
+STEP_DURATIONS=()
+
 run_step() {
     local step_name="$1"
     local log_file="$2"
@@ -148,18 +156,27 @@ run_step() {
     echo "================================================================"
     echo "Running step: $step_name"
     echo "================================================================"
+    echo
+    echo "running : $@"
+    # Run the command and capture stderr in the step-specific log file,
+    # timing how long it takes.
+    local start_time end_time elapsed
+    start_time=$(date +%s.%N)
 
-    # Run the command and capture stderr in the step-specific log file.
     set +e
     "$@" 2>"$log_file"
     local status=$?
     set -e
+
+    end_time=$(date +%s.%N)
+    elapsed=$(awk -v s="$start_time" -v e="$end_time" 'BEGIN { printf "%.3f", e - s }')
 
     if [[ $status -ne 0 ]]; then
         echo
         echo "PIPELINE FAILED"
         echo "Step: $step_name"
         echo "Exit code: $status"
+        echo "Time elapsed: ${elapsed}s"
         echo "Log file: $log_file"
         echo
 
@@ -175,7 +192,29 @@ run_step() {
         exit "$status"
     fi
 
-    echo "Step '$step_name' completed successfully."
+    STEP_NAMES+=("$step_name")
+    STEP_DURATIONS+=("$elapsed")
+
+    echo "Step '$step_name' completed successfully in ${elapsed}s."
+}
+
+print_timing_summary() {
+    if [[ "${#STEP_NAMES[@]}" -eq 0 ]]; then
+        return
+    fi
+
+    echo
+    echo "================================================================"
+    echo "Timing summary"
+    echo "================================================================"
+    local total
+    total=0
+    for i in "${!STEP_NAMES[@]}"; do
+        printf "  %-25s %ss\n" "${STEP_NAMES[$i]}" "${STEP_DURATIONS[$i]}"
+        total=$(awk -v t="$total" -v d="${STEP_DURATIONS[$i]}" 'BEGIN { printf "%.3f", t + d }')
+    done
+    echo "----------------------------------------------------------------"
+    printf "  %-25s %ss\n" "Total" "$total"
 }
 
 # ---------------------------------------------------------------------------
@@ -218,7 +257,7 @@ if [[ "$DO_CHIPS_XMI" -eq 1 ]]; then
     run_step \
         "CHIPS -> CHIPS XMI" \
         "$OUTPUT_DIR/ChipsXmiGeneratorDebug.log" \
-        FullCompileChain/ChipsXmiGenerator/chipsparser \
+        $SCRIPT_DIR/FullCompileChain/ChipsXmiGenerator/chipsparser \
         "$FILE" \
         "$OUTPUT_DIR/out.chips.xmi"
 fi
@@ -234,11 +273,11 @@ if [[ "$DO_BIP_XMI" -eq 1 ]]; then
     run_step \
         "CHIPS XMI -> BIP XMI" \
         "$OUTPUT_DIR/BipXmiGeneratorDebug.log" \
-        FullCompileChain/BipXmiGenerator/emftvm.sh \
-        FullCompileChain/BipXmiGenerator/metamodels/chips1.1.ecore \
-        FullCompileChain/BipXmiGenerator/metamodels/BIP.ecore \
+        $SCRIPT_DIR/FullCompileChain/BipXmiGenerator/emftvm.sh \
+        $SCRIPT_DIR/FullCompileChain/BipXmiGenerator/metamodels/chips1.1.ecore \
+        $SCRIPT_DIR/FullCompileChain/BipXmiGenerator/metamodels/BIP.ecore \
         "$BIP_XMI_INPUT" \
-        FullCompileChain/BipXmiGenerator/transformations/chips2bip.atl \
+        $SCRIPT_DIR/FullCompileChain/BipXmiGenerator/transformations/chips2bip.atl \
         "$OUTPUT_DIR/out.bip.xmi"
 fi
 
@@ -247,7 +286,9 @@ if [[ "$DO_CPP" -eq 1 ]]; then
     run_step \
         "CHIPS -> C++" \
         "$OUTPUT_DIR/CppGeneratorDebug.log" \
-        FullCompileChain/CppGenerator/build/Chips2Cpp \
+        $SCRIPT_DIR/FullCompileChain/CppGenerator/build/Chips2Cpp \
         -o "$OUTPUT_DIR/out.cpp" \
         "$FILE"
 fi
+
+print_timing_summary

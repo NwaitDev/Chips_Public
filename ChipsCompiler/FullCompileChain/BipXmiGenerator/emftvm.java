@@ -125,7 +125,7 @@ public class emftvm {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
 
         boolean commandParseError = !parseArgs(args);
     
@@ -181,6 +181,7 @@ public class emftvm {
 
         } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
     }
 }

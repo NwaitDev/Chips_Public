@@ -49,8 +49,14 @@ namespace chips {
                 return declare(name, value, SymbolKind::VARIABLE_SENSOR);
             }
 
-            bool declareChannel(const std::string& name, const std::any& value){
-                return declare(name, value, SymbolKind::CHANNEL);
+            bool declareChannel(const std::string& nodeName, const std::string& channel, const std::any& value){
+                for(const auto& [k1, v1] : node_channels){
+                    for(const auto& [k2, v2] : v1){
+                        if(nodeName == k1 && channel == k2) return false;
+                    }
+                }
+                node_channels[nodeName][channel] = value;
+                return true;
             }
 
             bool declareFunctionLogical(const std::string& name, const std::any& value){
@@ -120,8 +126,15 @@ namespace chips {
                 return lookup(name, SymbolKind::VARIABLE_SENSOR);
             }
 
-            std::optional<std::any> lookupChannel(const std::string& name){
-                return lookup(name, SymbolKind::CHANNEL);
+            std::optional<std::any> lookupChannel(const std::string& nodeName, const std::string& channel) const{
+                for(auto it = node_channels.cbegin(); it != node_channels.cend(); it++){
+                    if(it->first == nodeName){
+                        for(auto it2 = it->second.cbegin(); it2 != it->second.cend(); it2++){
+                            if(it2->first == channel) return it2->second;
+                        }
+                    }
+                }
+                return std::nullopt;
             }
 
             std::optional<std::any> lookupFunctionLogical(const std::string& name) const{
@@ -206,6 +219,12 @@ namespace chips {
                 for(const auto& [fname, v] : function_parameters){
                     for(const auto& [param, value]: v){
                         std::cout << fname << " " << param << "(" << ast_builder_detail::type_name(value.type()) << ")\n";
+                    }
+                }
+                std::cout << "===== Symbol Table Channels =====\n";
+                for(const auto& [nodeName, v] : node_channels){
+                    for(const auto& [channelName, astNode]: v){
+                        std::cout << nodeName << " " << channelName << "(" << ast_builder_detail::type_name(astNode.type()) << ")\n";
                     }
                 }
                 std::cout << "===== Symbol Table Declared Block =====\n";
@@ -305,7 +324,7 @@ namespace chips {
 
             std::vector<std::unordered_map<std::string, Symbol>> scopes;
             // std::vector<std::unordered_map<std::string, std::any>> scopes;
-
+            std::unordered_map<std::string, std::unordered_map<std::string, std::any>> node_channels;
             // to get the function output of a function
             std::unordered_map<std::string, std::unordered_map<std::string, std::any>> function_outputs;
             std::unordered_map<std::string, std::unordered_map<std::string, std::any>> function_parameters;
