@@ -1,4 +1,5 @@
 #include "ASTBuilder.hpp"
+#include "ChipsSymbolTable.hpp"
 #include "ast_lrxvalues.hpp"
 
 void print_any_type(const std::any &a)
