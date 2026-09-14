@@ -545,9 +545,9 @@ std::any ASTBuilder::visitCollective_op_def(ChipsParser::Collective_op_defContex
     ChipsParser::C_signatureContext* sign = ctx->c_signature();
 
     std::string keyword = std::any_cast<std::string>(visit(sign->c_keywords()));
-    
+
     collective_function_type type = (keyword == "collect") ? collective_function_type::COLLECT
-                                                           : collective_function_type::SPREAD; 
+        : collective_function_type::SPREAD;
 
     std::string fname = sign->IDENTIFIER(0)->getText();
     std::string among = sign->IDENTIFIER(1)->getText();
@@ -2253,7 +2253,7 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
     if(!type.has_value()){
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
-
+    
     std::optional<std::any> parameter_who_eat = SymbolTable::getInstance().lookupParameter(std::any_cast<std::string>(type.value()), function_parameter_id);
 
     if(!parameter_who_eat.has_value()){
@@ -2269,7 +2269,7 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
     std::optional<std::any> variable = SymbolTable::getInstance().lookupBlock(identifier);
     if(!variable.has_value()){
         throw std::runtime_error("'"+identifier+"' was never declarated before");
-    }    
+    }
 
     
     // std::cout << "Is function param " << (is_function_parameter(parameter_who_eat.value()) ? "param" : "non") << std::endl;
@@ -2522,6 +2522,7 @@ std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext 
     STATEMENT_CAST(ChipsParser::StatementIfElseContext)
     STATEMENT_CAST(ChipsParser::StatementIfContext)
 #undef STATEMENT_CAST
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("Unrecognized statement kind while visiting RegularStatementContext");
 }
 
@@ -2529,12 +2530,13 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
 {
     std::string identifier = ctx->block()->IDENTIFIER()->getText();
     auto suffixes = std::any_cast<std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>>(visit(ctx->block()->suffixes()));
-    std::string function_output_id = ctx->IDENTIFIER()->getText();
+    std::string output_id = ctx->IDENTIFIER()->getText();
+    std::string type_name = SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier);
 
-    // std::cout << "visit SBlock output expr " << identifier << std::endl;
 
     std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
     if(!feeder_who_eaten.has_value()){
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
 
@@ -2544,7 +2546,6 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
     }
 
     functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value(), suffixes);
-
     try{
         if(auto output = std::any_cast<std::shared_ptr<function_output<dataflow_kind::LOGICAL, dataflow_type::INT>>>(output_who_eaten.value())){
             auto feeder_block = std::make_shared<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(variable_expression, output.get());
@@ -2607,6 +2608,7 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
     }
         
 
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("Unsupported type or kind");
 }
 
@@ -2648,13 +2650,15 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
     }
 
     if(!collective.has_value()){
-        throw std::runtime_error("'"+collective_op+"' was never defined before");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("'"+collective_op+"' was never defined before");
     }
 
     std::optional<std::any> target_output_opt = SymbolTable::getInstance().lookupOutput(collective_op, "@");
 
     if(!target_output_opt.has_value()){
-        throw std::runtime_error("'@' was never defined before");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("'@' was never defined before");
     }
 
     auto collective_func_def = std::make_shared<collective_function_definition>(
@@ -2668,11 +2672,13 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
 
     std::optional<std::any> feeder_who_eaten = SymbolTable::getInstance().lookupBlock(identifier);
     if(!feeder_who_eaten.has_value()){
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
         throw std::runtime_error("'"+identifier+"' was never declarated before");
     }
 
     std::optional<std::any> output_who_eaten = SymbolTable::getInstance().lookupOutput(SymbolTable::getInstance().getTypeOfDeclaratedBlock(identifier), function_output_id);
     if(!output_who_eaten.has_value()){
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
         throw std::runtime_error("'"+function_output_id+"' was never defined before");
     }
 
@@ -2827,6 +2833,7 @@ std::any ASTBuilder::visitSCollectiveCastExpression(ChipsParser::SCollectiveCast
     }
         
 
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("Unsupported type or kind");
 }
 
@@ -2934,7 +2941,8 @@ std::any ASTBuilder::visitDf_parameter_decl(ChipsParser::Df_parameter_declContex
         function_parameter<DFK, DFT> new_ast_param(identifier, declaration);                     \
         if (!SymbolTable::getInstance().declareVariable(identifier, declaration.get_variable())) \
         {                                                                                        \
-            throw std::runtime_error("'" + identifier + "' was already declarated before");      \
+            std::cerr << "line " << ctx->getStart()->getLine() << std::endl;\
+    throw std::runtime_error("'" + identifier + "' was already declarated before");      \
         }                                                                                        \
         return new_ast_param;                                                                    \
     }
@@ -2974,7 +2982,8 @@ std::any ASTBuilder::visitFunctionParameterType(ChipsParser::FunctionParameterTy
     }
     catch (const std::runtime_error &e)
     {
-        throw std::runtime_error("unrecognized parameter type in visit method FunctionParameterContext");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("unrecognized parameter type in visit method FunctionParameterContext");
     }
 }
 
@@ -2988,12 +2997,14 @@ std::any ASTBuilder::visitSensorParameterType(ChipsParser::SensorParameterTypeCo
     }
     catch (const std::runtime_error &e)
     {
-        throw std::runtime_error("unrecognized parameter type in visit method SensorParameterContext");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("unrecognized parameter type in visit method SensorParameterContext");
     }
 }
 
 std::any ASTBuilder::visitPdf_parameter_decl(ChipsParser::Pdf_parameter_declContext *ctx)
 {
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("Unimplemented visit method Pdf_parameter_declContext");
 }
 
@@ -3033,6 +3044,7 @@ std::any ASTBuilder::visitFunction(ChipsParser::FunctionContext *ctx)
     default:
         break;
     }
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("unknown function environment");
 }
 
@@ -3134,6 +3146,7 @@ std::any ASTBuilder::visitMOD(ChipsParser::MODContext *ctx)
         return ast_builder_detail::ModBuilder<dataflow_type::INT, expression_env::SYSTEM>::build(left_system, right_system);
     }
 
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("MOD : opérandes doivent être des entiers (INT)");
 }
 
@@ -3157,7 +3170,8 @@ std::any ASTBuilder::visitIntLiteral(ChipsParser::IntLiteralContext *ctx)
     case expression_env::SYSTEM:
         return std::make_shared<direct<dataflow_type::INT, expression_env::SYSTEM>>(std::stoll(ctx->INT()->getText()));
     default:
-        throw std::runtime_error("Unknown expression environment in visitIntLiteral");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("Unknown expression environment in visitIntLiteral");
     }
 }
 
@@ -3173,7 +3187,8 @@ std::any ASTBuilder::visitFloatLiteral(ChipsParser::FloatLiteralContext *ctx)
     case expression_env::SYSTEM:
         return std::make_shared<direct<dataflow_type::FLOAT, expression_env::SYSTEM>>(std::stod(ctx->FLOAT()->getText()));
     default:
-        throw std::runtime_error("Unknown expression environment in visitFloatLiteral");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("Unknown expression environment in visitFloatLiteral");
     }
 }
 
@@ -3191,7 +3206,8 @@ std::any ASTBuilder::visitBoolLiteral(ChipsParser::BoolLiteralContext *ctx)
     case expression_env::SYSTEM:
         return std::make_shared<direct<dataflow_type::BOOL, expression_env::SYSTEM>>(value);
     default:
-        throw std::runtime_error("Unknown expression environment in visitBoolLiteral");
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
+    throw std::runtime_error("Unknown expression environment in visitBoolLiteral");
     }
 }
 
@@ -3522,6 +3538,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
     case expression_env::SYSTEM:
         return extract_dimensions<expression_env::SYSTEM>(ctx);
     }
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("VITAL, FAUT PAS OUBLIER LE CASE DEFAULT");
 }
 
@@ -3548,6 +3565,7 @@ std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclaration
     case dataflow_type::BOOL:                                                                                                                                                           \
         return handle_statement_declaration<EXPENV, dataflow_type::BOOL>(std::any_cast<std::vector<int_rvalue_expression_variant<EXPENV>>>(visit(ctx->suffixes())), var_name, assign);  \
     default:                                                                                                                                                                            \
+        std::cerr << "line " << ctx->getStart()->getLine() << std::endl;    \
         throw std::runtime_error("unknown type for variable declaration");                                                                                                              \
     }
 
@@ -3564,6 +3582,7 @@ std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclaration
         RESWITCH(expression_env::COLLECTIVE)
     }
 #undef RESWITCH
+    std::cerr << "line " << ctx->getStart()->getLine() << std::endl;
     throw std::runtime_error("Ooops, looks like the environment for this statement is not handled...");
 }
 
