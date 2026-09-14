@@ -441,8 +441,6 @@ class ChipsToXmiVisitor : public visitor{
                 visit(*p);
             }else if(auto* p = dynamic_cast<direct<dataflow_type::BOOL,expenv>*>(&node)){
                 visit(*p);
-            }else if(auto* p = dynamic_cast<direct<dataflow_type::INT,expenv>*>(&node)){
-                visit(*p);
             }
 
             else if(auto* p = dynamic_cast<plus<dataflow_type::INT,expenv>*>(&node)){
@@ -526,14 +524,16 @@ class ChipsToXmiVisitor : public visitor{
             else if(auto* p = dynamic_cast<variable_expression<dft,expenv>*>(&node)){
                 visit(*p);
             }
-
+            else if(auto* func = dynamic_cast<function<dft,expenv>*>(&node)){   // <-- add this
+                visit(*func);
+            }
             else if(auto* p = dynamic_cast<input*>(&node)){
                 visit(*p);
             }else if(auto* p = dynamic_cast<stop*>(&node)){
                 visit(*p);
             }
 
-            // std::cerr << "NOTHING UP THERE" << std::endl;
+            std::cerr << "unhandled binary boolean visit case!" << std::endl;
         }
 
         std::string repeat(const std::string&  s, int n){
