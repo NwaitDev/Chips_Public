@@ -2,23 +2,20 @@
 
 #define UNUSED(x) (void)(x)
 
-namespace chips {
+using namespace chips;
 
-    bool is_system_context(expression_env env){
-        return env == expression_env::SYSTEM;
-    } 
+bool is_system_context(expression_env env){
+    return env == expression_env::SYSTEM;
+} 
 
-    std::string get_op_prefix(expression_env env){
-        if(is_system_context(env)) return "chips.rvalues.dataflow.operators.";
-        if(env == expression_env::COLLECTIVE) return "chips.rvalues.collective.operators.";
-        return "chips.rvalues.primitive.operators.";
-    }
-
-    
+std::string get_op_prefix(expression_env env){
+    if(is_system_context(env)) return "chips.rvalues.dataflow.operators.";
+    if(env == expression_env::COLLECTIVE) return "chips.rvalues.collective.operators.";
+    return "chips.rvalues.primitive.operators.";
 }
 
 template<expression_env expenv>
-void ChipsToXmiVisitor::visit(mod<expenv>& node){
+void chips_ast_visitor::visit(mod<expenv>& node){
     // std::cerr << "[DEBUG Visitor] visit(mod<" << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "mod");
 }

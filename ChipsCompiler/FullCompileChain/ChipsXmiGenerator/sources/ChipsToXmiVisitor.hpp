@@ -1,7 +1,7 @@
 #ifndef CHIPS_TO_XMI_VISITOR_HPP
 #define CHIPS_TO_XMI_VISITOR_HPP
 
-#include "chips_ast_visitor.hpp"
+#include "ast_node_definitions.hpp"
 #include "ChipsToXmiWriter.hpp"
 
 #include <ostream>
@@ -13,57 +13,18 @@
 #include <algorithm>
 #include <unordered_map>
 
-#include <typeinfo>
 #include <cxxabi.h>
 
 using namespace chips;
 
-/// @brief Complete XMI Visitor - implements ALL chips::visitor methods
+/// @brief Complete XMI chips_ast_visitor - implements ALL chips::chips_ast_visitor methods
 class ChipsToXmiVisitor : public chips_ast_visitor{
     public:
-        using visitor::visit;
+        using chips_ast_visitor::visit;
 
         ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out) 
         : m_writer(writer), m_out(out), m_current_ast_path("/"){}
 
-        template<dataflow_type dft, expression_env expenv>
-        void visit(rvalue<dft,expenv>& node);
-
-        template<dataflow_type dft, expression_env expenv>
-        void visit(direct<dft, expenv>& node);
-
-        template<dataflow_type dft, expression_env expenv>
-        void visit(plus<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(minus<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(uminus_operator<dft, expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(mult<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(chips::div<dft,expenv>& node);
-        template<expression_env expenv>
-        void visit(mod<expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(cast_as<dft,expenv>& node);
-        template<expression_env expenv, dataflow_type dft>
-        void visit(gt<expenv,dft>& node);
-        template<expression_env expenv, dataflow_type dft>
-        void visit(lt<expenv,dft>& node);
-        template<expression_env expenv, dataflow_type dft>
-        void visit(leq<expenv,dft>& node);
-        template<expression_env expenv, dataflow_type dft>
-        void visit(geq<expenv,dft>& node);
-        template<expression_env expenv>
-        void visit(or_operator<expenv>& node);
-        template<expression_env expenv>
-        void visit(and_operator<expenv>& node);
-        template<expression_env expenv>
-        void visit(not_operator<expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(eq<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(neq<dft,expenv>& node);
 
         template<dataflow_type dft, expression_env expenv>
         void visit(variable_expression<dft,expenv>& node);
@@ -73,7 +34,7 @@ class ChipsToXmiVisitor : public chips_ast_visitor{
         void visit(input& node);
         void visit(stop& node);
 
-        void visit(ast_node& node) override;
+        void visit(ast_node& node);
 
         // ── FIX BUG 5 : 34 méthodes virtuelles pures manquantes ──────────────
         // chips::visitor déclare 35 méthodes = 0. ChipsToXmiVisitor n'en
@@ -536,6 +497,9 @@ class ChipsToXmiVisitor : public chips_ast_visitor{
         }
 
         std::string repeat(const std::string&  s, int n){
+
+            // commented because it is bugged and I'd rather have no indentation than too much of a bad one
+
             // std::string out;
             // // Protection: éviter les allocations massives si n est négatif
             // if(n < 0) {

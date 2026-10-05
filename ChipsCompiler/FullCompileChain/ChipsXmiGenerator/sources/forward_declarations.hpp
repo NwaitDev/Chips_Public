@@ -128,6 +128,8 @@ namespace chips
     class neq;
     template <dataflow_type dft, expression_env expenv>
     class variable_expression;
+    template <dataflow_type dft, expression_env expenv>
+    class variable_contextual_expression;
     class input;
     class stop;
     template <dataflow_kind dfk, dataflow_type dft>

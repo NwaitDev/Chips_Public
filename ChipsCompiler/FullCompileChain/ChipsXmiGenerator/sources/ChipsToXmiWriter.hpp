@@ -6,12 +6,11 @@
 #include <string>
 #include <map>
 #include <set>
-#include <filesystem>
 #include <vector>
 
 #include "ast_node_definitions.hpp"
 
-namespace fs = std::filesystem;
+
 using namespace chips;
 
 class ChipsToXmiWriter {
