@@ -9,9 +9,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "ast_program.hpp"
-#include "ast_definitions.hpp"
-#include "ast_statements.hpp"
+#include "ast_node_definitions.hpp"
 
 namespace fs = std::filesystem;
 using namespace chips;

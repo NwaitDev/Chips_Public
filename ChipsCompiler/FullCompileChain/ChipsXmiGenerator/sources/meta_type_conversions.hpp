@@ -47,11 +47,6 @@ namespace chips {
     };
 
     template<dataflow_type dft>
-    struct SttEnvToVariableKind<dft,statement_env::IMPLEMENTATION>{
-        using type = dataflow_primitive_variable<dft>;
-    };
-
-    template<dataflow_type dft>
     struct SttEnvToVariableKind<dft,statement_env::NODE>{
         using type = dataflow_primitive_variable<dft>;
     };
@@ -81,11 +76,6 @@ namespace chips {
     };
 
     template<>
-    struct SttEnvToExpEnv<statement_env::IMPLEMENTATION>{
-        static constexpr expression_env value = expression_env::PRIMITIVE;
-    };
-
-    template<>
     struct SttEnvToExpEnv<statement_env::NODE>{
         static constexpr expression_env value = expression_env::PRIMITIVE;
     };
@@ -109,9 +99,6 @@ namespace chips {
     // abstract (by definition of statement class) 
     template<recurring_statement recstt>
     using node_statement = statement<statement_env::NODE, recstt>;
-    // abstract (by definition of statement class) // do not use, work in progress
-    template<recurring_statement recstt>
-    using implementation_statement = statement<statement_env::IMPLEMENTATION, recstt>; 
      // abstract (by definition of statement class)
     template<recurring_statement recstt>
     using primitive_statement = statement<statement_env::DEFINITION, recstt>;
@@ -140,20 +127,13 @@ namespace chips {
         using type = collective_statement_variant;
     };
 
-    using system_statement_variant = std::variant<system_statement<recurring_statement::IF>*,system_statement<recurring_statement::FOREACH>*,system_statement<recurring_statement::DECLARATION>*,system_statement<recurring_statement::IMPLEMENTS>*,system_statement<recurring_statement::FEEDING>*,system_statement<recurring_statement::LINKING>*,system_statement<recurring_statement::PLUGGING>*,system_statement<recurring_statement::ASSIGNMENT>*>;
+    using system_statement_variant = std::variant<system_statement<recurring_statement::IF>*,system_statement<recurring_statement::FOREACH>*,system_statement<recurring_statement::DECLARATION>*,system_statement<recurring_statement::FEEDING>*,system_statement<recurring_statement::LINKING>*,system_statement<recurring_statement::PLUGGING>*,system_statement<recurring_statement::ASSIGNMENT>*>;
 
     template<>
     struct SttEnvToSttVariant<statement_env::SYSTEM>{
         using type = system_statement_variant;
     };
 
-    // do not use, work in progress
-    using implementation_statement_variant = std::variant<aliasing_statement<node_element::CHANNEL>*,aliasing_statement<node_element::CONTEXTUAL_BOOL>*,aliasing_statement<node_element::CONTEXTUAL_INT>*,aliasing_statement<node_element::CONTEXTUAL_FLOAT>*>;
-
-    template<>
-    struct SttEnvToSttVariant<statement_env::IMPLEMENTATION>{
-        using type = implementation_statement_variant;
-    };
 
     template<expression_env>
     struct StatementVariantTypeAlias;
@@ -165,7 +145,7 @@ namespace chips {
     template<>
     struct StatementVariantTypeAlias<expression_env::SYSTEM>{ using type = system_statement_variant; };
 
-    using statement_variant = std::variant<node_statement_variant, primitive_statement_variant,collective_statement_variant,system_statement_variant,implementation_statement_variant>;
+    using statement_variant = std::variant<node_statement_variant, primitive_statement_variant,collective_statement_variant,system_statement_variant>;
     
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////

@@ -1,9 +1,8 @@
 #ifndef CHIPS_TO_XMI_VISITOR_HPP
 #define CHIPS_TO_XMI_VISITOR_HPP
 
+#include "chips_ast_visitor.hpp"
 #include "ChipsToXmiWriter.hpp"
-#include "ast_base.hpp"
-#include "utils.hpp"
 
 #include <ostream>
 #include <iostream>
@@ -20,7 +19,7 @@
 using namespace chips;
 
 /// @brief Complete XMI Visitor - implements ALL chips::visitor methods
-class ChipsToXmiVisitor : public visitor{
+class ChipsToXmiVisitor : public chips_ast_visitor{
     public:
         using visitor::visit;
 

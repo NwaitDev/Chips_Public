@@ -17,8 +17,7 @@ namespace chips{
      */
     enum class definition_type {
         NODE, // to define objects and physicals
-        FUNCTION, // to define logical and physicals
-        IMPLEMENTATION // to define node inheritance (work in progress, do not use)
+        FUNCTION // to define logical and physicals
     };
 
     /**
@@ -68,12 +67,9 @@ namespace chips{
         DECLARATION, // type identifier
         ASSIGNMENT, // identifier = expression
         // system specific statements
-        IMPLEMENTS, // identifier implements identifier using identifier
         PLUGGING, // identifier.identifier(identifier.identifier)
         FEEDING, // identifier.identifier(expression | identifier.identifier)
-        LINKING, // link identifier to identifier
-        // implementation specific statements
-        ALIASING // specific to implementation section (work in progress, do not use)
+        LINKING // link identifier to identifier
     };
 
     /**
@@ -84,7 +80,6 @@ namespace chips{
         DEFINITION, // in the body of function definitions (init/then sections)
         COLLECTIVE, // in the body of collective primitive definitions
         SYSTEM, // in the system description
-        IMPLEMENTATION, // in the body of node implementation definition (work in progress, do not use)
         NODE // in the body of a node definitions (with sections)
     };
 

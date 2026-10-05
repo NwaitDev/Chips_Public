@@ -20,7 +20,7 @@ set(GEN_SOURCES
 )
 
 set(CHIPS_SOURCES
-    ${SRC_DIR}/ChipsAstBuilder.cpp
+    ${SRC_DIR}/chips_ast_visitor.cpp
     ${SRC_DIR}/ChipsToXmiVisitor.cpp
     ${SRC_DIR}/ChipsToXmiWriter.cpp
 )
