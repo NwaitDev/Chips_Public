@@ -1427,28 +1427,512 @@ namespace chips
      * that compose the code executed when the condition of an if_else_statement
      * is evaluated as false
      */
-    template<statement_env stenv> class else_section : public ast_node {};
-    template<statement_env stenv> class if_statement : public statement<stenv, recurring_statement::IF> {};
-    template<statement_env stenv> class if_else_statement : public if_statement<stenv> {};
-    template<statement_env stenv, dataflow_type dft> class foreach_statement : public statement<stenv, recurring_statement::FOREACH> {};
-    template<block_type bt> class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH> {};
-    template<block_type bt> class block_declaration : public statement<statement_env::SYSTEM, recurring_statement::DECLARATION> {};
-    class channel_plugging : public statement<statement_env::SYSTEM, recurring_statement::PLUGGING> {};
-    template<dataflow_kind dfk, dataflow_type dft> class feeding_statement : public statement<statement_env::SYSTEM, recurring_statement::FEEDING> {};
-    class linking_statement : public statement<statement_env::SYSTEM, recurring_statement::LINKING> {};
-    template<node_element ne> class node_element_declaration : public statement<statement_env::NODE, recurring_statement::DECLARATION> {};
+    template<statement_env stenv> 
+    class else_section : public ast_node {
+        public:
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
+        std::vector<statement_type> m_else_statements;
 
-    template<expression_env expenv> class array : public ast_node {};
-    template<expression_env expenv> class variable : public array<expenv> {};
-    class primitive_variable : public variable<expression_env::PRIMITIVE> {};
-    template<dataflow_type dft> class dataflow_primitive_variable : public primitive_variable {};
-    class node_variable : public variable<expression_env::PRIMITIVE> {};
-    template<dataflow_type dft> class contextual_variable : public node_variable {};
-    class collective_variable : public variable<expression_env::COLLECTIVE> {};
-    template<dataflow_type dft> class dataflow_collective_variable : public collective_variable {};
-    class system_variable : public variable<expression_env::SYSTEM> {};
-    template<block_type bt> class block_variable : public system_variable {};
-    template<dataflow_type dft> class dataflow_system_variable : public system_variable {};
+        else_section(int line, int column, const std::vector<statement_type>& stts):
+        ast_node(line, column), m_else_statements(stts){};
+
+        std::vector<statement_type>& get_statements() { return m_else_statements; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented else_section.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents an if statement.
+     * if (bool rvalue) { if_section }
+     */
+    template<statement_env stenv>
+    class if_statement : public statement<stenv, recurring_statement::IF> {
+        public:
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
+        bool_rvalue_expression_variant<expr_env> m_condition;
+        if_section<stenv> m_if_section;
+
+        if_statement(int line, int column, bool_rvalue_expression_variant<expr_env> condition, if_section<stenv> if_sec) :
+        statement<stenv, recurring_statement::IF>(line, column), m_condition(condition), m_if_section(if_sec) {}
+
+        bool_rvalue_expression_variant<expr_env>& get_condition(){ return m_condition; }
+        if_section<stenv>& get_if_section() { return m_if_section; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented if_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents an if_else statement
+     * if (bool rvalue) { if_section } else { else_section }
+     */
+    template<statement_env stenv>
+    class if_else_statement : public if_statement<stenv> {
+        public:
+        static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
+        else_section<stenv> m_else_section;
+
+        if_else_statement(int line, int column, bool_rvalue_expression_variant<expr_env> condition,
+                           if_section<stenv> if_sec, else_section<stenv> else_sec) :
+        if_statement<stenv>(line, column, condition, if_sec), m_else_section(else_sec) {}
+
+        else_section<stenv>& get_else_section() { return m_else_section; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented if_else_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * Generic version only suitable for iterating over dataflow
+     * variables
+     */
+    template<statement_env stenv, dataflow_type dft>
+    class foreach_statement : public statement<stenv, recurring_statement::FOREACH> {
+        public:
+        using statement_type = typename SttEnvToSttVariant<stenv>::type;
+        static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
+        dataflow_declaration<dft, stenv> m_iterator;
+        primitive_iterable_variant<expenv> m_iterable_expr;
+        std::vector<statement_type> m_statements;
+
+        foreach_statement(int line, int column, dataflow_declaration<dft, stenv> iterator,
+                           primitive_iterable_variant<expenv> iterable_expr, const std::vector<statement_type>& stts) :
+        statement<stenv, recurring_statement::FOREACH>(line, column), m_iterator(iterator), m_iterable_expr(iterable_expr), m_statements(stts) {}
+
+        dataflow_declaration<dft, stenv>& get_iterator() { return m_iterator; }
+        primitive_iterable_variant<expenv>& get_iterable() { return m_iterable_expr; }
+        std::vector<statement_type>& get_statements() { return m_statements; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented foreach_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a foreach statement
+     * for iterator in iterable { statements }
+     * System specific version only suitable for iterating
+     * over components variables (logical, physical or objects)
+     */
+    template<block_type bt>
+    class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH> {
+        public:
+        block_declaration<bt> m_iterator;
+        system_variable_block_expression<bt> m_iterable_expression;
+        std::vector<system_statement_variant> m_statements;
+
+        block_foreach_statement(int line, int column, block_declaration<bt> iterator,
+                                 system_variable_block_expression<bt> iterable_expression, const std::vector<system_statement_variant>& stts) :
+        statement<statement_env::SYSTEM, recurring_statement::FOREACH>(line, column), m_iterator(iterator), m_iterable_expression(iterable_expression), m_statements(stts) {}
+
+        block_declaration<bt>& get_iterator() { return m_iterator; }
+        system_variable_block_expression<bt>& get_iterable() { return m_iterable_expression; }
+        std::vector<system_statement_variant>& get_statements() { return m_statements; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented block_foreach_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration
+     * of a component variable (object, physical or logical)
+     */
+    template<block_type bt>
+    class block_declaration : public statement<statement_env::SYSTEM, recurring_statement::DECLARATION> {
+        public:
+        using block_definition_t = typename BlockTypeToBlockDef<bt>::type;
+        using block_variable_t = typename BlockTypeToBlockVariable<bt>::type;
+
+        block_definition_t* m_defintion;
+        block_variable_t m_variable;
+
+        block_declaration(int line, int column, block_definition_t* definition, block_variable_t variable) :
+        statement<statement_env::SYSTEM, recurring_statement::DECLARATION>(line, column), m_defintion(definition), m_variable(variable) {}
+
+        void set_variable(block_variable_t var) { m_variable = var; }
+        void set_definition(block_definition_t* def) { m_defintion = def; }
+        block_variable_t get_variable() { return m_variable; }
+        block_definition_t* get_definition() { return m_defintion; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented block_declaration.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a channel output of a component to a channel input
+     * of another component.
+     * Such statement should assert that :
+     * - channel types are compatibles
+     * - connected channels inputs and outputs are not already
+     *   connected
+     */
+    class channel_plugging : public statement<statement_env::SYSTEM, recurring_statement::PLUGGING> {
+        public:
+        channel_eater* m_eater;
+        channel_feeder* m_feeder;
+
+        channel_plugging(int line, int column, channel_eater* eat, channel_feeder* feed) :
+        ast_node(line, column),
+        statement<statement_env::SYSTEM, recurring_statement::PLUGGING>(line, column), m_eater(eat), m_feeder(feed) {}
+
+        void set_eater(channel_eater* eat) { m_eater = eat; }
+        channel_eater* get_eater() { return m_eater; }
+
+        void set_feeder(channel_feeder* feed) { m_feeder = feed; }
+        channel_feeder* get_feeder() { return m_feeder; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented channel_plugging.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the connection of
+     * a component dataflow output to a component dataflow
+     * parameter.
+     * Such statement should assert that
+     * connected inputs and outputs are not already connected
+     * (unless a collective_cast node is used)
+     */
+    template<dataflow_kind dfk, dataflow_type dft>
+    class feeding_statement : public statement<statement_env::SYSTEM, recurring_statement::FEEDING> {
+        public:
+        eater<dfk, dft> m_eater;
+        feeder<dfk, dft>* m_feeder = nullptr;
+
+        feeding_statement(int line, int column, eater<dfk, dft> eat, feeder<dfk, dft>* feed) :
+        statement<statement_env::SYSTEM, recurring_statement::FEEDING>(line, column), m_eater(eat), m_feeder(feed) {}
+
+        eater<dfk, dft>& get_eater() { return m_eater; }
+        feeder<dfk, dft>* get_feeder() { return m_feeder; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented feeding_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the physical
+     * dependency of two objects or of a node to a physical block
+     * using the following syntax :
+     * link linkable to support;
+     */
+    class linking_statement : public statement<statement_env::SYSTEM, recurring_statement::LINKING> {
+        public:
+        linkable* m_linked_component;
+        support* m_support_node;
+
+        linking_statement(int line, int column, linkable* linked_component, support* support_node) :
+        ast_node(line, column), statement<statement_env::SYSTEM, recurring_statement::LINKING>(line, column), m_linked_component(linked_component), m_support_node(support_node) {}
+
+        linkable* get_linkable() { return m_linked_component; }
+        support* get_support() { return m_support_node; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented linking_statement.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents the declaration
+     * of a contextual or of a channel in a with section
+     */
+    template<node_element ne>
+    class node_element_declaration : public statement<statement_env::NODE, recurring_statement::DECLARATION> {
+        public:
+        using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
+        node_variable_t m_variable_type;
+        std::string m_declared_name;
+
+        node_element_declaration(int line, int column, node_variable_t type, std::string vname) :
+        statement<statement_env::NODE, recurring_statement::DECLARATION>(line, column), m_variable_type(type), m_declared_name(vname) {}
+
+        node_variable_t get_variable() { return m_variable_type; }
+
+        std::string get_name() { return m_declared_name; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented node_element_declaration.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents an array of elements
+     * that can be instanciated in the parametering 
+     * expression environment
+     */
+    template<expression_env expenv> 
+    class array : public ast_node {
+        public:
+        std::vector<int_rvalue_expression_variant<expenv>> m_dimensions;
+
+        inline std::vector<int_rvalue_expression_variant<expenv>>& get_dimensions() { return m_dimensions; }
+
+        array(int line,  int column, const std::vector<int_rvalue_expression_variant<expenv>>& vec):
+        ast_node(line, column), m_dimensions(vec){}
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented array.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a variable of any kind.
+     * In chips, each variable is considered as a (dynamic) array.
+     * By default, variables are arrays of dimension 1.
+     * When declared with a [integer expression]+ suffix,
+     * it is of the given dimension(s).
+     */
+    template<expression_env expenv> 
+    class variable : public array<expenv> {
+        public:
+        std::string m_name;
+
+        variable(int line, int column, const std::string& name):
+        array<expenv>(line,column,
+            std::vector<int_rvalue_expression_variant<expenv>>(direct<dataflow_type::INT, expenv>(1))
+        ), m_name(name) {};
+
+        variable(int line, int column, const std::string& name, std::vector<int_rvalue_expression_variant<expenv>> dims) :
+        array<expenv>(line,column,dims), m_name(name) {};
+
+        inline const std::string& get_name() {return m_name;}
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented array.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a variable that
+     * is manipulated inside a functional block or to
+     * initialize other variables in nodes
+     * (with/init/then sections)
+     * A variable of this kind is NOT contextual
+     */
+    class primitive_variable : public variable<chips::expression_env::PRIMITIVE>
+    {
+        public:
+            primitive_variable(int line, int column, const std::string& name, std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims)
+                : variable(line,column,name,dims){}
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a variable that
+     * is manipulated inside a functional block or to
+     * initialize other variables in nodes
+     * (it is currently the only specialization of
+     * the primitive_variable class)
+     */
+    template<dataflow_type dft> 
+    class dataflow_primitive_variable : public primitive_variable {
+        public:
+        dataflow_declaration<dft, statement_env::DEFINITION>* m_declaration = nullptr;
+
+        dataflow_primitive_variable(int line, int column, const std::string& name,
+                                     std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims) :
+        primitive_variable(line, column, name, dims) {}
+
+        dataflow_primitive_variable(int line, int column, const std::string& name,
+                                     dataflow_declaration<dft, statement_env::DEFINITION>* decl,
+                                     std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims) :
+        primitive_variable(line, column, name, dims), m_declaration(decl) {}
+
+        inline void set_declaration(dataflow_declaration<dft, statement_env::DEFINITION>* decl_ptr) { m_declaration = decl_ptr; }
+        inline dataflow_declaration<dft, statement_env::DEFINITION>* get_declaration() { return m_declaration; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented dataflow_primitive_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents the kind of 
+     * variables that can only be specified inside
+     * the with section of a Node (i.e. Physical or Object)
+     */
+    class node_variable : public variable<expression_env::PRIMITIVE> {
+        public:
+        node_variable(int line, int column, const std::string& name,
+                      std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims) :
+        variable(line, column, name, dims) {}
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented node_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a contextual
+     * variable.
+     */
+    template<dataflow_type dft> 
+    class contextual_variable : public node_variable {
+        public:
+        using node_element_declaration_type = typename DfTypeToContextualDeclType<dft>::type;
+        node_element_declaration_type* m_declaration = nullptr;
+
+        contextual_variable(int line, int column, const std::string& identifier,
+                             std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims) :
+        node_variable(line, column, identifier, dims) {}
+
+        contextual_variable(int line, int column, const std::string& identifier,
+                             node_element_declaration_type* decl,
+                             std::vector<int_rvalue_expression_variant<expression_env::PRIMITIVE>> dims) :
+        node_variable(line, column, identifier, dims), m_declaration(decl) {}
+
+        inline void set_declaration(node_element_declaration_type* decl_ptr) { m_declaration = decl_ptr; }
+        inline node_element_declaration_type* get_declaration() { return m_declaration; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented contextual_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a variable that
+     * is used in the body/parameters or outputs of a 
+     * collective primitive.
+     */
+    class collective_variable : public variable<expression_env::COLLECTIVE> {
+        public:
+        collective_variable(int line, int column, const std::string& name,
+                             std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims) :
+        variable(line, column, name, dims) {}
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented collective_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a variable that
+     * is used in the body/parameters or outputs of a 
+     * collective primitive. 
+     * (it is currently the only specialization of
+     * the collective_variable class)
+     */
+    template<dataflow_type dft> 
+    class dataflow_collective_variable : public collective_variable {
+        public:
+        dataflow_declaration<dft, statement_env::COLLECTIVE>* m_declaration = nullptr;
+
+        dataflow_collective_variable(int line, int column, const std::string& name,
+                                      std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims) :
+        collective_variable(line, column, name, dims) {}
+
+        dataflow_collective_variable(int line, int column, const std::string& name,
+                                      dataflow_declaration<dft, statement_env::COLLECTIVE>* decl,
+                                      std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> dims) :
+        collective_variable(line, column, name, dims), m_declaration(decl) {}
+
+        inline void set_declaration(dataflow_declaration<dft, statement_env::COLLECTIVE>* decl_ptr) { m_declaration = decl_ptr; }
+        inline dataflow_declaration<dft, statement_env::COLLECTIVE>* get_declaration() { return m_declaration; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented dataflow_collective_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Abstract class
+     * Node of the AST that represents a variable
+     * that can be used in the system section.
+     */
+    class system_variable : public variable<expression_env::SYSTEM> {
+        public:
+        system_variable(int line, int column, const std::string& name,
+                         std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims) :
+        variable(line, column, name, dims) {}
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented system_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a component
+     * of the model that was instantiated from a
+     * former definition (Object/Logical/physical)
+     */
+    template<block_type bt> 
+    class block_variable : public system_variable {
+        public:
+        block_declaration<bt>* m_declaration = nullptr;
+
+        block_variable(int line, int column, const std::string& name,
+                       std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims) :
+        system_variable(line, column, name, dims) {}
+
+        block_variable(int line, int column, const std::string& name,
+                       block_declaration<bt>* declaration,
+                       std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims) :
+        system_variable(line, column, name, dims), m_declaration(declaration) {}
+
+        block_declaration<bt>* get_declaration() { return m_declaration; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented block_variable.accept(visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a variable holding 
+     * an int/float/bool when used in an arithmetic/logical
+     * expression of the system section. 
+     * When used as the input of a component, it represents
+     * a constant input dataflow of the value it contains
+     * at compile time.
+     */
+    template<dataflow_type dft> 
+    class dataflow_system_variable : public system_variable {
+        public:
+        dataflow_declaration<dft, statement_env::SYSTEM>* m_declaration = nullptr;
+
+        dataflow_system_variable(int line, int column, const std::string& name,
+                                  std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims) :
+        system_variable(line, column, name, dims) {}
+
+        dataflow_system_variable(int line, int column, const std::string& name,
+                                  dataflow_declaration<dft, statement_env::SYSTEM>* decl,
+                                  std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims) :
+        system_variable(line, column, name, dims), m_declaration(decl) {}
+
+        inline void set_declaration(dataflow_declaration<dft, statement_env::SYSTEM>* decl_ptr) { m_declaration = decl_ptr; }
+        inline dataflow_declaration<dft, statement_env::SYSTEM>* get_declaration() { return m_declaration; }
+
+        inline void accept(visitor &v) { 
+            throw std::runtime_error("unimplemented dataflow_system_variable.accept(visitor&) error.");
+        }
+    };
 }
 
 #endif
