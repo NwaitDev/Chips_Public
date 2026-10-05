@@ -1,0 +1,67 @@
+logical SimulationPhysique(float y, float u, float perturbation) -> simulation((0.9 * y) + (0.1 * u * 10.) - perturbation)
+
+logical Compute(float tension) init {
+
+    int t = 0;
+    float _tension = 5.;
+    float _perturbation = 0.;
+
+}then{
+
+    if(t > 0){
+        _tension = tension;
+    }
+
+    t = t + 1;
+
+    if((t >= 30) && (t < 60)){
+        _perturbation = 0.5;
+    }else{
+        _perturbation = 0.;
+    }
+
+} -> perturbation(_perturbation)
+-> tension(_tension)
+
+object Broadcast with {}
+
+spread() spreadTension among Broadcast {}
+-> @(input)
+-> default(input)
+
+system {
+
+    int horizon = 20;
+    float target = 5.;
+    float a = 0.9;
+    float b = 1.;
+    float u_min = 0.;
+    float u_max = 1.;
+    float y_safe_min = 4.;
+    float y_safe_max = 100;
+
+
+    Compute compute;
+    MPCController ctrl;
+    SimulationPhysique simulate;
+    Broadcast broadcaster;
+
+    link compute to broadcaster;
+
+    ctrl.targetValue(target);
+    ctrl.a(a);
+    ctrl.b(b);
+    ctrl.N(horizon);
+    ctrl.u_min(u_min);
+    ctrl.u_max(u_max);
+    ctrl.y_safe_min(y_safe_min);
+    ctrl.y_safe_max(y_safe_max);
+
+    ctrl.currentValue((spreadTension) compute.tension);
+
+    simulate.y((spreadTension) compute.tension);
+    simulate.u(ctrl.correction);
+    simulate.perturbation(compute.perturbation);
+
+    compute.tension(simulate.simulation);
+}

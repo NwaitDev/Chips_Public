@@ -2,9 +2,9 @@
 
 SRCS := $(shell ls -d sources/*)
 
-all: chipsparser
+all: chipsc
 
-chipsparser: $(SRCS)
+chipsc: $(SRCS)
 	mkdir -p build ; cd build ; cmake ..
 	cd build && make 2> ../debug.log
 	cp build/chipsparser chipsparser

@@ -5,15 +5,15 @@
 #include <antlr4-runtime.h>
 #include "./generated/ChipsLexer.h"
 #include "./generated/ChipsParser.h"
-#include "./sources/ChipsAstBuilder.hpp"
-#include "./sources/ChipsToXmiWriter.hpp"
-#include "./sources/ChipsToXmiVisitor.hpp"
+
+#include "sources/chips_headers.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 
+#include <typeinfo>
 #include <cxxabi.h>
 
 // ── Gestionnaire d'erreur personnalisé ───────────────────────
@@ -48,7 +48,7 @@ void parse(std::istream& input, std::string output, std::string filename) {
     parser.addErrorListener(&errorListener);
 
     auto* tree = parser.program();   // parse
-    ChipsAstBuilder builder;
+    ASTBuilder builder;
 
     std::ostringstream body_out;
     ChipsToXmiWriter body_writer(body_out);

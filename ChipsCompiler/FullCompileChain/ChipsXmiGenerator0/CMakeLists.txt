@@ -20,7 +20,12 @@ set(GEN_SOURCES
 )
 
 set(CHIPS_SOURCES
-    ${SRC_DIR}/ChipsAstBuilder.cpp
+    ${SRC_DIR}/ast_definitions.cpp
+    ${SRC_DIR}/ast_inoutputs.cpp
+    ${SRC_DIR}/ast_lrxvalues.cpp
+    ${SRC_DIR}/ast_program.cpp
+    ${SRC_DIR}/ASTBuilder.cpp
+    ${SRC_DIR}/utils.cpp
     ${SRC_DIR}/ChipsToXmiVisitor.cpp
     ${SRC_DIR}/ChipsToXmiWriter.cpp
 )

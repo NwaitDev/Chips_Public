@@ -1,0 +1,79 @@
+logical MPCController(float targetValue, float currentValue, float a, float b, int N, float u_min, float u_max, float y_safe_min, float y_safe_max) init {
+
+    float _a = a;
+    float _b = b;
+    int _horizon;
+    float _weight_error;
+    float _weight_effort;
+    float _u_min = u_min;
+    float _u_max = u_max;
+    float _y_safe_min = y_safe_min;
+    float _y_safe_max = y_safe_max;
+    float _prev_u;
+
+    if(N < 1){
+        _horizon = 1;
+    }else{
+        _horizon = N;
+    }
+
+}then{
+    
+    float numerator = 0.;
+    float denominator = 0.;
+
+    float free_response = currentValue;
+
+    for k in range(_horizon){
+
+        free_response = _a * free_response;
+
+        float influence_u = 0.;
+        float a_pow = 1.;
+
+        for j in range(k){
+
+            influence_u = influence_u + a_pow * _b;
+            a_pow = a_pow * _a;
+        }
+
+        double error_free = targetValue - free_response;
+
+        numerator = numerator + (error_free * influence_u) * _weight_error;
+        denominator = denominator + (influence_u * influence_u) * _weight_effort;
+    }
+
+    denominator = denominator + _weight_effort;
+
+    float u_optimal = 0.;
+    if(abs(denominator) > .000001){
+        u_optimal = numerator / denominator;
+    }
+
+    float temp_state = currentValue;
+
+    for k in range(_horizon){
+
+        temp_state = (_a * temp_state) + (_b * u_optimal);
+
+        if(temp_state < y_safe_min){
+            
+            float u_rescue = (_y_safe_min - (_a * currentValue)) / _b;
+            if(u_rescue > u_optimal){
+                u_optimal = u_rescue;
+            }
+        }
+
+        if(temp_state > _y_safe_max){
+            
+            float u_rescue = (_y_safe_max - (_a * currentValue)) / _b;
+            if(u_rescue < u_optimal){
+                u_optimal = u_rescue;
+            }
+        }
+    }
+
+    u_optimal = clamp(u_optimal, _u_min, _u_max);
+
+    _prev_u = u_optimal;
+} -> correction(_prev_u)

@@ -1,0 +1,133 @@
+logical Wind(float[4] state, float[4] targetState, int steps) init {
+
+    float windAx = 0.;
+    float windAy = 0.;
+
+    float windAx_const = 0.05;
+    float windAy_const = -0.03;
+
+    float windAx_sin_amp = 0.03;
+    float windAy_sin_amp = 0.02;
+    float windFreq = 0.15;
+
+    float[2] output = (float)zeros(2);
+    float[4] stateError = (float)zeros(4);
+    float[4] _state = [1., 0., 0., 0.];
+
+}then{
+
+    float rand = random()
+
+    for k in range(steps){
+
+        windAx = windAx_const 
+           + windAx_sin_amp * sin(2. * PI * windFreq * t)
+           + normal_distribution(rand, 0., 0.02);
+
+        windAy = windAy_const
+            + windAy_sin_amp * cos(2. * PI * windFreq * t)
+            + normal_distribution(rand, 0., 0.02);
+
+    }    
+
+    output[0] = state[0];
+    output[1] = state[1];
+
+    for i in range(4){
+        stateError[i] = state[i] - targetState[i];
+    }
+
+    _state = state;
+
+} -> state(_state)
+-> stateError(stateError)
+-> output(output)
+-> windAx(windAx)
+-> windAy(windAy)
+
+logical ComputeNextState(float A, float B, float state, float control, int n, int m, float dt, int windAx, int windAy) init {
+
+    float[4] nextState = (float)zeros(4);
+
+}then{
+
+    for i in range(n){
+        for j in range(n){
+            nextState[i] = nextState[i] + A[i * n + j] * state[j];
+        }
+        for j in range(m){
+            nextState[i] = nextState[i] + B[i * m + j] * control[j];
+        }
+    }
+
+    nextState[2] = nextState[2] + dt * windAx * 10.;
+    nextState[3] = nextState[3] + dt * windAy * 10.;
+
+} -> nextState(nextState)
+
+system {
+
+    int n = 4;
+    int m = 2;
+    int p = 2;
+    float dt = 0.1;
+    int steps = 200;
+
+    float[n*n] A = [
+        1, 0, dt, 0,
+        0, 1, 0, dt,
+        0, 0, 1,  0,
+        0, 0, 0,  1
+    ];
+
+    float[m*n] B = [
+        0, 0,
+        0, 0,
+        dt, 0,
+        0, dt
+    ];
+
+    float[n*n] Q = [
+        10., 0., 0., 0.,
+        0, 10, 0, 0.,
+        0, 0,  1, 0.,
+        0, 0,  0, 1.
+    ];
+
+    float[m*m] R = [
+        0.1, 0.,
+        0., 0.1
+    ];
+
+    float[2] r = [1.,1.];
+
+    float[4] targetState = [-1. 2., 0., 0.];
+
+    LQRController ctrl;
+    Wind wind;
+    ComputeNextState computeNextState;
+
+    ctrl.A(A);
+    ctrl.B(B);
+    ctrl.Q(Q);
+    ctrl.R(R);
+    ctrl.targetValues(r);
+    ctrl.nStates(n);
+    ctrl.nInputs(m);
+    ctrl.nOutputs(p);
+
+    wind.state(computeNextState.nextState);
+    wind.targetState(targetState);
+    wind.steps(steps);
+
+    computeNextState.A(A);
+    computeNextState.B(B);
+    computeNextState.state(wind.state);
+    computeNextState.control(ctrl.control);
+    computeNextState.n(n);
+    computeNextState.m(m);
+    computeNextState.dt(dt);
+    computeNextState.windAx(wind.windAx);
+    computeNextState.windAy(wind.windAy);    
+
+}

@@ -1,0 +1,99 @@
+object Device() with {
+	Serial chan1;
+	Serial chan2;
+	Serial chan3;
+}
+
+
+// Sources Of knowledge for this example:
+// wikipedia 
+// & linus tech tips (how power supplies work -turbo nerd edition)
+// & learningaboutelectronics.com
+// & some very approximative physics class memories
+
+// dt = 1/400 s
+
+
+logical Wire(float poleOnePotential, float inputCurrent) 
+-> poleTwoPotential(poleOnePotential)
+-> outputCurrent(inputCurrent)
+
+
+
+logical Resistance(float poleOnePotential, float inputCurrent) init {
+	float inner_r = 0.5; // Ohm
+} then {
+	u1 = u0 + i*inner_r;
+} -> poleTwoPotential(u1)
+
+logical AcVoltageSupplier() init {
+	// float frequency = 50.0; // Hz
+	float u_max = 230.0; // V
+	
+	
+	// To simulate a 50Hz current, we will
+	// assume that each component of our model
+	// transmits data with a rate of 400 Hz
+	// (Hence, 8x the frequency of the supplier)
+	int tick = 0;
+	float phase = 0.0;
+} then {
+	if(tick%8==0){
+		phase = 0.0; // sin(0)
+	}
+	if(tick%8==1){
+		phase = 0.707; // sin(pi/4)
+	}
+	if(tick%8==2){
+		phase = 1.0; // sin(pi/2)
+	}
+	if(tick%8==3){
+		phase = 0.707; // sin(3pi/4)
+	}
+	if(tick%8==4){
+		phase = 0.0; // sin(pi)
+	}
+	if(tick%8==5){
+		phase = -0.707; // sin(5pi/4)
+	}
+	if(tick%8==6){
+		phase = -1.0; // sin(3pi/2)
+	}
+	if(tick%8==7){
+		phase = -0.707; // sin(7pi/4)
+	}
+	tick = (tick+1)%8;
+} -> tension(phase*u_max)
+
+
+logical Transformer230to12V(float inputTension) init {
+	// Assuming the spires ratio 
+    // of our two coils of the 
+	// transformer is 19/1 ~= 230/12
+}-> outputTension(inputTension/19.0)
+
+logical FullBridgeRectifier(float inputTension) init {
+	float u_out;
+} then {
+	// if the input is not 0 (i.e not too close to zero)
+	if (inputTension < 0 ) {
+		u_out = - inputTension;
+	}else{
+		u_out = inputTension;
+	}
+} -> outputTension(u_out)
+
+
+logical Capacitor(float inputCurrent) init {
+	float previousCurrent = 0;
+    float di;
+    float dt = 1.0/400.0; // maybe we want to have global variables in a further version
+    float q = 0.0; // the charge
+    float u_out = 0.0; // the current tension output
+    float c = 0.01; // the capacitance
+} then {
+    di = inputCurrent - previousCurrent;
+    previousCurrent = inputCurrent;
+	q = q + di/dt;
+    u_out = q/c;
+} -> outputTension(u_out);
