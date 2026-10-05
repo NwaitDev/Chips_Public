@@ -124,43 +124,22 @@ void ChipsToXmiVisitor::visit(plus<dft, expenv>& node){
 
 template<dataflow_type dft, expression_env expenv>
 void ChipsToXmiVisitor::visit(cast_as<dft, expenv>& node){
-    // std::cerr << "[DEBUG Visitor] visit(cast_as<" << dft_to_string<dft>() << ", " << expenv_to_string(expenv) << std::endl;
     writeAttribute("xsi:type", get_op_prefix(expenv)+dft_to_string(dft)+":cast_as_"+dft_to_string(dft));
 
     auto numeric = node.get_cast();
 
     if(!numeric){
-        out() << "/>\n";   // no operand to cast: self-close, nothing left to emit
+        out() << "/>\n";
         return;
     }
 
     out() << ">\n" << repeat("\t", --nbTab) << "<numeric\n" << repeat("\t", ++nbTab);
     nbTab++;
 
-    if constexpr(dft == dataflow_type::INT){
-        void* raw = dynamic_cast<void*>(numeric); // pointe vers l'objet réel
-        auto* n = static_cast<rvalue<dataflow_type::FLOAT, expenv>*>(
-            dynamic_cast<rvalue<dataflow_type::FLOAT, expenv>*>(
-                reinterpret_cast<rvalue<dataflow_type::FLOAT, expenv>*>(raw)
-            )
-        );
-        arithmetic_visit(*n);
-        if(!only_one_child(*n)){
-        // if(!(dynamic_cast<direct<dataflow_type::FLOAT,expenv>*>(numeric)) && !(dynamic_cast<variable_expression<dataflow_type::FLOAT,expenv>*>(numeric)) && !(dynamic_cast<function<dataflow_type::FLOAT,expenv>*>(numeric))){
-            out() << repeat("\t", nbTab) << "</numeric>\n";
-        }
-    }else if constexpr(dft == dataflow_type::FLOAT){
-        void* raw = dynamic_cast<void*>(numeric); // pointe vers l'objet réel
-        auto* n = static_cast<rvalue<dataflow_type::INT, expenv>*>(
-            dynamic_cast<rvalue<dataflow_type::INT, expenv>*>(
-                reinterpret_cast<rvalue<dataflow_type::INT, expenv>*>(raw)
-            )
-        );
-        arithmetic_visit(*n);
-        if(!only_one_child(*n)){
-        // if(!(dynamic_cast<direct<dataflow_type::INT,expenv>*>(numeric)) && !(dynamic_cast<variable_expression<dataflow_type::INT,expenv>*>(numeric)) && !(dynamic_cast<function<dataflow_type::INT,expenv>*>(numeric))){
-            out() << repeat("\t", nbTab) << "</numeric>\n";
-        }
+    arithmetic_visit(*numeric);
+
+    if(!only_one_child(*numeric)){
+        out() << repeat("\t", nbTab) << "</numeric>\n";
     }
 }
 

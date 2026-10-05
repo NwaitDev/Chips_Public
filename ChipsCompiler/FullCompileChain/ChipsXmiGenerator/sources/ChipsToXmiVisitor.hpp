@@ -531,9 +531,9 @@ class ChipsToXmiVisitor : public visitor{
                 visit(*p);
             }else if(auto* p = dynamic_cast<stop*>(&node)){
                 visit(*p);
+            } else {
+                std::cerr << "unhandled binary boolean visit case!" << std::endl;
             }
-
-            std::cerr << "unhandled binary boolean visit case!" << std::endl;
         }
 
         std::string repeat(const std::string&  s, int n){

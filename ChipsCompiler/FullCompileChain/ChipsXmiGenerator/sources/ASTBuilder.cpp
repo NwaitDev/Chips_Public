@@ -1588,8 +1588,8 @@ std::any ASTBuilder::visitCtxVariableExpression(ChipsParser::CtxVariableExpressi
 std::any ASTBuilder::visitChanneledAccuExpression(ChipsParser::ChanneledAccuExpressionContext *ctx)
 {
     std::cerr << "WARNING:\tCurrently parsing ChannelAccuExpression with a stop expression." << std::endl;
-    std::cerr << "\t  \t  \tDo not base any xmi transformation on such element as long as" << std::endl;
-    std::cerr << "\t  \t  \tthis behavior hasn't been corrected." << std::endl;
+    std::cerr << "\t  \t  Do not base any xmi transformation on such element as long as" << std::endl;
+    std::cerr << "\t  \t  this behavior hasn't been corrected." << std::endl;
     return std::make_shared<stop>();
 }
 
@@ -1837,7 +1837,8 @@ std::any ASTBuilder::visitC_loop_statement(ChipsParser::C_loop_statementContext 
 
 std::any ASTBuilder::visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx)
 {
-    // std::cout << "visit loop statement" << std::endl;
+        // std::cout << ctx->getText() << std::endl;
+
 
     SymbolTable::getInstance().enterScope();
     //SymbolTable::getInstance().dump();
@@ -2078,7 +2079,8 @@ std::any ASTBuilder::visitIf_statement(ChipsParser::If_statementContext *ctx)
 
 std::any ASTBuilder::visitS_if_statement(ChipsParser::S_if_statementContext *ctx)
 {
-    // std::cout << "visit if system statement" << std::endl;
+    // std::cout << ctx->getText() << std::endl;
+
 
     if_statement<statement_env::SYSTEM> if_stt;
 
@@ -2195,7 +2197,7 @@ std::any ASTBuilder::visitC_if_statement(ChipsParser::C_if_statementContext *ctx
 
 std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentContext *ctx)
 {
-    // std::cout << "visit StatementAssignment" << std::endl;
+    // std::cout << ctx->getText() << std::endl;
     std::any suffixes = visit(ctx->suffixes());
     std::string var_name = ctx->IDENTIFIER()->getText();
     // std::cout << "assign type var: " << ast_builder_detail::type_name(std::any{ctx->expr()}.type()) << std::endl;
@@ -2211,7 +2213,8 @@ std::any ASTBuilder::visitStatementAssignment(ChipsParser::StatementAssignmentCo
 
 std::any ASTBuilder::visitStatementContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx)
 {
-    // std::cout << "visit StatementContextualAssignmentContext" << std::endl;
+    // std::cout << ctx->getText() << std::endl;
+
 
     std::any suffixes = visit(ctx->suffixes());
     std::string identifier = ctx->IDENTIFIER()->getText();
@@ -2293,54 +2296,52 @@ std::any ASTBuilder::visitFeedingStatement(ChipsParser::FeedingStatementContext 
 
     if (!is_function_parameter(member_any))
     {
-
         channel_eater eat = make_channel_eater(block_any, member_any, indices);
         auto *eat_ptr = keep_value_alive(eat);
 
         // I swear I need my intern to tell me why putting something in
         // a std::any if you already know the type of it.
-        std::any feed_any = visit(ctx->s_expr()); 
-        auto feed_ptr = std::any_cast<channel_feeder *>(feed_any);
-
-        std::cout << "there!" << std::endl;
+        std::any feed_any = visit(ctx->s_expr());
+        channel_feeder feed = std::any_cast<channel_feeder>(feed_any);
+        auto *feed_ptr = keep_value_alive(feed);
         channel_plugging plugging(eat_ptr, feed_ptr);
         return plugging;
     }
 
+    std::cerr << ctx->getText() << std::endl;
 
-    std::cout << "here" << std::endl;
     functional_block_variant fb = make_functional_block_from_any(block_any, indices);
     std::any feed_any = visit(ctx->s_expr());
-    auto feed_variant = std::any_cast<feeder_variant>(feed_any);
+    auto feed_variant = make_feeder_variant_from_any(feed_any);
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT> *>(&member_any))
-        return feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>(
-            eater<dataflow_kind::LOGICAL, dataflow_type::INT>(fb, *p),
-            std::get<feeder<dataflow_kind::LOGICAL, dataflow_type::INT> *>(feed_variant));
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::INT>>(&member_any))
+    return feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>(
+        eater<dataflow_kind::LOGICAL, dataflow_type::INT>(fb, p),
+        std::get<feeder<dataflow_kind::LOGICAL, dataflow_type::INT> *>(feed_variant));
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT> *>(&member_any))
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&member_any))
         return feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(
-            eater<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(fb, *p),
+            eater<dataflow_kind::LOGICAL, dataflow_type::FLOAT>(fb, p),
             std::get<feeder<dataflow_kind::LOGICAL, dataflow_type::FLOAT> *>(feed_variant));
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL> *>(&member_any))
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&member_any))
         return feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>(
-            eater<dataflow_kind::LOGICAL, dataflow_type::BOOL>(fb, *p),
+            eater<dataflow_kind::LOGICAL, dataflow_type::BOOL>(fb, p),
             std::get<feeder<dataflow_kind::LOGICAL, dataflow_type::BOOL> *>(feed_variant));
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT> *>(&member_any))
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&member_any))
         return feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>(
-            eater<dataflow_kind::PHYSICAL, dataflow_type::INT>(fb, *p),
+            eater<dataflow_kind::PHYSICAL, dataflow_type::INT>(fb, p),
             std::get<feeder<dataflow_kind::PHYSICAL, dataflow_type::INT> *>(feed_variant));
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> *>(&member_any))
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&member_any))
         return feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(
-            eater<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(fb, *p),
+            eater<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>(fb, p),
             std::get<feeder<dataflow_kind::PHYSICAL, dataflow_type::FLOAT> *>(feed_variant));
 
-    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL> *>(&member_any))
+    if (auto p = std::any_cast<function_parameter<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&member_any))
         return feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(
-            eater<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(fb, *p),
+            eater<dataflow_kind::PHYSICAL, dataflow_type::BOOL>(fb, p),
             std::get<feeder<dataflow_kind::PHYSICAL, dataflow_type::BOOL> *>(feed_variant));
 
     throw std::runtime_error("unrecognized function_parameter type for '" + member_id + "'");
@@ -2458,6 +2459,50 @@ std::any ASTBuilder::visitRegularStatement(ChipsParser::RegularStatementContext 
     throw std::runtime_error("Unrecognized statement kind while visiting RegularStatementContext");
 }
 
+feeder_variant ASTBuilder::make_feeder_variant_from_any(std::any& feed_any){
+
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::INT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::INT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::INT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<feeder_block_expression<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(keep_value_alive(*p));
+
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::INT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::INT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::FLOAT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::LOGICAL, dataflow_type::BOOL>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::INT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::INT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*>(keep_value_alive(*p));
+    if(auto* p = std::any_cast<collective_cast<dataflow_kind::PHYSICAL, dataflow_type::BOOL>>(&feed_any))
+        return static_cast<feeder<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(keep_value_alive(*p));
+
+    if(auto right = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(feed_any)){
+        node_arena.push_back(right);
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::INT>*>(right.get());
+    }
+    if(auto right = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(feed_any)){
+        node_arena.push_back(right);
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*>(right.get());
+    }
+    if(auto right = ast_builder_detail::try_extract<dataflow_type::BOOL, expression_env::SYSTEM>(feed_any)){
+        node_arena.push_back(right);
+        return static_cast<feeder<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>(right.get());
+    }
+
+    throw std::runtime_error("Unsupported feeder type in feeding statement");
+}
+
 std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpressionContext *ctx)
 {
     std::string identifier = ctx->block()->IDENTIFIER()->getText();
@@ -2488,28 +2533,15 @@ std::any ASTBuilder::visitSBlockOutputExpression(ChipsParser::SBlockOutputExpres
     }else{
         feeder_any = output_who_eaten.value();
     }
-    std::cout << "yoo "<< identifier <<std::endl;
-
 
     if (!is_function_output(feeder_any)){
         std::optional<std::any> block_variable = SymbolTable::getInstance().lookupBlock(identifier);
 
         if (!block_variable.has_value())
             throw std::runtime_error("It looks like you're trying to use a variable you haven't declared as a feederby the way.");
-
-        make_channel_feeder(block_variable.value(), feeder_any, suffixes);
-        // try {
-        //     // auto physical = std::any_cast<std::shared_ptr<chips::block_variable<block_type::PHYSICAL>>>(block_variable.value());
-        //     // return system_variable_block_expression<block_type::PHYSICAL>(&physical.get(),suffixes);
-        // } catch (std::bad_any_cast e) {
-        // }
-        // try {
-        //     // auto object = std::any_cast<std::shared_ptr<chips::block_variable<block_type::OBJECT>>>(block_variable.value());
-        //     // return system_variable_block_expression<block_type::OBJECT>(&object.get(),suffixes);
-        // } catch (std::bad_any_cast e) {
-        // }
         
-        throw std::runtime_error("I am a developer and if you report this error to me, I will cry. And it'll be a lil' bit because of my intern.");
+        channel_feeder feed = make_channel_feeder(block_variable.value(), feeder_any, suffixes);
+        return feed;
     }
 
     functional_block_variant variable_expression = make_functional_block_from_any(feeder_who_eaten.value(), suffixes);
@@ -3195,19 +3227,15 @@ std::any ASTBuilder::handle_cast(dataflow_type target, std::any operand_any)
     {
     case dataflow_type::INT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::PRIMITIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::PRIMITIVE>>(src));
+            throw std::runtime_error("no need to convert int as int in primitive context");
         break;
     case dataflow_type::FLOAT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::PRIMITIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::PRIMITIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::PRIMITIVE>>(src));
+            throw std::runtime_error("no need to convert float as float in primitive context");
         break;
     default:
         break;
@@ -3217,19 +3245,15 @@ std::any ASTBuilder::handle_cast(dataflow_type target, std::any operand_any)
     {
     case dataflow_type::INT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::COLLECTIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::COLLECTIVE>>(src));
+            throw std::runtime_error("no need to convert int as int in collective context");
         break;
     case dataflow_type::FLOAT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::COLLECTIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::COLLECTIVE>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>>(src));
+            throw std::runtime_error("no need to convert float as float in collective context");
         break;
     default:
         break;
@@ -3239,19 +3263,15 @@ std::any ASTBuilder::handle_cast(dataflow_type target, std::any operand_any)
     {
     case dataflow_type::INT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+            return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::INT, expression_env::SYSTEM>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::INT, expression_env::SYSTEM>>(src));
+            throw std::runtime_error("no need to convert int as int in system context");
         break;
     case dataflow_type::FLOAT:
         if (auto src = ast_builder_detail::try_extract<dataflow_type::INT, expression_env::SYSTEM>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(src);
         if (auto src = ast_builder_detail::try_extract<dataflow_type::FLOAT, expression_env::SYSTEM>(operand_any))
-            return std::make_shared<cast_as<dataflow_type::FLOAT, expression_env::SYSTEM>>(
-                std::reinterpret_pointer_cast<rvalue<dataflow_type::FLOAT, expression_env::SYSTEM>>(src));
+            throw std::runtime_error("no need to convert float as float in system context");
         break;
     default:
         break;
@@ -3511,7 +3531,7 @@ std::any ASTBuilder::visitSuffixes(ChipsParser::SuffixesContext *ctx)
 
 std::any ASTBuilder::visitStatementDeclaration(ChipsParser::StatementDeclarationContext *ctx)
 {
-    // std::cout << "visit StatementDeclaration" << std::endl;
+    // std::cout << ctx->getText() << std::endl;
 
     dataflow_type type_any = std::any_cast<dataflow_type>(visit(ctx->df_type()));
     std::string var_name = ctx->IDENTIFIER()->getText();
@@ -3617,13 +3637,13 @@ channel_eater ASTBuilder::make_channel_eater(std::any& variable, std::any& input
 }
 
 channel_feeder ASTBuilder::make_channel_feeder(std::any& variable, std::any& channel_who_feed, std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> indices){
-    auto feeding_channel = std::any_cast<std::shared_ptr<node_element_declaration<node_element::CHANNEL>>>(channel_who_feed);
+    auto feeding_channel = std::any_cast<node_element_declaration<node_element::CHANNEL>*>(channel_who_feed);
 
     try{
         if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::PHYSICAL>>>(variable)){
             auto var_expr = std::make_shared<system_variable_block_expression<block_type::PHYSICAL>>(block.get(), indices);
-            node_arena.push_back(var_expr);  // Garde l'objet vivant
-            channel_feeder feed(var_expr.get(), feeding_channel.get());
+            node_arena.push_back(var_expr);
+            channel_feeder feed(var_expr.get(), feeding_channel);
             return feed;
         }
     }catch(const std::bad_any_cast& /**/){}
@@ -3631,8 +3651,8 @@ channel_feeder ASTBuilder::make_channel_feeder(std::any& variable, std::any& cha
     try{
         if(auto block = std::any_cast<std::shared_ptr<block_variable<block_type::OBJECT>>>(variable)){
             auto var_expr = std::make_shared<system_variable_block_expression<block_type::OBJECT>>(block.get(), indices);
-            node_arena.push_back(var_expr);  // Garde l'objet vivant
-            channel_feeder feed(var_expr.get(), feeding_channel.get());
+            node_arena.push_back(var_expr);
+            channel_feeder feed(var_expr.get(), feeding_channel);
             return feed;
         }
     }catch(const std::bad_any_cast& /**/){}

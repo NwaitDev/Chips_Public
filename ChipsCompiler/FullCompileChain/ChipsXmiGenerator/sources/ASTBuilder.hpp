@@ -596,8 +596,8 @@ public:
      *          - int range(n)
      *          - int[] zeros(n)
      *          - int[] ones(n)
-     *          - int max(m,n)
-     *          - int min(m,n)
+     *          - int imax(m,n)
+     *          - int imin(m,n)
      *          - bool is_fresh()
      * 
      * @param fname Nom de la fonction
@@ -612,9 +612,8 @@ public:
             return std::make_shared<function<dataflow_type::FLOAT, expenv>>(fname);
         }
 
-        if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
-            fname.compare("imax") == 0 || fname.compare("imin") == 0){
-            // std::cout << "MAKE FUNCTION MINMAX exprs size: " << exprs.size() << std::endl;
+        if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 || fname.compare("imax") == 0 || fname.compare("imin") == 0){
+            
             std::vector<rvalue_variant<expenv>> parameters;
             for (auto expr : exprs){
                 std::any val = visit(expr);
@@ -671,8 +670,8 @@ public:
      *          - int range(n)
      *          - int[] zeros(n)
      *          - int[] ones(n)
-     *          - int max(m,n)
-     *          - int min(m,n)
+     *          - int imax(m,n)
+     *          - int imin(m,n)
      *          - bool is_fresh()
      * 
      * @param fname Nom de la fonction
@@ -691,7 +690,7 @@ public:
         }
 
         if (fname.compare("range") == 0 || fname.compare("zeros") == 0 || fname.compare("ones") == 0 ||
-            fname.compare("max") == 0 || fname.compare("min") == 0)
+            fname.compare("imax") == 0 || fname.compare("imin") == 0)
         {
             std::vector<rvalue_variant<expenv>> parameters;
             for (auto expr : exprs)
@@ -1117,6 +1116,10 @@ public:
      */
     channel_feeder make_channel_feeder(std::any& variable, std::any& channel_who_feed,
                                      std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims);
+    
+    feeder_variant make_feeder_variant_from_any(std::any& feed_any);
+
+
 
     /**
      * @brief Permet de récupérer le dataflow_type en fonction d'un objet qui à un dataflow_type en template

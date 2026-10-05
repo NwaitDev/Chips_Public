@@ -259,6 +259,12 @@ namespace chips
         inline void hello() {};
     };
 
+    template<dataflow_type dft>
+    struct OppositeNumericType;
+    template<> struct OppositeNumericType<dataflow_type::INT>   { static constexpr dataflow_type type = dataflow_type::FLOAT; };
+    template<> struct OppositeNumericType<dataflow_type::FLOAT> { static constexpr dataflow_type type = dataflow_type::INT; };
+
+
     /**
      * Concrete class
      * Node of the AST that represents the type casting operation
@@ -267,7 +273,7 @@ namespace chips
     class cast_as : public rvalue<dft, expenv>
     {
     private:
-        using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
+        using operand_type = rvalue<OppositeNumericType<dft>::type, expenv>;
         std::shared_ptr<operand_type> numeric;
 
     public:
