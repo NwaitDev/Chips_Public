@@ -5,8 +5,7 @@
 #include <antlr4-runtime.h>
 #include "./generated/ChipsLexer.h"
 #include "./generated/ChipsParser.h"
-#include "./sources/ChipsToXmiWriter.hpp"
-#include "./sources/chips_ast2xmi_visitor.hpp"
+#include "chips_ast_builder.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -46,30 +45,30 @@ void parse(std::istream& input, std::string output, std::string filename) {
     parser.removeErrorListeners();
     parser.addErrorListener(&errorListener);
 
-    auto* tree = parser.program();
+    ChipsParser::ProgramContext* tree = parser.program();
 
-    chips_ast_builder builder;
-    std::any result = builder.visit(tree);
+    chips_ast_builder builder(tree);
+    std::any result = builder.getAST();
 
     program_node* rootPtr = std::any_cast<program_node>(&result);
 
-    if(rootPtr){
+    // if(rootPtr){
 
-        std::ostringstream body_out;
-        ChipsToXmiWriter body_writer(body_out);
-        chips_ast2xmi_visitor visitor(body_writer, body_out);
-        rootPtr->accept(visitor);
+    //     std::ostringstream body_out;
+    //     ChipsToXmiWriter body_writer(body_out);
+    //     chips_ast2xmi_visitor visitor(body_writer, body_out);
+    //     rootPtr->accept(visitor);
 
-        std::ofstream out(output);
+    //     std::ofstream out(output);
 
-        ChipsToXmiWriter writer(out);
-        writer.copy_namespaces_from(body_writer);
-        writer.xmi_header(filename);
-        out << body_out.str();
-        writer.xmi_footer();
+    //     ChipsToXmiWriter writer(out);
+    //     writer.copy_namespaces_from(body_writer);
+    //     writer.xmi_header(filename);
+    //     out << body_out.str();
+    //     writer.xmi_footer();
 
-        out.close();
-    }
+    //     out.close();
+    // }
 }
 
 // ── Point d'entrée ────────────────────────────────────────────

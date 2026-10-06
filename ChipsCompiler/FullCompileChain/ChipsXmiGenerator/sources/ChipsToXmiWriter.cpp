@@ -1,4 +1,5 @@
 #include "ChipsToXmiWriter.hpp"
+#include <filesystem>
 
 ChipsToXmiWriter::ChipsToXmiWriter(std::ostream& out,
                          std::string xmi_version,
@@ -206,34 +207,30 @@ void ChipsToXmiWriter::collect_namespaces_from_preamble(definition_variant defin
     std::visit([this](auto* def){
         if(!def) return;
 
-        if(auto func = dynamic_cast<const function_definition*>(def)){
-            if (dynamic_cast<const physical_definition*>(func)) {
-                add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
-                add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
-                add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
-                add_namespace_if_needed("chips.outputs.physical", "http://chips/outputs/physical");
-                add_namespace_if_needed("chips.parameters.physical", "http://chips/parameters/physical");
-                add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
-                add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
-                add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
-                // TODO: Ajouter d'autres namespaces selon le contenu réel
-            }
-            else if (dynamic_cast<const logical_definition*>(func)) {
-                add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
-                add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
-                add_namespace_if_needed("chips.parameters.logical", "http://chips/parameters/logical");
-                add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
-                add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
-                add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
-            }
+        if (dynamic_cast<const physical_definition*>(def)) {
+            add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
+            add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
+            add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
+            add_namespace_if_needed("chips.outputs.physical", "http://chips/outputs/physical");
+            add_namespace_if_needed("chips.parameters.physical", "http://chips/parameters/physical");
+            add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
+            add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+            add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
+            // TODO: Ajouter d'autres namespaces selon le contenu réel
+        }
+        else if (dynamic_cast<const logical_definition*>(def)) {
+            add_namespace_if_needed("chips.statements.primitive", "http://chips/statements/primitive");
+            add_namespace_if_needed("chips.outputs.logical", "http://chips/outputs/logical");
+            add_namespace_if_needed("chips.parameters.logical", "http://chips/parameters/logical");
+            add_namespace_if_needed("chips.xvalues.primitive", "http://chips/xvalues/primitive");
+            add_namespace_if_needed("chips.rvalues.primitive", "http://chips/rvalues/primitive");
+            add_namespace_if_needed("chips.rvalues.primitive.operators.int", "http://chips/rvalues/primitive/operators/int");
         }
         
         // En fonction du type de definition, ajouter les namespaces nécessaires
         
         else if (dynamic_cast<const object_definition*>(def)) {
             add_namespace_if_needed("chips.statements.node", "http://chips/statements/node");
-        }else if (dynamic_cast<const implementation_defintion*>(def)) {
-            add_namespace_if_needed("chips.statements.implementation", "http://chips/statements/implementation");
         }
         else if (dynamic_cast<const collective_function_definition*>(def)) {
             // Namespaces pour les opérations collectives

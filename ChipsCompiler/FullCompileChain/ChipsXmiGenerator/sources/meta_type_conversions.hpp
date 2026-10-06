@@ -7,7 +7,7 @@
 
 namespace chips {
 
-    using definition_variant = std::variant<object_definition*,logical_definition*,physical_definition*,implementation_defintion*,collective_function_definition*>;
+    using definition_variant = std::variant<object_definition*,logical_definition*,physical_definition*,collective_function_definition*>;
 
     template<dataflow_type>
     struct DfTypeToContextualDeclType;

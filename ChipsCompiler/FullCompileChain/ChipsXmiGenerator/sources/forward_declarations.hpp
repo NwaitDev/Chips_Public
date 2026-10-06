@@ -83,7 +83,6 @@ namespace chips
     class function_definition;
     class logical_definition;
     class physical_definition;
-    class implementation_defintion;
     class collective_function_definition;
 
     template <dataflow_type dft, expression_env expenv>

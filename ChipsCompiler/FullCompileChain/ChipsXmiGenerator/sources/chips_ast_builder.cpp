@@ -1,10 +1,6 @@
 #include "chips_ast_builder.hpp"
 #include "../generated/ChipsParser.h"
 
-program_node *chips_ast_builder::build(ChipsParser::ProgramContext *ctx) {
-  throw std::runtime_error("unimplemented method error.");
-}
-
 std::any chips_ast_builder::visitProgram(ChipsParser::ProgramContext *ctx) {
   throw std::runtime_error("unimplemented method error.");
 }
