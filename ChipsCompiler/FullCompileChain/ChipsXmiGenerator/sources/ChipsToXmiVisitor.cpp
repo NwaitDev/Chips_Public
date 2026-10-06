@@ -15,7 +15,7 @@ std::string get_op_prefix(expression_env env){
 }
 
 template<expression_env expenv>
-void chips_ast_visitor::visit(mod<expenv>& node){
+void ChipsToXmiVisitor::visit(mod<expenv>& node) {
     // std::cerr << "[DEBUG Visitor] visit(mod<" << expenv_to_string(expenv) << std::endl;
     handle_binary_expression(node.get_lhs(), node.get_rhs(), "mod");
 }

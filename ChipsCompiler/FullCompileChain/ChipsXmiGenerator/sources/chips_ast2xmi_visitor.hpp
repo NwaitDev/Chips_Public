@@ -1,131 +1,29 @@
-#ifndef CHIPS_TO_XMI_VISITOR_HPP
-#define CHIPS_TO_XMI_VISITOR_HPP
 
 #include "ast_node_definitions.hpp"
-#include "chips_ast2xmi_visitor.hpp"
 #include "ChipsToXmiWriter.hpp"
+#include "chips_ast2xmi_utils.hpp"
 
-#include <ostream>
-#include <iostream>
-#include <map>
-#include <vector>
-#include <string>
-#include <cctype>
 #include <algorithm>
 #include <unordered_map>
 
-#include <cxxabi.h>
+namespace chips{
 
-using namespace chips;
+	struct chips_ast2xmi_visitor {
 
-/// @brief Complete XMI chips_ast2xmi_visitor - implements ALL chips::chips_ast2xmi_visitor methods
-class ChipsToXmiVisitor : public chips_ast2xmi_visitor{
-    public:
-        using chips_ast2xmi_visitor::visit;
+		// Structure pour stocker les informations de symbole
+		struct SymbolInfo {
+			std::string path;        // Chemin XMI
+			std::string type;        // Type: "channel", "contextual", "variable", "block"
+									//       "object", "physical", "logical", "sensor",
+									//       "iterator", "physical_parameter:"+dft, "logical_parameter:"+dft 
+									//       "collective_parameter:"+dft, "actuator_output:"+dft,
+									//       "output:"+dft
+			SymbolInfo() = default;
+			SymbolInfo(const std::string& p, const std::string& t = "unknown") 
+				: path(p), type(t) {}
+		};
 
-        ChipsToXmiVisitor(ChipsToXmiWriter &writer, std::ostream &out) 
-        : m_writer(writer), m_out(out), m_current_ast_path("/"){}
-
-
-        template<dataflow_type dft, expression_env expenv>
-        void visit(variable_expression<dft,expenv>& node);
-        template<dataflow_type dft, expression_env expenv>
-        void visit(function<dft,expenv>& node);
-
-        void visit(input& node);
-        void visit(stop& node);
-
-        void visit(ast_node& node);
-
-        // ── FIX BUG 5 : 34 méthodes virtuelles pures manquantes ──────────────
-        // chips::visitor déclare 35 méthodes = 0. ChipsToXmiVisitor n'en
-        // implémentait que 2 → classe abstraite, impossible à instancier.
-        // Stubs à compléter progressivement avec la vraie logique XMI.
-        void visit(program_node& node);// override              { out() << "<!-- program_node -->\n"; }
-        void visit(preamble_section_node& node);// override     { out() << "<!-- preamble_section_node -->\n"; }
-        void visit(system_section_node& node);// override       { out() << "<!-- system_section_node -->\n"; }
-        // void visit(primitive_variable& node) override        { out() << "<!-- primitive_variable -->\n"; }
-        // void visit(node_variable& node) override             { out() << "<!-- node_variable -->\n"; }
-        // void visit(collective_variable& node) override       { out() << "<!-- collective_variable -->\n"; }
-        // void visit(system_variable& node) override           { out() << "<!-- system_variable -->\n"; }
-        // void visit(implements_statement& node) override      { out() << "<!-- implements_statement -->\n"; }
-        void visit(channel_plugging& node);// override          { out() << "<!-- channel_plugging -->\n"; }
-        void visit(linking_statement& node);// override         { out() << "<!-- linking_statement -->\n"; }
-        void visit(default_output& node);// override            { out() << "<!-- default_output -->\n"; }
-        void visit(target_output& node);// override             { out() << "<!-- target_output -->\n"; }
-        // void visit(channeled_output& node) override          { out() << "<!-- channeled_output -->\n"; }
-        // void visit(definition& node) override                { out() << "<!-- definition -->\n"; }
-        void visit(with_section& node);// override              { out() << "<!-- with_section -->\n"; }
-        void visit(init_section& node);// override              { out() << "<!-- init_section -->\n"; }
-        void visit(then_section& node);// override              { out() << "<!-- then_section -->\n"; }
-        void visit(collectiveops_section& node);// override     { out() << "<!-- collectiveops_section -->\n"; }
-        void visit(accumulator_definition& node);// override    { out() << "<!-- accumulator_definition -->\n"; }
-        // void visit(node_definition& node) override           { out() << "<!-- node_definition -->\n"; }
-        // void visit(object_definition& node) override         { out() << "<!-- object_definition -->\n"; }
-        // void visit(function_definition& node) override       { out() << "<!-- function_definition -->\n"; }
-        void visit(logical_definition& node);// override        { out() << "<!-- logical_definition -->\n"; }
-        void visit(physical_definition& node);// override       { out() << "<!-- physical_definition -->\n"; }
-        void visit(object_definition& node);
-        void visit(collective_function_definition& node);
-        // void visit(implementation_defintion& node) override  { out() << "<!-- implementation_defintion -->\n"; }
-        // void visit(collective_function_definition& node) override { out() << "<!-- collective_function_definition -->\n"; }
-        // void visit(system_iterable& node) override           { out() << "<!-- system_iterable -->\n"; }
-        // void visit(linkable& node) override                  { out() << "<!-- linkable -->\n"; }
-        // void visit(support& node) override                   { out() << "<!-- support -->\n"; }
-        // void visit(interface& node) override                 { out() << "<!-- interface -->\n"; }
-        // void visit(implementer& node) override               { out() << "<!-- implementer -->\n"; }
-        // void visit(node_variable_expression& node) override  { out() << "<!-- node_variable_expression -->\n"; }
-        void visit(channel_eater& node);// override             { out() << "<!-- channel_eater -->\n"; }
-        void visit(channel_feeder& node);// override            { out() << "<!-- channel_feeder -->\n"; }
-        // ── FIN stubs ─────────────────────────────────────────────────────────
-
-        template<dataflow_kind dfk, dataflow_type dft>
-        void handle_feeding_statement(feeding_statement<dfk, dft>& node);
-
-        template<dataflow_kind dfk, dataflow_type dft>
-        void visit(eater<dfk,dft>& node);
-
-        template<dataflow_kind dfk, dataflow_type dft>
-        void visit(feeder<dfk, dft>& node);
-
-        template<dataflow_kind dfk, dataflow_type dft>
-        void visit(feeder_block_expression<dfk, dft>& node);
-
-        template<dataflow_kind dfk, dataflow_type dft>
-        void visit(collective_cast<dfk, dft>& node);
-
-        void visit(std::vector<physical_parameter_variant>& node);
-        void visit(std::vector<function_parameter_variant>& node);
-
-        template<expression_env expenv>
-        void visit(std::vector<int_rvalue_expression_variant<expenv>>& node);
-
-        void visit(std::vector<channeled_output>& node);
-
-    private:
-        enum class StatementFamily {
-            Auto,
-            Primitive,
-            System,
-            Node,
-            Collective,
-            Implementation
-        };
-
-        // Structure pour stocker les informations de symbole
-        struct SymbolInfo {
-            std::string path;        // Chemin XMI
-            std::string type;        // Type: "channel", "contextual", "variable", "block"
-                                     //       "object", "physical", "logical", "sensor",
-                                     //       "iterator", "physical_parameter:"+dft, "logical_parameter:"+dft 
-                                     //       "collective_parameter:"+dft, "actuator_output:"+dft,
-                                     //       "output:"+dft
-            SymbolInfo() = default;
-            SymbolInfo(const std::string& p, const std::string& t = "unknown") 
-                : path(p), type(t) {}
-        };
-
-        // Structure pour stocker les informations de définition
+		// Structure pour stocker les informations de définition
         struct DefinitionInfo {
             std::string name;           // Nom de la définition
             std::string type;           // Type: "physical", "object", "logical", etc.
@@ -138,12 +36,51 @@ class ChipsToXmiVisitor : public chips_ast2xmi_visitor{
                 : name(n), type(t), path(p), index(i) {}
         };
 
+		enum class StatementFamily {
+            Auto,
+            Primitive,
+            System,
+            Node,
+            Collective,
+            Implementation
+        };
+
+		// Members
+		ChipsToXmiWriter &m_writer;
+        std::ostream &m_out;
+        std::string m_current_ast_path;
+
+        std::vector<std::unordered_map<std::string, SymbolInfo>> scopes = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_outputs = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_parameters = {};
+        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_channels = {};
+        std::unordered_map<std::string, std::string> declarated_block_system = {};
+
+
+        std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
+        std::map<std::string, DefinitionInfo> m_definitions_table;  // nom -> info définition
+        std::string m_current_definition;  // Nom de la définition actuellement visitée
+        std::string m_impl_def_implementing_node;  // Nom du nœud implémentant (défini lors de visit(implementation_definition_node))
+        std::string m_impl_def_implemented_object;  // Nom de l'objet implémenté (défini lors de visit(implementation_definition_node))
+        std::string m_statement_tag = "statements";  // Tag name override for if/else sections
+        std::vector<std::string> m_semantic_errors;
+        int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
+
+        expression_env current_env;
+        std::string current_fname;
+        int def_index = 0;
+        int param_index = 0;
+        int sensor_index = 0;
+        int nbTab = 1;
+
+
         // Helpers
         std::ostream &out() { return m_out; }
         std::string get_ast_path() const { return m_current_ast_path; }
         std::string get_ast_path_by_name(const std::string &name);
         SymbolInfo get_symbol_info(const std::string &name);
 
+		
         void enterScopes(){
             scopes.emplace_back();
         }
@@ -294,14 +231,6 @@ class ChipsToXmiVisitor : public chips_ast2xmi_visitor{
         void set_ast_path(const std::string &path) { m_current_ast_path = path; }
         void writeAttribute(const std::string &name, const std::string &value);
         void endEmptyElement();
-        // std::string getExpressionValue(expression_node &expr);
-        // void write_collective_rvalue(const std::string &indent, const std::string &tag, expression_node &expr, const std::string &value_type);
-        // void write_collective_output_expression(expression_node &expr, const std::string &tag, const std::string &indent);
-        // void write_index_from_suffixes(suffixes_node *suffixes,
-        //                             const std::string &indent,
-        //                             const std::string &xvalue_prefix,
-        //                             const std::string &rvalue_prefix,
-        //                             bool emit_default);
         void visit_generic(ast_node &node); // squelette commun
         void report_semantic_error(const std::string &message);
         void ensure_namespace_for_prefix(const std::string &ns_prefix);
@@ -553,17 +482,156 @@ class ChipsToXmiVisitor : public chips_ast2xmi_visitor{
         template<statement_env stenv>
         void handle_statement_if_else(if_else_statement<stenv>& node);
 
-        template<statement_env stenv, dataflow_type dft>
-        void handle_foreach(foreach_statement<stenv, dft>& node);
+        
+		template<statement_env stenv, dataflow_type dft>
+		void handle_foreach(foreach_statement<stenv, dft>& node){
+			constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
+
+			if constexpr(expenv == expression_env::SYSTEM){
+				writeAttribute("xsi:type",statement_type("foreach", StatementFamily::System));
+			}else{
+				writeAttribute("xsi:type",statement_type("foreach"));
+			}
+
+			
+
+			out() << ">\n" << repeat("\t", nbTab) << "<iterator\n" << repeat("\t", nbTab);
+
+			auto iterator  = node.get_iterator();
+			std::string iterator_name = iterator.get_variable().get_name();
+			auto iterable = node.get_iterable();
+			auto statements = node.get_statements();
+
+			std::string iterator_path = get_ast_path() + "/@iterator/@variable";
+			register_variable(iterator_name, iterator_path, "iterator");
+
+			if constexpr(expenv == expression_env::SYSTEM){
+				writeAttribute("xsi:type", statement_type(dft_to_string(dft)+"_declaration", StatementFamily::System));
+			}else{
+				writeAttribute("xsi:type", statement_type(dft_to_string(dft)+"_declaration"));
+			}
+
+			
+			out() << ">\n" << repeat("\t", nbTab) << "<variable\n" << repeat("\t", nbTab);
+			writeAttribute("name", iterator_name);
+			out() << "/>\n" << repeat("\t", nbTab) << "</iterator>\n";
+
+			out() << repeat("\t", nbTab) << "<iterable_expr\n" << repeat("\t", nbTab);
+
+			std::visit([&](auto* itera){
+				if(!itera){
+					out() << "<!-- TODO ITERABLE -->\n";
+					return;
+				}
+
+				using iterable_t = std::remove_pointer_t<decltype(itera)>;
+
+				if constexpr(
+					std::is_same_v<iterable_t, function<dataflow_type::INT, expenv>> ||
+					std::is_same_v<iterable_t, function<dataflow_type::FLOAT, expenv>> ||
+					std::is_same_v<iterable_t, function<dataflow_type::BOOL, expenv>>){
+					visit(*itera);
+				}else if constexpr(std::is_same_v<iterable_t, rvalue_variant<expenv>>){
+					std::visit([&](auto* value){
+						if(value){
+							visit(*value);
+						}else{
+							out() << "<!-- TODO ITERABLE -->\n";
+						}
+					}, *itera);
+				}else{
+					out() << "<!-- TODO ITERABLE -->\n";
+				}
+
+			}, iterable);
+
+			out() << repeat("\t", nbTab) << "</iterable_expr>\n";
+
+			for(auto stt : statements){
+				out() << repeat("\t", nbTab) << "<statements\n";
+				handle_statement<stenv>(stt);
+				out() << repeat("\t", nbTab) << "</statements>\n";
+			}
+		}
 
         void handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator = false);
 
-        template<dataflow_type dft, expression_env expenv>
-        void handle_binary_expression(rvalue<dft, expenv>* left, rvalue<dft,expenv>* right, const std::string& type);
+		template<dataflow_type dft, expression_env expenv>
+		void handle_binary_expression(rvalue<dft,expenv>* left, rvalue<dft,expenv>* right, const std::string& type){
+			writeAttribute("xsi:type",get_op_prefix(expenv)+dft_to_string(dft)+":"+type);
+			out() << ">\n";
+		
+			out() << repeat("\t", --nbTab) << "<left_operand\n";
+			nbTab++;
+			out() << repeat("\t", ++nbTab);
+		
+			if(left){
+				// std::cerr << "left->accept()" << std::endl;
+				arithmetic_visit(*left);
+			}
+		
+			if(left && !only_one_child(*left)){
+				out() << repeat("\t", nbTab) << "</left_operand>\n";
+			}
+		
+			out() << repeat("\t", nbTab) << "<right_operand\n";
+			nbTab++;
+			out() << repeat("\t", ++nbTab);
+		
+			if(right){
+				// std::cerr << "right->accept()" << std::endl;
+				arithmetic_visit(*right);
+			} 
+		
+			if(right && !only_one_child(*right)){
+				out() << repeat("\t", nbTab) << "</right_operand>\n";
+			}
+		}
 
-        template<dataflow_type dft, expression_env expenv>
-        void handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<dft,expenv>* right, const std::string& type);
+		template<dataflow_type dft, expression_env expenv>
+		void handle_binary_boolean(rvalue<dft,expenv>* left, rvalue<dft,expenv>* right, const std::string& type){
+			if(type == "and" || type == "or"){
+				writeAttribute("xsi:type", get_op_prefix(expenv)+"bool:"+type);
+			}else{
+				writeAttribute("xsi:type", get_op_prefix(expenv)+"bool:"+type+"_"+dft_to_string(dft));
+			}
+			
+			
+			out() << ">\n" << repeat("\t", nbTab) << "<left_operand\n" << repeat("\t", nbTab);
+		
+			if(left){
+				// std::cerr << "left->accept()" << std::endl;
+				binary_boolean_visit(*left);
+			}
+		
+			if(left && !only_one_child(*left)){
+				out() << repeat("\t", nbTab) << "</left_operand>\n";
+			}
+		
+			out() << repeat("\t", nbTab) << "<right_operand\n" << repeat("\t", nbTab);
+		
+			if(right){
+				// std::cerr << "right->accept()" << std::endl;
+				binary_boolean_visit(*right);
+			}
+		
+			if(right && !only_one_child(*right)){
+				out() << repeat("\t", nbTab) << "</right_operand>\n";
+			}
+		}
 
+		template<dataflow_kind dfk, dataflow_type dft>
+		void handle_feeding_statement(feeding_statement<dfk, dft>& node){
+			out() << repeat("\t", nbTab);
+			writeAttribute("xsi:type", statement_type("feeding_"+dfk_to_string<dfk>()+"_"+dft_to_string<dft>(), StatementFamily::System));
+		
+			eater<dfk, dft>& eat = node.get_eater();
+			feeder<dfk, dft>* feed = node.get_feeder();
+		
+			visit(eat);
+			visit(*feed);
+		}
+		
         template<dataflow_type dft, expression_env expenv>
         bool only_one_child(rvalue<dft,expenv>& node){
             if(dynamic_cast<direct<dft,expenv>*>(&node) ||  dynamic_cast<input*>(&node) || dynamic_cast<stop*>(&node) ||
@@ -608,33 +676,187 @@ class ChipsToXmiVisitor : public chips_ast2xmi_visitor{
             std::cout << "==============" << std::endl;
         }
 
-        // Members
-        ChipsToXmiWriter &m_writer;
-        std::ostream &m_out;
-        std::string m_current_ast_path;
+		//////////////////////////////////
+		//////////////////////////////////
+		//////////////////////////////////
+		//////////////////////////////////
+		// to implement visit methods 
 
-        std::vector<std::unordered_map<std::string, SymbolInfo>> scopes = {};
-        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_outputs = {};
-        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_parameters = {};
-        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> function_channels = {};
-        std::unordered_map<std::string, std::string> declarated_block_system = {};
+		void visit(with_section&);
 
+		void visit(init_section&);
 
-        std::map<std::string, SymbolInfo> m_symbol_table;  // nom -> (chemin AST, type)
-        std::map<std::string, DefinitionInfo> m_definitions_table;  // nom -> info définition
-        std::string m_current_definition;  // Nom de la définition actuellement visitée
-        std::string m_impl_def_implementing_node;  // Nom du nœud implémentant (défini lors de visit(implementation_definition_node))
-        std::string m_impl_def_implemented_object;  // Nom de l'objet implémenté (défini lors de visit(implementation_definition_node))
-        std::string m_statement_tag = "statements";  // Tag name override for if/else sections
-        std::vector<std::string> m_semantic_errors;
-        int m_extra_statements_generated = 0;  // Compteur de statements supplémentaires générés
+		void visit(then_section&);
+		
+		void visit(collectiveops_section&);
+		
+		void visit(accumulator_definition&);
 
-        expression_env current_env;
-        std::string current_fname;
-        int def_index = 0;
-        int param_index = 0;
-        int sensor_index = 0;
-        int nbTab = 1;
-};
+		void visit(object_definition&);
+		
+		void visit(logical_definition&);
 
-#endif
+		void visit(physical_definition&);
+	
+		void visit(channeled_output&);
+	
+		void visit(default_output&);
+	
+		void visit(target_output&);
+
+		void visit(collective_function_definition&);
+
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(function_parameter<dfk,dft>&);
+		
+		template<dataflow_type dft>
+		void visit(collective_parameter<dft>&);
+		
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(function_output<dfk,dft>&);
+
+		void visit(system_variable_block_expression<block_type::LOGICAL>&);
+	
+		void visit(system_variable_block_expression<block_type::PHYSICAL>&);
+	
+		void visit(system_variable_block_expression<block_type::OBJECT>&);
+
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(eater<dfk,dft>&);
+
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(feeder_block_expression<dfk,dft>&);
+
+		void visit(channel_eater&);
+	
+		void visit(channel_feeder&);
+
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(collective_cast<dfk,dft>&);
+
+		template<dataflow_type dft, expression_env expenv> 
+		void visit(direct<dft,expenv>&);
+
+		template<dataflow_type dft, expression_env expenv> 
+		void visit(class function<dft,expenv>&);
+		
+		template <dataflow_type dft, expression_env expenv>
+		void visit(plus<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(minus<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(mult<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(chips::div<dft,expenv>&);
+
+		template <expression_env expenv>
+		void visit(chips::mod<expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(cast_as<dft,expenv>&);
+
+		template <expression_env expenv, dataflow_type dft>
+		void visit(gt<expenv,dft>&);
+
+		template <expression_env expenv, dataflow_type dft>
+		void visit(lt<expenv,dft>&);
+
+		template <expression_env expenv, dataflow_type dft>
+		void visit(geq<expenv,dft>&);
+
+		template <expression_env expenv, dataflow_type dft>
+		void visit(leq<expenv,dft>&);
+
+		template <expression_env expenv>
+		void visit(or_operator<expenv>&);
+
+		template <expression_env expenv>
+		void visit(and_operator<expenv>&);
+
+		template <expression_env expenv>
+		void visit(not_operator<expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(uminus_operator<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(eq<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(neq<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(variable_expression<dft,expenv>&);
+
+		template <dataflow_type dft, expression_env expenv>
+		void visit(variable_contextual_expression<dft,expenv>&);
+
+		void visit(input&);
+
+		void visit(stop&);
+
+		void visit(preamble_section_node&);
+
+		void visit(system_section_node&);
+
+		void visit(program_node&);
+		
+		template<dataflow_type dft, statement_env stenv>
+		void visit(dataflow_declaration<dft,stenv>&);
+
+		template<dataflow_type dft, statement_env stenv> 
+		void visit(dataflow_assignment<dft,stenv>&);
+
+		template<statement_env stenv> 
+		void visit(if_section<stenv>&);
+
+		template<statement_env stenv> 
+		void visit(else_section<stenv>&);
+
+		template<statement_env stenv>
+		void visit(if_statement<stenv>&);
+
+		template<statement_env stenv>
+		void visit(if_else_statement<stenv>&);
+
+		template<statement_env stenv, dataflow_type dft>
+		void visit(foreach_statement<stenv,dft>&);
+
+		template<block_type bt>
+		void visit(block_foreach_statement<bt>&);
+
+		template<block_type bt>
+		void visit(block_declaration<bt>&);
+
+		void visit(channel_plugging&);
+
+		template<dataflow_kind dfk, dataflow_type dft>
+		void visit(feeding_statement<dfk,dft>&);
+
+		void visit(linking_statement&);
+
+		template<node_element ne>
+		void visit(node_element_declaration<ne>&);
+
+		template<expression_env expenv> 
+		void visit(array<expenv>&);
+
+		template<dataflow_type dft> 
+		void visit(dataflow_primitive_variable<dft>&);
+
+		template<dataflow_type dft> 
+		void visit(contextual_variable<dft>&);
+
+		template<dataflow_type dft> 
+		void visit(dataflow_collective_variable<dft>&);
+
+		template<block_type bt> 
+		void visit(block_variable<bt>&);
+
+		template<dataflow_type dft> 
+		void visit(dataflow_system_variable<dft>&);
+	};
+}

@@ -5,7 +5,7 @@
 #include <antlr4-runtime.h>
 #include "./generated/ChipsLexer.h"
 #include "./generated/ChipsParser.h"
-#include "./sourcesNew/chips_ast_visitor.hpp"
+#include "./sourcesNew/chips_ast2xmi_visitor.hpp"
 #include "./sources/ChipsToXmiWriter.hpp"
 #include "./sources/ChipsToXmiVisitor.hpp"
 

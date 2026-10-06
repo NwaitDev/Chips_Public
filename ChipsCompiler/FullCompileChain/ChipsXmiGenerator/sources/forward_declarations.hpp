@@ -153,6 +153,9 @@ namespace chips
     class collective_cast;
     template<statement_env env>
     class statement_fillable;
+
+
+    struct chips_ast2xmi_visitor;  
 }
 
 #endif //__FORWARD_DECLS__
