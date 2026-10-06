@@ -37,13 +37,7 @@ public:
     std::any visitCollectiveOperationDefinition(
         ChipsParser::CollectiveOperationDefinitionContext *ctx) override;
 
-    std::any visitImplementationDefinition(
-        ChipsParser::ImplementationDefinitionContext *ctx) override;
-
     std::any visitObject_def(ChipsParser::Object_defContext *ctx) override;
-
-    std::any
-    visitImplementation_def(ChipsParser::Implementation_defContext *ctx) override;
 
     std::any visitNode_mapping(ChipsParser::Node_mappingContext *ctx) override;
 
@@ -277,9 +271,6 @@ public:
 
     std::any
     visitLinkingStatement(ChipsParser::LinkingStatementContext *ctx) override;
-
-    std::any visitImplementationStatement(
-        ChipsParser::ImplementationStatementContext *ctx) override;
 
     std::any
     visitSLoopStatement(ChipsParser::SLoopStatementContext *ctx) override;
