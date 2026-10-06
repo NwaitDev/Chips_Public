@@ -3,6 +3,7 @@
 #include "ChipsToXmiWriter.hpp"
 #include "chips_ast2xmi_utils.hpp"
 
+#include<vector>
 #include <algorithm>
 #include <unordered_map>
 
