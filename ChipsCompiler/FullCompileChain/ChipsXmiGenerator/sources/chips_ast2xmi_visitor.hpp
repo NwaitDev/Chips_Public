@@ -452,35 +452,427 @@ namespace chips{
             return result;
         }
 
+        
         template<block_type bt>
-        void handle_statement_declaration(block_declaration<bt>& node);
+        void handle_statement_declaration(block_declaration<bt>& node){
+            auto definition = node.get_definition();
+            auto variable = node.get_variable();
 
-        template<dataflow_type dft, statement_env stenv>
-        void handle_statement_declaration(dataflow_declaration<dft, stenv>& node);
+            std::string definition_name = definition->get_name();
+            std::string variable_name = variable.get_name();
+            std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dimensions = variable.get_dimensions();
 
+            std::string path_definition = get_ast_path_by_name(definition_name);
+
+            out() << repeat("\t", ++nbTab);
+            writeAttribute("xsi:type","chips.statements.system:"+bt_to_string<bt>()+"_declaration");
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("def", path_definition);
+            out() << ">\n";
+            nbTab--;
+
+            std::string segment = "/@variable";
+            push_ast_path(segment);
+            std::string declarated_var_path = get_ast_path();
+            register_variable(variable_name, declarated_var_path);
+            register_block(definition_name, variable_name);
+
+            out() << repeat("\t", nbTab++) << "<variable\n" << repeat("\t", nbTab);
+            writeAttribute("name", variable_name);
+            nbTab--;
+            if(!dimensions.empty()){
+                for(auto dimension : dimensions){
+                    out() << ">\n" << repeat("\t", nbTab) << "<dimensions\n";
+                    nbTab++; nbTab++;
+                    out() << repeat("\t", nbTab);
+
+                    std::visit([&](auto dim){
+                        // Null pointer safety check
+                        if(dim == nullptr){
+                            // std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
+                            return;
+                        }
+                        
+                        using dim_t = std::remove_pointer_t<std::decay_t<decltype(dim)>>;
+
+                        if constexpr(std::is_same_v<dim_t, input> || std::is_same_v<dim_t, stop>){
+                            (*dim).accept(*this);
+                        }else{
+                            arithmetic_visit(*dim);
+                        }
+                    }, dimension);
+
+                }
+                out() << "</variable>\n";
+            }else{
+                out() << "/>\n";
+            }
+
+            pop_ast_path(segment);
+        }
+
+        
         template<dataflow_type dft, statement_env stenv>
-        void handle_statement_assignment(dataflow_assignment<dft, stenv>& node);
+        void handle_statement_declaration(dataflow_declaration<dft, stenv>& node){
+            std::string type = dft_to_string(dft);
+            std::string name = node.get_variable().get_name();
+            out() << repeat("\t", ++nbTab);
+            writeAttribute("xsi:type", statement_type(type+"_declaration"));
+            out() << ">\n";
+            nbTab--;
+
+            std::string segment = "/@variable";
+            push_ast_path(segment);
+            std::string declarated_var_path = get_ast_path();
+            register_variable(name, declarated_var_path, type);
+            auto dims = node.get_variable().get_dimensions();  // Now returns a copy, safe to use
+            
+            // std::cerr << "[DEBUG] Variable '" << name << "' enregistrée avec le chemin: " << declarated_var_path << std::endl;
+
+            out() << repeat("\t", nbTab++) << "<variable\n" << repeat("\t", nbTab);
+            writeAttribute("name", name);
+            nbTab--;
+            if(!dims.empty()){
+
+                for(auto dimension : dims){
+                    out() << ">\n" << repeat("\t", nbTab) << "<dimensions\n";
+                    nbTab++; nbTab++;
+                    out() << repeat("\t", nbTab);
+
+                    std::visit([&](auto dim){
+                        // Null pointer safety check
+                        if(dim == nullptr){
+                            // std::cerr << "[WARNING] Null pointer in dimensions variant at line " << __LINE__ << std::endl;
+                            return;
+                        }
+                        
+                        using dim_t = std::remove_pointer_t<std::decay_t<decltype(dim)>>;
+
+                        if constexpr(std::is_same_v<dim_t, input> || std::is_same_v<dim_t, stop>){
+                            (*dim).accept(*this);
+                        }else{
+                            arithmetic_visit(*dim);
+                        }
+                    }, dimension);
+
+                }
+                out() << "</variable>\n";
+            }else{
+                out() << "/>\n";
+            }
+            
+            pop_ast_path(segment);
+            
+        }
+
+        
+        template<dataflow_type dft, statement_env stenv>
+        void handle_statement_assignment(dataflow_assignment<dft, stenv>& node){
+
+            constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
+
+            std::string xvalue_prefix;
+            
+            if(!is_system_context(current_env)){
+                if(current_env == expression_env::COLLECTIVE){
+                    xvalue_prefix = "chips.xvalues.collective";
+                }else{
+                    xvalue_prefix = "chips.xvalues.primitive";
+                }
+            }else{
+                xvalue_prefix = "chips.xvalues.system";
+            }
+
+
+            std::string type = dft_to_string(dft);
+            std::string name = "";
+            std::string value = "";
+            std::vector<int_rvalue_expression_variant<expenv>>* lindex = nullptr;
+
+            if(auto* lvalue = dynamic_cast<variable_expression<dft, expenv>*>(node.get_lhs())){
+                if(auto* clvalue = dynamic_cast<variable_contextual_expression<dft, expenv>*>(lvalue)){
+                    value = "contextual_"+type+"_expression";
+                }else{
+                    value = type+"_variable_expression";
+                }
+                name = lvalue->get_variable()->get_name();
+                lindex = &lvalue->get_index();
+            }
+
+            std::string path = get_ast_path_by_name(name);
+
+            out() << repeat("\t", ++nbTab);
+            writeAttribute("xsi:type", statement_type(type+"_assignment"));
+            out() << ">\n";
+            nbTab--;
+
+            out() << repeat("\t", nbTab++) << "<lvalue\n" << repeat("\t", ++nbTab);
+            writeAttribute("xsi:type", xvalue_prefix+":"+value);
+            out() << "\n" << repeat("\t", nbTab);
+            writeAttribute("variable", path);
+
+            if(!lindex || lindex->empty()){
+                out() << "/>\n";
+                nbTab--;
+                nbTab--;
+            }else{
+                out() << ">\n" << repeat("\t", nbTab);
+
+                for(auto index : *lindex){
+                    out() << "<index\n" << repeat("\t", nbTab);
+                    std::visit([&](auto ind){
+                        using dim_t = std::remove_pointer_t<std::decay_t<decltype(ind)>>;
+
+                        // if(!ind){
+                        //     out() << "<!-- TODO DIMENSION -->\n";
+                        //     return;
+                        // }
+
+                        if constexpr(std::is_same_v<dim_t, input> || std::is_same_v<dim_t, stop>){
+                            (*ind).accept(*this);
+                        }else{
+                            arithmetic_visit(*ind);
+
+                            if(!only_one_child(*ind)){
+                                // out() << "ONE CHILD\n";
+                                out() << "</index>\n";
+                            }
+                            
+                        }
+                        out() << "</lvalue>\n";
+                    }, index);
+                }
+            }
+            node.get_rhs()->accept(*this);
+        }
 
         template<node_element ne>
-        void handle_node_element_declaration(node_element_declaration<ne>& node);
+        void handle_node_element_declaration(node_element_declaration<ne>& node){
+            if constexpr(ne != node_element::CHANNEL){
+                std::string identifier = node.get_name();
+                std::string segment = "/@variable";
+                push_ast_path(segment);
+
+                // Enregistrer le ctx dans la table des symboles
+                // Le chemin du ctx est juste get_ast_path() car on est déjà dans /@with/@statements.X
+                register_variable(identifier, get_ast_path(), "ctx");
+                std::string type = statement_type("contextual_"+dft_to_string(ne_to_dft(ne))+"_declaration", StatementFamily::Node);
+
+                // Also register in the current definition if we're in one
+                if (!m_current_definition.empty()) {
+                    register_definition_variable(m_current_definition, identifier, get_ast_path(), "ctx");
+                }
+
+                nbTab++;
+                out() << repeat("\t", nbTab);
+                writeAttribute("xsi:type", type);
+                out() << "\n" << repeat("\t", nbTab);
+                writeAttribute("identifier", identifier);
+                out() << ">\n";
+
+                out() << repeat("\t", nbTab) << "<variable\n";
+                nbTab++;
+                out() << repeat("\t", nbTab);
+                writeAttribute("name", identifier);
+                out() << "/>\n"; 
+                nbTab--;
+                nbTab--;
+                pop_ast_path(segment);
+            }
+        }
 
         template<expression_env expenv>
-        void handle_condition(bool_rvalue_expression_variant<expenv>& node);
+        void handle_condition(bool_rvalue_expression_variant<expenv>& node){
+            out() << ">\n" << repeat("\t", nbTab) << "<condition\n" << repeat("\t", nbTab);
+
+            std::visit([&](auto* value){
+                if(auto* v = dynamic_cast<stop*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<input*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<gt<expenv,dataflow_type::INT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<gt<expenv,dataflow_type::FLOAT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<lt<expenv,dataflow_type::INT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<lt<expenv,dataflow_type::FLOAT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<geq<expenv,dataflow_type::INT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<geq<expenv,dataflow_type::FLOAT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<leq<expenv,dataflow_type::INT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<leq<expenv,dataflow_type::FLOAT>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<eq<dataflow_type::INT,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<eq<dataflow_type::FLOAT,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<eq<dataflow_type::BOOL,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<neq<dataflow_type::INT,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<neq<dataflow_type::FLOAT,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<neq<dataflow_type::BOOL,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<or_operator<expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<and_operator<expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<not_operator<expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<direct<dataflow_type::BOOL,expenv>*>(value)){
+                    visit(*v);
+                }else if(auto* v = dynamic_cast<variable_expression<dataflow_type::BOOL,expenv>*>(value)){
+                    visit(*v);
+                }else{
+                    out() << "<-- ERROR CONDITION -->\n";
+                }
+
+                using cond_t = std::remove_pointer_t<std::decay_t<decltype(value)>>;
+                if constexpr(std::is_same_v<cond_t, input> || std::is_same_v<cond_t, stop>){
+                    // out() << "</condition>\n";
+                }else{
+                    auto& bool_node = static_cast<rvalue<dataflow_type::BOOL, expenv>&>(*value);
+                    if(!only_one_child<dataflow_type::BOOL, expenv>(bool_node)){
+                        out() << "</condition>\n";
+                    }
+                }
+
+            }, node);
+        }
+        
+        
+        template<statement_env stenv>
+        void handle_statement(typename SttEnvToSttVariant<stenv>::type& stt){
+            std::visit([&](auto* ptr) {
+                if (auto* if_else = dynamic_cast<if_else_statement<stenv>*>(ptr)) {
+                    handle_statement_if_else(*if_else);
+                } else if (auto* if_simple = dynamic_cast<if_statement<stenv>*>(ptr)) {
+                    handle_statement_if(*if_simple);
+                } else if (auto* decl_int = dynamic_cast<dataflow_declaration<dataflow_type::INT, stenv>*>(ptr)) {
+                    handle_statement_declaration(*decl_int);
+                } else if (auto* decl_float = dynamic_cast<dataflow_declaration<dataflow_type::FLOAT, stenv>*>(ptr)) {
+                    handle_statement_declaration(*decl_float);
+                } else if (auto* decl_bool = dynamic_cast<dataflow_declaration<dataflow_type::BOOL, stenv>*>(ptr)) {
+                    handle_statement_declaration(*decl_bool);
+                } else if (auto* assign_int = dynamic_cast<dataflow_assignment<dataflow_type::INT, stenv>*>(ptr)) {
+                    handle_statement_assignment(*assign_int);
+                } else if (auto* assign_float = dynamic_cast<dataflow_assignment<dataflow_type::FLOAT, stenv>*>(ptr)) {
+                    handle_statement_assignment(*assign_float);
+                } else if (auto* assign_bool = dynamic_cast<dataflow_assignment<dataflow_type::BOOL, stenv>*>(ptr)) {
+                    handle_statement_assignment(*assign_bool);
+                }else if(auto* foreach = dynamic_cast<foreach_statement<stenv, dataflow_type::INT>*>(ptr)){
+                    handle_foreach(*foreach);
+                }else if(auto* foreach = dynamic_cast<foreach_statement<stenv, dataflow_type::FLOAT>*>(ptr)){
+                    handle_foreach(*foreach);
+                }else if(auto* foreach = dynamic_cast<foreach_statement<stenv, dataflow_type::BOOL>*>(ptr)){
+                    handle_foreach(*foreach);
+                }else if constexpr(stenv == statement_env::SYSTEM){
+                    if(auto* link = dynamic_cast<linking_statement*>(ptr)){
+                        (*link).accept(*this);
+                    }else if(auto* feeding_int_l = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::INT>*>(ptr)){
+                        handle_feeding_statement(*feeding_int_l);
+                    }else if(auto* feeding_float_l = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::FLOAT>*>(ptr)){
+                        handle_feeding_statement(*feeding_float_l);
+                    }else if(auto* feeding_bool_l = dynamic_cast<feeding_statement<dataflow_kind::LOGICAL, dataflow_type::BOOL>*>(ptr)){
+                        handle_feeding_statement(*feeding_bool_l);
+                    }else if(auto* feeding_int_p = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::INT>*>(ptr)){
+                        handle_feeding_statement(*feeding_int_p);
+                    }else if(auto* feeding_float_p = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::FLOAT>*>(ptr)){
+                        handle_feeding_statement(*feeding_float_p);
+                    }else if(auto* feeding_bool_p = dynamic_cast<feeding_statement<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*>(ptr)){
+                        handle_feeding_statement(*feeding_bool_p);
+                    }else if(auto* plugging = dynamic_cast<channel_plugging*>(ptr)){
+                        (*plugging).accept(*this);
+                    } else {
+                        out() << "[WARNING] system statement type not handled\n";
+                    }
+                } else {
+                    out() << "[WARNING] statement type not handled\n";
+                }
+            }, stt);
+        }
+
+        
+        template<statement_env stenv>
+        void handle_section_if(if_section<stenv>& node){
+            out() << "<if_section>\n";
+            std::string segment = "/@if_section";
+            push_ast_path(segment);
+
+            int if_index = 0;
+
+            for(auto stt : node.get_statements()){
+                out() << repeat("\t", nbTab) << "<if_statements\n";
+
+                std::string if_segment = "/@if_statements." + std::to_string(if_index++);
+                push_ast_path(if_segment);
+
+                handle_statement<stenv>(stt);
+
+                pop_ast_path(if_segment);
+
+                out() << repeat("\t", nbTab) << "</if_statements>\n";
+            }
+
+            pop_ast_path(segment);
+            out() << "</if_section>\n";
+        }
 
         template<statement_env stenv>
-        void handle_statement(typename SttEnvToSttVariant<stenv>::type& statement);
+        void handle_section_else(else_section<stenv>& node){
+            out() << repeat("\t", nbTab) << "<else_section>\n";
+
+            std::string segment = "/@else_section";
+            push_ast_path(segment);
+
+            int else_index = 0;
+
+            for(auto stt : node.get_statements()){
+                out() << repeat("\t", nbTab) << "<else_statements\n";
+
+                std::string else_segment = "/@else_statements." + std::to_string(else_index++);
+                push_ast_path(else_segment);
+
+                handle_statement<stenv>(stt);
+
+                pop_ast_path(else_segment);
+
+                out() << repeat("\t", nbTab) << "</else_statements>\n";
+            }
+
+            pop_ast_path(segment);
+
+            out() << repeat("\t", nbTab) << "</else_section>\n";
+        }
 
         template<statement_env stenv>
-        void handle_section_if(if_section<stenv>& node);
+        void handle_statement_if(if_statement<stenv>& node){
+            writeAttribute("xsi:type",statement_type("if"));
+
+            auto if_condition = node.get_condition();
+            auto if_sect = node.get_if_section();
+
+            handle_condition(if_condition);
+            handle_section_if(if_sect);
+        }
 
         template<statement_env stenv>
-        void handle_section_else(else_section<stenv>& node);
+        void handle_statement_if_else(if_else_statement<stenv>& node){
+            writeAttribute("xsi:type",statement_type("if_else"));
+            
+            auto if_condition = node.get_condition();
+            auto if_sect = node.get_if_section();
+            auto else_sect = node.get_else_section();
 
-        template<statement_env stenv>
-        void handle_statement_if(if_statement<stenv>& node);
-
-        template<statement_env stenv>
-        void handle_statement_if_else(if_else_statement<stenv>& node);
+            handle_condition(if_condition);
+            handle_section_if(if_sect);
+            handle_section_else(else_sect);
+        }
 
         
 		template<statement_env stenv, dataflow_type dft>
@@ -554,7 +946,73 @@ namespace chips{
 			}
 		}
 
-        void handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator = false);
+                
+        void handle_outputs(std::vector<function_output_variant>& outputs, bool is_actuator = false){
+            int output_index = 0;
+            std::string name_balise = (is_actuator ? "actuator" : "outputs");
+
+            std::vector<std::vector<std::string>> outputs_to_register;
+
+            for(auto& output : outputs){
+                std::visit([&](auto* outp){
+                    out() << repeat("\t", nbTab) << "<" << name_balise <<"\n";
+
+                    nbTab++;
+
+                    std::string output_name = outp->get_name();
+                    dataflow_type output_type = get_dataflow_type(outp);
+                    std::string dft = dft_to_string(output_type);
+
+                    std::string output_path = get_ast_path() + "/@"+ name_balise +"." + std::to_string(output_index++);
+
+                    register_output(current_fname, output_name, output_path);
+
+                    push_ast_path(output_path);
+
+                    nbTab++;
+                    out() << repeat("\t", nbTab);
+                    if(is_actuator){
+                        writeAttribute("xsi:type","chips.outputs.physical:"+dft+"_output");
+                    }else{
+                        writeAttribute("xsi:type","chips.outputs.logical:"+dft+"_output");
+                    }
+                    out() << "\n" << repeat("\t", nbTab);
+                    writeAttribute("name",output_name);
+                    out() << ">\n";
+                    nbTab--;
+
+                    out() << repeat("\t", nbTab) << "<expression\n";
+
+                    for(auto expression : outp->get_expressions()){
+                        std::visit([&](auto expr) {
+
+                            using ExprT = std::remove_cv_t<std::remove_pointer_t<decltype(expr)>>;
+
+                            if constexpr (std::is_same_v<ExprT, rvalue<dataflow_type::BOOL, expression_env::PRIMITIVE>>) {
+                                // std::cerr << "OUTPUT BOOL EXPR" << std::endl;
+                                binary_boolean_visit(*expr);
+                            } else {
+                                // std::cerr << "OUTPUT ARITH" << std::endl;
+                                arithmetic_visit(*expr);
+                            }
+
+                            if(!only_one_child(*expr)){
+                                out() << "</expression>\n";
+                            }
+
+                        }, expression);
+                        break;
+                    }
+
+                    outputs_to_register.push_back({output_name, output_path, "output:"+dft});
+
+                    pop_ast_path(output_path);
+                    out() << repeat("\t", nbTab) << "</" << name_balise << ">\n";
+                }, output);
+
+                
+            }
+        }
 
 		template<dataflow_type dft, expression_env expenv>
 		void handle_binary_expression(rvalue<dft,expenv>* left, rvalue<dft,expenv>* right, const std::string& type){
