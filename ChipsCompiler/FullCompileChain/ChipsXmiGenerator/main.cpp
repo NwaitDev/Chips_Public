@@ -5,9 +5,8 @@
 #include <antlr4-runtime.h>
 #include "./generated/ChipsLexer.h"
 #include "./generated/ChipsParser.h"
-#include "./sourcesNew/chips_ast2xmi_visitor.hpp"
 #include "./sources/ChipsToXmiWriter.hpp"
-#include "./sources/ChipsToXmiVisitor.hpp"
+#include "./sources/chips_ast2xmi_visitor.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -27,7 +26,7 @@ public:
                      std::exception_ptr  /*e*/) override
     {
         throw std::runtime_error(
-            "Erreur syntaxique ligne " + std::to_string(line) +
+            "Syntax error line " + std::to_string(line) +
             ":" + std::to_string(charPositionInLine) + " – " + msg);
     }
 };
@@ -40,26 +39,25 @@ void parse(std::istream& input, std::string output, std::string filename) {
     antlr4::CommonTokenStream   tokens(&lexer);
     ChipsParser                 parser(&tokens);
 
-    // Remplace le listener par défaut (qui imprime sur stderr)
+    // replace the default listener (that prints on stderr)
     ThrowingErrorListener errorListener;
     lexer.removeErrorListeners();
     lexer.addErrorListener(&errorListener);
     parser.removeErrorListeners();
     parser.addErrorListener(&errorListener);
 
-    auto* tree = parser.program();   // parse
-    ChipsAstBuilder builder;
+    auto* tree = parser.program();
 
-    std::ostringstream body_out;
-    ChipsToXmiWriter body_writer(body_out);
-    ChipsToXmiVisitor visitor(body_writer, body_out);
-
+    chips_ast_builder builder;
     std::any result = builder.visit(tree);
+
     program_node* rootPtr = std::any_cast<program_node>(&result);
 
     if(rootPtr){
-        // SymbolTable::getInstance().dump();
 
+        std::ostringstream body_out;
+        ChipsToXmiWriter body_writer(body_out);
+        chips_ast2xmi_visitor visitor(body_writer, body_out);
         rootPtr->accept(visitor);
 
         std::ofstream out(output);
@@ -71,9 +69,6 @@ void parse(std::istream& input, std::string output, std::string filename) {
         writer.xmi_footer();
 
         out.close();
-
-        // std::cout << "XMI généré: " << output << std::endl;
-
     }
 }
 
