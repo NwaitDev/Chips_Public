@@ -12,7 +12,8 @@
 #include "forward_declarations.hpp"
 
 namespace chips
-{  
+{
+
     /**
      * Base abstract class for a node in the Chips 
      * Abstract Syntax Tree
@@ -24,6 +25,7 @@ namespace chips
         int m_column;
 
         ast_node(int line, int column) : m_line(line), m_column(column) {}
+        ast_node() = default;
         virtual ~ast_node() = default;
 
         int get_line() const { return m_line; }
@@ -58,8 +60,8 @@ namespace chips
     */
     template<statement_env env>
     class statement_fillable {
-
-        statement_fillable<env>() = delete;
+        public:
+        statement_fillable<env>() = default;
         public:
         std::vector<typename SttEnvToSttVariant<env>::type> m_statements;
         inline void add_statement(const typename SttEnvToSttVariant<env>::type& stt){
@@ -77,6 +79,7 @@ namespace chips
      */
     class with_section : public ast_node, public statement_fillable<statement_env::NODE> {
         public:
+        with_section(int line, int column) : ast_node(line, column){}
         void accept(chips_ast2xmi_visitor& v){
             throw std::runtime_error("unimplemented with_section.accept(chips_ast2xmi_visitor&) error.");
         };
@@ -90,6 +93,8 @@ namespace chips
      */
     class init_section : public ast_node,  public statement_fillable<statement_env::DEFINITION> {
         public:
+        init_section(int line, int column) : ast_node(line, column){}
+
         void accept(chips_ast2xmi_visitor& v){
             throw std::runtime_error("unimplemented init_section.accept(chips_ast2xmi_visitor&) error.");
         };
@@ -103,6 +108,7 @@ namespace chips
      */
     class then_section : public ast_node,  public statement_fillable<statement_env::DEFINITION>{
         public:
+        then_section(int line, int column) : ast_node(line, column){}
         void accept(chips_ast2xmi_visitor& v){
             throw std::runtime_error("unimplemented then_section.accept(chips_ast2xmi_visitor&) error.");
         };
@@ -1356,13 +1362,14 @@ namespace chips
      * (functional blocks, nodes, channels and contextuals)
      * have their own dedicated nodes
      */
-    template<dataflow_type dft, statement_env stenv> class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION> {
+    template<dataflow_type dft, statement_env stenv> 
+    class dataflow_declaration : public statement<stenv, recurring_statement::DECLARATION> {
         public:
         using df_variable_type = typename SttEnvToVariableKind<dft, stenv>::type;
         df_variable_type m_variable;
 
-        dataflow_declaration(df_variable_type variable) : 
-        m_variable(variable) {};
+        dataflow_declaration(int line, int column, df_variable_type variable) : 
+        statement<stenv,recurring_statement::DECLARATION>(line,column), m_variable(variable) {};
 
         inline df_variable_type get_variable() { return m_variable; }
 
@@ -1386,8 +1393,8 @@ namespace chips
         lvalue<dft, expr_env> *m_lvalue;
         rvalue<dft, expr_env> *m_rvalue;
 
-        dataflow_assignment(lvalue<dft, expr_env> *lhs, rvalue<dft, expr_env> *rhs)
-            : m_lvalue(lhs), m_rvalue(rhs) {}
+        dataflow_assignment(int line, int column, lvalue<dft, expr_env> *lhs, rvalue<dft, expr_env> *rhs) :
+        statement<stenv,recurring_statement::ASSIGNMENT>(line,column), m_lvalue(lhs), m_rvalue(rhs) {}
 
         lvalue<dft, expr_env> *get_lhs() { return m_lvalue; }
         rvalue<dft, expr_env> *get_rhs() { return m_rvalue; }
@@ -1662,7 +1669,7 @@ namespace chips
         std::string m_declared_name;
 
         node_element_declaration(int line, int column, node_variable_t type, std::string vname) :
-        statement<statement_env::NODE, recurring_statement::DECLARATION>(line, column), m_variable_type(type), m_declared_name(vname) {}
+        statement<statement_env::NODE, recurring_statement::DECLARATION>(line, column), ast_node(line,column), m_variable_type(type), m_declared_name(vname) {}
 
         node_variable_t get_variable() { return m_variable_type; }
 
@@ -1708,9 +1715,7 @@ namespace chips
         std::string m_name;
 
         variable(int line, int column, const std::string& name):
-        array<expenv>(line,column,
-            std::vector<int_rvalue_expression_variant<expenv>>(direct<dataflow_type::INT, expenv>(1))
-        ), m_name(name) {};
+        array<expenv>(line, column, std::vector<int_rvalue_expression_variant<expenv>>{}), m_name(name) {};
 
         variable(int line, int column, const std::string& name, std::vector<int_rvalue_expression_variant<expenv>> dims) :
         array<expenv>(line,column,dims), m_name(name) {};

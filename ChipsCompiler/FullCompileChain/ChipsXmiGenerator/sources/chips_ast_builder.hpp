@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <memory>
 
 #include "../generated/ChipsBaseVisitor.h"
 #include "../generated/ChipsParser.h"
@@ -11,14 +12,23 @@
 using namespace chips;
 
 class chips_ast_builder : public ChipsBaseVisitor {
-public:
+    private:
+    std::vector<std::unique_ptr<chips::ast_node>> m_all_nodes;
+
+    public:
     program_node m_program;
 
-    chips_ast_builder(ChipsParser::ProgramContext* prgm):
-    m_program(program_node(0,0,"placeholder",preamble_section_node(0,0,std::vector<definition_variant>{}),system_section_node(0,0,std::vector<system_statement_variant>{})))
+    template<typename T, typename... Args>
+    T* make_node(Args&&... args)
     {
-        prgm->accept(this);
+        auto owned = std::make_unique<T>(std::forward<Args>(args)...);
+        T* raw = owned.get();
+        m_all_nodes.push_back(std::move(owned));
+        return raw;
     }
+
+    chips_ast_builder(ChipsParser::ProgramContext* prgm):
+    m_program(std::any_cast<program_node>(prgm->accept(this))) {}
 
     program_node* getAST(){
         return &m_program;
