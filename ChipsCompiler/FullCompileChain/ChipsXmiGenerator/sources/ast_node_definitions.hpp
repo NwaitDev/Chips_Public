@@ -1238,7 +1238,7 @@ namespace chips
     };
 
     template <dataflow_type dft, expression_env expenv>
-    class variable_contextual_expression : public variable_expression<dft, expenv>, public ast_node
+    class variable_contextual_expression : public variable_expression<dft, expenv>
     {
     public:
         variable_contextual_expression(variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
@@ -1667,6 +1667,10 @@ namespace chips
         using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
         node_variable_t m_variable_type;
         std::string m_declared_name;
+        std::optional<rvalue_primitive_variant> m_initializer;
+
+        void set_initializer(const rvalue_primitive_variant& init) { m_initializer = init; }
+        std::optional<rvalue_primitive_variant>& get_initializer() { return m_initializer; }
 
         node_element_declaration(int line, int column, node_variable_t type, std::string vname) :
         statement<statement_env::NODE, recurring_statement::DECLARATION>(line, column), ast_node(line,column), m_variable_type(type), m_declared_name(vname) {}

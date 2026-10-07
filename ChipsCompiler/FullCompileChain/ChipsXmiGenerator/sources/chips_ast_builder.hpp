@@ -2,6 +2,8 @@
 
 #include <any>
 #include <memory>
+#include <unordered_map>
+#include <optional>
 
 #include "../generated/ChipsBaseVisitor.h"
 #include "../generated/ChipsParser.h"
@@ -13,10 +15,18 @@ using namespace chips;
 
 class chips_ast_builder : public ChipsBaseVisitor {
     private:
+
+    using parameter_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
+    parameter_table m_parameters;
+    using contextuals_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
+    contextuals_table m_contextuals;
+    std::string m_current_def_name;
     std::vector<std::unique_ptr<chips::ast_node>> m_all_nodes;
 
-    public:
+    // keep this member declared last to let the previous ones initialized in time
     program_node m_program;
+
+    public:
 
     template<typename T, typename... Args>
     T* make_node(Args&&... args)
@@ -33,6 +43,30 @@ class chips_ast_builder : public ChipsBaseVisitor {
     program_node* getAST(){
         return &m_program;
     }
+
+
+
+    // Context helpers
+
+    void declare_contextual(const std::string& var, chips::dataflow_type type);
+    std::optional<chips::dataflow_type> find_symbol(const std::string& var) const;
+    void declare_parameter(const std::string& function, const std::string& var, chips::dataflow_type type);
+    std::optional<chips::dataflow_type> find_parameter(const std::string& function, const std::string& var) const;
+
+    // Type inference methods
+    [[noreturn]] void type_fail(antlr4::ParserRuleContext* ctx, const std::string& msg) const;
+    chips::dataflow_type infer_type(ChipsParser::ExprContext* ctx) const;
+    chips::dataflow_type infer_type(ChipsParser::Expr0Context* ctx) const;
+    chips::dataflow_type infer_type(ChipsParser::Expr01Context* ctx) const;
+    chips::dataflow_type infer_type(ChipsParser::Expr1Context* ctx) const;
+    chips::dataflow_type infer_type(ChipsParser::Expr2Context* ctx) const;
+    chips::dataflow_type lookup_variable(const std::string& name, antlr4::ParserRuleContext* ctx) const;
+    void check_suffixes(ChipsParser::SuffixesContext* ctx) const;
+    
+    
+    
+    
+    // Visit methods
 
     std::any visitProgram(ChipsParser::ProgramContext *ctx) override;
 
