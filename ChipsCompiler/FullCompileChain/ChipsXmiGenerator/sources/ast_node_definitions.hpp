@@ -402,31 +402,21 @@ namespace chips
     class function_parameter : public ast_node
     {
     public:
-        std::optional<rvalue<dft,expression_env::PRIMITIVE>> m_default_value;
-        dataflow_declaration<dft,statement_env::DEFINITION> m_declaration;
+        rvalue<dft, expression_env::PRIMITIVE>* m_default_value;
+        dataflow_declaration<dft, statement_env::DEFINITION>* m_declaration;
         std::string m_name;
 
-        function_parameter(
-            std::string name,
-            dataflow_declaration<dft,statement_env::DEFINITION> declaration,
-            std::optional<rvalue<dft,expression_env::PRIMITIVE>> default_value
-        )
-        : m_name(name), m_declaration(declaration), m_default_value(default_value){};
-        
-        function_parameter(
-            std::string name, 
-            dataflow_declaration<dft,statement_env::DEFINITION> declaration
-        )
-        : m_name(name), m_declaration(declaration), m_default_value(std::nullopt){};
+        function_parameter(int line, int column, std::string name,
+                        dataflow_declaration<dft, statement_env::DEFINITION>* declaration,
+                        rvalue<dft, expression_env::PRIMITIVE>* default_value = nullptr)
+            : ast_node(line, column), m_default_value(default_value), m_declaration(declaration), m_name(name) {}
 
         const std::string& get_name() const { return m_name; }
         std::string& get_name() { return m_name; }
+        rvalue<dft, expression_env::PRIMITIVE>* get_default_value() { return m_default_value; }
+        dataflow_declaration<dft, statement_env::DEFINITION>* get_declaration() { return m_declaration; }
 
-        std::optional<rvalue<dft,expression_env::PRIMITIVE>>& get_default_value() { return m_default_value; }
-
-        dataflow_declaration<dft,statement_env::DEFINITION>& get_declaration() { return m_declaration; }
-
-        void accept(chips_ast2xmi_visitor& v) { 
+        void accept(chips_ast2xmi_visitor& v) {
             throw std::runtime_error("unimplmeented function_parameter.accept(chips_ast2xmi_visitor&) method.");
         }
     };
@@ -767,9 +757,15 @@ namespace chips
      * Node of the AST that represents something to
      * that can be evaluated as a chips primitive value
      */
-    template<dataflow_type dft, expression_env expenv> class rvalue {};
+    template<dataflow_type dft, expression_env expenv> class rvalue {
+        public:
+        virtual ~rvalue() = default;
+    };
 
-    template<dataflow_type dft> class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL, dft> {};
+    template<dataflow_type dft> class rvalue<dft, expression_env::SYSTEM> : public feeder<dataflow_kind::LOGICAL, dft> {
+        public:
+        virtual ~rvalue() = default;
+    };
 
     /**
      * Concrete class
@@ -811,8 +807,8 @@ namespace chips
         function(int line, int column, std::string name)
             :ast_node(line, column), m_name(name){}
 
-        function(std::string name, std::vector<rvalue_variant<expenv>> param)
-            : m_name(name), m_parameters(param){}
+        function(int line, int column, std::string name, std::vector<rvalue_variant<expenv>> param)
+            : ast_node(line, column), m_name(name), m_parameters(param){}
 
         std::string& get_name() { return m_name; }
         std::vector<rvalue_variant<expenv>>& get_parameters() { return m_parameters; }
@@ -831,15 +827,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        plus(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        plus(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() const { return m_left_operand; }
-        operand_type get_rhs() const { return m_right_operand; }
+        operand_type* get_lhs() const { return m_left_operand; }
+        operand_type* get_rhs() const { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented plus.accept(chips_ast2xmi_visitor&) error.");
@@ -855,15 +851,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        minus(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        minus(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() const { return m_left_operand; }
-        operand_type get_rhs() const { return m_right_operand; }
+        operand_type* get_lhs() const { return m_left_operand; }
+        operand_type* get_rhs() const { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented minus.accept(chips_ast2xmi_visitor&) error.");
@@ -879,15 +875,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        mult(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        mult(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return m_left_operand; }
-        operand_type get_rhs() { return m_right_operand; }
+        operand_type* get_lhs() { return m_left_operand; }
+        operand_type* get_rhs() { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented mult.accept(chips_ast2xmi_visitor&) error.");
@@ -903,15 +899,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        div(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        div(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return m_left_operand; }
-        operand_type get_rhs() { return m_right_operand; }
+        operand_type* get_lhs() { return m_left_operand; }
+        operand_type* get_rhs() { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented div.accept(chips_ast2xmi_visitor&) error.");
@@ -928,15 +924,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dataflow_type::INT, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        mod(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        mod(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return m_left_operand; }
-        operand_type get_rhs() { return m_right_operand; }
+        operand_type* get_lhs() { return m_left_operand; }
+        operand_type* get_rhs() { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented mod.accept(chips_ast2xmi_visitor&) error.");
@@ -951,39 +947,40 @@ namespace chips
     class cast_as : public rvalue<dft, expenv>, public ast_node
     {
     private:
-        using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type numeric;
+        static constexpr dataflow_type source_type =
+            dft == dataflow_type::INT ? dataflow_type::FLOAT : dataflow_type::INT;
+        using operand_type = rvalue<source_type, expenv>;
+        operand_type* m_operand;
 
     public:
-        cast_as(operand_type numeric)
-            : numeric((numeric)) {}
+        cast_as(int line, int column, operand_type* operand)
+            : ast_node(line, column), m_operand(operand) {}
 
-        operand_type get_cast() { return numeric; }
+        operand_type* get_cast() { return m_operand; }
 
-        inline void accept(chips_ast2xmi_visitor &v) { 
+        inline void accept(chips_ast2xmi_visitor &v) {
             throw std::runtime_error("unimplemented cast_as.accept(chips_ast2xmi_visitor&) error.");
         }
-
     };
 
     /**
     * Concrete class
     * Node of the AST that represents > (greater than) operator
     */
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class gt : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type m_left_operand;
-        operand_type m_right_operand;
+        operand_type* m_left_operand;
+        operand_type* m_right_operand;
 
     public:
-        gt(operand_type left_operand, operand_type right_operand)
-            : m_left_operand((left_operand)), m_right_operand((right_operand)) {}
+        gt(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), m_left_operand((left_operand)), m_right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return m_left_operand; }
-        operand_type get_rhs() { return m_right_operand; }
+        operand_type* get_lhs() { return m_left_operand; }
+        operand_type* get_rhs() { return m_right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented gt.accept(chips_ast2xmi_visitor&) error.");
@@ -995,20 +992,20 @@ namespace chips
     * Concrete class
     * Node of the AST that represents < (lower than) operator
     */
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class lt : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type left_operand;
-        operand_type right_operand;
+        operand_type* left_operand;
+        operand_type* right_operand;
 
     public:
-        lt(operand_type left_operand, operand_type right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        lt(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), left_operand((left_operand)), right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return left_operand; }
-        operand_type get_rhs() { return right_operand; }
+        operand_type* get_lhs() { return left_operand; }
+        operand_type* get_rhs() { return right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented lt.accept(chips_ast2xmi_visitor&) error.");
@@ -1020,20 +1017,20 @@ namespace chips
     * Concrete class
     * Node of the AST that represents the >= (greater or equal) operator
     */
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class geq : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type left_operand;
-        operand_type right_operand;
+        operand_type* left_operand;
+        operand_type* right_operand;
 
     public:
-        geq(operand_type left_operand, operand_type right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        geq(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), left_operand((left_operand)), right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return left_operand; }
-        operand_type get_rhs() { return right_operand; }
+        operand_type* get_lhs() { return left_operand; }
+        operand_type* get_rhs() { return right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented geq.accept(chips_ast2xmi_visitor&) error.");
@@ -1045,20 +1042,20 @@ namespace chips
     * Concrete class
     * Node of the AST that represents <= (lower or equal) operator
     */
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class leq : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type left_operand;
-        operand_type right_operand;
+        operand_type* left_operand;
+        operand_type* right_operand;
 
     public:
-        leq(operand_type left_operand, operand_type right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        leq(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line, column), left_operand((left_operand)), right_operand((right_operand)) {}
 
-        operand_type get_lhs() { return left_operand; }
-        operand_type get_rhs() { return right_operand; }
+        operand_type* get_lhs() { return left_operand; }
+        operand_type* get_rhs() { return right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented leq.accept(chips_ast2xmi_visitor&) error.");
@@ -1074,44 +1071,43 @@ namespace chips
     class or_operator : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
-        rvalue<dataflow_type::BOOL, expenv> left_operand;
-        rvalue<dataflow_type::BOOL, expenv> right_operand;
+        rvalue<dataflow_type::BOOL, expenv>* left_operand;
+        rvalue<dataflow_type::BOOL, expenv>* right_operand;
 
     public:
-        or_operator(rvalue<dataflow_type::BOOL, expenv> left_operand, rvalue<dataflow_type::BOOL, expenv> right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        or_operator(int line, int column, rvalue<dataflow_type::BOOL, expenv>* lhs, rvalue<dataflow_type::BOOL, expenv>* rhs)
+            : ast_node(line, column), left_operand(lhs), right_operand(rhs) {}
 
-        rvalue<dataflow_type::BOOL, expenv> *get_lhs() { return left_operand; }
-        rvalue<dataflow_type::BOOL, expenv> *get_rhs() { return right_operand; }
+        rvalue<dataflow_type::BOOL, expenv>* get_lhs() { return left_operand; }
+        rvalue<dataflow_type::BOOL, expenv>* get_rhs() { return right_operand; }
 
-        inline void accept(chips_ast2xmi_visitor &v) { 
+        inline void accept(chips_ast2xmi_visitor &v) {
             throw std::runtime_error("unimplemented or_operator.accept(chips_ast2xmi_visitor&) error.");
         }
-
     };
 
     /**
     * Concrete class
     * Node of the AST that represents && (and) operator
     */
+
     template <expression_env expenv>
     class and_operator : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
-        rvalue<dataflow_type::BOOL, expenv> left_operand;
-        rvalue<dataflow_type::BOOL, expenv> right_operand;
+        rvalue<dataflow_type::BOOL, expenv>* left_operand;
+        rvalue<dataflow_type::BOOL, expenv>* right_operand;
 
     public:
-        and_operator(rvalue<dataflow_type::BOOL, expenv> left_operand, rvalue<dataflow_type::BOOL, expenv> right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        and_operator(int line, int column, rvalue<dataflow_type::BOOL, expenv>* lhs, rvalue<dataflow_type::BOOL, expenv>* rhs)
+            : ast_node(line, column), left_operand(lhs), right_operand(rhs) {}
 
-        rvalue<dataflow_type::BOOL, expenv> *get_lhs() { return left_operand; }
-        rvalue<dataflow_type::BOOL, expenv> *get_rhs() { return right_operand; }
+        rvalue<dataflow_type::BOOL, expenv>* get_lhs() { return left_operand; }
+        rvalue<dataflow_type::BOOL, expenv>* get_rhs() { return right_operand; }
 
-        inline void accept(chips_ast2xmi_visitor &v) { 
+        inline void accept(chips_ast2xmi_visitor &v) {
             throw std::runtime_error("unimplemented and_operator.accept(chips_ast2xmi_visitor&) error.");
         }
-
     };
 
     /**
@@ -1122,18 +1118,17 @@ namespace chips
     class not_operator : public rvalue<dataflow_type::BOOL, expenv>, public ast_node
     {
     private:
-        rvalue<dataflow_type::BOOL, expenv> operand;
+        rvalue<dataflow_type::BOOL, expenv>* operand;
 
     public:
-        not_operator(rvalue<dataflow_type::BOOL, expenv> operand)
-            : operand(operand) {}
+        not_operator(int line, int column, rvalue<dataflow_type::BOOL, expenv>* op)
+            : ast_node(line, column), operand(op) {}
 
-        rvalue<dataflow_type::BOOL, expenv> *get_lhs() { return operand; }
+        rvalue<dataflow_type::BOOL, expenv>* get_operand() { return operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented not_operator.accept(chips_ast2xmi_visitor&) error.");
         }
-
     };
 
     /**
@@ -1145,13 +1140,13 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstNumericType<dft, expenv>::type;
-        operand_type operand;
+        operand_type* operand;
 
     public:
-        uminus_operator(operand_type operand)
-            : operand(operand) {}
+        uminus_operator(int line, int column, operand_type* operand)
+            : ast_node(line,column),operand(operand) {}
 
-        operand_type get_rhs() { return operand; }
+        operand_type* get_rhs() { return operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented uminus_operator.accept(chips_ast2xmi_visitor&) error.");
@@ -1168,15 +1163,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type;
-        operand_type left_operand;
-        operand_type right_operand;
+        operand_type* left_operand;
+        operand_type* right_operand;
 
     public:
-        eq(operand_type left_operand, operand_type right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        eq(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line,column),left_operand(left_operand), right_operand(right_operand) {}
 
-        operand_type get_lhs() { return left_operand; }
-        operand_type get_rhs() { return right_operand; }
+        operand_type* get_lhs() { return left_operand; }
+        operand_type* get_rhs() { return right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented eq.accept(chips_ast2xmi_visitor&) error.");
@@ -1193,15 +1188,15 @@ namespace chips
     {
     private:
         using operand_type = typename ChipsOperandToAstType<dft, expenv>::type;
-        operand_type left_operand;
-        operand_type right_operand;
+        operand_type* left_operand;
+        operand_type* right_operand;
 
     public:
-        neq(operand_type left_operand, operand_type right_operand)
-            : left_operand((left_operand)), right_operand((right_operand)) {}
+        neq(int line, int column, operand_type* left_operand, operand_type* right_operand)
+            : ast_node(line,column), left_operand(left_operand), right_operand(right_operand) {}
 
-        operand_type get_lhs() { return left_operand; }
-        operand_type get_rhs() { return right_operand; }
+        operand_type* get_lhs() { return left_operand; }
+        operand_type* get_rhs() { return right_operand; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented neq.accept(chips_ast2xmi_visitor&) error.");
@@ -1222,11 +1217,11 @@ namespace chips
         std::vector<int_rvalue_expression_variant<expenv>> m_index = {};
 
     public:
-        variable_expression(variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
-            : m_variable(variable), m_index(index) {}
+        variable_expression(int line, int column, variable<expenv> *var, std::vector<int_rvalue_expression_variant<expenv>> index)
+            : ast_node(line,column),m_variable(var), m_index(index) {}
 
-        variable_expression(variable<expenv> *variable)
-            : m_variable(variable) {}
+        variable_expression(int line, int column, variable<expenv> *variable)
+            : ast_node(line,column), m_variable(variable) {}
 
         variable<expenv> *get_variable() { return m_variable; }
         std::vector<int_rvalue_expression_variant<expenv>>& get_index() { return m_index; }
@@ -1241,11 +1236,11 @@ namespace chips
     class variable_contextual_expression : public variable_expression<dft, expenv>
     {
     public:
-        variable_contextual_expression(variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
-            : variable_expression<dft, expenv>(variable, index) {}
+        variable_contextual_expression(int line, int column, variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
+            : variable_expression<dft, expenv>(line, column, variable, index) {}
 
-        variable_contextual_expression(variable<expenv> *variable)
-            : variable_expression<dft, expenv>(variable) {}
+        variable_contextual_expression(int line, int column, variable<expenv> *variable)
+            : variable_expression<dft, expenv>(line, column,variable) {}
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented variable_contextual_expression.accept(chips_ast2xmi_visitor&) error.");
@@ -1483,9 +1478,8 @@ namespace chips
         static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
         else_section<stenv> m_else_section;
 
-        if_else_statement(int line, int column, bool_rvalue_expression_variant<expr_env> condition,
-                           if_section<stenv> if_sec, else_section<stenv> else_sec) :
-        if_statement<stenv>(line, column, condition, if_sec), m_else_section(else_sec) {}
+        if_else_statement(int line, int column, if_statement<stenv> if_sec, else_section<stenv> else_sec) :
+        if_statement<stenv>(if_sec), m_else_section(else_sec) {}
 
         else_section<stenv>& get_else_section() { return m_else_section; }
 

@@ -107,13 +107,13 @@ namespace chips
     class cast_as;
     template <dataflow_type dft, expression_env expenv>
     class uminus_operator;
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class gt;
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class lt;
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class geq;
-    template <expression_env expenv, dataflow_type dft>
+    template <dataflow_type dft,expression_env expenv>
     class leq;
     template <expression_env expenv>
     class or_operator;

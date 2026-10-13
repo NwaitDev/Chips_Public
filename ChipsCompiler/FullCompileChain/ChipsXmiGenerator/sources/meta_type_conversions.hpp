@@ -113,7 +113,13 @@ namespace chips {
         using type = node_statement_variant;
     };
 
-    using primitive_statement_variant = std::variant<primitive_statement<recurring_statement::IF>*,primitive_statement<recurring_statement::FOREACH>*,primitive_statement<recurring_statement::DECLARATION>*,primitive_statement<recurring_statement::ASSIGNMENT>*>;
+    using primitive_statement_variant = 
+        std::variant<
+            primitive_statement<recurring_statement::IF>*,
+            primitive_statement<recurring_statement::FOREACH>*,
+            primitive_statement<recurring_statement::DECLARATION>*,
+            primitive_statement<recurring_statement::ASSIGNMENT>*
+        >;
 
     template<>
     struct SttEnvToSttVariant<statement_env::DEFINITION>{
@@ -320,14 +326,14 @@ namespace chips {
 
     template<expression_env expenv>
     using bool_rvalue_expression_variant = std::variant<
-        gt<expenv,dataflow_type::INT>*,
-        gt<expenv,dataflow_type::FLOAT>*,
-        lt<expenv,dataflow_type::INT>*,
-        lt<expenv,dataflow_type::FLOAT>*,
-        geq<expenv,dataflow_type::INT>*,
-        geq<expenv,dataflow_type::FLOAT>*,
-        leq<expenv,dataflow_type::INT>*,
-        leq<expenv,dataflow_type::FLOAT>*,
+        gt<dataflow_type::INT,expenv>*,
+        gt<dataflow_type::FLOAT,expenv>*,
+        lt<dataflow_type::INT,expenv>*,
+        lt<dataflow_type::FLOAT,expenv>*,
+        geq<dataflow_type::INT,expenv>*,
+        geq<dataflow_type::FLOAT,expenv>*,
+        leq<dataflow_type::INT,expenv>*,
+        leq<dataflow_type::FLOAT,expenv>*,
         eq<dataflow_type::INT,expenv>*,
         eq<dataflow_type::FLOAT,expenv>*,
         eq<dataflow_type::BOOL,expenv>*,

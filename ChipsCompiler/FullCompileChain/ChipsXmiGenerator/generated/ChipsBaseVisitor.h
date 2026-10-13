@@ -1,5 +1,5 @@
 
-// Generated from /home/ohnoanna/Code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
+// Generated from /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -558,6 +558,7 @@ public:
   virtual std::any visitCdf_full_declaration(ChipsParser::Cdf_full_declarationContext *ctx) override {
     return visitChildren(ctx);
   }
+
 
 };
 

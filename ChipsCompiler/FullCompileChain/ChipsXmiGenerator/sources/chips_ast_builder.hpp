@@ -16,17 +16,43 @@ using namespace chips;
 class chips_ast_builder : public ChipsBaseVisitor {
     private:
 
+    using variable_scope = std::unordered_map<std::string, chips::dataflow_type>;
+    std::vector<variable_scope> m_scopes;
+    std::unordered_map<std::string, variable_scope> m_outputs;
+
     using parameter_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
     parameter_table m_parameters;
     using contextuals_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
     contextuals_table m_contextuals;
+
+    
+    chips::dataflow_type iterator_type(ChipsParser::Loop_inContext* ctx) const;
+
     std::string m_current_def_name;
     std::vector<std::unique_ptr<chips::ast_node>> m_all_nodes;
+
 
     // keep this member declared last to let the previous ones initialized in time
     program_node m_program;
 
     public:
+
+    void push_scope();
+    void pop_scope();
+    template<chips::dataflow_type type>
+    void declare_variable(const std::string& name);
+    std::optional<chips::dataflow_type> find_variable(const std::string& name) const;
+    void declare_output(const std::string& function, const std::string& name, chips::dataflow_type type);
+    std::optional<chips::dataflow_type> find_output(const std::string& function, const std::string& name) const;
+
+    struct scope_guard {
+        chips_ast_builder& m_builder;
+        explicit scope_guard(chips_ast_builder& builder) : m_builder(builder) { m_builder.push_scope(); }
+        ~scope_guard() { m_builder.pop_scope(); }
+        scope_guard(const scope_guard&) = delete;
+        scope_guard& operator=(const scope_guard&) = delete;
+    };
+
 
     template<typename T, typename... Args>
     T* make_node(Args&&... args)
@@ -49,7 +75,7 @@ class chips_ast_builder : public ChipsBaseVisitor {
     // Context helpers
 
     void declare_contextual(const std::string& var, chips::dataflow_type type);
-    std::optional<chips::dataflow_type> find_symbol(const std::string& var) const;
+    std::optional<chips::dataflow_type> lookup_contextual(const std::string& var) const;
     void declare_parameter(const std::string& function, const std::string& var, chips::dataflow_type type);
     std::optional<chips::dataflow_type> find_parameter(const std::string& function, const std::string& var) const;
 
