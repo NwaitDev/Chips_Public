@@ -35,19 +35,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitObject_def(ChipsParser::Object_defContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitImplementation_def(ChipsParser::Implementation_defContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitNode_mapping(ChipsParser::Node_mappingContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -63,11 +51,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx) override {
+  virtual std::any visitC_default_output(ChipsParser::C_default_outputContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitChanneledOutput(ChipsParser::ChanneledOutputContext *ctx) override {
+  virtual std::any visitC_channeled_output(ChipsParser::C_channeled_outputContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -199,15 +187,15 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitVarContext(ChipsParser::VarContextContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitVar(ChipsParser::VarContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual std::any visitParens(ChipsParser::ParensContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitVarContext(ChipsParser::VarContextContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -376,6 +364,10 @@ public:
   }
 
   virtual std::any visitLoop_in(ChipsParser::Loop_inContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitC_loop_in(ChipsParser::C_loop_inContext *ctx) override {
     return visitChildren(ctx);
   }
 

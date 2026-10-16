@@ -59,6 +59,9 @@ namespace chips
     template <node_element ne>
     class node_element_declaration;
 
+    template<dataflow_type dft>
+    class channeled_accumulator_expression;
+
     template <dataflow_kind dfk, dataflow_type dft>
     class function_parameter;
     template <dataflow_type dft>

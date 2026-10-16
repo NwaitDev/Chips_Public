@@ -29,13 +29,7 @@ public:
 
     virtual std::any visitCollectiveOperationDefinition(ChipsParser::CollectiveOperationDefinitionContext *context) = 0;
 
-    virtual std::any visitImplementationDefinition(ChipsParser::ImplementationDefinitionContext *context) = 0;
-
     virtual std::any visitObject_def(ChipsParser::Object_defContext *context) = 0;
-
-    virtual std::any visitImplementation_def(ChipsParser::Implementation_defContext *context) = 0;
-
-    virtual std::any visitNode_mapping(ChipsParser::Node_mappingContext *context) = 0;
 
     virtual std::any visitLogicalDefintion(ChipsParser::LogicalDefintionContext *context) = 0;
 
@@ -43,9 +37,9 @@ public:
 
     virtual std::any visitCollective_op_def(ChipsParser::Collective_op_defContext *context) = 0;
 
-    virtual std::any visitDefaultOutput(ChipsParser::DefaultOutputContext *context) = 0;
+    virtual std::any visitC_default_output(ChipsParser::C_default_outputContext *context) = 0;
 
-    virtual std::any visitChanneledOutput(ChipsParser::ChanneledOutputContext *context) = 0;
+    virtual std::any visitC_channeled_output(ChipsParser::C_channeled_outputContext *context) = 0;
 
     virtual std::any visitL_function_def(ChipsParser::L_function_defContext *context) = 0;
 
@@ -111,11 +105,11 @@ public:
 
     virtual std::any visitBoolLiteral(ChipsParser::BoolLiteralContext *context) = 0;
 
+    virtual std::any visitVarContext(ChipsParser::VarContextContext *context) = 0;
+
     virtual std::any visitVar(ChipsParser::VarContext *context) = 0;
 
     virtual std::any visitParens(ChipsParser::ParensContext *context) = 0;
-
-    virtual std::any visitVarContext(ChipsParser::VarContextContext *context) = 0;
 
     virtual std::any visitFunction(ChipsParser::FunctionContext *context) = 0;
 
@@ -200,6 +194,8 @@ public:
     virtual std::any visitBlock(ChipsParser::BlockContext *context) = 0;
 
     virtual std::any visitLoop_in(ChipsParser::Loop_inContext *context) = 0;
+
+    virtual std::any visitC_loop_in(ChipsParser::C_loop_inContext *context) = 0;
 
     virtual std::any visitLoop_statement(ChipsParser::Loop_statementContext *context) = 0;
 

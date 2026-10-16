@@ -14,22 +14,12 @@ preamble
     : object_def            #ObjectDefinition
     | function_def          #FunctionDefinition
     | collective_op_def     #CollectiveOperationDefinition
-    | implementation_def    #ImplementationDefinition
     ;
 
 object_def
     : OBJECT_KW IDENTIFIER with_section
     ;
 
-implementation_def
-    : IMPLEMENTATION_KW IDENTIFIER COLUMN IDENTIFIER BY_KW IDENTIFIER L_CURL
-        node_mapping*
-      R_CURL
-    ;
-
-node_mapping
-    : HAVING_KW IDENTIFIER AS_KW IDENTIFIER SEMICOL
-    ;
 
 function_def
     : l_function_def    #LogicalDefintion
@@ -41,13 +31,17 @@ collective_op_def
         c_statement*
       R_CURL
       ARROW TARGET_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
-      c_output+
+      ( c_channeled_output+
+      | c_channeled_output* c_default_output c_channeled_output*
+      )
     ;
 
+c_default_output
+    : ARROW DEFAULT_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
+    ;
 
-c_output
-    : ARROW DEFAULT_KW L_PARENTH c_expr (COMMA c_expr)* R_PARENTH   #DefaultOutput
-    | ARROW IDENTIFIER L_PARENTH c_expr (COMMA c_expr)* R_PARENTH   #ChanneledOutput
+c_channeled_output
+    : ARROW IDENTIFIER L_PARENTH c_expr (COMMA c_expr)* R_PARENTH
     ;
 
 l_function_def
@@ -134,9 +128,9 @@ expr2
     : INT                                       # IntLiteral
     | FLOAT                                     # FloatLiteral
     | BOOL                                      # BoolLiteral
+    | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
     | IDENTIFIER suffixes                       # Var
     | L_PARENTH expr R_PARENTH                  # Parens
-    | CTX_KW PERIOD IDENTIFIER suffixes         # VarContext
     | IDENTIFIER L_PARENTH (expr (COMMA expr)*)? R_PARENTH    # Function
     | cast                                      # CastAs
     ;
@@ -221,6 +215,10 @@ loop_in
     :  IDENTIFIER (L_PARENTH (expr (COMMA expr)*)? R_PARENTH)? suffixes
     ;
 
+c_loop_in
+    :  IDENTIFIER (L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH)? suffixes
+    ;
+
 loop_statement
     : FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
         statement*
@@ -228,7 +226,7 @@ loop_statement
     ;
 
 c_loop_statement
-    : FOREACH_KW IDENTIFIER IN_KW loop_in L_CURL
+    : FOREACH_KW IDENTIFIER IN_KW c_loop_in L_CURL
         c_statement*
       R_CURL
     ;
@@ -346,11 +344,11 @@ pdf_parameter_decl
     ;
 
 cdf_defaulted_decl
-    : df_type suffixes IDENTIFIER ASSIGN c_expr
+    : df_type c_suffixes IDENTIFIER ASSIGN c_expr
     ;
 
 cdf_full_declaration
-    : df_type suffixes IDENTIFIER (ASSIGN c_expr)?
+    : df_type c_suffixes IDENTIFIER (ASSIGN c_expr)?
     ;
 
 

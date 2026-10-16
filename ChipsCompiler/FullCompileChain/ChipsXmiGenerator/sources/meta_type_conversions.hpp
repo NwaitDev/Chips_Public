@@ -200,7 +200,9 @@ namespace chips {
         using type = block_variable<block_type::OBJECT>;
     };
 
-    using functional_block_variant = std::variant<block_variable<block_type::LOGICAL>*,block_variable<block_type::PHYSICAL>*>;
+    using block_expression_variant = std::variant<system_variable_block_expression<block_type::LOGICAL>*, system_variable_block_expression<block_type::PHYSICAL>*, system_variable_block_expression<block_type::OBJECT>*>;
+
+    using functional_block_variant = std::variant<system_variable_block_expression<block_type::LOGICAL>*, system_variable_block_expression<block_type::PHYSICAL>*>;
 
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -286,12 +288,15 @@ namespace chips {
     using rvalue_collective_variant = rvalue_variant<expression_env::COLLECTIVE>;
 
     template<expression_env expenv>
-    using primitive_iterable_variant = std::variant<
+    using iterable_variant = std::variant<
         function<dataflow_type::INT,expenv>*,
         function<dataflow_type::FLOAT,expenv>*,
         function<dataflow_type::BOOL,expenv>*,
-        rvalue_variant<expenv>*
+        rvalue_variant<expenv>
     >;
+
+    using system_iterable_variant = std::variant<iterable_variant<expression_env::SYSTEM>, block_expression_variant>;
+
 
     template<expression_env expenv>
     using int_rvalue_expression_variant = std::variant<
@@ -306,7 +311,8 @@ namespace chips {
         uminus_operator<dataflow_type::INT,expenv>*,
         variable_expression<dataflow_type::INT,expenv>*,
         input*,
-        stop*
+        stop*,
+        channeled_accumulator_expression<dataflow_type::INT>*
     >;
 
     template<expression_env expenv>
@@ -320,6 +326,7 @@ namespace chips {
         cast_as<dataflow_type::FLOAT,expenv>*,
         uminus_operator<dataflow_type::FLOAT,expenv>*,
         variable_expression<dataflow_type::FLOAT,expenv>*,
+        channeled_accumulator_expression<dataflow_type::FLOAT>*,
         input*,
         stop*
     >;
@@ -345,6 +352,8 @@ namespace chips {
         not_operator<expenv>*,
         direct<dataflow_type::BOOL,expenv>*,
         variable_expression<dataflow_type::BOOL,expenv>*,
+        function<dataflow_type::BOOL,expenv>*,
+        channeled_accumulator_expression<dataflow_type::BOOL>*,
         input*,
         stop*    
     >;
@@ -376,6 +385,7 @@ namespace chips {
             feeder<dataflow_kind::PHYSICAL, dataflow_type::BOOL>*
         >;
 
+    using s_expr_variant = std::variant<feeder_variant, channel_feeder*>;
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////

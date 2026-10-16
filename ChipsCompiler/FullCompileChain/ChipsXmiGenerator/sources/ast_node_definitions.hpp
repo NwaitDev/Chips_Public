@@ -123,6 +123,7 @@ namespace chips
      */
      class collectiveops_section : public ast_node, public statement_fillable<statement_env::COLLECTIVE>{
         public:
+        collectiveops_section(int line, int column) : ast_node(line, column) {}
         void accept(chips_ast2xmi_visitor& v){
             throw std::runtime_error("unimplemented collectiveops_section.accept(chips_ast2xmi_visitor&) error.");
         };
@@ -358,38 +359,34 @@ namespace chips
      */
      class collective_function_definition : public definition, public ast_node
      {
-         public:
-         collective_function_type m_collective_function_type;
-         accumulator_definition m_accumulator;
-         node_definition* m_support_object;
-         collectiveops_section m_operations;
-         target_output m_target_output;
-         default_output m_default_output;
-         std::vector<channeled_output> m_channeled_outputs;
+        public:
+        collective_function_type m_collective_function_type;
+        accumulator_definition m_accumulator;
+        node_definition* m_support_object;
+        collectiveops_section m_operations;
+        target_output m_target_output;
+        std::vector<channeled_output> m_channeled_outputs;
+        std::optional<default_output> m_default_output;
+
+        collective_function_definition(int line, int column, std::string identifier,
+                                    collective_function_type type,
+                                    accumulator_definition accumulator,
+                                    node_definition* support,
+                                    collectiveops_section operations,
+                                    target_output target,
+                                    std::optional<default_output> default_out,
+                                    std::vector<channeled_output> channeled_output)
+            : ast_node(line,column), definition(identifier), m_collective_function_type(type), m_accumulator(accumulator),
+            m_support_object(support), m_operations(operations), m_target_output(target),
+            m_default_output(default_out), m_channeled_outputs(channeled_output){}
+
+        std::optional<default_output>& get_default_output() { return m_default_output; }
  
-         collective_function_definition(int line, int column, std::string identifier,
-                                        collective_function_type type,
-                                        accumulator_definition accumulator,
-                                        node_definition* support,
-                                        collectiveops_section operations,
-                                        target_output target,
-                                        default_output default_output,
-                                        std::vector<channeled_output> channeled_output)
-             : ast_node(line,column), definition(identifier), m_collective_function_type(type), m_accumulator(accumulator), 
-               m_support_object(support), m_operations(operations), m_target_output(target), 
-               m_default_output(default_output), m_channeled_outputs(channeled_output){}
- 
-         collective_function_type& get_type() { return m_collective_function_type; }
-         accumulator_definition& get_accumulator() { return m_accumulator; }
-         node_definition* get_node_definition() { return m_support_object; }
-         collectiveops_section& get_operations() { return m_operations; }
-         target_output& get_target_output() { return m_target_output; }
-         default_output& get_default_output() { return m_default_output; }
-         std::vector<channeled_output>& get_channeled_outputs() { return m_channeled_outputs; }
- 
-         void accept(chips_ast2xmi_visitor& v) {
-            throw std::runtime_error("unimplemented collective_function_definition.accept(chips_ast2xmi_visitor&) method.");
-         }
+        std::vector<channeled_output>& get_channeled_outputs() { return m_channeled_outputs; }
+
+        void accept(chips_ast2xmi_visitor& v) {
+        throw std::runtime_error("unimplemented collective_function_definition.accept(chips_ast2xmi_visitor&) method.");
+        }
      };
 
     /**
@@ -431,18 +428,17 @@ namespace chips
     class collective_parameter : public ast_node
     {
         public:
-        rvalue<dft,expression_env::COLLECTIVE> m_default_value;
-        dataflow_declaration<dft,statement_env::COLLECTIVE> m_declaration;
+        rvalue<dft,expression_env::COLLECTIVE>* m_default_value;
+        dataflow_declaration<dft,statement_env::COLLECTIVE>* m_declaration;
         std::string m_name;
 
-        collective_parameter(
-            std::string name, 
-            dataflow_declaration<dft, statement_env::COLLECTIVE> declaration,
+        collective_parameter(int line, int column, std::string name,
+            dataflow_declaration<dft, statement_env::COLLECTIVE>* declaration,
             rvalue<dft, expression_env::COLLECTIVE>* default_value)
-            : m_name(name), m_declaration(declaration), m_default_value(default_value){}
+            : ast_node(line, column), m_default_value(default_value), m_declaration(declaration), m_name(name) {}
 
-        rvalue<dft,expression_env::COLLECTIVE>& get_default_value() { return m_default_value; }
-        dataflow_declaration<dft,statement_env::COLLECTIVE>& get_declaration() { return m_declaration; }
+        rvalue<dft,expression_env::COLLECTIVE>* get_default_value() { return m_default_value; }
+        dataflow_declaration<dft,statement_env::COLLECTIVE>* get_declaration() { return m_declaration; }
         std::string& get_name() { return m_name; }
         
         void accept(chips_ast2xmi_visitor& v){
@@ -464,7 +460,12 @@ namespace chips
         // Chips 1.1 metamodel didn't cope with multiple 
         // expressions outputs though the grammar allows it... Here, we allow it too
         std::vector<rvalue_variant<expression_env::PRIMITIVE>> m_expressions = {};
-        function_output(std::string name,rvalue<dft,expression_env::PRIMITIVE>* expr) : m_name(name){ m_expressions.push_back(expr);};
+
+        function_output(int line, int column, std::string name, const std::vector<rvalue_variant<expression_env::PRIMITIVE>>& expressions)
+        : ast_node(line, column), m_name(name), m_expressions(expressions) {}
+
+        function_output(int line, int column, std::string name,rvalue<dft,expression_env::PRIMITIVE>* expr) : 
+        ast_node(line,column), m_name(name){ m_expressions.push_back(expr);};
         
         std::string& get_name() { return m_name; }
         std::vector<rvalue_variant<expression_env::PRIMITIVE>>& get_expressions() { return m_expressions; }
@@ -559,7 +560,7 @@ namespace chips
             : ast_node(line, column), m_variable(var), m_index(index){}
 
         std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>>& get_index() { return m_index; }
-        
+        block_variable_type* get_variable() { return m_variable; }
         void accept(chips_ast2xmi_visitor& v){
             throw std::runtime_error("unimplemented logical_variable_expression.accept(chips_ast2xmi_visitor&) error.");
         };
@@ -1233,26 +1234,36 @@ namespace chips
     };
 
     template <dataflow_type dft, expression_env expenv>
-    class variable_contextual_expression : public variable_expression<dft, expenv>
+    class variable_contextual_expression : public rvalue<dft, expenv>, 
+    public lvalue<dft,expenv>, public ast_node
     {
+    private:
+        contextual_variable<dft>* m_variable;
+        std::vector<int_rvalue_expression_variant<expenv>> m_index = {};
+
     public:
-        variable_contextual_expression(int line, int column, variable<expenv> *variable, std::vector<int_rvalue_expression_variant<expenv>> index)
-            : variable_expression<dft, expenv>(line, column, variable, index) {}
+        variable_contextual_expression(int line, int column, contextual_variable<dft>* var,
+                                    std::vector<int_rvalue_expression_variant<expenv>> index)
+            : ast_node(line, column), m_variable(var), m_index(index) {}
 
-        variable_contextual_expression(int line, int column, variable<expenv> *variable)
-            : variable_expression<dft, expenv>(line, column,variable) {}
+        variable_contextual_expression(int line, int column, contextual_variable<dft>* var)
+            : ast_node(line, column), m_variable(var) {}
 
-        inline void accept(chips_ast2xmi_visitor &v) { 
+        contextual_variable<dft>* get_variable() { return m_variable; }
+        std::vector<int_rvalue_expression_variant<expenv>>& get_index() { return m_index; }
+
+        inline void accept(chips_ast2xmi_visitor &v) {
             throw std::runtime_error("unimplemented variable_contextual_expression.accept(chips_ast2xmi_visitor&) error.");
         }
     };
 
     class input : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
-          public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
-          public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>,
-          public ast_node {
-        
+              public rvalue<dataflow_type::FLOAT, expression_env::COLLECTIVE>,
+              public rvalue<dataflow_type::BOOL, expression_env::COLLECTIVE>,
+              public ast_node {
     public:
+        input(int line, int column) : ast_node(line, column) {}
+
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented input.accept(chips_ast2xmi_visitor&) error.");
         }
@@ -1265,6 +1276,7 @@ namespace chips
           public ast_node {
 
     public:
+        stop(int line, int column) : ast_node(line, column) {}
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented stop.accept(chips_ast2xmi_visitor&) error.");
         }
@@ -1500,16 +1512,16 @@ namespace chips
         public:
         using statement_type = typename SttEnvToSttVariant<stenv>::type;
         static constexpr expression_env expenv = SttEnvToExpEnv<stenv>::value;
-        dataflow_declaration<dft, stenv> m_iterator;
-        primitive_iterable_variant<expenv> m_iterable_expr;
+        dataflow_declaration<dft, stenv>* m_iterator;
+        iterable_variant<expenv> m_iterable_expr;
         std::vector<statement_type> m_statements;
 
-        foreach_statement(int line, int column, dataflow_declaration<dft, stenv> iterator,
-                           primitive_iterable_variant<expenv> iterable_expr, const std::vector<statement_type>& stts) :
+        foreach_statement(int line, int column, dataflow_declaration<dft, stenv>* iterator,
+                           iterable_variant<expenv> iterable_expr, const std::vector<statement_type>& stts) :
         statement<stenv, recurring_statement::FOREACH>(line, column), m_iterator(iterator), m_iterable_expr(iterable_expr), m_statements(stts) {}
 
-        dataflow_declaration<dft, stenv>& get_iterator() { return m_iterator; }
-        primitive_iterable_variant<expenv>& get_iterable() { return m_iterable_expr; }
+        dataflow_declaration<dft, stenv>* get_iterator() { return m_iterator; }
+        iterable_variant<expenv>& get_iterable() { return m_iterable_expr; }
         std::vector<statement_type>& get_statements() { return m_statements; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
@@ -1527,16 +1539,20 @@ namespace chips
     template<block_type bt>
     class block_foreach_statement : public statement<statement_env::SYSTEM, recurring_statement::FOREACH> {
         public:
-        block_declaration<bt> m_iterator;
-        system_variable_block_expression<bt> m_iterable_expression;
+        block_declaration<bt>* m_iterator;
+        system_variable_block_expression<bt>* m_iterable_expression;
         std::vector<system_statement_variant> m_statements;
 
-        block_foreach_statement(int line, int column, block_declaration<bt> iterator,
-                                 system_variable_block_expression<bt> iterable_expression, const std::vector<system_statement_variant>& stts) :
-        statement<statement_env::SYSTEM, recurring_statement::FOREACH>(line, column), m_iterator(iterator), m_iterable_expression(iterable_expression), m_statements(stts) {}
+        block_foreach_statement(int line, int column, block_declaration<bt>* iterator,
+                                system_variable_block_expression<bt>* iterable_expression,
+                                const std::vector<system_statement_variant>& stts) :
+            ast_node(line, column), statement<statement_env::SYSTEM, recurring_statement::FOREACH>(line, column),
+            m_iterator(iterator), m_iterable_expression(iterable_expression), m_statements(stts) {}
 
-        block_declaration<bt>& get_iterator() { return m_iterator; }
-        system_variable_block_expression<bt>& get_iterable() { return m_iterable_expression; }
+        block_declaration<bt>* get_iterator() { return m_iterator; }
+
+        system_variable_block_expression<bt>* get_iterable() { return m_iterable_expression; }
+
         std::vector<system_statement_variant>& get_statements() { return m_statements; }
 
         inline void accept(chips_ast2xmi_visitor &v) { 
@@ -1559,6 +1575,7 @@ namespace chips
         block_variable_t m_variable;
 
         block_declaration(int line, int column, block_definition_t* definition, block_variable_t variable) :
+        ast_node(line, column),
         statement<statement_env::SYSTEM, recurring_statement::DECLARATION>(line, column), m_defintion(definition), m_variable(variable) {}
 
         void set_variable(block_variable_t var) { m_variable = var; }
@@ -1616,7 +1633,7 @@ namespace chips
         eater<dfk, dft> m_eater;
         feeder<dfk, dft>* m_feeder = nullptr;
 
-        feeding_statement(int line, int column, eater<dfk, dft> eat, feeder<dfk, dft>* feed) :
+        feeding_statement(int line, int column, eater<dfk, dft> eat, feeder<dfk, dft>* feed) : ast_node(line, column),
         statement<statement_env::SYSTEM, recurring_statement::FEEDING>(line, column), m_eater(eat), m_feeder(feed) {}
 
         eater<dfk, dft>& get_eater() { return m_eater; }
@@ -1661,10 +1678,10 @@ namespace chips
         using node_variable_t = typename NodeElemToNodeVariable<ne>::type;
         node_variable_t m_variable_type;
         std::string m_declared_name;
-        std::optional<rvalue_primitive_variant> m_initializer;
+        std::optional<rvalue_variant<expression_env::PRIMITIVE>> m_initializer;
 
-        void set_initializer(const rvalue_primitive_variant& init) { m_initializer = init; }
-        std::optional<rvalue_primitive_variant>& get_initializer() { return m_initializer; }
+        void set_initializer(const rvalue_variant<expression_env::PRIMITIVE>& init) { m_initializer = init; }
+        std::optional<rvalue_variant<expression_env::PRIMITIVE>>& get_initializer() { return m_initializer; }
 
         node_element_declaration(int line, int column, node_variable_t type, std::string vname) :
         statement<statement_env::NODE, recurring_statement::DECLARATION>(line, column), ast_node(line,column), m_variable_type(type), m_declared_name(vname) {}
@@ -1859,6 +1876,35 @@ namespace chips
 
         inline void accept(chips_ast2xmi_visitor &v) { 
             throw std::runtime_error("unimplemented dataflow_collective_variable.accept(chips_ast2xmi_visitor&) error.");
+        }
+    };
+
+    /**
+     * Concrete class
+     * Node of the AST that represents a variable that
+     * is provided by a channel used by collective function
+     */
+    template <dataflow_type dft>
+    class channeled_accumulator_expression : public rvalue<dft, expression_env::COLLECTIVE>, public ast_node
+    {
+    private:
+        node_element_declaration<node_element::CHANNEL>* m_channel;
+        dataflow_collective_variable<dft>* m_accumulator;
+        std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> m_index;
+
+    public:
+        channeled_accumulator_expression(int line, int column,
+            node_element_declaration<node_element::CHANNEL>* channel,
+            dataflow_collective_variable<dft>* accumulator,
+            std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>> index)
+            : ast_node(line, column), m_channel(channel), m_accumulator(accumulator), m_index(index) {}
+
+        node_element_declaration<node_element::CHANNEL>* get_channel() { return m_channel; }
+        dataflow_collective_variable<dft>* get_accumulator() { return m_accumulator; }
+        std::vector<int_rvalue_expression_variant<expression_env::COLLECTIVE>>& get_index() { return m_index; }
+
+        inline void accept(chips_ast2xmi_visitor &v) {
+            throw std::runtime_error("unimplemented channeled_accumulator_expression.accept(chips_ast2xmi_visitor&) error.");
         }
     };
 

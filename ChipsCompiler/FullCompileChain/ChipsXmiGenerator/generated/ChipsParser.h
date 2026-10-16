@@ -28,15 +28,15 @@ public:
 
   enum {
     RuleProgram = 0, RuleSystem = 1, RulePreamble = 2, RuleObject_def = 3, 
-    RuleImplementation_def = 4, RuleNode_mapping = 5, RuleFunction_def = 6, 
-    RuleCollective_op_def = 7, RuleC_output = 8, RuleL_function_def = 9, 
-    RuleP_function_def = 10, RuleC_signature = 11, RuleC_keywords = 12, 
-    RuleWith_section = 13, RuleWith_statement = 14, RuleInit_section = 15, 
-    RuleThen_section = 16, RuleExpr = 17, RuleExpr0 = 18, RuleExpr01 = 19, 
-    RuleExpr1 = 20, RuleExpr2 = 21, RuleCast = 22, RuleC_expr = 23, RuleC_stopless_expr = 24, 
-    RuleC_stopless_expr0 = 25, RuleC_stopless_expr01 = 26, RuleC_stopless_expr1 = 27, 
-    RuleC_stopless_expr2 = 28, RuleC_cast = 29, RuleSuffixes = 30, RuleC_suffixes = 31, 
-    RuleS_suffixable_expr = 32, RuleBlock = 33, RuleLoop_in = 34, RuleLoop_statement = 35, 
+    RuleFunction_def = 4, RuleCollective_op_def = 5, RuleC_default_output = 6, 
+    RuleC_channeled_output = 7, RuleL_function_def = 8, RuleP_function_def = 9, 
+    RuleC_signature = 10, RuleC_keywords = 11, RuleWith_section = 12, RuleWith_statement = 13, 
+    RuleInit_section = 14, RuleThen_section = 15, RuleExpr = 16, RuleExpr0 = 17, 
+    RuleExpr01 = 18, RuleExpr1 = 19, RuleExpr2 = 20, RuleCast = 21, RuleC_expr = 22, 
+    RuleC_stopless_expr = 23, RuleC_stopless_expr0 = 24, RuleC_stopless_expr01 = 25, 
+    RuleC_stopless_expr1 = 26, RuleC_stopless_expr2 = 27, RuleC_cast = 28, 
+    RuleSuffixes = 29, RuleC_suffixes = 30, RuleS_suffixable_expr = 31, 
+    RuleBlock = 32, RuleLoop_in = 33, RuleC_loop_in = 34, RuleLoop_statement = 35, 
     RuleC_loop_statement = 36, RuleS_loop_statement = 37, RuleIf_else_statement = 38, 
     RuleS_if_else_statement = 39, RuleC_if_else_statement = 40, RuleIf_statement = 41, 
     RuleS_if_statement = 42, RuleC_if_statement = 43, RuleStatement = 44, 
@@ -67,11 +67,10 @@ public:
   class SystemContext;
   class PreambleContext;
   class Object_defContext;
-  class Implementation_defContext;
-  class Node_mappingContext;
   class Function_defContext;
   class Collective_op_defContext;
-  class C_outputContext;
+  class C_default_outputContext;
+  class C_channeled_outputContext;
   class L_function_defContext;
   class P_function_defContext;
   class C_signatureContext;
@@ -98,6 +97,7 @@ public:
   class S_suffixable_exprContext;
   class BlockContext;
   class Loop_inContext;
+  class C_loop_inContext;
   class Loop_statementContext;
   class C_loop_statementContext;
   class S_loop_statementContext;
@@ -194,15 +194,6 @@ public:
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  ImplementationDefinitionContext : public PreambleContext {
-  public:
-    ImplementationDefinitionContext(PreambleContext *ctx);
-
-    Implementation_defContext *implementation_def();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
   PreambleContext* preamble();
 
   class  Object_defContext : public antlr4::ParserRuleContext {
@@ -219,44 +210,6 @@ public:
   };
 
   Object_defContext* object_def();
-
-  class  Implementation_defContext : public antlr4::ParserRuleContext {
-  public:
-    Implementation_defContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *IMPLEMENTATION_KW();
-    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
-    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
-    antlr4::tree::TerminalNode *COLUMN();
-    antlr4::tree::TerminalNode *BY_KW();
-    antlr4::tree::TerminalNode *L_CURL();
-    antlr4::tree::TerminalNode *R_CURL();
-    std::vector<Node_mappingContext *> node_mapping();
-    Node_mappingContext* node_mapping(size_t i);
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  Implementation_defContext* implementation_def();
-
-  class  Node_mappingContext : public antlr4::ParserRuleContext {
-  public:
-    Node_mappingContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *HAVING_KW();
-    std::vector<antlr4::tree::TerminalNode *> IDENTIFIER();
-    antlr4::tree::TerminalNode* IDENTIFIER(size_t i);
-    antlr4::tree::TerminalNode *AS_KW();
-    antlr4::tree::TerminalNode *SEMICOL();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  Node_mappingContext* node_mapping();
 
   class  Function_defContext : public antlr4::ParserRuleContext {
   public:
@@ -304,12 +257,13 @@ public:
     std::vector<C_exprContext *> c_expr();
     C_exprContext* c_expr(size_t i);
     antlr4::tree::TerminalNode *R_PARENTH();
+    C_default_outputContext *c_default_output();
     std::vector<C_statementContext *> c_statement();
     C_statementContext* c_statement(size_t i);
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
-    std::vector<C_outputContext *> c_output();
-    C_outputContext* c_output(size_t i);
+    std::vector<C_channeled_outputContext *> c_channeled_output();
+    C_channeled_outputContext* c_channeled_output(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -318,23 +272,10 @@ public:
 
   Collective_op_defContext* collective_op_def();
 
-  class  C_outputContext : public antlr4::ParserRuleContext {
+  class  C_default_outputContext : public antlr4::ParserRuleContext {
   public:
-    C_outputContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-   
-    C_outputContext() = default;
-    void copyFrom(C_outputContext *context);
-    using antlr4::ParserRuleContext::copyFrom;
-
+    C_default_outputContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-
-   
-  };
-
-  class  DefaultOutputContext : public C_outputContext {
-  public:
-    DefaultOutputContext(C_outputContext *ctx);
-
     antlr4::tree::TerminalNode *ARROW();
     antlr4::tree::TerminalNode *DEFAULT_KW();
     antlr4::tree::TerminalNode *L_PARENTH();
@@ -344,13 +285,17 @@ public:
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
 
+
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
   };
 
-  class  ChanneledOutputContext : public C_outputContext {
-  public:
-    ChanneledOutputContext(C_outputContext *ctx);
+  C_default_outputContext* c_default_output();
 
+  class  C_channeled_outputContext : public antlr4::ParserRuleContext {
+  public:
+    C_channeled_outputContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *ARROW();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *L_PARENTH();
@@ -360,10 +305,12 @@ public:
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
 
+
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
   };
 
-  C_outputContext* c_output();
+  C_channeled_outputContext* c_channeled_output();
 
   class  L_function_defContext : public antlr4::ParserRuleContext {
   public:
@@ -1473,6 +1420,26 @@ public:
 
   Loop_inContext* loop_in();
 
+  class  C_loop_inContext : public antlr4::ParserRuleContext {
+  public:
+    C_loop_inContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IDENTIFIER();
+    SuffixesContext *suffixes();
+    antlr4::tree::TerminalNode *L_PARENTH();
+    antlr4::tree::TerminalNode *R_PARENTH();
+    std::vector<C_exprContext *> c_expr();
+    C_exprContext* c_expr(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> COMMA();
+    antlr4::tree::TerminalNode* COMMA(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  C_loop_inContext* c_loop_in();
+
   class  Loop_statementContext : public antlr4::ParserRuleContext {
   public:
     Loop_statementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -1500,7 +1467,7 @@ public:
     antlr4::tree::TerminalNode *FOREACH_KW();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *IN_KW();
-    Loop_inContext *loop_in();
+    C_loop_inContext *c_loop_in();
     antlr4::tree::TerminalNode *L_CURL();
     antlr4::tree::TerminalNode *R_CURL();
     std::vector<C_statementContext *> c_statement();
@@ -2158,7 +2125,7 @@ public:
     Cdf_defaulted_declContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     Df_typeContext *df_type();
-    SuffixesContext *suffixes();
+    C_suffixesContext *c_suffixes();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *ASSIGN();
     C_exprContext *c_expr();
@@ -2175,7 +2142,7 @@ public:
     Cdf_full_declarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     Df_typeContext *df_type();
-    SuffixesContext *suffixes();
+    C_suffixesContext *c_suffixes();
     antlr4::tree::TerminalNode *IDENTIFIER();
     antlr4::tree::TerminalNode *ASSIGN();
     C_exprContext *c_expr();

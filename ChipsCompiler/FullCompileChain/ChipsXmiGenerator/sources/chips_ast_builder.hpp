@@ -13,37 +13,94 @@
 
 using namespace chips;
 
+
+struct input_constraint
+{
+    bool contains_input = false;
+    std::optional<dataflow_type> forced_type = std::nullopt;
+};
+
+
 class chips_ast_builder : public ChipsBaseVisitor {
     private:
 
-    using variable_scope = std::unordered_map<std::string, chips::dataflow_type>;
+    using variable_scope = std::unordered_map<std::string, dataflow_type>;
     std::vector<variable_scope> m_scopes;
     std::unordered_map<std::string, variable_scope> m_outputs;
 
-    using parameter_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
+    std::unordered_map<std::string, collective_function_definition*> m_collectives;
+
+    using parameter_table = std::unordered_map<std::string, std::unordered_map<std::string, dataflow_type>>;
     parameter_table m_parameters;
-    using contextuals_table = std::unordered_map<std::string, std::unordered_map<std::string, chips::dataflow_type>>;
+    using contextuals_table = std::unordered_map<std::string, std::unordered_map<std::string, dataflow_type>>;
     contextuals_table m_contextuals;
 
+    using sensor_table = std::unordered_map<std::string, std::unordered_map<std::string, dataflow_type>>;
+    sensor_table m_sensors;
+    using actuator_table = std::unordered_map<std::string, std::unordered_map<std::string, dataflow_type>>;
+    actuator_table m_actuators;
     
-    chips::dataflow_type iterator_type(ChipsParser::Loop_inContext* ctx) const;
+    dataflow_type iterator_type(ChipsParser::Loop_inContext* ctx) const;
+    dataflow_type iterator_type(ChipsParser::C_loop_inContext *ctx) const;
 
     std::string m_current_def_name;
-    std::vector<std::unique_ptr<chips::ast_node>> m_all_nodes;
+    std::vector<std::unique_ptr<ast_node>> m_all_nodes;
+    std::unordered_map<std::string, node_definition*> m_nodes;
+    std::unordered_map<std::string, std::unordered_map<std::string, node_element_declaration<node_element::CHANNEL>*>> m_channels;
+    std::string m_support_name;
 
+    bool m_system_reached = false;
+    std::vector<std::unordered_map<std::string, std::pair<block_type, std::string>>> m_block_scopes;
+    std::unordered_map<std::string, logical_definition*> m_logicals;
+    std::unordered_map<std::string, physical_definition*> m_physicals;
+    std::unordered_map<std::string, object_definition*> m_objects;
+
+    std::optional<dataflow_type> expected_type_for_input = std::nullopt;
+    std::vector<input*> m_collective_inputs;
+    bool definition_exists(const std::string& name) const;
 
     // keep this member declared last to let the previous ones initialized in time
     program_node m_program;
 
     public:
 
+    // Context helpers
     void push_scope();
     void pop_scope();
-    template<chips::dataflow_type type>
+
+
+    template<dataflow_type type>
     void declare_variable(const std::string& name);
-    std::optional<chips::dataflow_type> find_variable(const std::string& name) const;
-    void declare_output(const std::string& function, const std::string& name, chips::dataflow_type type);
-    std::optional<chips::dataflow_type> find_output(const std::string& function, const std::string& name) const;
+    std::optional<dataflow_type> lookup_variable(const std::string& name) const;
+    void declare_output(const std::string& function, const std::string& name, dataflow_type type);
+    std::optional<dataflow_type> lookup_output(const std::string& function, const std::string& name) const;
+    void declare_contextual(const std::string& var, dataflow_type type);
+    std::optional<dataflow_type> lookup_contextual(const std::string& var) const;
+    void declare_parameter(const std::string& function, const std::string& var, dataflow_type type);
+    std::optional<dataflow_type> lookup_parameter(const std::string& function, const std::string& var) const;
+    void declare_sensor(const std::string& function, const std::string& sensor, dataflow_type type);
+    void declare_actuator(const std::string& function, const std::string& actuator, dataflow_type type);
+    const std::string& current_definition() const { return m_current_def_name; }
+    void declare_channel(const std::string& channel, node_element_declaration<node_element::CHANNEL>* decl);
+    node_element_declaration<node_element::CHANNEL>* lookup_channel(const std::string& node, const std::string& channel) const;
+    std::size_t channel_count(const std::string& node) const;
+    void declare_collective(const std::string& name, collective_function_definition* function);
+    collective_function_definition* lookup_collective(const std::string& name, antlr4::ParserRuleContext* ctx) const;
+
+    bool system_reached() const { return m_system_reached; }
+    void declare_definition(const std::string& name, logical_definition* definition);
+    void declare_definition(const std::string& name, physical_definition* definition);
+    void declare_definition(const std::string& name, object_definition* definition);
+    logical_definition* lookup_logical(const std::string& name) const;
+    physical_definition* lookup_physical(const std::string& name) const;
+    object_definition* lookup_object(const std::string& name) const;
+    function_definition* lookup_function(const std::string& name) const;
+    node_definition* lookup_node(const std::string &name) const;
+    void declare_block(const std::string& name, block_type type, const std::string& definition);
+    std::pair<block_type, std::string> lookup_block(const std::string& name, antlr4::ParserRuleContext* ctx) const;
+    bool is_block(const std::string& name) const;
+    std::optional<dataflow_type> lookup_sensor(const std::string& function, const std::string& sensor) const;
+    std::optional<dataflow_type> lookup_actuator(const std::string& function, const std::string& actuator) const;
 
     struct scope_guard {
         chips_ast_builder& m_builder;
@@ -72,23 +129,23 @@ class chips_ast_builder : public ChipsBaseVisitor {
 
 
 
-    // Context helpers
-
-    void declare_contextual(const std::string& var, chips::dataflow_type type);
-    std::optional<chips::dataflow_type> lookup_contextual(const std::string& var) const;
-    void declare_parameter(const std::string& function, const std::string& var, chips::dataflow_type type);
-    std::optional<chips::dataflow_type> find_parameter(const std::string& function, const std::string& var) const;
-
+    
     // Type inference methods
     [[noreturn]] void type_fail(antlr4::ParserRuleContext* ctx, const std::string& msg) const;
-    chips::dataflow_type infer_type(ChipsParser::ExprContext* ctx) const;
-    chips::dataflow_type infer_type(ChipsParser::Expr0Context* ctx) const;
-    chips::dataflow_type infer_type(ChipsParser::Expr01Context* ctx) const;
-    chips::dataflow_type infer_type(ChipsParser::Expr1Context* ctx) const;
-    chips::dataflow_type infer_type(ChipsParser::Expr2Context* ctx) const;
-    chips::dataflow_type lookup_variable(const std::string& name, antlr4::ParserRuleContext* ctx) const;
+    dataflow_type infer_type(ChipsParser::ExprContext* ctx) const;
+    dataflow_type infer_type(ChipsParser::Expr0Context* ctx) const;
+    dataflow_type infer_type(ChipsParser::Expr01Context* ctx) const;
+    dataflow_type infer_type(ChipsParser::Expr1Context* ctx) const;
+    dataflow_type infer_type(ChipsParser::Expr2Context* ctx) const;
+    dataflow_type lookup_variable(const std::string& name, antlr4::ParserRuleContext* ctx) const;
     void check_suffixes(ChipsParser::SuffixesContext* ctx) const;
-    
+    std::optional<dataflow_type> infer_type(ChipsParser::C_exprContext* ctx) const;
+    std::optional<dataflow_type> infer_type(ChipsParser::C_stopless_exprContext* ctx) const;
+    std::optional<dataflow_type> infer_type(ChipsParser::C_stopless_expr0Context* ctx) const;
+    std::optional<dataflow_type> infer_type(ChipsParser::C_stopless_expr01Context* ctx) const;
+    std::optional<dataflow_type> infer_type(ChipsParser::C_stopless_expr1Context* ctx) const;
+    std::optional<dataflow_type> infer_type(ChipsParser::C_stopless_expr2Context* ctx) const;
+    void check_suffixes(ChipsParser::C_suffixesContext* ctx) const;
     
     
     
@@ -109,8 +166,6 @@ class chips_ast_builder : public ChipsBaseVisitor {
 
     std::any visitObject_def(ChipsParser::Object_defContext *ctx) override;
 
-    std::any visitNode_mapping(ChipsParser::Node_mappingContext *ctx) override;
-
     std::any
     visitLogicalDefintion(ChipsParser::LogicalDefintionContext *ctx) override;
 
@@ -120,11 +175,6 @@ class chips_ast_builder : public ChipsBaseVisitor {
     std::any
     visitCollective_op_def(ChipsParser::Collective_op_defContext *ctx) override;
 
-    std::any visitDefaultOutput(ChipsParser::DefaultOutputContext *ctx) override;
-
-    std::any
-    visitChanneledOutput(ChipsParser::ChanneledOutputContext *ctx) override;
-
     std::any
     visitL_function_def(ChipsParser::L_function_defContext *ctx) override;
 
@@ -132,6 +182,10 @@ class chips_ast_builder : public ChipsBaseVisitor {
     visitP_function_def(ChipsParser::P_function_defContext *ctx) override;
 
     std::any visitC_signature(ChipsParser::C_signatureContext *ctx) override;
+
+    std::any visitC_default_output(ChipsParser::C_default_outputContext *ctx) override;
+    
+    std::any visitC_channeled_output(ChipsParser::C_channeled_outputContext *ctx) override;
 
     std::any visitC_keywords(ChipsParser::C_keywordsContext *ctx) override;
 
@@ -296,6 +350,7 @@ class chips_ast_builder : public ChipsBaseVisitor {
 
     std::any
     visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx) override;
+    std::any visitC_loop_in(ChipsParser::C_loop_inContext *ctx) override;
 
     std::any
     visitS_loop_statement(ChipsParser::S_loop_statementContext *ctx) override;
