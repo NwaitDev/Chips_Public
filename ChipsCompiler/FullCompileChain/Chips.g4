@@ -216,7 +216,7 @@ loop_in
     ;
 
 c_loop_in
-    :  IDENTIFIER (L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH)? suffixes
+    :  IDENTIFIER (L_PARENTH (c_expr (COMMA c_expr)*)? R_PARENTH)? c_suffixes
     ;
 
 loop_statement

@@ -1,5 +1,5 @@
 
-// Generated from /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
+// Generated from /home/ohnoanna/Code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -1425,7 +1425,7 @@ public:
     C_loop_inContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IDENTIFIER();
-    SuffixesContext *suffixes();
+    C_suffixesContext *c_suffixes();
     antlr4::tree::TerminalNode *L_PARENTH();
     antlr4::tree::TerminalNode *R_PARENTH();
     std::vector<C_exprContext *> c_expr();

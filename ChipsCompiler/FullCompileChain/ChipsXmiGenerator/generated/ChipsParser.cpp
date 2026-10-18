@@ -1,5 +1,5 @@
 
-// Generated from /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
+// Generated from /home/ohnoanna/Code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
 
 
 #include "ChipsVisitor.h"
@@ -315,7 +315,7 @@ void chipsParserInitialize() {
   	3,44,22,0,603,601,1,0,0,0,604,607,1,0,0,0,605,603,1,0,0,0,605,606,1,0,
   	0,0,606,609,1,0,0,0,607,605,1,0,0,0,608,600,1,0,0,0,608,609,1,0,0,0,609,
   	610,1,0,0,0,610,612,5,52,0,0,611,599,1,0,0,0,611,612,1,0,0,0,612,613,
-  	1,0,0,0,613,614,3,58,29,0,614,69,1,0,0,0,615,616,5,10,0,0,616,617,5,62,
+  	1,0,0,0,613,614,3,60,30,0,614,69,1,0,0,0,615,616,5,10,0,0,616,617,5,62,
   	0,0,617,618,5,11,0,0,618,619,3,66,33,0,619,623,5,53,0,0,620,622,3,88,
   	44,0,621,620,1,0,0,0,622,625,1,0,0,0,623,621,1,0,0,0,623,624,1,0,0,0,
   	624,626,1,0,0,0,625,623,1,0,0,0,626,627,5,54,0,0,627,71,1,0,0,0,628,629,
@@ -5152,8 +5152,8 @@ tree::TerminalNode* ChipsParser::C_loop_inContext::IDENTIFIER() {
   return getToken(ChipsParser::IDENTIFIER, 0);
 }
 
-ChipsParser::SuffixesContext* ChipsParser::C_loop_inContext::suffixes() {
-  return getRuleContext<ChipsParser::SuffixesContext>(0);
+ChipsParser::C_suffixesContext* ChipsParser::C_loop_inContext::c_suffixes() {
+  return getRuleContext<ChipsParser::C_suffixesContext>(0);
 }
 
 tree::TerminalNode* ChipsParser::C_loop_inContext::L_PARENTH() {
@@ -5241,7 +5241,7 @@ ChipsParser::C_loop_inContext* ChipsParser::c_loop_in() {
       match(ChipsParser::R_PARENTH);
     }
     setState(613);
-    suffixes();
+    c_suffixes();
    
   }
   catch (RecognitionException &e) {

@@ -22,6 +22,10 @@ set(GEN_SOURCES
 set(CHIPS_SOURCES
     ${SRC_DIR}/chips_ast_builder.cpp
     ${SRC_DIR}/ChipsToXmiWriter.cpp
+    ${SRC_DIR}/type_utils.hpp
+    ${SRC_DIR}/visitor_env.cpp
+    ${SRC_DIR}/type_checker_visitor.hpp
+    ${SRC_DIR}/input_inference_visitor.hpp
 )
 
 add_custom_command(
