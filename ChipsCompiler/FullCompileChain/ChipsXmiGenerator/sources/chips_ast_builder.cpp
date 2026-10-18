@@ -1013,7 +1013,8 @@ std::any chips_ast_builder::visitChannelDeclaration(
       line_of(ctx), col_of(ctx), ctx->IDENTIFIER(0)->getText(),
       ctx->IDENTIFIER(1)->getText());
   venv.declare_channel(ctx->IDENTIFIER(1)->getText(), decl);
-  return node_statement_variant(decl);
+  std::vector<node_statement_variant> statements{node_statement_variant(decl)};
+  return statements;
 }
 
 
