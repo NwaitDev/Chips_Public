@@ -18,10 +18,38 @@ public:
 
   explicit input_inference_visitor(visitor_env &venv) : venv(venv) {}
 
+  void reset(){}
+
+  /**
+ * @brief Infers the type constraint of a collective expression.
+ *
+ * Visits the given parse tree (any node of the c_expr rule family) and
+ * returns what is known about its type once visited. Visiting can fix the
+ * type of `input` for the current collective definition.
+ *
+ * @param tree Root of the collective expression to visit.
+ * @return The constraint of the expression: `forced_type` is its type
+ *         (empty while the expression is still free, i.e. made only of
+ *         `input` or `stop`) and `contains_input` tells whether it holds an
+ *         `input` whose type is still pending.
+ * @throws std::runtime_error If the expression is ill-typed.
+ */
   input_constraint infer(antlr4::tree::ParseTree *tree) {
     return std::any_cast<input_constraint>(visit(tree));
   }
 
+
+  /**
+ * @brief Fixes the type of `input` in the current collective definition.
+ *
+ * The type is stored in `visitor_env::expected_type_for_input`. All the uses
+ * of `input` in a same collective definition must agree on this type.
+ *
+ * @param ctx  Parse tree node that forces the type (used for error reports).
+ * @param type Type that `input` must have.
+ * @throws std::runtime_error If `input` has already been fixed to a different
+ *         type in the current collective definition.
+ */
   void force_input(antlr4::ParserRuleContext *ctx, dataflow_type type) {
     if (venv.expected_type_for_input.has_value() &&
         *venv.expected_type_for_input != type) {
@@ -33,6 +61,20 @@ public:
     venv.expected_type_for_input = type;
   }
 
+  /**
+ * @brief Requires an expression to have a given type.
+ *
+ * If the type of the expression is known, it must equal `expected`. If the
+ * expression is free and contains a pending `input`, the type of `input`
+ * becomes `expected` (see force_input()). A free expression with no pending
+ * `input` (e.g. `stop`) accepts any type and is left unchanged.
+ *
+ * @param ctx      Parse tree node of the expression (used for error reports).
+ * @param c        Constraint previously inferred for the expression.
+ * @param expected Type required by the context of the expression.
+ * @throws std::runtime_error If the type of the expression differs from
+ *         `expected`, or if `input` is already fixed to another type.
+ */
   void require(antlr4::ParserRuleContext *ctx, const input_constraint &c,
                dataflow_type expected) {
     if (c.forced_type.has_value()) {
@@ -56,6 +98,24 @@ public:
     }
   }
 
+  /**
+ * @brief Unifies the operands of an operator that needs both sides to have
+ *        the same type.
+ *
+ * - Both operands typed: the types must be equal.
+ * - One operand typed: the other one is required to have the same type, which
+ *   fixes the type of `input` if it is pending there.
+ * - Both operands free: the result stays free, and contains a pending `input`
+ *   if one of the operands does.
+ *
+ * @param ctx Parse tree node of the operator (used for error reports).
+ * @param l   Constraint of the left operand.
+ * @param r   Constraint of the right operand.
+ * @return The constraint shared by both operands (`forced_type` is empty only
+ *         when both operands are free).
+ * @throws std::runtime_error If the two operands have different types, or if
+ *         fixing the type of `input` contradicts an earlier use.
+ */
   input_constraint unify(antlr4::ParserRuleContext *ctx,
                          const input_constraint &l, const input_constraint &r) {
     if (l.forced_type.has_value() && r.forced_type.has_value()) {
@@ -108,6 +168,16 @@ public:
     return operands;
   }
 
+  /**
+ * @brief Checks the index expressions of an array access in a collective
+ *        expression.
+ *
+ * Every index of the suffix list (`[i][j]...`) must be an integer. An index
+ * made of a pending `input` fixes the type of `input` to `int`.
+ *
+ * @param ctx Suffix list to check.
+ * @throws std::runtime_error If an index is not an integer.
+ */
   void check_suffixes(ChipsParser::C_suffixesContext *ctx) {
     for (ChipsParser::C_stopless_exprContext *e : ctx->c_stopless_expr()) {
       require(e, infer(e), dataflow_type::INT);
@@ -207,8 +277,7 @@ public:
   }
 
   std::any visitINPUT(ChipsParser::INPUTContext *) {
-    return input_constraint{!venv.expected_type_for_input.has_value(),
-                            venv.expected_type_for_input};
+    return input_constraint{!venv.expected_type_for_input.has_value(), venv.expected_type_for_input};
   }
 
   std::any visitCINT(ChipsParser::CINTContext *) {
@@ -264,6 +333,18 @@ public:
     if (name == "randin01") {
       if (!args.empty()) {
         type_fail(venv, ctx, "'randin01' takes no parameter");
+      }
+      return input_constraint{false, dataflow_type::FLOAT};
+    }
+    if (name == "imin" || name == "imax") {
+      if (args.size()!= 2) {
+        type_fail(venv, ctx, "'imin/imax' function takes exactly 2 parameters");
+      }
+      return input_constraint{false, dataflow_type::INT};
+    }
+    if (name == "fmin" || name == "fmax") {
+      if (args.size()!= 2) {
+        type_fail(venv, ctx, "'fmin/fmax' function takes exactly 2 parameters");
       }
       return input_constraint{false, dataflow_type::FLOAT};
     }

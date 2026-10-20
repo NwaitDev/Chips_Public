@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <memory>
@@ -29,10 +28,12 @@ class visitor_env {
     using variable_scope = std::unordered_map<std::string, dataflow_type>;
 	using output_table = std::unordered_map<std::string, std::unordered_map<std::string, dataflow_type>>;
 	using scopes_stack = std::vector<std::unordered_map<std::string, dataflow_type>>;
+    using node_scope = std::unordered_map<std::string, ast_node*>;
 
 
     std::vector<std::unique_ptr<ast_node>> m_all_nodes; // to be replaced by a non ambiguous name
 	scopes_stack m_scopes;
+    std::vector<node_scope> m_node_scopes;
     collective_table m_collectives;
     node_definition_table m_nodes;
     std::unordered_map<std::string, logical_definition*> m_logicals;
@@ -44,6 +45,7 @@ class visitor_env {
 	sensor_table m_sensors;
 
     contextuals_table m_contextuals;
+    std::unordered_map<std::string, node_scope> m_contextual_nodes;
     channels_table m_channels;
 
     output_table m_outputs;
@@ -57,6 +59,7 @@ class visitor_env {
     std::optional<dataflow_type> expected_type_for_input = std::nullopt;
     bool m_system_reached = false;
     std::vector<std::unordered_map<std::string, std::pair<block_type, std::string>>> m_block_scopes;
+    std::vector<node_scope> m_block_node_scopes;
 
     // ctor
     visitor_env(){}
@@ -90,8 +93,32 @@ class visitor_env {
 
     std::optional<dataflow_type> lookup_variable(const std::string& name) const;
 
-	void declare_contextual(const std::string& var, dataflow_type type);
+    void declare_variable_node(const std::string& name, ast_node* node);
+
+    template <typename V>
+    V* lookup_variable_node(const std::string& name) const {
+        for (auto it = m_node_scopes.rbegin(); it != m_node_scopes.rend(); ++it) {
+            auto found = it->find(name);
+            if (found != it->end()) {
+                return dynamic_cast<V*>(found->second);
+            }
+        }
+        return nullptr;
+    }
+
+	void declare_contextual(const std::string& var, dataflow_type type, ast_node* node = nullptr);
     std::optional<dataflow_type> lookup_contextual(const std::string& var) const;
+
+    template <typename V>
+    V* lookup_contextual_node(const std::string& var) const {
+        const std::string& owner = m_support_name.empty() ? m_current_def_name : m_support_name;
+        auto node = m_contextual_nodes.find(owner);
+        if (node == m_contextual_nodes.end()) {
+            return nullptr;
+        }
+        auto it = node->second.find(var);
+        return it == node->second.end() ? nullptr : dynamic_cast<V*>(it->second);
+    }
     
 	void declare_parameter(const std::string& function, const std::string& var, dataflow_type type);
     void declare_sensor(const std::string& function, const std::string& sensor, dataflow_type type);
@@ -121,9 +148,20 @@ class visitor_env {
     function_definition* lookup_function(const std::string& name) const;
     node_definition* lookup_node(const std::string &name) const;
     
-	void declare_block(const std::string& name, block_type type, const std::string& definition);
+	void declare_block(const std::string& name, block_type type, const std::string& definition, ast_node* node = nullptr);
     std::pair<block_type, std::string> lookup_block(const std::string& name, antlr4::ParserRuleContext* ctx) const;
     bool is_block(const std::string& name) const;
+
+    template <block_type bt>
+    block_variable<bt>* lookup_block_node(const std::string& name) const {
+        for (auto it = m_block_node_scopes.rbegin(); it != m_block_node_scopes.rend(); ++it) {
+            auto found = it->find(name);
+            if (found != it->end()) {
+                return dynamic_cast<block_variable<bt>*>(found->second);
+            }
+        }
+        return nullptr;
+    }
     
     struct scope_guard {
 		visitor_env& venv;

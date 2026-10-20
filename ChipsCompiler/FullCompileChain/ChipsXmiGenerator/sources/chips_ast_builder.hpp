@@ -32,7 +32,7 @@ public:
   chips_ast_builder(ChipsParser::ProgramContext *prgm)
   : venv(), checker(venv), m_program(std::any_cast<program_node>(prgm->accept(this))) {}
 
-  program_node *getAST() { return &m_program; }
+  program_node& getAST() { return m_program; }
 
   // Visit methods
   std::any visitProgram(ChipsParser::ProgramContext *ctx) override;

@@ -10,6 +10,23 @@
 
 using namespace chips;
 
+template <dataflow_type dft, expression_env expenv>
+constexpr dataflow_type dataflow_type_of(const rvalue<dft, expenv> *)
+{
+    return dft;
+}
+
+template <typename... Ts>
+dataflow_type dataflow_type_of(const std::variant<Ts...> &v)
+{
+    return std::visit([](const auto &alt) { return dataflow_type_of(alt); }, v);
+}
+
+inline dataflow_type collective_result_type(collective_function_definition *collective)
+{
+    return dataflow_type_of(collective->m_target_output.get_expressions().front());
+}
+
 struct input_constraint {
   bool contains_input = false;
   std::optional<dataflow_type> forced_type = std::nullopt;

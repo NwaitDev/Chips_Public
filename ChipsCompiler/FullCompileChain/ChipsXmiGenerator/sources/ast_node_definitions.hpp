@@ -44,6 +44,7 @@ public:
   std::string m_name;
 
   definition(std::string id) : m_name(id) {}
+  virtual ~definition() = default;
 
   std::string &get_name() { return m_name; }
 };
@@ -79,10 +80,7 @@ class with_section : public ast_node,
                      public statement_fillable<statement_env::NODE> {
 public:
   with_section(int line, int column) : ast_node(line, column) {}
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented with_section.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -96,10 +94,7 @@ class init_section : public ast_node,
 public:
   init_section(int line, int column) : ast_node(line, column) {}
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented init_section.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -112,10 +107,7 @@ class then_section : public ast_node,
                      public statement_fillable<statement_env::DEFINITION> {
 public:
   then_section(int line, int column) : ast_node(line, column) {}
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented then_section.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -130,11 +122,7 @@ class collectiveops_section
       public statement_fillable<statement_env::COLLECTIVE> {
 public:
   collectiveops_section(int line, int column) : ast_node(line, column) {}
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented collectiveops_section.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -155,11 +143,7 @@ public:
     return m_accumulator;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented accumulator_definition.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -188,11 +172,7 @@ public:
       : ast_node(line, column), definition(identifier),
         node_definition(identifier, with) {}
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented object_definition.accept(chips_ast2xmi_visitor&) "
-        "method.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -237,10 +217,7 @@ public:
       : ast_node(line, column), definition(id),
         function_definition(id, parameters, init, then, outputs) {}
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented accept method for logical_definition");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -268,10 +245,7 @@ public:
         function_definition(identifier, parameters, init, then, outputs),
         m_sensors(sensors), m_actuators(actuators) {}
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented accept method for physical_definition");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -308,10 +282,7 @@ public:
     return m_accumulator_expressions;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented channeled_output.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -335,10 +306,7 @@ public:
     return m_accumulator_expressions;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented default_output.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -363,10 +331,7 @@ public:
     return m_expressions;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented target_output.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -407,11 +372,7 @@ public:
     return m_channeled_outputs;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error("unimplemented "
-                             "collective_function_definition.accept(chips_"
-                             "ast2xmi_visitor&) method.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -443,11 +404,7 @@ public:
     return m_declaration;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplmeented function_parameter.accept(chips_ast2xmi_visitor&) "
-        "method.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -477,11 +434,7 @@ public:
   }
   std::string &get_name() { return m_name; }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented collective_parameter.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -514,11 +467,7 @@ public:
     return m_expressions;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented collective_parameter.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -526,28 +475,40 @@ public:
  * Node of the AST modeling an element that produces a dataflow that
  * can be eaten by another component in system section
  */
-template <dataflow_kind dfk, dataflow_type dft> class feeder {};
+template <dataflow_kind dfk, dataflow_type dft> class feeder {
+  public:
+  virtual ~feeder() = default;
+};
 
 /**
  * Interface
  * Node of the AST that represents something that
  * can be linked to another Chips Node
  */
-class linkable {};
+class linkable {
+  public:
+  virtual ~linkable() = default;
+};
 
 /**
  * Interface
  * Node of the AST that represents something that
  * can support another Chips Object
  */
-class support {};
+class support {
+  public:
+  virtual ~support() = default;
+};
 
 /**
  * Interface
  * Node of the AST that represents something
  * that can be iterated on in the system section
  */
-class system_iterable {};
+class system_iterable {
+  public:
+  virtual ~system_iterable() = default;
+};
 
 /**
  * Abstract class
@@ -576,7 +537,10 @@ public:
  * Node of the AST that represents a reference
  * to a Chips Node (Physical or Object)
  */
-class node_variable_expression {};
+class node_variable_expression {
+  public:
+  virtual ~node_variable_expression() = default;
+};
 
 /**
  * Abstract class
@@ -609,11 +573,7 @@ public:
     return m_index;
   }
   block_variable_type *get_variable() { return m_variable; }
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "logical_variable_expression.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -644,11 +604,7 @@ public:
     return m_index;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "physical_variable_expression.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -679,11 +635,7 @@ public:
     return m_index;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "object_variable_expression.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -706,10 +658,7 @@ public:
   }
   function_parameter<dfk, dft> *get_parameter() { return m_parameter; }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented eater.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -739,11 +688,7 @@ public:
   }
   function_output<dfk, dft> *get_output() { return m_output; }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented feeder_blocj_expression.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -766,10 +711,7 @@ public:
     return m_eating_channel;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented channel_eater.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -793,10 +735,7 @@ public:
     return m_feeding_channel;
   }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented channel_feeder.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -835,10 +774,7 @@ public:
   feeder_variant &get_feeder_variant() { return m_feeder; }
   const feeder_variant &get_feeder_variant() const { return m_feeder; }
 
-  void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented channel_feeder.accept(chips_ast2xmi_visitor&) error.");
-  };
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -846,7 +782,10 @@ public:
  * Node of the AST that represents something to
  * be put on the left side of an assignment
  */
-template <dataflow_type dft, expression_env expenv> class lvalue {};
+template <dataflow_type dft, expression_env expenv> class lvalue {
+  public:
+  virtual ~lvalue() = default;
+};
 
 /**
  * Abstract class
@@ -881,10 +820,7 @@ public:
 
   inline value_type &get_value() { return m_value; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented direct.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -917,10 +853,7 @@ public:
   std::string &get_name() { return m_name; }
   std::vector<rvalue_variant<expenv>> &get_parameters() { return m_parameters; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented function.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -943,10 +876,7 @@ public:
   operand_type *get_lhs() const { return m_left_operand; }
   operand_type *get_rhs() const { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented plus.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -969,10 +899,7 @@ public:
   operand_type *get_lhs() const { return m_left_operand; }
   operand_type *get_rhs() const { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented minus.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -995,10 +922,7 @@ public:
   operand_type *get_lhs() { return m_left_operand; }
   operand_type *get_rhs() { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented mult.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1021,10 +945,7 @@ public:
   operand_type *get_lhs() { return m_left_operand; }
   operand_type *get_rhs() { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented div.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1048,10 +969,7 @@ public:
   operand_type *get_lhs() { return m_left_operand; }
   operand_type *get_rhs() { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented mod.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1072,10 +990,7 @@ public:
 
   operand_type *get_cast() { return m_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented cast_as.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1098,10 +1013,7 @@ public:
   operand_type *get_lhs() { return m_left_operand; }
   operand_type *get_rhs() { return m_right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented gt.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1124,10 +1036,7 @@ public:
   operand_type *get_lhs() { return left_operand; }
   operand_type *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented lt.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1150,10 +1059,7 @@ public:
   operand_type *get_lhs() { return left_operand; }
   operand_type *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented geq.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1176,10 +1082,7 @@ public:
   operand_type *get_lhs() { return left_operand; }
   operand_type *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented leq.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1201,10 +1104,7 @@ public:
   rvalue<dataflow_type::BOOL, expenv> *get_lhs() { return left_operand; }
   rvalue<dataflow_type::BOOL, expenv> *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented or_operator.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1227,10 +1127,7 @@ public:
   rvalue<dataflow_type::BOOL, expenv> *get_lhs() { return left_operand; }
   rvalue<dataflow_type::BOOL, expenv> *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented and_operator.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1249,10 +1146,7 @@ public:
 
   rvalue<dataflow_type::BOOL, expenv> *get_operand() { return operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented not_operator.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1271,10 +1165,7 @@ public:
 
   operand_type *get_rhs() { return operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented uminus_operator.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1297,10 +1188,7 @@ public:
   operand_type *get_lhs() { return left_operand; }
   operand_type *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented eq.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1323,10 +1211,7 @@ public:
   operand_type *get_lhs() { return left_operand; }
   operand_type *get_rhs() { return right_operand; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented neq.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1355,11 +1240,7 @@ public:
     return m_index;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented variable_expression.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 template <dataflow_type dft, expression_env expenv>
@@ -1385,11 +1266,7 @@ public:
     return m_index;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "variable_contextual_expression.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 class input : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
@@ -1399,10 +1276,7 @@ class input : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
 public:
   input(int line, int column) : ast_node(line, column) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented input.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 class stop : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
@@ -1412,10 +1286,7 @@ class stop : public rvalue<dataflow_type::INT, expression_env::COLLECTIVE>,
 
 public:
   stop(int line, int column) : ast_node(line, column) {}
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented stop.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1435,11 +1306,7 @@ public:
     return m_definitions;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented preamble_section_node.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1459,11 +1326,7 @@ public:
     return m_statements;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented system_section_node.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1481,10 +1344,7 @@ public:
       : ast_node(line, column), m_filename(filename), m_preamble(preamble),
         m_system(system) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented program_node.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 
   inline const preamble_section_node &get_preamble() { return m_preamble; };
   inline const system_section_node &get_system() { return m_system; };
@@ -1530,11 +1390,7 @@ public:
 
   inline df_variable_type get_variable() { return m_variable; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented dataflow_declaration.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1560,11 +1416,7 @@ public:
   lvalue<dft, expr_env> *get_lhs() { return m_lvalue; }
   rvalue<dft, expr_env> *get_rhs() { return m_rvalue; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented dataflow_assignment.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1583,10 +1435,7 @@ public:
 
   std::vector<statement_type> &get_statements() { return m_if_statements; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented if_section.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1605,10 +1454,7 @@ public:
 
   std::vector<statement_type> &get_statements() { return m_else_statements; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented else_section.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1634,10 +1480,7 @@ public:
   }
   if_section<stenv> &get_if_section() { return m_if_section; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented if_statement.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1651,17 +1494,12 @@ public:
   static constexpr expression_env expr_env = SttEnvToExpEnv<stenv>::value;
   else_section<stenv> m_else_section;
 
-  if_else_statement(int line, int column, if_statement<stenv> if_sec,
-                    else_section<stenv> else_sec)
-      : if_statement<stenv>(if_sec), m_else_section(else_sec) {}
+  if_else_statement(int line, int column, if_statement<stenv> if_sec, else_section<stenv> else_sec)
+    : ast_node(line, column), if_statement<stenv>(if_sec), m_else_section(else_sec) {}
 
   else_section<stenv> &get_else_section() { return m_else_section; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented if_else_statement.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1693,11 +1531,7 @@ public:
   iterable_variant<expenv> &get_iterable() { return m_iterable_expr; }
   std::vector<statement_type> &get_statements() { return m_statements; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented foreach_statement.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1735,11 +1569,7 @@ public:
     return m_statements;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented block_foreach_statement.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1769,11 +1599,7 @@ public:
   block_variable_t get_variable() { return m_variable; }
   block_definition_t *get_definition() { return m_defintion; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented block_declaration.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1805,10 +1631,7 @@ public:
   void set_feeder(channel_feeder *feed) { m_feeder = feed; }
   channel_feeder *get_feeder() { return m_feeder; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented channel_plugging.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1837,11 +1660,7 @@ public:
   eater<dfk, dft> &get_eater() { return m_eater; }
   feeder<dfk, dft> *get_feeder() { return m_feeder; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented feeding_statement.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1867,11 +1686,7 @@ public:
   linkable *get_linkable() { return m_linked_component; }
   support *get_support() { return m_support_node; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented linking_statement.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1897,11 +1712,7 @@ public:
 
   std::string get_name() { return m_declared_name; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented node_element_declaration.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1922,10 +1733,7 @@ public:
         const std::vector<int_rvalue_expression_variant<expenv>> &vec)
       : ast_node(line, column), m_dimensions(vec) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented array.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -1951,10 +1759,7 @@ public:
 
   inline const std::string &get_name() { return m_name; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented array.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2009,11 +1814,7 @@ public:
     return m_declaration;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "dataflow_primitive_variable.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2030,10 +1831,7 @@ public:
           dims)
       : variable(line, column, name, dims) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented node_variable.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2067,11 +1865,7 @@ public:
     return m_declaration;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented contextual_variable.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2088,11 +1882,7 @@ public:
           dims)
       : variable(line, column, name, dims) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented collective_variable.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2130,11 +1920,7 @@ public:
     return m_declaration;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented "
-        "dataflow_collective_variable.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2171,11 +1957,7 @@ public:
     return m_index;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error("unimplemented "
-                             "channeled_accumulator_expression.accept(chips_"
-                             "ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2190,10 +1972,7 @@ public:
       std::vector<int_rvalue_expression_variant<expression_env::SYSTEM>> dims)
       : variable(line, column, name, dims) {}
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented system_variable.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2219,10 +1998,7 @@ public:
 
   block_declaration<bt> *get_declaration() { return m_declaration; }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented block_variable.accept(chips_ast2xmi_visitor&) error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 
 /**
@@ -2258,11 +2034,7 @@ public:
     return m_declaration;
   }
 
-  inline void accept(chips_ast2xmi_visitor &v) {
-    throw std::runtime_error(
-        "unimplemented dataflow_system_variable.accept(chips_ast2xmi_visitor&) "
-        "error.");
-  }
+  void accept(chips_ast2xmi_visitor &v) override;
 };
 } // namespace chips
 

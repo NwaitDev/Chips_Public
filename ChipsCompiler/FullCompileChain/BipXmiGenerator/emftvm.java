@@ -1,3 +1,8 @@
+import java.io.File;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.emf.ecore.resource.Resource;
+
 import java.util.Collections;
 import java.io.FileInputStream;
 import java.nio.file.Path;
@@ -30,6 +35,26 @@ public class emftvm {
     static String modulePath;
     static String moduleName;
 
+    private static URI fileUri(String path) {
+        return URI.createFileURI(new File(path).getAbsolutePath());
+    }
+
+    private static void registerPackage(ResourceSet rs, EPackage pkg) {
+        rs.getPackageRegistry().put(pkg.getNsURI(), pkg);
+        for (EPackage sub : pkg.getESubpackages()) {
+            registerPackage(rs, sub);
+        }
+    }
+
+    private static Resource loadMetamodel(ResourceSet rs, String path) {
+        Resource resource = rs.getResource(fileUri(path), true);
+        for (EObject root : resource.getContents()) {
+            if (root instanceof EPackage) {
+                registerPackage(rs, (EPackage) root);
+            }
+        }
+        return resource;
+    }
 
     private static String getFileExtension(String fileName){
 
@@ -141,28 +166,25 @@ public class emftvm {
             );
 
             ResourceSet rs = new ResourceSetImpl();
+            rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl());
+            rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl());
+            rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("emftvm", new EMFTVMResourceFactoryImpl());
             ExecEnv env = EmftvmFactory.eINSTANCE.createExecEnv();
 
-
-            // Load metamodels
             Metamodel chipsMM = EmftvmFactory.eINSTANCE.createMetamodel();
-            chipsMM.setResource(rs.getResource(URI.createURI(chipsPath), true));
+            chipsMM.setResource(loadMetamodel(rs, chipsPath));
             env.registerMetaModel("chips", chipsMM);
+
             Metamodel bipMM = EmftvmFactory.eINSTANCE.createMetamodel();
-            bipMM.setResource(rs.getResource(URI.createURI(bipPath), true));
+            bipMM.setResource(loadMetamodel(rs, bipPath));
             env.registerMetaModel("bip", bipMM);
 
-            rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl());
-		    rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("emftvm", new EMFTVMResourceFactoryImpl());
-
             Model inModel = EmftvmFactory.eINSTANCE.createModel();
-            inModel.setResource(rs.getResource(URI.createURI(inputModelPath,true), true));
+            inModel.setResource(rs.getResource(fileUri(inputModelPath), true));
             env.registerInputModel("IN", inModel);
 
-
-
             Model outModel = EmftvmFactory.eINSTANCE.createModel();
-            outModel.setResource(rs.createResource(URI.createFileURI(outputModelPath)));
+            outModel.setResource(rs.createResource(fileUri(outputModelPath)));
             env.registerOutputModel("OUT", outModel);
 
 

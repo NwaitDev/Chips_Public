@@ -16,8 +16,18 @@ std::optional<dataflow_type> visitor_env::lookup_variable(const std::string &nam
   return std::nullopt;
 }
 
-void visitor_env::declare_contextual(const std::string &var, dataflow_type type) {
+void visitor_env::declare_variable_node(const std::string &name, ast_node *node) {
+  if (m_node_scopes.empty()) {
+    throw std::runtime_error("variable '" + name + "' declared outside of any scope");
+  }
+  m_node_scopes.back()[name] = node;
+}
+
+void visitor_env::declare_contextual(const std::string &var, dataflow_type type, ast_node *node) {
   m_contextuals[m_current_def_name][var] = type;
+  if (node != nullptr) {
+    m_contextual_nodes[m_current_def_name][var] = node;
+  }
 }
 std::optional<dataflow_type> visitor_env::lookup_contextual(const std::string &var) const {
   const std::string &owner =
@@ -166,13 +176,17 @@ collective_function_definition *visitor_env::lookup_collective(const std::string
 void visitor_env::push_scope()
 {
   m_scopes.emplace_back();
+  m_node_scopes.emplace_back();
   m_block_scopes.emplace_back();
+  m_block_node_scopes.emplace_back();
 }
 
 void visitor_env::pop_scope()
 {
   m_scopes.pop_back();
+  m_node_scopes.pop_back();
   m_block_scopes.pop_back();
+  m_block_node_scopes.pop_back();
 }
 
 bool visitor_env::definition_exists(const std::string &name) const
@@ -243,7 +257,7 @@ function_definition *visitor_env::lookup_function(const std::string &name) const
   return dynamic_cast<function_definition*>(lookup_physical(name));
 }
 
-void visitor_env::declare_block(const std::string &name, block_type type, const std::string &definition)
+void visitor_env::declare_block(const std::string &name, block_type type, const std::string &definition, ast_node *node)
 {
   auto &scope = m_block_scopes.back();
   if (scope.find(name) != scope.end())
@@ -251,6 +265,10 @@ void visitor_env::declare_block(const std::string &name, block_type type, const 
     throw std::runtime_error("duplicate block '" + name + "'");
   }
   scope[name] = {type, definition};
+  if (node != nullptr)
+  {
+    m_block_node_scopes.back()[name] = node;
+  }
 }
 
 std::pair<block_type, std::string> visitor_env::lookup_block(const std::string &name, antlr4::ParserRuleContext *ctx) const
