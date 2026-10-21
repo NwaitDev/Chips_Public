@@ -1,0 +1,2695 @@
+
+package ChipsModel
+
+
+
+    
+    extern data type chips_int
+    
+    extern data type chips_float
+    
+    extern data type chips_bool
+    
+    extern data type Aggr_int
+    
+    extern data type Aggr_bool
+    
+    extern data type Aggr_int_int
+    
+    extern data type Aggr_int_int_int
+
+    
+    extern function then_UserMachine(chips_int startTime, chips_int endTime, chips_int id, chips_int maxNbData, chips_int httpResponse, chips_int computerID, chips_bool active, chips_bool waiting, chips_int time, chips_bool requiresAuth, chips_bool newPage, chips_int currentRequest, chips_int httpRequest, chips_int lastRequest, chips_int fromUserToInternet)
+    
+    extern function init_UserMachine(chips_int startTime, chips_int endTime, chips_int id, chips_int maxNbData, chips_int httpResponse, chips_int computerID, chips_bool active, chips_bool waiting, chips_int time, chips_bool requiresAuth, chips_bool newPage, chips_int currentRequest, chips_int httpRequest, chips_int lastRequest, chips_int fromUserToInternet)
+    
+    extern function chips_int create_chips_int(const int native_int_rvalue)
+    
+    extern function chips_bool create_chips_bool(const bool native_bool_rvalue)
+    
+    extern function then_ServerMachine(chips_int wpServed, chips_int maxNbData, chips_int fromInternet, chips_int httpResponse, chips_int currentRequest, chips_bool requestFound, chips_int requestList, chips_int nbDataToOutput, chips_int userIDToOutput, chips_bool userAuthToOutput, chips_bool userAuth, chips_int nbData, chips_int userID, chips_int fromServerToInternet)
+    
+    extern function init_ServerMachine(chips_int wpServed, chips_int maxNbData, chips_int fromInternet, chips_int httpResponse, chips_int currentRequest, chips_bool requestFound, chips_int requestList, chips_int nbDataToOutput, chips_int userIDToOutput, chips_bool userAuthToOutput, chips_bool userAuth, chips_int nbData, chips_int userID, chips_int fromServerToInternet)
+    
+    extern function then_UserActionInterpreter(chips_bool authDataRcvd, chips_int nbDataRcvd, chips_int userIDRcvd, chips_bool authProvided, chips_int nbData, chips_int reqID)
+    
+    extern function init_UserActionInterpreter(chips_bool authDataRcvd, chips_int nbDataRcvd, chips_int userIDRcvd, chips_bool authProvided, chips_int nbData, chips_int reqID)
+    
+    extern function then_Authenticator(chips_bool authProvided, chips_bool isAuthenticated)
+    
+    extern function init_Authenticator(chips_bool authProvided, chips_bool isAuthenticated)
+    
+    extern function then_RequestValidator(chips_bool isAuthenticated, chips_int nbData, chips_int requestID, chips_int nbDataToFetch, chips_bool needRedirection, chips_bool redirection, chips_int nbDataRequested, chips_int userID)
+    
+    extern function init_RequestValidator(chips_bool isAuthenticated, chips_int nbData, chips_int requestID, chips_int nbDataToFetch, chips_bool needRedirection, chips_bool redirection, chips_int nbDataRequested, chips_int userID)
+    
+    extern function then_RequestLimiter(chips_bool redirection, chips_int maxRequests, chips_int userID, chips_int nbDataToFetch, chips_int nbAnsweredReqs, chips_int currentNbRequests, chips_bool redirection, chips_int userID, chips_int dataQty)
+    
+    extern function init_RequestLimiter(chips_bool redirection, chips_int maxRequests, chips_int userID, chips_int nbDataToFetch, chips_int nbAnsweredReqs, chips_int currentNbRequests, chips_bool redirection, chips_int userID, chips_int dataQty)
+    
+    extern function then_Cache(chips_int requestedData, chips_int cacheSize, chips_int maxCacheSize, chips_int minCacheSize, chips_int cache, chips_int newestDataIndex, chips_bool found, chips_int foundIndex, chips_bool foundInCache)
+    
+    extern function init_Cache(chips_int requestedData, chips_int cacheSize, chips_int maxCacheSize, chips_int minCacheSize, chips_int cache, chips_int newestDataIndex, chips_bool found, chips_int foundIndex, chips_bool foundInCache)
+    
+    extern function then_DataProvider(chips_bool redirection, chips_bool cacheResponse, chips_int userID, chips_int dataQty, chips_int maxDifferentData, chips_int maxUserID, chips_int dataPerUserID, chips_int currentlyTreatedUserRequest, chips_int httpResponse, chips_int dataToFetch, chips_float time, chips_bool cacheSearching, chips_bool oneLessPendingRequest, chips_bool oneLessPendingRequest, chips_bool enableTimeReading, chips_float timeSpentOnReq, chips_int userID, chips_int cacheRequest)
+    
+    extern function init_DataProvider(chips_bool redirection, chips_bool cacheResponse, chips_int userID, chips_int dataQty, chips_int maxDifferentData, chips_int maxUserID, chips_int dataPerUserID, chips_int currentlyTreatedUserRequest, chips_int httpResponse, chips_int dataToFetch, chips_float time, chips_bool cacheSearching, chips_bool oneLessPendingRequest, chips_bool oneLessPendingRequest, chips_bool enableTimeReading, chips_float timeSpentOnReq, chips_int userID, chips_int cacheRequest)
+    
+    extern function chips_float create_chips_float(const float native_float_rvalue)
+    
+    extern function then_WebPageService(chips_int respondToThisIDs, chips_int currentRequestAnswered, chips_int requestsToAnswerTo, chips_bool requestFound, chips_int httpResponse)
+    
+    extern function init_WebPageService(chips_int respondToThisIDs, chips_int currentRequestAnswered, chips_int requestsToAnswerTo, chips_bool requestFound, chips_int httpResponse)
+    
+    extern function then_PidController(chips_bool enabled, chips_float requested_time, chips_float resulting_time, chips_float derivative, chips_float integral, chips_float kw_error, chips_float dt, chips_float p, chips_float i, chips_float d, chips_int knob_value, chips_int min_knob_value, chips_int max_knob_value, chips_int knob)
+    
+    extern function init_PidController(chips_bool enabled, chips_float requested_time, chips_float resulting_time, chips_float derivative, chips_float integral, chips_float kw_error, chips_float dt, chips_float p, chips_float i, chips_float d, chips_int knob_value, chips_int min_knob_value, chips_int max_knob_value, chips_int knob)
+    
+    extern function allDataProvidersOutputs_up(Aggr_int next_acc, Aggr_int prev_acc, chips_int target_output, chips_int _input)
+    
+    extern function responseToTheRightUser_down(chips_int channel_indicator, Aggr_int accumulator, Aggr_int next_acc, Aggr_int prev_acc, chips_int computerID_ctx, chips_int target_output)
+    
+    extern function aggregatingRequests_up(Aggr_int next_acc, Aggr_int prev_acc, chips_int target_output, chips_int _input)
+    
+    extern function numberOfRespondedRequests_up(Aggr_int next_acc, Aggr_int prev_acc, chips_int target_output, chips_bool _input)
+    
+    extern function broadcastRedirection_down(chips_int channel_indicator, Aggr_bool accumulator, Aggr_bool next_acc, Aggr_bool prev_acc, chips_bool target_output)
+    
+    extern function broadcastDataQty_down(chips_int channel_indicator, Aggr_int accumulator, Aggr_int next_acc, Aggr_int prev_acc, chips_int target_output)
+    
+    extern function findRightDataProvider_down(chips_int channel_indicator, Aggr_int_int accumulator, Aggr_int_int next_acc, Aggr_int_int prev_acc, chips_int target_output)
+    
+    extern function chips_int int_init_ctx(const string int_ctx_name)
+    
+    extern function chips_int zeros(chips_int v0)
+
+
+
+    
+    port type int_port_t (chips_int v0)
+    
+    port type float_port_t (chips_float v0)
+    
+    port type bool_port_t (chips_bool v0)
+    
+    port type port_t ()
+    
+    port type intintintintint_port_t (chips_int v0, chips_int v1, chips_int v2, chips_int v3, chips_int v4)
+    
+    port type intintint_port_t (chips_int v0, chips_int v1, chips_int v2)
+    
+    port type boolintint_port_t (chips_bool v0, chips_int v1, chips_int v2)
+    
+    port type boolintintintint_port_t (chips_bool v0, chips_int v1, chips_int v2, chips_int v3, chips_int v4)
+    
+    port type intint_port_t (chips_int v0, chips_int v1)
+    
+    port type boolboolintint_port_t (chips_bool v0, chips_bool v1, chips_int v2, chips_int v3)
+    
+    port type boolfloatfloat_port_t (chips_bool v0, chips_float v1, chips_float v2)
+    
+    port type boolintintint_port_t (chips_bool v0, chips_int v1, chips_int v2, chips_int v3)
+    
+    port type boolboolfloatintint_port_t (chips_bool v0, chips_bool v1, chips_float v2, chips_int v3, chips_int v4)
+    
+    port type Struct_int__port_t (Aggr_int v0)
+    
+    port type Struct_int_Struct_int_int_port_t (Aggr_int v0, Aggr_int v1, chips_int v2)
+    
+    port type Struct_int_int_port_t (Aggr_int v0, chips_int v1)
+    
+    port type Struct_bool__port_t (Aggr_bool v0)
+    
+    port type Struct_bool_int_port_t (Aggr_bool v0, chips_int v1)
+    
+    port type Struct_intint__port_t (Aggr_int_int v0)
+    
+    port type Struct_intint_int_port_t (Aggr_int_int v0, chips_int v1)
+
+    
+    connector type many2one_intintintintint_t (int_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd, int_port_t p3_cppd, int_port_t p4_cppd)
+        data chips_int v0
+        data chips_int v1
+        data chips_int v2
+        data chips_int v3
+        data chips_int v4
+        export port intintintintint_port_t r_exported_port(v0, v1, v2, v3, v4)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+         p4_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd p4_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+                v3 = p3_cppd.v0;
+                v4 = p4_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_int_t (int_port_t p0_cppd)
+        data chips_int v0
+        export port int_port_t s_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+            }
+    end
+
+    
+    connector type many2one_int_t (int_port_t p0_cppd)
+        data chips_int v0
+        export port int_port_t r_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+            }
+    end
+
+    
+    connector type flow_intintintintint_t (intintintintint_port_t s, intintintintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+                r.v4 = s.v4;
+            }
+    end
+
+    
+    connector type flow_int_t (int_port_t s, int_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type many2one_intintint_t (int_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd)
+        data chips_int v0
+        data chips_int v1
+        data chips_int v2
+        export port intintint_port_t r_exported_port(v0, v1, v2)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_boolintintint_t (bool_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd, int_port_t p3_cppd)
+        data chips_bool v0
+        data chips_int v1
+        data chips_int v2
+        data chips_int v3
+        export port boolintintint_port_t s_exported_port(v0, v1, v2, v3)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+                p1_cppd.v0 = v1;
+                p2_cppd.v0 = v2;
+                p3_cppd.v0 = v3;
+            }
+    end
+
+    
+    connector type flow_intintint_t (intintint_port_t s, intintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+            }
+    end
+
+    
+    connector type flow_boolintintint_t (boolintintint_port_t s, boolintintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+            }
+    end
+
+    
+    connector type many2one_boolintint_t (bool_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd)
+        data chips_bool v0
+        data chips_int v1
+        data chips_int v2
+        export port boolintint_port_t r_exported_port(v0, v1, v2)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_boolintint_t (bool_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd)
+        data chips_bool v0
+        data chips_int v1
+        data chips_int v2
+        export port boolintint_port_t s_exported_port(v0, v1, v2)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+                p1_cppd.v0 = v1;
+                p2_cppd.v0 = v2;
+            }
+    end
+
+    
+    connector type flow_boolintint_t (boolintint_port_t s, boolintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+            }
+    end
+
+    
+    connector type many2one_bool_t (bool_port_t p0_cppd)
+        data chips_bool v0
+        export port bool_port_t r_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_bool_t (bool_port_t p0_cppd)
+        data chips_bool v0
+        export port bool_port_t s_exported_port(v0)
+        define (p0_cppd
+        )
+    
+        on p0_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+            }
+    end
+
+    
+    connector type flow_bool_t (bool_port_t s, bool_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type many2one_boolintintintint_t (bool_port_t p0_cppd, int_port_t p1_cppd, int_port_t p2_cppd, int_port_t p3_cppd, int_port_t p4_cppd)
+        data chips_bool v0
+        data chips_int v1
+        data chips_int v2
+        data chips_int v3
+        data chips_int v4
+        export port boolintintintint_port_t r_exported_port(v0, v1, v2, v3, v4)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+         p4_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd p4_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+                v3 = p3_cppd.v0;
+                v4 = p4_cppd.v0;
+            }
+    end
+
+    
+    connector type flow_boolintintintint_t (boolintintintint_port_t s, boolintintintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+                r.v4 = s.v4;
+            }
+    end
+
+    
+    connector type many2one_intint_t (int_port_t p0_cppd, int_port_t p1_cppd)
+        data chips_int v0
+        data chips_int v1
+        export port intint_port_t r_exported_port(v0, v1)
+        define (p0_cppd
+         p1_cppd
+        )
+    
+        on p0_cppd p1_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+            }
+    end
+
+    
+    connector type flow_intint_t (intint_port_t s, intint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+            }
+    end
+
+    
+    connector type many2one_boolboolintint_t (bool_port_t p0_cppd, bool_port_t p1_cppd, int_port_t p2_cppd, int_port_t p3_cppd)
+        data chips_bool v0
+        data chips_bool v1
+        data chips_int v2
+        data chips_int v3
+        export port boolboolintint_port_t r_exported_port(v0, v1, v2, v3)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+                v3 = p3_cppd.v0;
+            }
+    end
+
+    
+    connector type one2many_boolboolfloatintint_t (bool_port_t p0_cppd, bool_port_t p1_cppd, float_port_t p2_cppd, int_port_t p3_cppd, int_port_t p4_cppd)
+        data chips_bool v0
+        data chips_bool v1
+        data chips_float v2
+        data chips_int v3
+        data chips_int v4
+        export port boolboolfloatintint_port_t s_exported_port(v0, v1, v2, v3, v4)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+         p3_cppd
+         p4_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd p3_cppd p4_cppd
+            provided (true)
+            down {
+                p0_cppd.v0 = v0;
+                p1_cppd.v0 = v1;
+                p2_cppd.v0 = v2;
+                p3_cppd.v0 = v3;
+                p4_cppd.v0 = v4;
+            }
+    end
+
+    
+    connector type flow_boolboolintint_t (boolboolintint_port_t s, boolboolintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+            }
+    end
+
+    
+    connector type flow_boolboolfloatintint_t (boolboolfloatintint_port_t s, boolboolfloatintint_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+                r.v3 = s.v3;
+                r.v4 = s.v4;
+            }
+    end
+
+    
+    connector type many2one_boolfloatfloat_t (bool_port_t p0_cppd, float_port_t p1_cppd, float_port_t p2_cppd)
+        data chips_bool v0
+        data chips_float v1
+        data chips_float v2
+        export port boolfloatfloat_port_t r_exported_port(v0, v1, v2)
+        define (p0_cppd
+         p1_cppd
+         p2_cppd
+        )
+    
+        on p0_cppd p1_cppd p2_cppd
+            provided (true)
+            up {
+                v0 = p0_cppd.v0;
+                v1 = p1_cppd.v0;
+                v2 = p2_cppd.v0;
+            }
+    end
+
+    
+    connector type flow_boolfloatfloat_t (boolfloatfloat_port_t s, boolfloatfloat_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+                r.v1 = s.v1;
+                r.v2 = s.v2;
+            }
+    end
+
+    
+    connector type allDataProvidersOutputs_among_Backend_conn_t (Struct_int__port_t p_next_cppd, Struct_int__port_t p_prev_cppd, int_port_t p_input_cppd)
+        data Aggr_int next_accumulator
+        data Aggr_int prev_accumulator
+        data chips_int target_data
+        export port Struct_int_Struct_int_int_port_t up_accumulator(next_accumulator, prev_accumulator, target_data)
+        define (p_next_cppd
+         p_prev_cppd
+         p_input_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_input_cppd
+            up {
+                allDataProvidersOutputs_up(p_next_cppd.v0, p_prev_cppd.v0, target_data, p_input_cppd.v0);
+            }
+    end
+
+    
+    connector type responseToTheRightUser_among_UserMachine_conn_t (Struct_int__port_t p_next_cppd, Struct_int__port_t p_prev_cppd, int_port_t p_target_cppd, int_port_t p_computerID_cppd)
+        data chips_int channel_indicator
+        data Aggr_int _accumulator
+        data chips_int computerID_ctx
+        export port Struct_int_int_port_t up_accumulator(_accumulator, channel_indicator)
+        define (p_next_cppd
+         p_prev_cppd
+         p_target_cppd
+         p_computerID_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_target_cppd p_computerID_cppd
+            up {
+                computerID_ctx = p_computerID_cppd.v0;
+            }
+            down {
+                responseToTheRightUser_down(channel_indicator, _accumulator, p_next_cppd.v0, p_prev_cppd.v0, computerID_ctx, p_target_cppd.v0);
+            }
+    end
+
+    
+    connector type aggregatingRequests_among_UserMachine_conn_t (Struct_int__port_t p_next_cppd, Struct_int__port_t p_prev_cppd, int_port_t p_input_cppd)
+        data Aggr_int next_accumulator
+        data Aggr_int prev_accumulator
+        data chips_int target_data
+        export port Struct_int_Struct_int_int_port_t up_accumulator(next_accumulator, prev_accumulator, target_data)
+        define (p_next_cppd
+         p_prev_cppd
+         p_input_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_input_cppd
+            up {
+                aggregatingRequests_up(p_next_cppd.v0, p_prev_cppd.v0, target_data, p_input_cppd.v0);
+            }
+    end
+
+    
+    connector type numberOfRespondedRequests_among_Backend_conn_t (Struct_int__port_t p_next_cppd, Struct_int__port_t p_prev_cppd, bool_port_t p_input_cppd)
+        data Aggr_int next_accumulator
+        data Aggr_int prev_accumulator
+        data chips_int target_data
+        export port Struct_int_Struct_int_int_port_t up_accumulator(next_accumulator, prev_accumulator, target_data)
+        define (p_next_cppd
+         p_prev_cppd
+         p_input_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_input_cppd
+            up {
+                numberOfRespondedRequests_up(p_next_cppd.v0, p_prev_cppd.v0, target_data, p_input_cppd.v0);
+            }
+    end
+
+    
+    connector type broadcastRedirection_among_Backend_conn_t (Struct_bool__port_t p_next_cppd, Struct_bool__port_t p_prev_cppd, bool_port_t p_target_cppd)
+        data chips_int channel_indicator
+        data Aggr_bool _accumulator
+        export port Struct_bool_int_port_t up_accumulator(_accumulator, channel_indicator)
+        define (p_next_cppd
+         p_prev_cppd
+         p_target_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_target_cppd
+            down {
+                broadcastRedirection_down(channel_indicator, _accumulator, p_next_cppd.v0, p_prev_cppd.v0, p_target_cppd.v0);
+            }
+    end
+
+    
+    connector type broadcastDataQty_among_Backend_conn_t (Struct_int__port_t p_next_cppd, Struct_int__port_t p_prev_cppd, int_port_t p_target_cppd)
+        data chips_int channel_indicator
+        data Aggr_int _accumulator
+        export port Struct_int_int_port_t up_accumulator(_accumulator, channel_indicator)
+        define (p_next_cppd
+         p_prev_cppd
+         p_target_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_target_cppd
+            down {
+                broadcastDataQty_down(channel_indicator, _accumulator, p_next_cppd.v0, p_prev_cppd.v0, p_target_cppd.v0);
+            }
+    end
+
+    
+    connector type findRightDataProvider_among_Backend_conn_t (Struct_intint__port_t p_next_cppd, Struct_intint__port_t p_prev_cppd, int_port_t p_target_cppd)
+        data chips_int channel_indicator
+        data Aggr_int_int _accumulator
+        export port Struct_intint_int_port_t up_accumulator(_accumulator, channel_indicator)
+        define (p_next_cppd
+         p_prev_cppd
+         p_target_cppd
+        )
+    
+        on p_next_cppd p_prev_cppd p_target_cppd
+            down {
+                findRightDataProvider_down(channel_indicator, _accumulator, p_next_cppd.v0, p_prev_cppd.v0, p_target_cppd.v0);
+            }
+    end
+
+    
+    connector type flow_float_t (float_port_t s, float_port_t r)
+        define (s
+         r
+        )
+    
+        on s r
+            provided (true)
+            down {
+                r.v0 = s.v0;
+            }
+    end
+
+    
+    connector type aggregatingRequests_Adapter_for_prev_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int prev_acc
+        export port intintint_port_t cepd(prev_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                prev_acc = p_to_crop_cppd.v1;
+            }
+    end
+
+    
+    connector type aggregatingRequests_Adapter_for_target_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int target_acc
+        export port intintint_port_t cepd(target_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                target_acc = p_to_crop_cppd.v2;
+            }
+    end
+
+    
+    connector type broadcastDataQty_Adapter_for_next_conn_t (Struct_int_int_port_t p_indicated_accumulator_cppd)
+        data Aggr_int next_acc
+        export port int_port_t cepd(next_acc)
+        define (p_indicated_accumulator_cppd
+        )
+    
+        on p_indicated_accumulator_cppd
+            down {
+                p_indicated_accumulator_cppd.v0 = next_acc;
+                p_indicated_accumulator_cppd.v1 = 0;
+            }
+    end
+
+    
+    connector type broadcastRedirection_Adapter_for_next_conn_t (Struct_bool_int_port_t p_indicated_accumulator_cppd)
+        data Aggr_bool next_acc
+        export port bool_port_t cepd(next_acc)
+        define (p_indicated_accumulator_cppd
+        )
+    
+        on p_indicated_accumulator_cppd
+            down {
+                p_indicated_accumulator_cppd.v0 = next_acc;
+                p_indicated_accumulator_cppd.v1 = 0;
+            }
+    end
+
+    
+    connector type responseToTheRightUser_Adapter_for_next_conn_t (Struct_int_int_port_t p_indicated_accumulator_cppd)
+        data Aggr_int next_acc
+        export port int_port_t cepd(next_acc)
+        define (p_indicated_accumulator_cppd
+        )
+    
+        on p_indicated_accumulator_cppd
+            down {
+                p_indicated_accumulator_cppd.v0 = next_acc;
+                p_indicated_accumulator_cppd.v1 = 0;
+            }
+    end
+
+    
+    connector type allDataProvidersOutputs_Adapter_for_prev_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int prev_acc
+        export port intintint_port_t cepd(prev_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                prev_acc = p_to_crop_cppd.v1;
+            }
+    end
+
+    
+    connector type allDataProvidersOutputs_Adapter_for_target_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int target_acc
+        export port intintint_port_t cepd(target_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                target_acc = p_to_crop_cppd.v2;
+            }
+    end
+
+    
+    connector type numberOfRespondedRequests_Adapter_for_prev_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int prev_acc
+        export port intintint_port_t cepd(prev_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                prev_acc = p_to_crop_cppd.v1;
+            }
+    end
+
+    
+    connector type numberOfRespondedRequests_Adapter_for_target_conn_t (intintint_port_t p_to_crop_cppd)
+        data Aggr_int_int target_acc
+        export port intintint_port_t cepd(target_acc)
+        define (p_to_crop_cppd
+        )
+    
+        on p_to_crop_cppd
+            up {
+                target_acc = p_to_crop_cppd.v2;
+            }
+    end
+
+    
+    connector type findRightDataProvider_Adapter_for_next_conn_t (Struct_intint_int_port_t p_indicated_accumulator_cppd)
+        data Aggr_int_int next_acc
+        export port intint_port_t cepd(next_acc)
+        define (p_indicated_accumulator_cppd
+        )
+    
+        on p_indicated_accumulator_cppd
+            down {
+                p_indicated_accumulator_cppd.v0 = next_acc;
+                p_indicated_accumulator_cppd.v1 = 0;
+            }
+    end
+
+    
+    atom type UserMachine_core (const bool starts_UserMachine)
+    
+        
+        data chips_int startTime_aidd_input
+        
+        data chips_int endTime_aidd_input
+        
+        data chips_int id_aidd_input
+        
+        data chips_int maxNbData_aidd_input
+        
+        data chips_int httpResponse_aidd_input
+        
+        data chips_int computerID_aidd_ctx
+        
+        data chips_bool active_aidd_output
+        
+        data chips_bool waiting_aidd_output
+        
+        data chips_int time_aidd_output
+        
+        data chips_bool requiresAuth_aidd_output
+        
+        data chips_bool newPage_aidd_output
+        
+        data chips_int currentRequest_aidd_output
+        
+        data chips_int httpRequest_aidd_output
+        
+        data chips_int lastRequest_aidd_output
+        
+        data chips_int fromUserToInternet_aidd_output
+        
+        
+        export port int_port_t UserMachine_send_portdecl(fromUserToInternet_aidd_output)
+        
+        export port intintintintint_port_t UserMachine_recv_portdecl(startTime_aidd_input, endTime_aidd_input, id_aidd_input, maxNbData_aidd_input, httpResponse_aidd_input)
+        
+        export port int_port_t UserMachine_read_ctx_portdecl(computerID_aidd_ctx)
+        
+        export port int_port_t UserMachine_write_ctx_portdecl(computerID_aidd_ctx)
+        
+        port port_t starts_UserMachine_portdecl()
+        
+        port port_t then_UserMachine_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND, READCTX, WRITECTX
+        initial to INIT
+            do {
+                startTime_aidd_input = create_chips_int(1);
+                endTime_aidd_input = create_chips_int(1);
+                id_aidd_input = create_chips_int(1);
+                maxNbData_aidd_input = create_chips_int(1);
+                httpResponse_aidd_input = create_chips_int(1);
+                computerID_aidd_ctx = create_chips_int(1);
+                active_aidd_output = create_chips_bool(true);
+                waiting_aidd_output = create_chips_bool(true);
+                time_aidd_output = create_chips_int(1);
+                requiresAuth_aidd_output = create_chips_bool(true);
+                newPage_aidd_output = create_chips_bool(true);
+                currentRequest_aidd_output = create_chips_int(1);
+                httpRequest_aidd_output = create_chips_int(1);
+                lastRequest_aidd_output = create_chips_int(1);
+                fromUserToInternet_aidd_output = create_chips_int(1);
+                init_UserMachine(startTime_aidd_input, endTime_aidd_input, id_aidd_input, maxNbData_aidd_input, httpResponse_aidd_input, computerID_aidd_ctx, active_aidd_output, waiting_aidd_output, time_aidd_output, requiresAuth_aidd_output, newPage_aidd_output, currentRequest_aidd_output, httpRequest_aidd_output, lastRequest_aidd_output, fromUserToInternet_aidd_output);
+            }
+            
+            on starts_UserMachine_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_UserMachine)
+            
+            on starts_UserMachine_portdecl
+                from INIT
+                to SEND
+                provided (starts_UserMachine)
+            
+            on UserMachine_recv_portdecl
+                from RECEIVE
+                to READCTX
+                provided (true)
+            
+            on UserMachine_read_ctx_portdecl
+                from READCTX
+                to THEN
+                provided (true)
+            
+            on then_UserMachine_portdecl
+                from THEN
+                to WRITECTX
+                provided (true)
+                do {
+                        then_UserMachine(startTime_aidd_input, endTime_aidd_input, id_aidd_input, maxNbData_aidd_input, httpResponse_aidd_input, computerID_aidd_ctx, active_aidd_output, waiting_aidd_output, time_aidd_output, requiresAuth_aidd_output, newPage_aidd_output, currentRequest_aidd_output, httpRequest_aidd_output, lastRequest_aidd_output, fromUserToInternet_aidd_output);
+                }
+            
+            on UserMachine_write_ctx_portdecl
+                from WRITECTX
+                to SEND
+                provided (true)
+            
+            on UserMachine_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type ServerMachine_core (const bool starts_ServerMachine)
+    
+        
+        data chips_int wpServed_aidd_input
+        
+        data chips_int maxNbData_aidd_input
+        
+        data chips_int fromInternet_aidd_input
+        
+        data chips_int httpResponse_aidd_output
+        
+        data chips_int currentRequest_aidd_output
+        
+        data chips_bool requestFound_aidd_output
+        
+        data chips_int requestList_aidd_output
+        
+        data chips_int nbDataToOutput_aidd_output
+        
+        data chips_int userIDToOutput_aidd_output
+        
+        data chips_bool userAuthToOutput_aidd_output
+        
+        data chips_bool userAuth_aidd_output
+        
+        data chips_int nbData_aidd_output
+        
+        data chips_int userID_aidd_output
+        
+        data chips_int fromServerToInternet_aidd_output
+        
+        
+        export port boolintintint_port_t ServerMachine_send_portdecl(userAuth_aidd_output, nbData_aidd_output, userID_aidd_output, fromServerToInternet_aidd_output)
+        
+        export port intintint_port_t ServerMachine_recv_portdecl(wpServed_aidd_input, maxNbData_aidd_input, fromInternet_aidd_input)
+        
+        port port_t starts_ServerMachine_portdecl()
+        
+        port port_t then_ServerMachine_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                wpServed_aidd_input = create_chips_int(1);
+                maxNbData_aidd_input = create_chips_int(1);
+                fromInternet_aidd_input = create_chips_int(1);
+                httpResponse_aidd_output = create_chips_int(1);
+                currentRequest_aidd_output = create_chips_int(1);
+                requestFound_aidd_output = create_chips_bool(true);
+                requestList_aidd_output = create_chips_int(1);
+                nbDataToOutput_aidd_output = create_chips_int(1);
+                userIDToOutput_aidd_output = create_chips_int(1);
+                userAuthToOutput_aidd_output = create_chips_bool(true);
+                userAuth_aidd_output = create_chips_bool(true);
+                nbData_aidd_output = create_chips_int(1);
+                userID_aidd_output = create_chips_int(1);
+                fromServerToInternet_aidd_output = create_chips_int(1);
+                init_ServerMachine(wpServed_aidd_input, maxNbData_aidd_input, fromInternet_aidd_input, httpResponse_aidd_output, currentRequest_aidd_output, requestFound_aidd_output, requestList_aidd_output, nbDataToOutput_aidd_output, userIDToOutput_aidd_output, userAuthToOutput_aidd_output, userAuth_aidd_output, nbData_aidd_output, userID_aidd_output, fromServerToInternet_aidd_output);
+            }
+            
+            on starts_ServerMachine_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_ServerMachine)
+            
+            on starts_ServerMachine_portdecl
+                from INIT
+                to SEND
+                provided (starts_ServerMachine)
+            
+            on ServerMachine_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_ServerMachine_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_ServerMachine(wpServed_aidd_input, maxNbData_aidd_input, fromInternet_aidd_input, httpResponse_aidd_output, currentRequest_aidd_output, requestFound_aidd_output, requestList_aidd_output, nbDataToOutput_aidd_output, userIDToOutput_aidd_output, userAuthToOutput_aidd_output, userAuth_aidd_output, nbData_aidd_output, userID_aidd_output, fromServerToInternet_aidd_output);
+                }
+            
+            on ServerMachine_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type UserActionInterpreter_core (const bool starts_UserActionInterpreter)
+    
+        
+        data chips_bool authDataRcvd_aidd_input
+        
+        data chips_int nbDataRcvd_aidd_input
+        
+        data chips_int userIDRcvd_aidd_input
+        
+        data chips_bool authProvided_aidd_output
+        
+        data chips_int nbData_aidd_output
+        
+        data chips_int reqID_aidd_output
+        
+        
+        export port boolintint_port_t UserActionInterpreter_send_portdecl(authProvided_aidd_output, nbData_aidd_output, reqID_aidd_output)
+        
+        export port boolintint_port_t UserActionInterpreter_recv_portdecl(authDataRcvd_aidd_input, nbDataRcvd_aidd_input, userIDRcvd_aidd_input)
+        
+        port port_t starts_UserActionInterpreter_portdecl()
+        
+        port port_t then_UserActionInterpreter_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                authDataRcvd_aidd_input = create_chips_bool(true);
+                nbDataRcvd_aidd_input = create_chips_int(1);
+                userIDRcvd_aidd_input = create_chips_int(1);
+                authProvided_aidd_output = create_chips_bool(true);
+                nbData_aidd_output = create_chips_int(1);
+                reqID_aidd_output = create_chips_int(1);
+                init_UserActionInterpreter(authDataRcvd_aidd_input, nbDataRcvd_aidd_input, userIDRcvd_aidd_input, authProvided_aidd_output, nbData_aidd_output, reqID_aidd_output);
+            }
+            
+            on starts_UserActionInterpreter_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_UserActionInterpreter)
+            
+            on starts_UserActionInterpreter_portdecl
+                from INIT
+                to SEND
+                provided (starts_UserActionInterpreter)
+            
+            on UserActionInterpreter_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_UserActionInterpreter_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_UserActionInterpreter(authDataRcvd_aidd_input, nbDataRcvd_aidd_input, userIDRcvd_aidd_input, authProvided_aidd_output, nbData_aidd_output, reqID_aidd_output);
+                }
+            
+            on UserActionInterpreter_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type Authenticator_core (const bool starts_Authenticator)
+    
+        
+        data chips_bool authProvided_aidd_input
+        
+        data chips_bool isAuthenticated_aidd_output
+        
+        
+        export port bool_port_t Authenticator_send_portdecl(isAuthenticated_aidd_output)
+        
+        export port bool_port_t Authenticator_recv_portdecl(authProvided_aidd_input)
+        
+        port port_t starts_Authenticator_portdecl()
+        
+        port port_t then_Authenticator_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                authProvided_aidd_input = create_chips_bool(true);
+                isAuthenticated_aidd_output = create_chips_bool(true);
+                init_Authenticator(authProvided_aidd_input, isAuthenticated_aidd_output);
+            }
+            
+            on starts_Authenticator_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_Authenticator)
+            
+            on starts_Authenticator_portdecl
+                from INIT
+                to SEND
+                provided (starts_Authenticator)
+            
+            on Authenticator_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_Authenticator_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_Authenticator(authProvided_aidd_input, isAuthenticated_aidd_output);
+                }
+            
+            on Authenticator_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type RequestValidator_core (const bool starts_RequestValidator)
+    
+        
+        data chips_bool isAuthenticated_aidd_input
+        
+        data chips_int nbData_aidd_input
+        
+        data chips_int requestID_aidd_input
+        
+        data chips_int nbDataToFetch_aidd_output
+        
+        data chips_bool needRedirection_aidd_output
+        
+        data chips_bool redirection_aidd_output
+        
+        data chips_int nbDataRequested_aidd_output
+        
+        data chips_int userID_aidd_output
+        
+        
+        export port boolintint_port_t RequestValidator_send_portdecl(redirection_aidd_output, nbDataRequested_aidd_output, userID_aidd_output)
+        
+        export port boolintint_port_t RequestValidator_recv_portdecl(isAuthenticated_aidd_input, nbData_aidd_input, requestID_aidd_input)
+        
+        port port_t starts_RequestValidator_portdecl()
+        
+        port port_t then_RequestValidator_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                isAuthenticated_aidd_input = create_chips_bool(true);
+                nbData_aidd_input = create_chips_int(1);
+                requestID_aidd_input = create_chips_int(1);
+                nbDataToFetch_aidd_output = create_chips_int(1);
+                needRedirection_aidd_output = create_chips_bool(true);
+                redirection_aidd_output = create_chips_bool(true);
+                nbDataRequested_aidd_output = create_chips_int(1);
+                userID_aidd_output = create_chips_int(1);
+                init_RequestValidator(isAuthenticated_aidd_input, nbData_aidd_input, requestID_aidd_input, nbDataToFetch_aidd_output, needRedirection_aidd_output, redirection_aidd_output, nbDataRequested_aidd_output, userID_aidd_output);
+            }
+            
+            on starts_RequestValidator_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_RequestValidator)
+            
+            on starts_RequestValidator_portdecl
+                from INIT
+                to SEND
+                provided (starts_RequestValidator)
+            
+            on RequestValidator_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_RequestValidator_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_RequestValidator(isAuthenticated_aidd_input, nbData_aidd_input, requestID_aidd_input, nbDataToFetch_aidd_output, needRedirection_aidd_output, redirection_aidd_output, nbDataRequested_aidd_output, userID_aidd_output);
+                }
+            
+            on RequestValidator_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type RequestLimiter_core (const bool starts_RequestLimiter)
+    
+        
+        data chips_bool redirection_aidd_input
+        
+        data chips_int maxRequests_aidd_input
+        
+        data chips_int userID_aidd_input
+        
+        data chips_int nbDataToFetch_aidd_input
+        
+        data chips_int nbAnsweredReqs_aidd_input
+        
+        data chips_int currentNbRequests_aidd_output
+        
+        data chips_bool redirection_aidd_output
+        
+        data chips_int userID_aidd_output
+        
+        data chips_int dataQty_aidd_output
+        
+        
+        export port boolintint_port_t RequestLimiter_send_portdecl(redirection_aidd_output, userID_aidd_output, dataQty_aidd_output)
+        
+        export port boolintintintint_port_t RequestLimiter_recv_portdecl(redirection_aidd_input, maxRequests_aidd_input, userID_aidd_input, nbDataToFetch_aidd_input, nbAnsweredReqs_aidd_input)
+        
+        port port_t starts_RequestLimiter_portdecl()
+        
+        port port_t then_RequestLimiter_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                redirection_aidd_input = create_chips_bool(true);
+                maxRequests_aidd_input = create_chips_int(1);
+                userID_aidd_input = create_chips_int(1);
+                nbDataToFetch_aidd_input = create_chips_int(1);
+                nbAnsweredReqs_aidd_input = create_chips_int(1);
+                currentNbRequests_aidd_output = create_chips_int(1);
+                redirection_aidd_output = create_chips_bool(true);
+                userID_aidd_output = create_chips_int(1);
+                dataQty_aidd_output = create_chips_int(1);
+                init_RequestLimiter(redirection_aidd_input, maxRequests_aidd_input, userID_aidd_input, nbDataToFetch_aidd_input, nbAnsweredReqs_aidd_input, currentNbRequests_aidd_output, redirection_aidd_output, userID_aidd_output, dataQty_aidd_output);
+            }
+            
+            on starts_RequestLimiter_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_RequestLimiter)
+            
+            on starts_RequestLimiter_portdecl
+                from INIT
+                to SEND
+                provided (starts_RequestLimiter)
+            
+            on RequestLimiter_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_RequestLimiter_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_RequestLimiter(redirection_aidd_input, maxRequests_aidd_input, userID_aidd_input, nbDataToFetch_aidd_input, nbAnsweredReqs_aidd_input, currentNbRequests_aidd_output, redirection_aidd_output, userID_aidd_output, dataQty_aidd_output);
+                }
+            
+            on RequestLimiter_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type Cache_core (const bool starts_Cache)
+    
+        
+        data chips_int requestedData_aidd_input
+        
+        data chips_int cacheSize_aidd_input
+        
+        data chips_int maxCacheSize_aidd_output
+        
+        data chips_int minCacheSize_aidd_output
+        
+        data chips_int cache_aidd_output
+        
+        data chips_int newestDataIndex_aidd_output
+        
+        data chips_bool found_aidd_output
+        
+        data chips_int foundIndex_aidd_output
+        
+        data chips_bool foundInCache_aidd_output
+        
+        
+        export port bool_port_t Cache_send_portdecl(foundInCache_aidd_output)
+        
+        export port intint_port_t Cache_recv_portdecl(requestedData_aidd_input, cacheSize_aidd_input)
+        
+        port port_t starts_Cache_portdecl()
+        
+        port port_t then_Cache_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                requestedData_aidd_input = create_chips_int(1);
+                cacheSize_aidd_input = create_chips_int(1);
+                maxCacheSize_aidd_output = create_chips_int(1);
+                minCacheSize_aidd_output = create_chips_int(1);
+                cache_aidd_output = create_chips_int(1);
+                newestDataIndex_aidd_output = create_chips_int(1);
+                found_aidd_output = create_chips_bool(true);
+                foundIndex_aidd_output = create_chips_int(1);
+                foundInCache_aidd_output = create_chips_bool(true);
+                init_Cache(requestedData_aidd_input, cacheSize_aidd_input, maxCacheSize_aidd_output, minCacheSize_aidd_output, cache_aidd_output, newestDataIndex_aidd_output, found_aidd_output, foundIndex_aidd_output, foundInCache_aidd_output);
+            }
+            
+            on starts_Cache_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_Cache)
+            
+            on starts_Cache_portdecl
+                from INIT
+                to SEND
+                provided (starts_Cache)
+            
+            on Cache_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_Cache_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_Cache(requestedData_aidd_input, cacheSize_aidd_input, maxCacheSize_aidd_output, minCacheSize_aidd_output, cache_aidd_output, newestDataIndex_aidd_output, found_aidd_output, foundIndex_aidd_output, foundInCache_aidd_output);
+                }
+            
+            on Cache_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type DataProvider_core (const bool starts_DataProvider)
+    
+        
+        data chips_bool redirection_aidd_input
+        
+        data chips_bool cacheResponse_aidd_input
+        
+        data chips_int userID_aidd_input
+        
+        data chips_int dataQty_aidd_input
+        
+        data chips_int maxDifferentData_aidd_output
+        
+        data chips_int maxUserID_aidd_output
+        
+        data chips_int dataPerUserID_aidd_output
+        
+        data chips_int currentlyTreatedUserRequest_aidd_output
+        
+        data chips_int httpResponse_aidd_output
+        
+        data chips_int dataToFetch_aidd_output
+        
+        data chips_float time_aidd_output
+        
+        data chips_bool cacheSearching_aidd_output
+        
+        data chips_bool oneLessPendingRequest_aidd_output
+        
+        data chips_bool enableTimeReading_aidd_output
+        
+        data chips_float timeSpentOnReq_aidd_output
+        
+        data chips_int userID_aidd_output
+        
+        data chips_int cacheRequest_aidd_output
+        
+        
+        export port boolboolfloatintint_port_t DataProvider_send_portdecl(oneLessPendingRequest_aidd_output, enableTimeReading_aidd_output, timeSpentOnReq_aidd_output, userID_aidd_output, cacheRequest_aidd_output)
+        
+        export port boolboolintint_port_t DataProvider_recv_portdecl(redirection_aidd_input, cacheResponse_aidd_input, userID_aidd_input, dataQty_aidd_input)
+        
+        port port_t starts_DataProvider_portdecl()
+        
+        port port_t then_DataProvider_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                redirection_aidd_input = create_chips_bool(true);
+                cacheResponse_aidd_input = create_chips_bool(true);
+                userID_aidd_input = create_chips_int(1);
+                dataQty_aidd_input = create_chips_int(1);
+                maxDifferentData_aidd_output = create_chips_int(1);
+                maxUserID_aidd_output = create_chips_int(1);
+                dataPerUserID_aidd_output = create_chips_int(1);
+                currentlyTreatedUserRequest_aidd_output = create_chips_int(1);
+                httpResponse_aidd_output = create_chips_int(1);
+                dataToFetch_aidd_output = create_chips_int(1);
+                time_aidd_output = create_chips_float(1.0);
+                cacheSearching_aidd_output = create_chips_bool(true);
+                oneLessPendingRequest_aidd_output = create_chips_bool(true);
+                oneLessPendingRequest_aidd_output = create_chips_bool(true);
+                enableTimeReading_aidd_output = create_chips_bool(true);
+                timeSpentOnReq_aidd_output = create_chips_float(1.0);
+                userID_aidd_output = create_chips_int(1);
+                cacheRequest_aidd_output = create_chips_int(1);
+                init_DataProvider(redirection_aidd_input, cacheResponse_aidd_input, userID_aidd_input, dataQty_aidd_input, maxDifferentData_aidd_output, maxUserID_aidd_output, dataPerUserID_aidd_output, currentlyTreatedUserRequest_aidd_output, httpResponse_aidd_output, dataToFetch_aidd_output, time_aidd_output, cacheSearching_aidd_output, oneLessPendingRequest_aidd_output, oneLessPendingRequest_aidd_output, enableTimeReading_aidd_output, timeSpentOnReq_aidd_output, userID_aidd_output, cacheRequest_aidd_output);
+            }
+            
+            on starts_DataProvider_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_DataProvider)
+            
+            on starts_DataProvider_portdecl
+                from INIT
+                to SEND
+                provided (starts_DataProvider)
+            
+            on DataProvider_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_DataProvider_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_DataProvider(redirection_aidd_input, cacheResponse_aidd_input, userID_aidd_input, dataQty_aidd_input, maxDifferentData_aidd_output, maxUserID_aidd_output, dataPerUserID_aidd_output, currentlyTreatedUserRequest_aidd_output, httpResponse_aidd_output, dataToFetch_aidd_output, time_aidd_output, cacheSearching_aidd_output, oneLessPendingRequest_aidd_output, oneLessPendingRequest_aidd_output, enableTimeReading_aidd_output, timeSpentOnReq_aidd_output, userID_aidd_output, cacheRequest_aidd_output);
+                }
+            
+            on DataProvider_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type WebPageService_core (const bool starts_WebPageService)
+    
+        
+        data chips_int respondToThisIDs_aidd_input
+        
+        data chips_int currentRequestAnswered_aidd_output
+        
+        data chips_int requestsToAnswerTo_aidd_output
+        
+        data chips_bool requestFound_aidd_output
+        
+        data chips_int httpResponse_aidd_output
+        
+        
+        export port int_port_t WebPageService_send_portdecl(httpResponse_aidd_output)
+        
+        export port int_port_t WebPageService_recv_portdecl(respondToThisIDs_aidd_input)
+        
+        port port_t starts_WebPageService_portdecl()
+        
+        port port_t then_WebPageService_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                respondToThisIDs_aidd_input = create_chips_int(1);
+                currentRequestAnswered_aidd_output = create_chips_int(1);
+                requestsToAnswerTo_aidd_output = create_chips_int(1);
+                requestFound_aidd_output = create_chips_bool(true);
+                httpResponse_aidd_output = create_chips_int(1);
+                init_WebPageService(respondToThisIDs_aidd_input, currentRequestAnswered_aidd_output, requestsToAnswerTo_aidd_output, requestFound_aidd_output, httpResponse_aidd_output);
+            }
+            
+            on starts_WebPageService_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_WebPageService)
+            
+            on starts_WebPageService_portdecl
+                from INIT
+                to SEND
+                provided (starts_WebPageService)
+            
+            on WebPageService_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_WebPageService_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_WebPageService(respondToThisIDs_aidd_input, currentRequestAnswered_aidd_output, requestsToAnswerTo_aidd_output, requestFound_aidd_output, httpResponse_aidd_output);
+                }
+            
+            on WebPageService_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type PidController_core (const bool starts_PidController)
+    
+        
+        data chips_bool enabled_aidd_input
+        
+        data chips_float requested_time_aidd_input
+        
+        data chips_float resulting_time_aidd_input
+        
+        data chips_float derivative_aidd_output
+        
+        data chips_float integral_aidd_output
+        
+        data chips_float kw_error_aidd_output
+        
+        data chips_float dt_aidd_output
+        
+        data chips_float p_aidd_output
+        
+        data chips_float i_aidd_output
+        
+        data chips_float d_aidd_output
+        
+        data chips_int knob_value_aidd_output
+        
+        data chips_int min_knob_value_aidd_output
+        
+        data chips_int max_knob_value_aidd_output
+        
+        data chips_int knob_aidd_output
+        
+        
+        export port int_port_t PidController_send_portdecl(knob_aidd_output)
+        
+        export port boolfloatfloat_port_t PidController_recv_portdecl(enabled_aidd_input, requested_time_aidd_input, resulting_time_aidd_input)
+        
+        port port_t starts_PidController_portdecl()
+        
+        port port_t then_PidController_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND
+        initial to INIT
+            do {
+                enabled_aidd_input = create_chips_bool(true);
+                requested_time_aidd_input = create_chips_float(1.0);
+                resulting_time_aidd_input = create_chips_float(1.0);
+                derivative_aidd_output = create_chips_float(1.0);
+                integral_aidd_output = create_chips_float(1.0);
+                kw_error_aidd_output = create_chips_float(1.0);
+                dt_aidd_output = create_chips_float(1.0);
+                p_aidd_output = create_chips_float(1.0);
+                i_aidd_output = create_chips_float(1.0);
+                d_aidd_output = create_chips_float(1.0);
+                knob_value_aidd_output = create_chips_int(1);
+                min_knob_value_aidd_output = create_chips_int(1);
+                max_knob_value_aidd_output = create_chips_int(1);
+                knob_aidd_output = create_chips_int(1);
+                init_PidController(enabled_aidd_input, requested_time_aidd_input, resulting_time_aidd_input, derivative_aidd_output, integral_aidd_output, kw_error_aidd_output, dt_aidd_output, p_aidd_output, i_aidd_output, d_aidd_output, knob_value_aidd_output, min_knob_value_aidd_output, max_knob_value_aidd_output, knob_aidd_output);
+            }
+            
+            on starts_PidController_portdecl
+                from INIT
+                to RECEIVE
+                provided (! starts_PidController)
+            
+            on starts_PidController_portdecl
+                from INIT
+                to SEND
+                provided (starts_PidController)
+            
+            on PidController_recv_portdecl
+                from RECEIVE
+                to THEN
+                provided (true)
+            
+            on then_PidController_portdecl
+                from THEN
+                to SEND
+                provided (true)
+                do {
+                        then_PidController(enabled_aidd_input, requested_time_aidd_input, resulting_time_aidd_input, derivative_aidd_output, integral_aidd_output, kw_error_aidd_output, dt_aidd_output, p_aidd_output, i_aidd_output, d_aidd_output, knob_value_aidd_output, min_knob_value_aidd_output, max_knob_value_aidd_output, knob_aidd_output);
+                }
+            
+            on PidController_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+    
+    
+    end
+
+    
+    atom type int_buffer_t ()
+    
+        
+        data chips_int int_monotype_buffer_data
+        
+        
+        export port int_port_t int_in(int_monotype_buffer_data)
+        
+        export port int_port_t int_out(int_monotype_buffer_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            do {
+                int_monotype_buffer_data = create_chips_int(1);
+            }
+            
+            on int_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on int_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_buffer_t ()
+    
+        
+        data chips_float float_monotype_buffer_data
+        
+        
+        export port float_port_t float_in(float_monotype_buffer_data)
+        
+        export port float_port_t float_out(float_monotype_buffer_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            do {
+                float_monotype_buffer_data = create_chips_float(1.0);
+            }
+            
+            on float_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on float_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_buffer_t ()
+    
+        
+        data chips_bool bool_monotype_buffer_data
+        
+        
+        export port bool_port_t bool_in(bool_monotype_buffer_data)
+        
+        export port bool_port_t bool_out(bool_monotype_buffer_data)
+        
+        place DATA_RECEIVING, DATA_SENDING
+        initial to DATA_RECEIVING
+            do {
+                bool_monotype_buffer_data = create_chips_bool(true);
+            }
+            
+            on bool_out
+                from DATA_SENDING
+                to DATA_RECEIVING
+            
+            on bool_in
+                from DATA_RECEIVING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type int_constant_t (const int val)
+    
+        
+        data chips_int int_value_aidd
+        
+        
+        export port int_port_t int_output_portdecl(int_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            do {
+                int_value_aidd = create_chips_int(val);
+            }
+            
+            on int_output_portdecl
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type float_constant_t (const float val)
+    
+        
+        data chips_float float_value_aidd
+        
+        
+        export port float_port_t float_output_portdecl(float_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            do {
+                float_value_aidd = create_chips_float(val);
+            }
+            
+            on float_output_portdecl
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type bool_constant_t (const bool val)
+    
+        
+        data chips_bool bool_value_aidd
+        
+        
+        export port bool_port_t bool_output_portdecl(bool_value_aidd)
+        
+        place DATA_SENDING
+        initial to DATA_SENDING
+            do {
+                bool_value_aidd = create_chips_bool(val);
+            }
+            
+            on bool_output_portdecl
+                from DATA_SENDING
+                to DATA_SENDING
+    
+    
+    end
+
+    
+    atom type int_contextual_t (const string ctx_name)
+    
+        
+        data chips_int int_contextual_data
+        
+        
+        export port int_port_t receiveToken(int_contextual_data)
+        
+        export port int_port_t giveToken(int_contextual_data)
+        
+        export port int_port_t justRead(int_contextual_data)
+        
+        place AVAILABLE, BUSY
+        initial to AVAILABLE
+            do {
+                int_contextual_data = int_init_ctx(ctx_name);
+            }
+            
+            on giveToken
+                from AVAILABLE
+                to BUSY
+            
+            on receiveToken
+                from BUSY
+                to AVAILABLE
+            
+            on justRead
+                from AVAILABLE
+                to AVAILABLE
+    
+    
+    end
+
+    
+    atom type aggregatingRequests_placeholder_t ()
+    
+        
+        data chips_int requests_aidd
+        
+        
+        export port int_port_t aggregatingRequests_portdecl(requests_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                requests_aidd = zeros(create_chips_int(100));
+            }
+            
+            on aggregatingRequests_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        requests_aidd = zeros(create_chips_int(100));
+                }
+    
+    
+    end
+
+    
+    atom type broadcastDataQty_placeholder_t ()
+    
+        
+        data chips_int dataQtyToFind_aidd
+        
+        
+        export port int_port_t broadcastDataQty_portdecl(dataQtyToFind_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                dataQtyToFind_aidd = 1;
+            }
+            
+            on broadcastDataQty_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        dataQtyToFind_aidd = 1;
+                }
+    
+    
+    end
+
+    
+    atom type broadcastRedirection_placeholder_t ()
+    
+        
+        data chips_bool redirection_aidd
+        
+        
+        export port bool_port_t broadcastRedirection_portdecl(redirection_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                redirection_aidd = true;
+            }
+            
+            on broadcastRedirection_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        redirection_aidd = true;
+                }
+    
+    
+    end
+
+    
+    atom type responseToTheRightUser_placeholder_t ()
+    
+        
+        data chips_int fromInternet_aidd
+        
+        
+        export port int_port_t responseToTheRightUser_portdecl(fromInternet_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                fromInternet_aidd = 1;
+            }
+            
+            on responseToTheRightUser_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        fromInternet_aidd = 1;
+                }
+    
+    
+    end
+
+    
+    atom type allDataProvidersOutputs_placeholder_t ()
+    
+        
+        data chips_int answers_aidd
+        
+        
+        export port int_port_t allDataProvidersOutputs_portdecl(answers_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                answers_aidd = zeros(create_chips_int(100));
+            }
+            
+            on allDataProvidersOutputs_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        answers_aidd = zeros(create_chips_int(100));
+                }
+    
+    
+    end
+
+    
+    atom type numberOfRespondedRequests_placeholder_t ()
+    
+        
+        data chips_int sum_aidd
+        
+        
+        export port int_port_t numberOfRespondedRequests_portdecl(sum_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                sum_aidd = create_chips_int(0);
+            }
+            
+            on numberOfRespondedRequests_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        sum_aidd = create_chips_int(0);
+                }
+    
+    
+    end
+
+    
+    atom type findRightDataProvider_placeholder_t ()
+    
+        
+        data chips_int userID_aidd
+        
+        data chips_int nbJumps_aidd
+        
+        
+        export port intint_port_t findRightDataProvider_portdecl(userID_aidd, nbJumps_aidd)
+        
+        place INTERACT
+        initial to INTERACT
+            do {
+                userID_aidd = 1;
+                nbJumps_aidd = create_chips_int(0);
+            }
+            
+            on findRightDataProvider_portdecl
+                from INTERACT
+                to INTERACT
+                do {
+                        userID_aidd = 1;
+                        nbJumps_aidd = create_chips_int(0);
+                }
+    
+    
+    end
+
+    
+    compound type intintintintint_input_buffer_t ()
+    
+        component int_buffer_t int0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+        component int_buffer_t int3_bd ()
+        component int_buffer_t int4_bd ()
+    
+        connector many2one_intintintintint_t intintintintint_input_connector (int0_bd.int_out, int1_bd.int_out, int2_bd.int_out, int3_bd.int_out, int4_bd.int_out)
+    
+        export port int0_bd.int_in as int0_input_cepd_cepd
+        export port int1_bd.int_in as int1_input_cepd_cepd
+        export port int2_bd.int_in as int2_input_cepd_cepd
+        export port int3_bd.int_in as int3_input_cepd_cepd
+        export port int4_bd.int_in as int4_input_cepd_cepd
+        export port intintintintint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type int_output_buffer_t ()
+    
+        component int_buffer_t int0_bd ()
+    
+        connector one2many_int_t int_output_connector (int0_bd.int_in)
+    
+        export port int0_bd.int_out as int0_output_cepd_cepd
+        export port int_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type int_input_buffer_t ()
+    
+        component int_buffer_t int0_bd ()
+    
+        connector many2one_int_t int_input_connector (int0_bd.int_out)
+    
+        export port int0_bd.int_in as int0_input_cepd_cepd
+        export port int_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type UserMachine_compoundtype (const chips_bool starts_param_of_UserMachine)
+    
+        component UserMachine_core core (starts_param_of_UserMachine)
+        component intintintintint_input_buffer_t UserMachine_input_buffer_buffer_compounddecl ()
+        component int_output_buffer_t UserMachine_output_buffer_buffer_compounddecl ()
+        component int_input_buffer_t UserMachine_input_ctx_buffer_compounddecl ()
+        component int_output_buffer_t UserMachine_output_ctx_buffer_compounddecl ()
+    
+        connector flow_intintintintint_t input_to_core_cd (UserMachine_input_buffer_buffer_compounddecl.one_cepd, core.UserMachine_recv_portdecl)
+        connector flow_int_t core_to_output_cd (core.UserMachine_send_portdecl, UserMachine_output_buffer_buffer_compounddecl.one_cepd)
+        connector flow_int_t input_ctx_to_core_cd (UserMachine_input_ctx_buffer_compounddecl.one_cepd, core.UserMachine_read_ctx_portdecl)
+        connector flow_int_t core_to_output_ctx_cd (core.UserMachine_write_ctx_portdecl, UserMachine_output_ctx_buffer_compounddecl.one_cepd)
+    
+        export port UserMachine_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as startTime_input_cepd
+        export port UserMachine_input_buffer_buffer_compounddecl.int3_input_cepd_cepd as maxNbData_input_cepd
+        export port UserMachine_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as endTime_input_cepd
+        export port UserMachine_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as id_input_cepd
+        export port UserMachine_input_buffer_buffer_compounddecl.int4_input_cepd_cepd as httpResponse_input_cepd
+        export port UserMachine_output_buffer_buffer_compounddecl.int0_output_cepd_cepd as fromUserToInternet_output_cepd
+        export port UserMachine_input_ctx_buffer_compounddecl.int0_input_cepd_cepd as computerID_input_ctx_cepd
+        export port UserMachine_output_ctx_buffer_compounddecl.int0_output_cepd_cepd as computerID_output_ctx_cepd
+    
+    end
+
+    
+    compound type intintint_input_buffer_t ()
+    
+        component int_buffer_t int0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+    
+        connector many2one_intintint_t intintint_input_connector (int0_bd.int_out, int1_bd.int_out, int2_bd.int_out)
+    
+        export port int0_bd.int_in as int0_input_cepd_cepd
+        export port int1_bd.int_in as int1_input_cepd_cepd
+        export port int2_bd.int_in as int2_input_cepd_cepd
+        export port intintint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type boolintintint_output_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+        component int_buffer_t int3_bd ()
+    
+        connector one2many_boolintintint_t boolintintint_output_connector (bool0_bd.bool_in, int1_bd.int_in, int2_bd.int_in, int3_bd.int_in)
+    
+        export port bool0_bd.bool_out as bool0_output_cepd_cepd
+        export port int1_bd.int_out as int1_output_cepd_cepd
+        export port int2_bd.int_out as int2_output_cepd_cepd
+        export port int3_bd.int_out as int3_output_cepd_cepd
+        export port boolintintint_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type ServerMachine_compoundtype (const chips_bool starts_param_of_ServerMachine)
+    
+        component ServerMachine_core core (starts_param_of_ServerMachine)
+        component intintint_input_buffer_t ServerMachine_input_buffer_buffer_compounddecl ()
+        component boolintintint_output_buffer_t ServerMachine_output_buffer_buffer_compounddecl ()
+    
+        connector flow_intintint_t input_to_core_cd (ServerMachine_input_buffer_buffer_compounddecl.one_cepd, core.ServerMachine_recv_portdecl)
+        connector flow_boolintintint_t core_to_output_cd (core.ServerMachine_send_portdecl, ServerMachine_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port ServerMachine_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as wpServed_input_cepd
+        export port ServerMachine_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as maxNbData_input_cepd
+        export port ServerMachine_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as fromInternet_input_cepd
+        export port ServerMachine_output_buffer_buffer_compounddecl.int3_output_cepd_cepd as fromServerToInternet_output_cepd
+        export port ServerMachine_output_buffer_buffer_compounddecl.int1_output_cepd_cepd as nbData_output_cepd
+        export port ServerMachine_output_buffer_buffer_compounddecl.int2_output_cepd_cepd as userID_output_cepd
+        export port ServerMachine_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as userAuth_output_cepd
+    
+    end
+
+    
+    compound type boolintint_input_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+    
+        connector many2one_boolintint_t boolintint_input_connector (bool0_bd.bool_out, int1_bd.int_out, int2_bd.int_out)
+    
+        export port bool0_bd.bool_in as bool0_input_cepd_cepd
+        export port int1_bd.int_in as int1_input_cepd_cepd
+        export port int2_bd.int_in as int2_input_cepd_cepd
+        export port boolintint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type boolintint_output_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+    
+        connector one2many_boolintint_t boolintint_output_connector (bool0_bd.bool_in, int1_bd.int_in, int2_bd.int_in)
+    
+        export port bool0_bd.bool_out as bool0_output_cepd_cepd
+        export port int1_bd.int_out as int1_output_cepd_cepd
+        export port int2_bd.int_out as int2_output_cepd_cepd
+        export port boolintint_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type UserActionInterpreter_compoundtype (const chips_bool starts_param_of_UserActionInterpreter)
+    
+        component UserActionInterpreter_core core (starts_param_of_UserActionInterpreter)
+        component boolintint_input_buffer_t UserActionInterpreter_input_buffer_buffer_compounddecl ()
+        component boolintint_output_buffer_t UserActionInterpreter_output_buffer_buffer_compounddecl ()
+    
+        connector flow_boolintint_t input_to_core_cd (UserActionInterpreter_input_buffer_buffer_compounddecl.one_cepd, core.UserActionInterpreter_recv_portdecl)
+        connector flow_boolintint_t core_to_output_cd (core.UserActionInterpreter_send_portdecl, UserActionInterpreter_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port UserActionInterpreter_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as authDataRcvd_input_cepd
+        export port UserActionInterpreter_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as nbDataRcvd_input_cepd
+        export port UserActionInterpreter_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as userIDRcvd_input_cepd
+        export port UserActionInterpreter_output_buffer_buffer_compounddecl.int1_output_cepd_cepd as nbData_output_cepd
+        export port UserActionInterpreter_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as authProvided_output_cepd
+        export port UserActionInterpreter_output_buffer_buffer_compounddecl.int2_output_cepd_cepd as reqID_output_cepd
+    
+    end
+
+    
+    compound type bool_input_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+    
+        connector many2one_bool_t bool_input_connector (bool0_bd.bool_out)
+    
+        export port bool0_bd.bool_in as bool0_input_cepd_cepd
+        export port bool_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type bool_output_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+    
+        connector one2many_bool_t bool_output_connector (bool0_bd.bool_in)
+    
+        export port bool0_bd.bool_out as bool0_output_cepd_cepd
+        export port bool_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type Authenticator_compoundtype (const chips_bool starts_param_of_Authenticator)
+    
+        component Authenticator_core core (starts_param_of_Authenticator)
+        component bool_input_buffer_t Authenticator_input_buffer_buffer_compounddecl ()
+        component bool_output_buffer_t Authenticator_output_buffer_buffer_compounddecl ()
+    
+        connector flow_bool_t input_to_core_cd (Authenticator_input_buffer_buffer_compounddecl.one_cepd, core.Authenticator_recv_portdecl)
+        connector flow_bool_t core_to_output_cd (core.Authenticator_send_portdecl, Authenticator_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port Authenticator_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as authProvided_input_cepd
+        export port Authenticator_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as isAuthenticated_output_cepd
+    
+    end
+
+    
+    compound type RequestValidator_compoundtype (const chips_bool starts_param_of_RequestValidator)
+    
+        component RequestValidator_core core (starts_param_of_RequestValidator)
+        component boolintint_input_buffer_t RequestValidator_input_buffer_buffer_compounddecl ()
+        component boolintint_output_buffer_t RequestValidator_output_buffer_buffer_compounddecl ()
+    
+        connector flow_boolintint_t input_to_core_cd (RequestValidator_input_buffer_buffer_compounddecl.one_cepd, core.RequestValidator_recv_portdecl)
+        connector flow_boolintint_t core_to_output_cd (core.RequestValidator_send_portdecl, RequestValidator_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port RequestValidator_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as nbData_input_cepd
+        export port RequestValidator_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as requestID_input_cepd
+        export port RequestValidator_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as isAuthenticated_input_cepd
+        export port RequestValidator_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as redirection_output_cepd
+        export port RequestValidator_output_buffer_buffer_compounddecl.int2_output_cepd_cepd as userID_output_cepd
+        export port RequestValidator_output_buffer_buffer_compounddecl.int1_output_cepd_cepd as nbDataRequested_output_cepd
+    
+    end
+
+    
+    compound type boolintintintint_input_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component int_buffer_t int1_bd ()
+        component int_buffer_t int2_bd ()
+        component int_buffer_t int3_bd ()
+        component int_buffer_t int4_bd ()
+    
+        connector many2one_boolintintintint_t boolintintintint_input_connector (bool0_bd.bool_out, int1_bd.int_out, int2_bd.int_out, int3_bd.int_out, int4_bd.int_out)
+    
+        export port bool0_bd.bool_in as bool0_input_cepd_cepd
+        export port int1_bd.int_in as int1_input_cepd_cepd
+        export port int2_bd.int_in as int2_input_cepd_cepd
+        export port int3_bd.int_in as int3_input_cepd_cepd
+        export port int4_bd.int_in as int4_input_cepd_cepd
+        export port boolintintintint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type RequestLimiter_compoundtype (const chips_bool starts_param_of_RequestLimiter)
+    
+        component RequestLimiter_core core (starts_param_of_RequestLimiter)
+        component boolintintintint_input_buffer_t RequestLimiter_input_buffer_buffer_compounddecl ()
+        component boolintint_output_buffer_t RequestLimiter_output_buffer_buffer_compounddecl ()
+    
+        connector flow_boolintintintint_t input_to_core_cd (RequestLimiter_input_buffer_buffer_compounddecl.one_cepd, core.RequestLimiter_recv_portdecl)
+        connector flow_boolintint_t core_to_output_cd (core.RequestLimiter_send_portdecl, RequestLimiter_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port RequestLimiter_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as maxRequests_input_cepd
+        export port RequestLimiter_input_buffer_buffer_compounddecl.int3_input_cepd_cepd as nbDataToFetch_input_cepd
+        export port RequestLimiter_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as redirection_input_cepd
+        export port RequestLimiter_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as userID_input_cepd
+        export port RequestLimiter_input_buffer_buffer_compounddecl.int4_input_cepd_cepd as nbAnsweredReqs_input_cepd
+        export port RequestLimiter_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as redirection_output_cepd
+        export port RequestLimiter_output_buffer_buffer_compounddecl.int1_output_cepd_cepd as userID_output_cepd
+        export port RequestLimiter_output_buffer_buffer_compounddecl.int2_output_cepd_cepd as dataQty_output_cepd
+    
+    end
+
+    
+    compound type intint_input_buffer_t ()
+    
+        component int_buffer_t int0_bd ()
+        component int_buffer_t int1_bd ()
+    
+        connector many2one_intint_t intint_input_connector (int0_bd.int_out, int1_bd.int_out)
+    
+        export port int0_bd.int_in as int0_input_cepd_cepd
+        export port int1_bd.int_in as int1_input_cepd_cepd
+        export port intint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type Cache_compoundtype (const chips_bool starts_param_of_Cache)
+    
+        component Cache_core core (starts_param_of_Cache)
+        component intint_input_buffer_t Cache_input_buffer_buffer_compounddecl ()
+        component bool_output_buffer_t Cache_output_buffer_buffer_compounddecl ()
+    
+        connector flow_intint_t input_to_core_cd (Cache_input_buffer_buffer_compounddecl.one_cepd, core.Cache_recv_portdecl)
+        connector flow_bool_t core_to_output_cd (core.Cache_send_portdecl, Cache_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port Cache_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as requestedData_input_cepd
+        export port Cache_input_buffer_buffer_compounddecl.int1_input_cepd_cepd as cacheSize_input_cepd
+        export port Cache_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as foundInCache_output_cepd
+    
+    end
+
+    
+    compound type boolboolintint_input_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component bool_buffer_t bool1_bd ()
+        component int_buffer_t int2_bd ()
+        component int_buffer_t int3_bd ()
+    
+        connector many2one_boolboolintint_t boolboolintint_input_connector (bool0_bd.bool_out, bool1_bd.bool_out, int2_bd.int_out, int3_bd.int_out)
+    
+        export port bool0_bd.bool_in as bool0_input_cepd_cepd
+        export port bool1_bd.bool_in as bool1_input_cepd_cepd
+        export port int2_bd.int_in as int2_input_cepd_cepd
+        export port int3_bd.int_in as int3_input_cepd_cepd
+        export port boolboolintint_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type boolboolfloatintint_output_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component bool_buffer_t bool1_bd ()
+        component float_buffer_t float2_bd ()
+        component int_buffer_t int3_bd ()
+        component int_buffer_t int4_bd ()
+    
+        connector one2many_boolboolfloatintint_t boolboolfloatintint_output_connector (bool0_bd.bool_in, bool1_bd.bool_in, float2_bd.float_in, int3_bd.int_in, int4_bd.int_in)
+    
+        export port bool0_bd.bool_out as bool0_output_cepd_cepd
+        export port bool1_bd.bool_out as bool1_output_cepd_cepd
+        export port float2_bd.float_out as float2_output_cepd_cepd
+        export port int3_bd.int_out as int3_output_cepd_cepd
+        export port int4_bd.int_out as int4_output_cepd_cepd
+        export port boolboolfloatintint_output_connector.s_exported_port as one_cepd
+    
+    end
+
+    
+    compound type DataProvider_compoundtype (const chips_bool starts_param_of_DataProvider)
+    
+        component DataProvider_core core (starts_param_of_DataProvider)
+        component boolboolintint_input_buffer_t DataProvider_input_buffer_buffer_compounddecl ()
+        component boolboolfloatintint_output_buffer_t DataProvider_output_buffer_buffer_compounddecl ()
+    
+        connector flow_boolboolintint_t input_to_core_cd (DataProvider_input_buffer_buffer_compounddecl.one_cepd, core.DataProvider_recv_portdecl)
+        connector flow_boolboolfloatintint_t core_to_output_cd (core.DataProvider_send_portdecl, DataProvider_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port DataProvider_input_buffer_buffer_compounddecl.bool1_input_cepd_cepd as cacheResponse_input_cepd
+        export port DataProvider_input_buffer_buffer_compounddecl.int3_input_cepd_cepd as dataQty_input_cepd
+        export port DataProvider_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as redirection_input_cepd
+        export port DataProvider_input_buffer_buffer_compounddecl.int2_input_cepd_cepd as userID_input_cepd
+        export port DataProvider_output_buffer_buffer_compounddecl.float2_output_cepd_cepd as timeSpentOnReq_output_cepd
+        export port DataProvider_output_buffer_buffer_compounddecl.int4_output_cepd_cepd as cacheRequest_output_cepd
+        export port DataProvider_output_buffer_buffer_compounddecl.bool0_output_cepd_cepd as oneLessPendingRequest_output_cepd
+        export port DataProvider_output_buffer_buffer_compounddecl.int3_output_cepd_cepd as userID_output_cepd
+        export port DataProvider_output_buffer_buffer_compounddecl.bool1_output_cepd_cepd as enableTimeReading_output_cepd
+    
+    end
+
+    
+    compound type WebPageService_compoundtype (const chips_bool starts_param_of_WebPageService)
+    
+        component WebPageService_core core (starts_param_of_WebPageService)
+        component int_input_buffer_t WebPageService_input_buffer_buffer_compounddecl ()
+        component int_output_buffer_t WebPageService_output_buffer_buffer_compounddecl ()
+    
+        connector flow_int_t input_to_core_cd (WebPageService_input_buffer_buffer_compounddecl.one_cepd, core.WebPageService_recv_portdecl)
+        connector flow_int_t core_to_output_cd (core.WebPageService_send_portdecl, WebPageService_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port WebPageService_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as respondToThisIDs_input_cepd
+        export port WebPageService_output_buffer_buffer_compounddecl.int0_output_cepd_cepd as httpResponse_output_cepd
+    
+    end
+
+    
+    compound type boolfloatfloat_input_buffer_t ()
+    
+        component bool_buffer_t bool0_bd ()
+        component float_buffer_t float1_bd ()
+        component float_buffer_t float2_bd ()
+    
+        connector many2one_boolfloatfloat_t boolfloatfloat_input_connector (bool0_bd.bool_out, float1_bd.float_out, float2_bd.float_out)
+    
+        export port bool0_bd.bool_in as bool0_input_cepd_cepd
+        export port float1_bd.float_in as float1_input_cepd_cepd
+        export port float2_bd.float_in as float2_input_cepd_cepd
+        export port boolfloatfloat_input_connector.r_exported_port as one_cepd
+    
+    end
+
+    
+    compound type PidController_compoundtype (const chips_bool starts_param_of_PidController)
+    
+        component PidController_core core (starts_param_of_PidController)
+        component boolfloatfloat_input_buffer_t PidController_input_buffer_buffer_compounddecl ()
+        component int_output_buffer_t PidController_output_buffer_buffer_compounddecl ()
+    
+        connector flow_boolfloatfloat_t input_to_core_cd (PidController_input_buffer_buffer_compounddecl.one_cepd, core.PidController_recv_portdecl)
+        connector flow_int_t core_to_output_cd (core.PidController_send_portdecl, PidController_output_buffer_buffer_compounddecl.one_cepd)
+    
+        export port PidController_input_buffer_buffer_compounddecl.float2_input_cepd_cepd as resulting_time_input_cepd
+        export port PidController_input_buffer_buffer_compounddecl.float1_input_cepd_cepd as requested_time_input_cepd
+        export port PidController_input_buffer_buffer_compounddecl.bool0_input_cepd_cepd as enabled_input_cepd
+        export port PidController_output_buffer_buffer_compounddecl.int0_output_cepd_cepd as knob_output_cepd
+    
+    end
+
+    
+    compound type SYSTEM_COMPOUND ()
+    
+        component int_constant_t cst23 (100)
+        component int_constant_t cst22 (100)
+        component int_constant_t cst21 (0)
+        component int_constant_t cst20 (1000)
+        component PidController_compoundtype ctrl_0_compounddecl (true)
+        component PidController_compoundtype ctrl_1_compounddecl (true)
+        component PidController_compoundtype ctrl_2_compounddecl (true)
+        component PidController_compoundtype ctrl_3_compounddecl (true)
+        component DataProvider_compoundtype dprovider_0_compounddecl (true)
+        component DataProvider_compoundtype dprovider_1_compounddecl (true)
+        component DataProvider_compoundtype dprovider_2_compounddecl (true)
+        component DataProvider_compoundtype dprovider_3_compounddecl (true)
+        component int_constant_t cst29 (400)
+        component int_constant_t cst28 (400)
+        component int_constant_t cst27 (400)
+        component Authenticator_compoundtype authenticator_1_compounddecl (true)
+        component int_constant_t cst26 (400)
+        component int_constant_t cst25 (400)
+        component int_constant_t cst24 (100)
+        component int_constant_t cst12 (1000)
+        component float_constant_t cst34 (4.0)
+        component int_constant_t cst11 (6)
+        component float_constant_t cst33 (4.0)
+        component Cache_compoundtype cache_0_compounddecl (true)
+        component Cache_compoundtype cache_1_compounddecl (true)
+        component Cache_compoundtype cache_2_compounddecl (true)
+        component Cache_compoundtype cache_3_compounddecl (true)
+        component int_constant_t cst10 (1000)
+        component float_constant_t cst32 (4.0)
+        component int_constant_t cst31 (100)
+        component int_constant_t cst30 (400)
+        component UserMachine_compoundtype umachine_0_compounddecl (true)
+        component UserMachine_compoundtype umachine_1_compounddecl (true)
+        component UserMachine_compoundtype umachine_2_compounddecl (true)
+        component UserMachine_compoundtype umachine_3_compounddecl (true)
+        component UserMachine_compoundtype umachine_4_compounddecl (true)
+        component UserMachine_compoundtype umachine_5_compounddecl (true)
+        component UserMachine_compoundtype umachine_6_compounddecl (true)
+        component UserMachine_compoundtype umachine_7_compounddecl (true)
+        component UserMachine_compoundtype umachine_8_compounddecl (true)
+        component UserMachine_compoundtype umachine_9_compounddecl (true)
+        component WebPageService_compoundtype wpservice_1_compounddecl (true)
+        component ServerMachine_compoundtype smachine_1_compounddecl (true)
+        component RequestValidator_compoundtype rvalidator_1_compounddecl (true)
+        component UserActionInterpreter_compoundtype uainterpreter_1_compounddecl (true)
+        component int_constant_t cst3 (2)
+        component int_constant_t cst2 (1000)
+        component int_constant_t cst5 (3)
+        component RequestLimiter_compoundtype rlimiter_1_compounddecl (true)
+        component int_constant_t cst4 (1000)
+        component int_constant_t cst1 (1)
+        component int_constant_t cst19 (10)
+        component int_constant_t cst18 (1000)
+        component int_constant_t cst17 (9)
+        component int_constant_t cst7 (4)
+        component int_constant_t cst16 (1000)
+        component int_constant_t cst6 (1000)
+        component int_constant_t cst15 (8)
+        component int_constant_t cst9 (5)
+        component int_constant_t cst14 (1000)
+        component int_constant_t cst8 (1000)
+        component int_constant_t cst13 (7)
+        component float_constant_t cst35 (4.0)
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_8_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_5_prev ()
+        component broadcastDataQty_placeholder_t broadcastDataQty_placeholder_bobject_3_next ()
+        component broadcastDataQty_placeholder_t broadcastDataQty_placeholder_bobject_0_prev ()
+        component allDataProvidersOutputs_placeholder_t allDataProvidersOutputs_placeholder_bobject_1_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_7_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_2_prev ()
+        component numberOfRespondedRequests_placeholder_t numberOfRespondedRequests_placeholder_bobject_2_prev ()
+        component broadcastRedirection_placeholder_t broadcastRedirection_placeholder_bobject_3_prev ()
+        component findRightDataProvider_placeholder_t findRightDataProvider_placeholder_bobject_2_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_2_prev ()
+        component findRightDataProvider_placeholder_t findRightDataProvider_placeholder_bobject_3_next ()
+        component allDataProvidersOutputs_placeholder_t allDataProvidersOutputs_placeholder_bobject_2_prev ()
+        component findRightDataProvider_placeholder_t findRightDataProvider_placeholder_bobject_3_prev ()
+        component findRightDataProvider_placeholder_t findRightDataProvider_placeholder_bobject_0_prev ()
+        component broadcastRedirection_placeholder_t broadcastRedirection_placeholder_bobject_3_next ()
+        component broadcastDataQty_placeholder_t broadcastDataQty_placeholder_bobject_2_prev ()
+        component numberOfRespondedRequests_placeholder_t numberOfRespondedRequests_placeholder_bobject_1_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_9_next ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_6_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_9_prev ()
+        component broadcastRedirection_placeholder_t broadcastRedirection_placeholder_bobject_2_prev ()
+        component allDataProvidersOutputs_placeholder_t allDataProvidersOutputs_placeholder_bobject_0_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_3_prev ()
+        component broadcastDataQty_placeholder_t broadcastDataQty_placeholder_bobject_1_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_1_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_9_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_4_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_8_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_0_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_5_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_9_next ()
+        component broadcastRedirection_placeholder_t broadcastRedirection_placeholder_bobject_0_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_3_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_7_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_6_prev ()
+        component broadcastRedirection_placeholder_t broadcastRedirection_placeholder_bobject_1_prev ()
+        component allDataProvidersOutputs_placeholder_t allDataProvidersOutputs_placeholder_bobject_3_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_4_prev ()
+        component numberOfRespondedRequests_placeholder_t numberOfRespondedRequests_placeholder_bobject_3_next ()
+        component numberOfRespondedRequests_placeholder_t numberOfRespondedRequests_placeholder_bobject_0_prev ()
+        component aggregatingRequests_placeholder_t aggregatingRequests_placeholder_umachine_1_prev ()
+        component broadcastDataQty_placeholder_t broadcastDataQty_placeholder_bobject_3_prev ()
+        component numberOfRespondedRequests_placeholder_t numberOfRespondedRequests_placeholder_bobject_3_prev ()
+        component findRightDataProvider_placeholder_t findRightDataProvider_placeholder_bobject_1_prev ()
+        component responseToTheRightUser_placeholder_t responseToTheRightUser_placeholder_umachine_0_prev ()
+        component allDataProvidersOutputs_placeholder_t allDataProvidersOutputs_placeholder_bobject_3_next ()
+        component int_contextual_t computerID_4_umachine4 ("computerID_4_umachine")
+        component int_contextual_t computerID_5_umachine5 ("computerID_5_umachine")
+        component int_contextual_t computerID_8_umachine8 ("computerID_8_umachine")
+        component int_contextual_t computerID_3_umachine3 ("computerID_3_umachine")
+        component int_contextual_t computerID_1_umachine1 ("computerID_1_umachine")
+        component int_contextual_t computerID_7_umachine7 ("computerID_7_umachine")
+        component int_contextual_t computerID_0_umachine0 ("computerID_0_umachine")
+        component int_contextual_t computerID_6_umachine6 ("computerID_6_umachine")
+        component int_contextual_t computerID_9_umachine9 ("computerID_9_umachine")
+        component int_contextual_t computerID_2_umachine2 ("computerID_2_umachine")
+    
+        connector flow_int_t from_direct_expression1_to_umachine_0_id_cd (cst1.int_output_portdecl, umachine_0_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression2_to_umachine_0_endTime_cd (cst2.int_output_portdecl, umachine_0_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression3_to_umachine_1_id_cd (cst3.int_output_portdecl, umachine_1_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression4_to_umachine_1_endTime_cd (cst4.int_output_portdecl, umachine_1_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression5_to_umachine_2_id_cd (cst5.int_output_portdecl, umachine_2_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression6_to_umachine_2_endTime_cd (cst6.int_output_portdecl, umachine_2_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression7_to_umachine_3_id_cd (cst7.int_output_portdecl, umachine_3_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression8_to_umachine_3_endTime_cd (cst8.int_output_portdecl, umachine_3_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression9_to_umachine_4_id_cd (cst9.int_output_portdecl, umachine_4_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression10_to_umachine_4_endTime_cd (cst10.int_output_portdecl, umachine_4_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression11_to_umachine_5_id_cd (cst11.int_output_portdecl, umachine_5_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression12_to_umachine_5_endTime_cd (cst12.int_output_portdecl, umachine_5_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression13_to_umachine_6_id_cd (cst13.int_output_portdecl, umachine_6_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression14_to_umachine_6_endTime_cd (cst14.int_output_portdecl, umachine_6_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression15_to_umachine_7_id_cd (cst15.int_output_portdecl, umachine_7_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression16_to_umachine_7_endTime_cd (cst16.int_output_portdecl, umachine_7_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression17_to_umachine_8_id_cd (cst17.int_output_portdecl, umachine_8_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression18_to_umachine_8_endTime_cd (cst18.int_output_portdecl, umachine_8_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression19_to_umachine_9_id_cd (cst19.int_output_portdecl, umachine_9_compounddecl.id_input_cepd)
+        connector flow_int_t from_direct_expression20_to_umachine_9_endTime_cd (cst20.int_output_portdecl, umachine_9_compounddecl.endTime_input_cepd)
+        connector flow_int_t from_direct_expression21_to_umachine_0_startTime_cd (cst21.int_output_portdecl, umachine_0_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression22_to_umachine_1_startTime_cd (cst22.int_output_portdecl, umachine_1_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression23_to_umachine_2_startTime_cd (cst23.int_output_portdecl, umachine_2_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression24_to_umachine_3_startTime_cd (cst24.int_output_portdecl, umachine_3_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression25_to_umachine_4_startTime_cd (cst25.int_output_portdecl, umachine_4_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression26_to_umachine_5_startTime_cd (cst26.int_output_portdecl, umachine_5_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression27_to_umachine_6_startTime_cd (cst27.int_output_portdecl, umachine_6_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression28_to_umachine_7_startTime_cd (cst28.int_output_portdecl, umachine_7_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression29_to_umachine_8_startTime_cd (cst29.int_output_portdecl, umachine_8_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_direct_expression30_to_umachine_9_startTime_cd (cst30.int_output_portdecl, umachine_9_compounddecl.startTime_input_cepd)
+        connector flow_int_t from_wpservice_0_httpResponse_to_smachine_0_wpServed_cd (wpservice_1_compounddecl.httpResponse_output_cepd, smachine_1_compounddecl.wpServed_input_cepd)
+        connector flow_int_t from_smachine_0_nbData_to_uainterpreter_0_nbDataRcvd_cd (smachine_1_compounddecl.nbData_output_cepd, uainterpreter_1_compounddecl.nbDataRcvd_input_cepd)
+        connector flow_bool_t from_smachine_0_userAuth_to_uainterpreter_0_authDataRcvd_cd (smachine_1_compounddecl.userAuth_output_cepd, uainterpreter_1_compounddecl.authDataRcvd_input_cepd)
+        connector flow_int_t from_smachine_0_userID_to_uainterpreter_0_userIDRcvd_cd (smachine_1_compounddecl.userID_output_cepd, uainterpreter_1_compounddecl.userIDRcvd_input_cepd)
+        connector flow_bool_t from_uainterpreter_0_authProvided_to_authenticator_0_authProvided_cd (uainterpreter_1_compounddecl.authProvided_output_cepd, authenticator_1_compounddecl.authProvided_input_cepd)
+        connector flow_int_t from_uainterpreter_0_nbData_to_rvalidator_0_nbData_cd (uainterpreter_1_compounddecl.nbData_output_cepd, rvalidator_1_compounddecl.nbData_input_cepd)
+        connector flow_int_t from_uainterpreter_0_reqID_to_rvalidator_0_requestID_cd (uainterpreter_1_compounddecl.reqID_output_cepd, rvalidator_1_compounddecl.requestID_input_cepd)
+        connector flow_bool_t from_authenticator_0_isAuthenticated_to_rvalidator_0_isAuthenticated_cd (authenticator_1_compounddecl.isAuthenticated_output_cepd, rvalidator_1_compounddecl.isAuthenticated_input_cepd)
+        connector flow_int_t from_direct_expression31_to_rlimiter_0_maxRequests_cd (cst31.int_output_portdecl, rlimiter_1_compounddecl.maxRequests_input_cepd)
+        connector flow_int_t from_rvalidator_0_userID_to_rlimiter_0_userID_cd (rvalidator_1_compounddecl.userID_output_cepd, rlimiter_1_compounddecl.userID_input_cepd)
+        connector flow_int_t from_rvalidator_0_nbDataRequested_to_rlimiter_0_nbDataToFetch_cd (rvalidator_1_compounddecl.nbDataRequested_output_cepd, rlimiter_1_compounddecl.nbDataToFetch_input_cepd)
+        connector flow_bool_t from_rvalidator_0_redirection_to_rlimiter_0_redirection_cd (rvalidator_1_compounddecl.redirection_output_cepd, rlimiter_1_compounddecl.redirection_input_cepd)
+        connector flow_bool_t from_cache_0_foundInCache_to_dprovider_0_cacheResponse_cd (cache_0_compounddecl.foundInCache_output_cepd, dprovider_0_compounddecl.cacheResponse_input_cepd)
+        connector flow_int_t from_dprovider_0_cacheRequest_to_cache_0_requestedData_cd (dprovider_0_compounddecl.cacheRequest_output_cepd, cache_0_compounddecl.requestedData_input_cepd)
+        connector flow_int_t from_ctrl_0_knob_to_cache_0_cacheSize_cd (ctrl_0_compounddecl.knob_output_cepd, cache_0_compounddecl.cacheSize_input_cepd)
+        connector flow_float_t from_direct_expression32_to_ctrl_0_requested_time_cd (cst32.float_output_portdecl, ctrl_0_compounddecl.requested_time_input_cepd)
+        connector flow_float_t from_dprovider_0_timeSpentOnReq_to_ctrl_0_resulting_time_cd (dprovider_0_compounddecl.timeSpentOnReq_output_cepd, ctrl_0_compounddecl.resulting_time_input_cepd)
+        connector flow_bool_t from_dprovider_0_enableTimeReading_to_ctrl_0_enabled_cd (dprovider_0_compounddecl.enableTimeReading_output_cepd, ctrl_0_compounddecl.enabled_input_cepd)
+        connector flow_bool_t from_cache_1_foundInCache_to_dprovider_1_cacheResponse_cd (cache_1_compounddecl.foundInCache_output_cepd, dprovider_1_compounddecl.cacheResponse_input_cepd)
+        connector flow_int_t from_dprovider_1_cacheRequest_to_cache_1_requestedData_cd (dprovider_1_compounddecl.cacheRequest_output_cepd, cache_1_compounddecl.requestedData_input_cepd)
+        connector flow_int_t from_ctrl_1_knob_to_cache_1_cacheSize_cd (ctrl_1_compounddecl.knob_output_cepd, cache_1_compounddecl.cacheSize_input_cepd)
+        connector flow_float_t from_direct_expression33_to_ctrl_1_requested_time_cd (cst33.float_output_portdecl, ctrl_1_compounddecl.requested_time_input_cepd)
+        connector flow_float_t from_dprovider_1_timeSpentOnReq_to_ctrl_1_resulting_time_cd (dprovider_1_compounddecl.timeSpentOnReq_output_cepd, ctrl_1_compounddecl.resulting_time_input_cepd)
+        connector flow_bool_t from_dprovider_1_enableTimeReading_to_ctrl_1_enabled_cd (dprovider_1_compounddecl.enableTimeReading_output_cepd, ctrl_1_compounddecl.enabled_input_cepd)
+        connector flow_bool_t from_cache_2_foundInCache_to_dprovider_2_cacheResponse_cd (cache_2_compounddecl.foundInCache_output_cepd, dprovider_2_compounddecl.cacheResponse_input_cepd)
+        connector flow_int_t from_dprovider_2_cacheRequest_to_cache_2_requestedData_cd (dprovider_2_compounddecl.cacheRequest_output_cepd, cache_2_compounddecl.requestedData_input_cepd)
+        connector flow_int_t from_ctrl_2_knob_to_cache_2_cacheSize_cd (ctrl_2_compounddecl.knob_output_cepd, cache_2_compounddecl.cacheSize_input_cepd)
+        connector flow_float_t from_direct_expression34_to_ctrl_2_requested_time_cd (cst34.float_output_portdecl, ctrl_2_compounddecl.requested_time_input_cepd)
+        connector flow_float_t from_dprovider_2_timeSpentOnReq_to_ctrl_2_resulting_time_cd (dprovider_2_compounddecl.timeSpentOnReq_output_cepd, ctrl_2_compounddecl.resulting_time_input_cepd)
+        connector flow_bool_t from_dprovider_2_enableTimeReading_to_ctrl_2_enabled_cd (dprovider_2_compounddecl.enableTimeReading_output_cepd, ctrl_2_compounddecl.enabled_input_cepd)
+        connector flow_bool_t from_cache_3_foundInCache_to_dprovider_3_cacheResponse_cd (cache_3_compounddecl.foundInCache_output_cepd, dprovider_3_compounddecl.cacheResponse_input_cepd)
+        connector flow_int_t from_dprovider_3_cacheRequest_to_cache_3_requestedData_cd (dprovider_3_compounddecl.cacheRequest_output_cepd, cache_3_compounddecl.requestedData_input_cepd)
+        connector flow_int_t from_ctrl_3_knob_to_cache_3_cacheSize_cd (ctrl_3_compounddecl.knob_output_cepd, cache_3_compounddecl.cacheSize_input_cepd)
+        connector flow_float_t from_direct_expression35_to_ctrl_3_requested_time_cd (cst35.float_output_portdecl, ctrl_3_compounddecl.requested_time_input_cepd)
+        connector flow_float_t from_dprovider_3_timeSpentOnReq_to_ctrl_3_resulting_time_cd (dprovider_3_compounddecl.timeSpentOnReq_output_cepd, ctrl_3_compounddecl.resulting_time_input_cepd)
+        connector flow_bool_t from_dprovider_3_enableTimeReading_to_ctrl_3_enabled_cd (dprovider_3_compounddecl.enableTimeReading_output_cepd, ctrl_3_compounddecl.enabled_input_cepd)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_9_aggregatingRequests_connector_cd (aggregatingRequests_placeholder_umachine_9_next.aggregatingRequests_portdecl, aggregatingRequests_placeholder_umachine_9_prev.aggregatingRequests_portdecl, umachine_9_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine36_cd (umachine_9_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_8_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine36_cd.cepd, aggregatingRequests_placeholder_umachine_8_prev.aggregatingRequests_portdecl, umachine_8_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine37_cd (umachine_8_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_7_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine37_cd.cepd, aggregatingRequests_placeholder_umachine_7_prev.aggregatingRequests_portdecl, umachine_7_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine38_cd (umachine_7_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_6_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine38_cd.cepd, aggregatingRequests_placeholder_umachine_6_prev.aggregatingRequests_portdecl, umachine_6_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine39_cd (umachine_6_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_5_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine39_cd.cepd, aggregatingRequests_placeholder_umachine_5_prev.aggregatingRequests_portdecl, umachine_5_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine40_cd (umachine_5_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_4_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine40_cd.cepd, aggregatingRequests_placeholder_umachine_4_prev.aggregatingRequests_portdecl, umachine_4_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine41_cd (umachine_4_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_3_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine41_cd.cepd, aggregatingRequests_placeholder_umachine_3_prev.aggregatingRequests_portdecl, umachine_3_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine42_cd (umachine_3_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_2_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine42_cd.cepd, aggregatingRequests_placeholder_umachine_2_prev.aggregatingRequests_portdecl, umachine_2_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine43_cd (umachine_2_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_1_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine43_cd.cepd, aggregatingRequests_placeholder_umachine_1_prev.aggregatingRequests_portdecl, umachine_1_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_prev_conn_t aggregatingRequests_prev_adapter_umachine44_cd (umachine_1_aggregatingRequests_connector_cd.up_accumulator)
+        connector aggregatingRequests_among_UserMachine_conn_t umachine_0_aggregatingRequests_connector_cd (aggregatingRequests_prev_adapter_umachine44_cd.cepd, aggregatingRequests_placeholder_umachine_0_prev.aggregatingRequests_portdecl, umachine_0_compounddecl.fromUserToInternet_output_cepd)
+        connector aggregatingRequests_Adapter_for_target_conn_t aggregatingRequests_target_adapter_umachine45_cd (umachine_0_aggregatingRequests_connector_cd.up_accumulator)
+        connector broadcastDataQty_among_Backend_conn_t bobject_3_broadcastDataQty_connector_cd (broadcastDataQty_placeholder_bobject_3_next.broadcastDataQty_portdecl, broadcastDataQty_placeholder_bobject_3_prev.broadcastDataQty_portdecl, dprovider_3_compounddecl.dataQty_input_cepd)
+        connector broadcastDataQty_Adapter_for_next_conn_t broadcastDataQty_next_adapter_bobject46_cd (bobject_3_broadcastDataQty_connector_cd.up_accumulator)
+        connector broadcastDataQty_among_Backend_conn_t bobject_2_broadcastDataQty_connector_cd (broadcastDataQty_next_adapter_bobject46_cd.cepd, broadcastDataQty_placeholder_bobject_2_prev.broadcastDataQty_portdecl, dprovider_2_compounddecl.dataQty_input_cepd)
+        connector broadcastDataQty_Adapter_for_next_conn_t broadcastDataQty_next_adapter_bobject47_cd (bobject_2_broadcastDataQty_connector_cd.up_accumulator)
+        connector broadcastDataQty_among_Backend_conn_t bobject_1_broadcastDataQty_connector_cd (broadcastDataQty_next_adapter_bobject47_cd.cepd, broadcastDataQty_placeholder_bobject_1_prev.broadcastDataQty_portdecl, dprovider_1_compounddecl.dataQty_input_cepd)
+        connector broadcastDataQty_Adapter_for_next_conn_t broadcastDataQty_next_adapter_bobject48_cd (bobject_1_broadcastDataQty_connector_cd.up_accumulator)
+        connector broadcastDataQty_among_Backend_conn_t bobject_0_broadcastDataQty_connector_cd (broadcastDataQty_next_adapter_bobject48_cd.cepd, broadcastDataQty_placeholder_bobject_0_prev.broadcastDataQty_portdecl, dprovider_0_compounddecl.dataQty_input_cepd)
+        connector broadcastRedirection_among_Backend_conn_t bobject_3_broadcastRedirection_connector_cd (broadcastRedirection_placeholder_bobject_3_next.broadcastRedirection_portdecl, broadcastRedirection_placeholder_bobject_3_prev.broadcastRedirection_portdecl, dprovider_3_compounddecl.redirection_input_cepd)
+        connector broadcastRedirection_Adapter_for_next_conn_t broadcastRedirection_next_adapter_bobject49_cd (bobject_3_broadcastRedirection_connector_cd.up_accumulator)
+        connector broadcastRedirection_among_Backend_conn_t bobject_2_broadcastRedirection_connector_cd (broadcastRedirection_next_adapter_bobject49_cd.cepd, broadcastRedirection_placeholder_bobject_2_prev.broadcastRedirection_portdecl, dprovider_2_compounddecl.redirection_input_cepd)
+        connector broadcastRedirection_Adapter_for_next_conn_t broadcastRedirection_next_adapter_bobject50_cd (bobject_2_broadcastRedirection_connector_cd.up_accumulator)
+        connector broadcastRedirection_among_Backend_conn_t bobject_1_broadcastRedirection_connector_cd (broadcastRedirection_next_adapter_bobject50_cd.cepd, broadcastRedirection_placeholder_bobject_1_prev.broadcastRedirection_portdecl, dprovider_1_compounddecl.redirection_input_cepd)
+        connector broadcastRedirection_Adapter_for_next_conn_t broadcastRedirection_next_adapter_bobject51_cd (bobject_1_broadcastRedirection_connector_cd.up_accumulator)
+        connector broadcastRedirection_among_Backend_conn_t bobject_0_broadcastRedirection_connector_cd (broadcastRedirection_next_adapter_bobject51_cd.cepd, broadcastRedirection_placeholder_bobject_0_prev.broadcastRedirection_portdecl, dprovider_0_compounddecl.redirection_input_cepd)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_9_responseToTheRightUser_connector_cd (responseToTheRightUser_placeholder_umachine_9_next.responseToTheRightUser_portdecl, responseToTheRightUser_placeholder_umachine_9_prev.responseToTheRightUser_portdecl, umachine_9_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine52_cd (umachine_9_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_8_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine52_cd.cepd, responseToTheRightUser_placeholder_umachine_8_prev.responseToTheRightUser_portdecl, umachine_8_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine53_cd (umachine_8_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_7_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine53_cd.cepd, responseToTheRightUser_placeholder_umachine_7_prev.responseToTheRightUser_portdecl, umachine_7_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine54_cd (umachine_7_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_6_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine54_cd.cepd, responseToTheRightUser_placeholder_umachine_6_prev.responseToTheRightUser_portdecl, umachine_6_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine55_cd (umachine_6_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_5_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine55_cd.cepd, responseToTheRightUser_placeholder_umachine_5_prev.responseToTheRightUser_portdecl, umachine_5_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine56_cd (umachine_5_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_4_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine56_cd.cepd, responseToTheRightUser_placeholder_umachine_4_prev.responseToTheRightUser_portdecl, umachine_4_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine57_cd (umachine_4_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_3_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine57_cd.cepd, responseToTheRightUser_placeholder_umachine_3_prev.responseToTheRightUser_portdecl, umachine_3_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine58_cd (umachine_3_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_2_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine58_cd.cepd, responseToTheRightUser_placeholder_umachine_2_prev.responseToTheRightUser_portdecl, umachine_2_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine59_cd (umachine_2_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_1_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine59_cd.cepd, responseToTheRightUser_placeholder_umachine_1_prev.responseToTheRightUser_portdecl, umachine_1_compounddecl.httpResponse_input_cepd)
+        connector responseToTheRightUser_Adapter_for_next_conn_t responseToTheRightUser_next_adapter_umachine60_cd (umachine_1_responseToTheRightUser_connector_cd.up_accumulator)
+        connector responseToTheRightUser_among_UserMachine_conn_t umachine_0_responseToTheRightUser_connector_cd (responseToTheRightUser_next_adapter_umachine60_cd.cepd, responseToTheRightUser_placeholder_umachine_0_prev.responseToTheRightUser_portdecl, umachine_0_compounddecl.httpResponse_input_cepd)
+        connector allDataProvidersOutputs_among_Backend_conn_t bobject_3_allDataProvidersOutputs_connector_cd (allDataProvidersOutputs_placeholder_bobject_3_next.allDataProvidersOutputs_portdecl, allDataProvidersOutputs_placeholder_bobject_3_prev.allDataProvidersOutputs_portdecl, dprovider_3_compounddecl.userID_output_cepd)
+        connector allDataProvidersOutputs_Adapter_for_prev_conn_t allDataProvidersOutputs_prev_adapter_bobject61_cd (bobject_3_allDataProvidersOutputs_connector_cd.up_accumulator)
+        connector allDataProvidersOutputs_among_Backend_conn_t bobject_2_allDataProvidersOutputs_connector_cd (allDataProvidersOutputs_prev_adapter_bobject61_cd.cepd, allDataProvidersOutputs_placeholder_bobject_2_prev.allDataProvidersOutputs_portdecl, dprovider_2_compounddecl.userID_output_cepd)
+        connector allDataProvidersOutputs_Adapter_for_prev_conn_t allDataProvidersOutputs_prev_adapter_bobject62_cd (bobject_2_allDataProvidersOutputs_connector_cd.up_accumulator)
+        connector allDataProvidersOutputs_among_Backend_conn_t bobject_1_allDataProvidersOutputs_connector_cd (allDataProvidersOutputs_prev_adapter_bobject62_cd.cepd, allDataProvidersOutputs_placeholder_bobject_1_prev.allDataProvidersOutputs_portdecl, dprovider_1_compounddecl.userID_output_cepd)
+        connector allDataProvidersOutputs_Adapter_for_prev_conn_t allDataProvidersOutputs_prev_adapter_bobject63_cd (bobject_1_allDataProvidersOutputs_connector_cd.up_accumulator)
+        connector allDataProvidersOutputs_among_Backend_conn_t bobject_0_allDataProvidersOutputs_connector_cd (allDataProvidersOutputs_prev_adapter_bobject63_cd.cepd, allDataProvidersOutputs_placeholder_bobject_0_prev.allDataProvidersOutputs_portdecl, dprovider_0_compounddecl.userID_output_cepd)
+        connector allDataProvidersOutputs_Adapter_for_target_conn_t allDataProvidersOutputs_target_adapter_bobject64_cd (bobject_0_allDataProvidersOutputs_connector_cd.up_accumulator)
+        connector numberOfRespondedRequests_among_Backend_conn_t bobject_3_numberOfRespondedRequests_connector_cd (numberOfRespondedRequests_placeholder_bobject_3_next.numberOfRespondedRequests_portdecl, numberOfRespondedRequests_placeholder_bobject_3_prev.numberOfRespondedRequests_portdecl, dprovider_3_compounddecl.oneLessPendingRequest_output_cepd)
+        connector numberOfRespondedRequests_Adapter_for_prev_conn_t numberOfRespondedRequests_prev_adapter_bobject65_cd (bobject_3_numberOfRespondedRequests_connector_cd.up_accumulator)
+        connector numberOfRespondedRequests_among_Backend_conn_t bobject_2_numberOfRespondedRequests_connector_cd (numberOfRespondedRequests_prev_adapter_bobject65_cd.cepd, numberOfRespondedRequests_placeholder_bobject_2_prev.numberOfRespondedRequests_portdecl, dprovider_2_compounddecl.oneLessPendingRequest_output_cepd)
+        connector numberOfRespondedRequests_Adapter_for_prev_conn_t numberOfRespondedRequests_prev_adapter_bobject66_cd (bobject_2_numberOfRespondedRequests_connector_cd.up_accumulator)
+        connector numberOfRespondedRequests_among_Backend_conn_t bobject_1_numberOfRespondedRequests_connector_cd (numberOfRespondedRequests_prev_adapter_bobject66_cd.cepd, numberOfRespondedRequests_placeholder_bobject_1_prev.numberOfRespondedRequests_portdecl, dprovider_1_compounddecl.oneLessPendingRequest_output_cepd)
+        connector numberOfRespondedRequests_Adapter_for_prev_conn_t numberOfRespondedRequests_prev_adapter_bobject67_cd (bobject_1_numberOfRespondedRequests_connector_cd.up_accumulator)
+        connector numberOfRespondedRequests_among_Backend_conn_t bobject_0_numberOfRespondedRequests_connector_cd (numberOfRespondedRequests_prev_adapter_bobject67_cd.cepd, numberOfRespondedRequests_placeholder_bobject_0_prev.numberOfRespondedRequests_portdecl, dprovider_0_compounddecl.oneLessPendingRequest_output_cepd)
+        connector numberOfRespondedRequests_Adapter_for_target_conn_t numberOfRespondedRequests_target_adapter_bobject68_cd (bobject_0_numberOfRespondedRequests_connector_cd.up_accumulator)
+        connector findRightDataProvider_among_Backend_conn_t bobject_3_findRightDataProvider_connector_cd (findRightDataProvider_placeholder_bobject_3_next.findRightDataProvider_portdecl, findRightDataProvider_placeholder_bobject_3_prev.findRightDataProvider_portdecl, dprovider_3_compounddecl.userID_input_cepd)
+        connector findRightDataProvider_Adapter_for_next_conn_t findRightDataProvider_next_adapter_bobject69_cd (bobject_3_findRightDataProvider_connector_cd.up_accumulator)
+        connector findRightDataProvider_among_Backend_conn_t bobject_2_findRightDataProvider_connector_cd (findRightDataProvider_next_adapter_bobject69_cd.cepd, findRightDataProvider_placeholder_bobject_2_prev.findRightDataProvider_portdecl, dprovider_2_compounddecl.userID_input_cepd)
+        connector findRightDataProvider_Adapter_for_next_conn_t findRightDataProvider_next_adapter_bobject70_cd (bobject_2_findRightDataProvider_connector_cd.up_accumulator)
+        connector findRightDataProvider_among_Backend_conn_t bobject_1_findRightDataProvider_connector_cd (findRightDataProvider_next_adapter_bobject70_cd.cepd, findRightDataProvider_placeholder_bobject_1_prev.findRightDataProvider_portdecl, dprovider_1_compounddecl.userID_input_cepd)
+        connector findRightDataProvider_Adapter_for_next_conn_t findRightDataProvider_next_adapter_bobject71_cd (bobject_1_findRightDataProvider_connector_cd.up_accumulator)
+        connector findRightDataProvider_among_Backend_conn_t bobject_0_findRightDataProvider_connector_cd (findRightDataProvider_next_adapter_bobject71_cd.cepd, findRightDataProvider_placeholder_bobject_0_prev.findRightDataProvider_portdecl, dprovider_0_compounddecl.userID_input_cepd)
+    
+    end
+end

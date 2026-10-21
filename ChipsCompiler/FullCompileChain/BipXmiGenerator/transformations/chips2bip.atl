@@ -6,8 +6,38 @@ module chips2bip;
 
 create OUT: bip from IN: chips;
 
+--
+-- WARNING: 
+-- Due to the fact there are some bugs in the BIP compiler serialization
+-- methods, we need to work around them by introducing some specific
+-- weirdness in some string elements of our transformation ('@0'). 
+-- They must be removed with :
+-- 
+-- $ sed -i 's/@0//g' file.bip
+--
+--
+--
+--
+--
+--
+
+
+
 helper def : id : Integer = 0;
+
+rule NextId() {
+	do {
+		thisModule.id <- thisModule.id + 1;
+		thisModule.id;
+	}
+}
+
 helper def : nodeId : Integer = 0;
+
+
+
+helper def : connectorCreationOrder : Sequence(bip!ConnectorDeclaration) = Sequence{};
+
 
 
 -- helper context String def : protect() : String = 
@@ -1803,9 +1833,29 @@ unique lazy rule MakeCoreAtomInternalPortDeclaration{
 	
 	to port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(alldatatypes),
-		name <- (portname+'_aipd'),
+		name <- portname+'_portdecl',
 		dataParameters <- all_dataparameters
 	)
+}
+
+unique lazy rule MakeCoreAtomExportPortDeclaration{
+	from 
+		portname:String,
+		alldatatypes: Sequence(String),
+		all_dataparameters:Sequence(bip!PortDataParameterDeclaration),
+		fdef:chips!function_definition
+		
+	to 	aepd: bip!AtomExportPortDeclaration(
+			portType <- thisModule.MakePortType(alldatatypes),
+			name <-portname+'_@0portdecl',
+			portDeclarationReferences <- 
+				Sequence{thisModule.MakeCoreAtomInternalPortDeclaration(
+					portname,
+					alldatatypes,
+					all_dataparameters,
+					fdef
+				)}
+		)
 }
 
 helper def : MakeAtomPortDataParamDeclSequence(
@@ -1825,25 +1875,6 @@ helper def : MakeCoreAtomPortDataParamDeclSequence(
 	types->merge(aidds)->augmentWithIindex()
 	->collect(t | thisModule.MakeCoreAtomDataDeclarationReferenceDataParameter(t.iindex, t.data.first, t.data.second, fdef, types));
 
-unique lazy rule MakeCoreAtomExportPortDeclaration{
-	from 
-		portname:String,
-		alldatatypes: Sequence(String),
-		all_dataparameters:Sequence(bip!PortDataParameterDeclaration),
-		fdef:chips!function_definition
-		
-	to 	aepd: bip!AtomExportPortDeclaration(
-			portType <- thisModule.MakePortType(alldatatypes),
-			name <-portname+'_aepd',
-			portDeclarationReferences <- 
-				Sequence{thisModule.MakeCoreAtomInternalPortDeclaration(
-					portname,
-					alldatatypes,
-					all_dataparameters,
-					fdef
-				)}
-		)
-}
 
 unique lazy rule MakeCompoundExportPortDeclaration{
 	from 
@@ -2195,36 +2226,6 @@ unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 }
 
 
-unique lazy rule MakeMonotypeBufferTypeInternalPortDeclaration{
-	from
-		type: String,
-		isinput:Boolean
-	
-	to port : bip!AtomInternalPortDeclaration(
-		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- (type + if isinput then '_in' else '_out' endif),
-		dataParameters <- Sequence{
-			thisModule.MakeAtomDataDeclarationReferenceDataParameter(
-				0,
-				type,
-				thisModule.MakeMonotypeBufferTypeInternalDataDeclaration(type),
-				Sequence{type}
-			)
-		}
-	)
-}
-
-unique lazy rule MakeMonotypeBufferTypeExportPortDeclaration{
-	from
-		type: String,
-		isinput:Boolean
-
-	to 	aepd: bip!AtomExportPortDeclaration(
-			portType <- thisModule.MakePortType(Sequence{type}),
-			name <-(type + if isinput then 'exp_in' else 'exp_out' endif),
-			portDeclarationReferences <- Sequence{thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,isinput)}
-		)
-}
 
 
 unique lazy rule MakeMonotypeBufferType{
@@ -2236,14 +2237,6 @@ unique lazy rule MakeMonotypeBufferType{
 
 		aidd:bip!AtomInternalDataDeclaration = 
 			thisModule.MakeMonotypeBufferTypeInternalDataDeclaration(type);
-		aipd_in:bip!AtomInternalPortDeclaration = 
-			thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,true);
-		aipd_out:bip!AtomInternalPortDeclaration = 
-			thisModule.MakeMonotypeBufferTypeInternalPortDeclaration(type,false);
-		aepd_in:bip!AtomExportPortDeclaration = 
-			thisModule.MakeMonotypeBufferTypeExportPortDeclaration(type,true);
-		aepd_out:bip!AtomExportPortDeclaration = 
-			thisModule.MakeMonotypeBufferTypeExportPortDeclaration(type,false);
 	}
 	
 	to 
@@ -2256,7 +2249,47 @@ unique lazy rule MakeMonotypeBufferType{
 	        behavior <- thisModule.MakeBufferPetriNet(aipd_in,aipd_out,aidd,type),
 	        internalDataDeclarations <- Sequence{aidd},
 	        exportPortDeclarations <- Sequence{aepd_in,aepd_out}
+		),
+
+		aepd_in : bip!AtomExportPortDeclaration(
+			portType <- thisModule.MakePortType(Sequence{type}),
+			name <- type + '_@0in',
+			portDeclarationReferences <- Sequence{aipd_in}
+		),
+
+		aepd_out : bip!AtomExportPortDeclaration(
+			portType <- thisModule.MakePortType(Sequence{type}),
+			name <- type + '_@0out',
+			portDeclarationReferences <- Sequence{aipd_out}
+		),
+
+		aipd_out : bip!AtomInternalPortDeclaration(
+			portType <- thisModule.MakePortType(Sequence{type}),
+			name <- type +'_out',
+			dataParameters <- Sequence{
+				thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+					0,
+					type,
+					thisModule.MakeMonotypeBufferTypeInternalDataDeclaration(type),
+					Sequence{type}
+				)
+			}
+		),
+
+		aipd_in : bip!AtomInternalPortDeclaration(
+			portType <- thisModule.MakePortType(Sequence{type}),
+			name <- type + '_in',
+			dataParameters <- Sequence{
+				thisModule.MakeAtomDataDeclarationReferenceDataParameter(
+					0,
+					type,
+					thisModule.MakeMonotypeBufferTypeInternalDataDeclaration(type),
+					Sequence{type}
+				)
+			}
 		)
+
+
 	do {
 
 		thisModule.temp_dic <- thisModule.dictionary->get('MonotypeBufferTypes');
@@ -2333,7 +2366,7 @@ unique lazy rule MakeContextualTypeExportPortDeclaration{
 
 	to 	aepd: bip!AtomExportPortDeclaration(
 			portType <- thisModule.MakePortType(Sequence{type}),
-			name <- name + '_exp',
+			name <- name + '@0',
 			portDeclarationReferences <- Sequence{aipd}
 		)
 }
@@ -2774,7 +2807,7 @@ unique lazy rule MakeOne2ManyConnectorType{
 						cppd->get(n),
 						thisModule.MakePortDataParameterDeclaration(
 							ordered_types->get(n),
-							n,
+							0,
 							ordered_types
 						)
 					),
@@ -2888,7 +2921,7 @@ unique lazy rule MakeFlowConnectorType{
 			);
 	}
 
-	to one : bip!ConnectorType(
+	to connectyeah : bip!ConnectorType(
 		name<-ordered_types->iterate( iter ; accu_name : String = 'flow_'| accu_name+iter )+'_t',
 		interactions<-Sequence{interaction},
 		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(downports),
@@ -2924,10 +2957,10 @@ unique lazy rule MakeFlowConnectorType{
 			thisModule.temp <- Sequence{};
 		}
 
-		thisModule.temp <- thisModule.temp->append(one);
+		thisModule.temp <- thisModule.temp->append(connectyeah);
 		thisModule.types <- thisModule.types->including('ConnectorType', thisModule.temp);
 		
-		one;
+		connectyeah;
 	}
 }
 
@@ -3317,7 +3350,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 		-- currently, target_output.expression is a sequence in anticipation for when we get anonymous datastructures 
 		-- as signals transmitted between components
 		Tuple{
-			name='_target',
+			name='target',
 			type=if expr.oclIsKindOf(chips!collective_int_rvalue) then
 				'int'
 			else if expr.oclIsKindOf(chips!collective_float_rvalue) then
@@ -3327,7 +3360,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 			else
 				'ATL transformation Error'.debug('this should never happen, unrecognized type for target output of '+fname)
 			endif endif endif
-		};
+		};--.debug('target signature of '+fname);
 			
 		
 		node_data : TupleType(
@@ -3341,19 +3374,26 @@ unique lazy rule MakeUpAdapterConnectorType{
 			)
 		) = thisModule.getNodeData(cfd.support_object);
 
-		accumulator_signature: Sequence(TupleType(name:String,type:String)) = cfd.getAccumulatorSig();
+		accumulator_signature: Sequence(TupleType(name:String,type:String)) = 
+			node_data.channels->getKeys()->asSequence()
+			->collect( k | 
+				cfd.getAccumulatorSig()
+				->collect(t | 
+					Tuple{name=k+'_'+t.name, type=t.type}
+				)
+			)->flatten();
+			--.debug('accumulator signature of '+fname) ;
 
 		data : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
 			Tuple{
 				name=to_keep+'_data',
-				type=accumulator_signature->append(target_sig)->collect(t|t.type),
+				type=accumulator_signature->append(target_sig)->collect(t|t.type),--.debug('type of data in '+fname),
 				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(accumulator_signature->collect(t|t.type)),
 					to_keep+'_acc',
 					cfd
 				)
 			};
-		
 	}
 
 	to cct:bip!ConnectorType(
@@ -3376,10 +3416,10 @@ unique lazy rule MakeUpAdapterConnectorType{
 					downport,
 					thisModule.MakePortDataParameterDeclaration(
 						data.type,
-						if to_keep = '_target'
+						if to_keep = 'target'
 						then node_data.channels->getKeys()->size()
 						else (node_data.channels->getKeys()->asSequence()->indexOf(to_keep)-1)
-						endif, -- I know, not so robust
+						endif, -- I know, not so robust -- assuming asSequence always sorts keys in the same order
 						Sequence{data.type}
 					)
 				)
@@ -3398,7 +3438,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 				data.dd,
 				thisModule.MakePortDataParameterDeclaration(
 					data.type,
-					if to_keep = '_target'
+					if to_keep = 'target'
 					then node_data.channels->getKeys()->size()
 					else (node_data.channels->getKeys()->asSequence()->indexOf(to_keep)-1)
 					endif,
@@ -3658,7 +3698,7 @@ unique lazy rule MakeCollectConnectorType{
 
 		target_decl : TupleType(name:String,type:Sequence(String),dd:bip!ConnectorDataDeclaration) =
 			Tuple{
-				name='_target',
+				name='target',
 				type=target_type,
 				dd=thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(target_type),
@@ -3844,6 +3884,10 @@ unique lazy rule MakeConnectorDeclaration{
 			portParameters <- portparameters,
 			name <- name+'_cd'
 		)
+	do{
+		thisModule.connectorCreationOrder <- thisModule.connectorCreationOrder->append(conn);
+		conn;
+	}
 }
 
 unique lazy rule MakeCollectiveConnectorDeclaration{
@@ -3870,6 +3914,7 @@ unique lazy rule MakeCollectiveConnectorDeclaration{
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('CollectiveConnectorDeclaration', thisModule.temp_dic);
+		thisModule.connectorCreationOrder <- thisModule.connectorCreationOrder->append(conn);
 		conn;
 	}
 }
@@ -4623,13 +4668,13 @@ unique lazy rule MakeConstantAtomType{
 
 	aepd: bip!AtomExportPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- type+'_output'+'_aepd',
+		name <- type+'_output_@0portdecl',
 		portDeclarationReferences <- Sequence{port}
 	),
 
 	port : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(Sequence{type}),
-		name <- type+'_output_aipd',
+		name <- type+'_output_portdecl',
 		dataParameters <- Sequence{thisModule.MakeAtomDataDeclarationReferenceDataParameter(
 			0,
 			type,
@@ -4693,11 +4738,6 @@ unique lazy rule MakeIntegerConstantDeclaration{
 			thisModule.MakeDirectIntegerExpression(value)
 		}
 	)
-	
-	do {
-		thisModule.id <- thisModule.id +1;
-		cst_component_decl;
-	}
 }
 
 unique lazy rule MakeFloatConstantDeclaration{
@@ -4711,11 +4751,6 @@ unique lazy rule MakeFloatConstantDeclaration{
 			thisModule.MakeDirectFloatExpression(value)
 		}
 	)
-	
-	do {
-		thisModule.id <- thisModule.id +1;
-		cst_component_decl;
-	}
 }
 
 unique lazy rule MakeBoolConstantDeclaration{
@@ -4729,11 +4764,6 @@ unique lazy rule MakeBoolConstantDeclaration{
 			thisModule.MakeDirectBooleanExpression(value)
 		}
 	)
-	
-	do {
-		thisModule.id <- thisModule.id +1;
-		cst_component_decl;
-	}
 }
 
 -- Construction rules of implicit placeholder 
@@ -4773,7 +4803,7 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 						typename, param.declaration.variable.name, collective_cast
 					)
 				}
-			);
+			);--.debug('Tuples of params in '+collective_cast.name);
 	}
 	
 	to 
@@ -4829,13 +4859,13 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 
 	aepd: bip!AtomExportPortDeclaration(
 		portType <- thisModule.MakePortType(tuplesofparams->collect(p | p.type)),
-		name <- 'aepd',
+		name <- collective_cast.name + '_@0portdecl',
 		portDeclarationReferences <- Sequence{aipd}
 	),
 
 	aipd : bip!AtomInternalPortDeclaration(
 		portType <- thisModule.MakePortType(tuplesofparams->collect(p | p.type)),
-		name <- 'aipd',
+		name <- collective_cast.name + '_portdecl',
 		dataParameters <- thisModule.MakeAtomPortDataParamDeclSequence(
 			tuplesofparams->collect(p | p.type),
 			tuplesofparams->collect(p | p.aidd)
@@ -5362,13 +5392,13 @@ helper context TupleType(
 				->iterate(
 					chan ; adapters_accu : Map(String, bip!connectorDeclaration) = Map{} |
 					let current_obj : String = instantiated_children->get(chan).obj in
-					if current_obj.startsWith('ph_of_') -- I know, it's not very robust
+					if current_obj.startsWith('ph_of_') -- I know, it's not very robust but I'm not a coding machine, I must finish my phd someday
 					then adapters_accu
 					else 
 						adapters_accu->including(
 							chan,
 							thisModule.MakeConnectorDeclaration(
-								collfuncdef.name+'_'+chan+'_adapter_'+current_obj,
+								collfuncdef.name+'_'+chan+'_adapter_'+current_obj + thisModule.NextId().toString(),
 								thisModule.MakeDownAdapterConnectorType(
 									collfuncdef,
 									chan
@@ -5422,7 +5452,7 @@ helper context TupleType(
 							->get(if is_spread then 'SpreadConnectorType' else 'CollectConnectorType' endif)
 							->get(collectiveop.collective_cast)
 							->get(if is_spread then 'target' else 'input' endif),
-						let theleaf : OclAny = memory.ccasts_map->get(collectiveop)->any(leaf | (leaf.obj = self.obj.debug()) and (leaf.obj_index = self.index.debug())) in 
+						let theleaf : OclAny = memory.ccasts_map->get(collectiveop)->any(leaf | (leaf.obj = self.obj) and (leaf.obj_index = self.index)) in 
 						thisModule.MakeComponentSubPortDeclarationReference(
 							thisModule.dictionary
 								->get('FunctionalBlockCompoundTypes')
@@ -5454,16 +5484,16 @@ helper context TupleType(
 				if using_connection.oclIsUndefined()
 				then
 					thisModule.MakeConnectorDeclaration(
-						collfuncdef.name+'_target_adapter_'+self.obj,
+						collfuncdef.name+'_target_adapter_'+self.obj + thisModule.NextId().toString(),
 						thisModule.MakeUpAdapterConnectorType(
 							collfuncdef,
-							'_target'
+							'target'
 						),
 						Sequence{
 							thisModule.MakePortDeclarationReferenceParameter(
 								thisModule.dictionary
 									->get('UpAdapterConnectorType')
-									->get(Tuple{fct=collfuncdef.name,chan='_target'})
+									->get(Tuple{fct=collfuncdef.name,chan='target'})
 									->get('down_port'),
 								thisModule.MakeConnectorSubPortDeclarationReference(
 									thisModule.dictionary
@@ -5477,7 +5507,7 @@ helper context TupleType(
 					)
 				else
 					thisModule.MakeConnectorDeclaration(
-						collfuncdef.name+'_'+using_connection.to_chan+'_adapter_'+self.obj,
+						collfuncdef.name+'_'+using_connection.to_chan+'_adapter_'+self.obj + thisModule.NextId().toString(),
 						thisModule.MakeUpAdapterConnectorType(
 							collfuncdef,
 							using_connection.to_chan
@@ -5537,7 +5567,7 @@ helper context TupleType(
 							->get(
 								Tuple{
 									fct=collfuncdef.name,
-									chan=if using_connection.oclIsUndefined() then '_target' else using_connection.to_chan endif
+									chan=if using_connection.oclIsUndefined() then 'target' else using_connection.to_chan endif
 								}
 							)
 							->get('cepd'),
@@ -5740,6 +5770,15 @@ helper context TupleType (
 -----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------
 
+helper def : sortConnectors(connectors : Sequence(bip!ConnectorDeclaration)) : Sequence(bip!ConnectorDeclaration) =
+	let wanted : Set(bip!ConnectorDeclaration) = connectors->asSet() in
+	thisModule.connectorCreationOrder
+		->select(c | wanted->includes(c))
+		->union(connectors->reject(c | thisModule.connectorCreationOrder->includes(c)))
+		->asOrderedSet()
+		->asSequence();
+
+
 rule Program2BipPackage {
 	from chipsprogram: chips!program
 	
@@ -5798,10 +5837,6 @@ rule Program2BipPackage {
 		constants_atom_types: Sequence(bip!AtomType) = 
 			Sequence{'int','float', 'bool'}
 			->collect( t | thisModule.MakeConstantAtomType(t))->toArray();
-
-		all_contextual_types : Sequence(bip!AtomType) =
-			Sequence{'int','float', 'bool'}
-			->collect( t | thisModule.MakeContextualAtomType(t))->toArray();
 
 		functional_blocks_types: Sequence(bip!CompoundType) = 
 			all_chips_function_defs
@@ -5976,7 +6011,7 @@ rule Program2BipPackage {
 		);--.debug('\n----------------------memory state------------------------\n')
 		
 		all_contextuals -- We need to do this to force the evaluation of lazy stuffs that are used all arround ATL
-		 : OclAny = memory.nodes->getValues()->collect(t | t.instances->collect(seqelem | seqelem->getValues()->collect(tseqelemt | tseqelemt.instances)))->flatten()->asSequence()->toArray();
+		 : OclAny = memory.mem.nodes->getValues()->collect(t | t.instances->collect(seqelem | seqelem->getValues()->collect(tseqelemt | tseqelemt.instances)))->flatten()->asSequence()->toArray();
 		
 		---------------------------------------------------------------------------------
 		---------------------------------------------------------------------------------
@@ -5984,20 +6019,20 @@ rule Program2BipPackage {
 		--------------According to the components they are linked to     ----------------
 
 		ctx_connectors : Sequence(bip!ConnectorDeclaration) = 
-			memory.fblocks->getKeys()
-			->select(fbkey | not memory.fblocks->get(fbkey).ftype.oclIsUndefined())
-			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.fblocks->get(fbkey).ftype->all_contextuals() } )
+			memory.mem.fblocks->getKeys()
+			->select(fbkey | not memory.mem.fblocks->get(fbkey).ftype.oclIsUndefined())
+			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.mem.fblocks->get(fbkey).ftype->all_contextuals() } )
 			->select(fb | not fb.ctxs->isEmpty())
 			->iterate(
 				fb ; connectorlist1 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
 				connectorlist1->union(
-					thisModule.range(memory.fblocks->get(fb.fbkey).dimensions)->iterate(
+					thisModule.range(memory.mem.fblocks->get(fb.fbkey).dimensions)->iterate(
 						comp_index ; connectorlist2 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
 						connectorlist2->union(
 							fb.ctxs->collect( ctx |
 								Sequence{
 									thisModule.MakeConnectorDeclaration(
-										memory.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_input_ctx_connector',
+										memory.mem.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_input_ctx_connector'+thisModule.NextId().toString(),
 										thisModule.MakeFlowConnectorType(Sequence{ctx.type}),
 										Sequence{
 											thisModule.MakePortDeclarationReferenceParameter(
@@ -6010,7 +6045,7 @@ rule Program2BipPackage {
 														->get('ContextualTypes')
 														->get(ctx.type)
 														->get('aepd_give'),
-													memory->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1)
+													memory.mem->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1)
 												)
 											),
 											thisModule.MakePortDeclarationReferenceParameter(
@@ -6021,16 +6056,16 @@ rule Program2BipPackage {
 												thisModule.MakeComponentSubPortDeclarationReference(
 													thisModule.dictionary
 														->get('FunctionalBlockCompoundTypes')
-														->get(memory.fblocks->get(fb.fbkey).ftype.name)
+														->get(memory.mem.fblocks->get(fb.fbkey).ftype.name)
 														->get('ectxinput')
 														->get(ctx.name),
-													memory.fblocks->get(fb.fbkey).instances->get(comp_index)
+													memory.mem.fblocks->get(fb.fbkey).instances->get(comp_index)
 												)
 											)
 										}
 									),
 									thisModule.MakeConnectorDeclaration(
-										memory.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_output_ctx_connector',
+										memory.mem.fblocks->get(fb.fbkey).ftype.name+'_'+ctx.name+'_output_ctx_connector'+thisModule.NextId().toString(),
 										thisModule.MakeFlowConnectorType(Sequence{ctx.type}),
 										Sequence{
 											thisModule.MakePortDeclarationReferenceParameter(
@@ -6041,10 +6076,10 @@ rule Program2BipPackage {
 												thisModule.MakeComponentSubPortDeclarationReference(
 													thisModule.dictionary
 														->get('FunctionalBlockCompoundTypes')
-														->get(memory.fblocks->get(fb.fbkey).ftype.name)
+														->get(memory.mem.fblocks->get(fb.fbkey).ftype.name)
 														->get('ectxoutput')
 														->get(ctx.name),
-													memory.fblocks->get(fb.fbkey).instances->get(comp_index)
+													memory.mem.fblocks->get(fb.fbkey).instances->get(comp_index)
 												)
 											),
 											thisModule.MakePortDeclarationReferenceParameter(
@@ -6057,7 +6092,7 @@ rule Program2BipPackage {
 														->get('ContextualTypes')
 														->get(ctx.type)
 														->get('aepd_rcv'),
-													memory->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1) -- temporarily set to 0
+													memory.mem->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1) -- temporarily set to 0
 												)
 											)
 										}
@@ -6079,7 +6114,7 @@ rule Program2BipPackage {
 		collective_connectors_sequences : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
-		) = memory.ccasts_map->getKeys()->iterate(
+		) = memory.mem.ccasts_map->getKeys()->iterate(
 			tuple ; themap : Map(
 				TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 				Sequence(TupleType(obj:String, index:Integer, children:Map(String, Integer)))
@@ -6088,22 +6123,22 @@ rule Program2BipPackage {
 					tuple,
 					let supportname : String = all_chips_collective_defs->any(d | d.name = tuple.collective_cast).support_object.name in
 					thisModule.connectNodes(
-						memory.nodes->getKeys()->select(
-							node_key | memory.nodes->get(node_key).type = supportname
+						memory.mem.nodes->getKeys()->select(
+							node_key | memory.mem.nodes->get(node_key).type = supportname
 						)->iterate(
 							node_key ; appropriate_nodes : Sequence(TupleType(obj:String, index:Integer, children:Map(String, String))) = Sequence{} |
 							appropriate_nodes->union(
-								thisModule.range(memory.nodes->get(node_key).dimensions)->collect(
+								thisModule.range(memory.mem.nodes->get(node_key).dimensions)->collect(
 									iindex |
 									Tuple{
 										obj=node_key,
 										index=iindex,
-										children=memory.nodes->get(node_key).channels
+										children=memory.mem.nodes->get(node_key).channels
 									}
 								)
 							)
 						),
-						memory.connections --I believe this is the correct parameter
+						memory.mem.connections --I believe this is the correct parameter
 					)
 				)
 			);
@@ -6137,7 +6172,7 @@ rule Program2BipPackage {
 		instantiated_collective_connectors_trees : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Sequence(Map(String,OclAny))
-		) = collective_connectors_trees->collective_instantiation(memory,all_chips_collective_defs);
+		) = collective_connectors_trees->collective_instantiation(memory.mem,all_chips_collective_defs);
 
 		all_placeholders : Sequence(bip!ComponentDeclaration) =
 			collective_connectors_trees->getKeys()->iterate(
@@ -6158,19 +6193,20 @@ rule Program2BipPackage {
 			connectors: Sequence(bip!ConnectorDeclaration)
 		) =
 		Tuple{
-			components = memory.fblocks->getKeys()->iterate(
+			components = memory.mem.fblocks->getKeys()->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{} |
-				seq->union(memory.fblocks->get(fbname).instances)
+				seq->union(memory.mem.fblocks->get(fbname).instances)
 			)->union(
 				thisModule.dictionary->get('PlaceholderDeclaration')->getValues()->asSequence()
 			)->union(
 				thisModule.dictionary->get('ContextualAtomDeclaration')->getValues()->asSequence()
 			),
-			connectors = 
-				memory.dataflows->getValues()->asSequence()
+			connectors = thisModule.sortConnectors(
+				memory.mem.dataflows->getValues()->asSequence()
 				->union(ctx_connectors)
 				->union(thisModule.dictionary->get('CollectiveConnectorDeclaration')->getValues()->asSequence())
 				->union(all_adapters)
+			)
 		};
 	}
 
@@ -7758,7 +7794,6 @@ helper context chips!"chips::statements::primitive::bool_assignment" def :
 -----------------------------------------------------------------------------------------
 
 
-
 -- Declaration of components in system context
 ----------------------------------------------
 
@@ -8972,6 +9007,8 @@ helper context chips!"chips::statements::system::foreach" def : evaluate(
 		let m1_prime : OclAny = self.statements->iterate( 
 			stt ; 
 			m2: OclAny = m1 |
+			let mecheck : OclAny = m2 in --.debug('foreach ' + self.iterator.variable.name + ' m2') in
+			let stcheck : OclAny = stt in --.debug('next statement') in
 			let actually_used_memory : OclAny = Tuple{
 				fblocks = m2.mem.fblocks,
 				dataflows = m2.mem.dataflows,
@@ -8999,7 +9036,6 @@ helper context chips!"chips::statements::system::foreach" def : evaluate(
 					}
 				)
 			} in
-			let mecheck : OclAny = Tuple{pc = m2.pc, vars=actually_used_memory.variables}.debug() in
 			stt.evaluate(m2.pc, actually_used_memory)
 		) in
 		Tuple{
@@ -9771,15 +9807,15 @@ helper context chips!"chips::statements::system::feeding_physical_int" def :
 			ccasts_map = 
 			if self.feeder.oclIsTypeOf(chips!"chips::systemspecific::expressions::feeder::physical_collective_cast") then
 				let fdim : Sequence(Integer) = self.feeder.physical_feeder_expression.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
-				let findices : Sequence(Integer) = self.feeder.physical_feeder_expression.variable_expression.index->collect( i | i.debug('partial from index chips').evaluate(memory).value.debug('partial from index evaluated')->get(0))->linearize(fdim).debug('from index linearized by fdim='+fdim->toString()) in
+				let findices : Sequence(Integer) = self.feeder.physical_feeder_expression.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(fdim) in --.debug('from index linearized by fdim='+fdim->toString()) in
 				let tdim : Sequence(Integer) = self.eater.variable_expression.variable.dimensions->collect( e | e.evaluate(memory).value->get(0)) in
 				let tindices : Sequence(Integer) = self.eater.variable_expression.index->collect( i | i.evaluate(memory).value->get(0))->linearize(tdim) in
 				let used : OclAny = Tuple{
 					from=self.feeder.physical_feeder_expression.variable_expression.variable.name, 
 					fid=findices, 
 					toob=self.eater.variable_expression.variable.name,
-					tid=tindices 
-				}.debug() in
+					tid=tindices
+				} in
 				thisModule.includingPartialConnectorForPhysical(memory,self)
 			else 
 				memory.ccasts_map
@@ -10155,13 +10191,14 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 		)
 	) = 
 	let expression : OclAny = self.feeder.evaluate(memory) in
+	let currentid : Integer = thisModule.NextId() in 
 	Tuple{
 		pc = pc+1,
 		mem = if expression.dims->get(0) <> 1 then 
 			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
 			memory
 		else
-			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let name : String = 'direct_expression'+currentid.toString() in
 			let partial_next_mem : TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
@@ -10200,7 +10237,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 							instances = Sequence{
 								thisModule.MakeIntegerConstantDeclaration(
 									expression.value->get(0),
-									thisModule.id
+									currentid
 								)
 							}
 						}
@@ -10338,13 +10375,14 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 		)
 	) = 
 	let expression : OclAny = self.feeder.evaluate(memory) in
+	let currentid : Integer = thisModule.NextId() in 
 	Tuple{	
 		pc = pc+1,
 		mem = if expression.dims->get(0) <> 1 then 
 			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
 			memory
 		else
-			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let name : String = 'direct_expression'+currentid.toString() in
 			let partial_next_mem : TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
@@ -10383,7 +10421,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 							instances = Sequence{
 								thisModule.MakeFloatConstantDeclaration(
 									expression.value->get(0),
-									thisModule.id
+									currentid
 								)
 							}
 						}
@@ -10521,13 +10559,14 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 		)
 	) = 
 	let expression : OclAny = self.feeder.evaluate(memory) in
+	let currentid : Integer = thisModule.NextId() in 
 	Tuple{
 		pc = pc +1,	
 		mem = if expression.dims->get(0) <> 1 then 
 			let error : OclAny = expression.debug('Can\'t convert multi-valued expression into a constant logical input') in
 			memory
 		else
-			let name : String = 'direct_expression'+thisModule.id->toString() in
+			let name : String = 'direct_expression'+currentid->toString() in
 			let partial_next_mem : TupleType(
 				fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))), 
 				dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
@@ -10566,7 +10605,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 							instances = Sequence{
 								thisModule.MakeBoolConstantDeclaration(
 									expression.value->get(0),
-									thisModule.id
+									currentid
 								)
 							}
 						}
@@ -10708,7 +10747,7 @@ helper context chips!"chips::statements::system::feeding_logical_int" def :
 				chips!"chips::systemspecific::expressions::feeder::int_logical_output",
 				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
 			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-			self->handleSystemExpressions(pc,memory)
+			self.handleSystemExpressions(pc,memory).mem
 		else
 			Tuple {
 				fblocks = memory.fblocks,
@@ -10864,7 +10903,7 @@ helper context chips!"chips::statements::system::feeding_logical_float" def :
 				chips!"chips::systemspecific::expressions::feeder::float_logical_output",
 				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
 			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-			self->handleSystemExpressions(pc,memory)
+			self.handleSystemExpressions(pc,memory).mem
 		else
 			Tuple {
 				fblocks = memory.fblocks,
@@ -11020,7 +11059,7 @@ helper context chips!"chips::statements::system::feeding_logical_bool" def :
 				chips!"chips::systemspecific::expressions::feeder::bool_logical_output",
 				chips!"chips::systemspecific::expressions::feeder::logical_collective_cast"
 			}->forAll( feeder_type | not self.feeder.oclIsTypeOf(feeder_type)) then
-			self->handleSystemExpressions(pc,memory)
+			self.handleSystemExpressions(pc,memory).mem
 		else
 			Tuple {
 				fblocks = memory.fblocks,

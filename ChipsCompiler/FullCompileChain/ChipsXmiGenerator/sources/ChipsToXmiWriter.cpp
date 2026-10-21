@@ -4,17 +4,19 @@
 #include <limits>
 #include <locale>
 #include <stdexcept>
+#include <unordered_set>
 #include <utility>
+#include <algorithm>
+#include <vector>
 
 namespace chips {
 
-chips_ast2xmi_visitor::chips_ast2xmi_visitor(
-    std::ostream &out,
-    std::string schema_location,
-    std::string xmi_version,
-    std::string xmi_url): 
-    m_out(out), m_schema_location(std::move(schema_location)),
-    m_xmi_version(std::move(xmi_version)), m_xmi_url(std::move(xmi_url)) {}
+chips_ast2xmi_visitor::chips_ast2xmi_visitor(std::ostream &out,
+                                             std::string schema_location,
+                                             std::string xmi_version,
+                                             std::string xmi_url)
+    : m_out(out), m_schema_location(std::move(schema_location)),
+      m_xmi_version(std::move(xmi_version)), m_xmi_url(std::move(xmi_url)) {}
 
 void chips_ast2xmi_visitor::write(program_node &root) {
   m_body.str("");
@@ -222,7 +224,49 @@ void chips_ast2xmi_visitor::attribute(const std::string &name,
     throw std::logic_error("attribute '" + name +
                            "' written after element content");
   }
-  m_body << " " << name << "=\"" << escape(value) << "\"";
+  static const std::unordered_set<std::string> identifier_features = {
+      "name", "identifier", "type_identifier"};
+  const std::string text =
+      identifier_features.count(name) > 0 ? protect_identifier(value) : value;
+  m_body << " " << name << "=\"" << escape(text) << "\"";
+}
+std::string chips_ast2xmi_visitor::protect_identifier(const std::string &raw) {
+  static const std::string escape_prefix = "kw_";
+  static const std::vector<std::string> reserved_prefixes = {"ph_of_"};
+  static const std::unordered_set<std::string> keywords = {
+    "int",      "bool",      "float",    "string",   "true",     "false",
+    "refine",   "extern",    "export",   "function", "operator", "define",
+    "data",     "package",   "end",      "use",      "as",       "atom",
+    "compound", "component", "on",       "internal", "do",       "provided",
+    "initial",  "place",     "from",     "to",       "priority", "connector",
+    "up",       "down",      "port",     "type",     "const",    "if",
+    "then",     "else",      "fi",       "error", // end of BIP related kws
+    "target" // end of ATL transformation related kws
+  };
+  static const bool prefixes_checked = [] {
+    for (const std::string &prefix : reserved_prefixes) {
+      if (prefix.empty() ||
+          prefix.compare(0, escape_prefix.size(), escape_prefix) == 0 ||
+          escape_prefix.compare(0, prefix.size(), prefix) == 0) {
+        throw std::logic_error("reserved prefix '" + prefix +
+                               "' overlaps the escape prefix '" +
+                               escape_prefix + "'");
+      }
+    }
+    return true;
+  }();
+  (void)prefixes_checked;
+
+  auto starts_with = [&raw](const std::string &prefix) {
+    return raw.compare(0, prefix.size(), prefix) == 0;
+  };
+
+  if (keywords.count(raw) > 0 || starts_with(escape_prefix) ||
+      std::any_of(reserved_prefixes.begin(), reserved_prefixes.end(),
+                  starts_with)) {
+    return escape_prefix + raw;
+  }
+  return raw;
 }
 
 void chips_ast2xmi_visitor::attribute(const std::string &name, int value) {

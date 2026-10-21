@@ -1852,7 +1852,7 @@
           <rvalue xmi:id="_1178" xsi:type="chips.rvalues.primitive:direct_float" value="0"/>
         </statements>
         <statements xmi:id="_1179" xsi:type="chips.statements.primitive:float_declaration">
-          <variable xmi:id="_1180" xsi:type="chips.variables.primitive:float" name="error"/>
+          <variable xmi:id="_1180" xsi:type="chips.variables.primitive:float" name="kw_error"/>
         </statements>
         <statements xmi:id="_1181" xsi:type="chips.statements.primitive:float_assignment">
           <lvalue xmi:id="_1182" xsi:type="chips.xvalues.primitive:float_variable_expression" variable="_1180"/>

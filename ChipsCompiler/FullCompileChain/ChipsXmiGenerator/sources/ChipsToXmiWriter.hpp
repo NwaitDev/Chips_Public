@@ -15,10 +15,9 @@ namespace chips {
 
 struct chips_ast2xmi_visitor {
 public:
-  explicit chips_ast2xmi_visitor(
-    std::ostream &out, std::string schema_location,
-    std::string xmi_version = "2.0",
-    std::string xmi_url = "http://www.omg.org/XMI");
+  explicit chips_ast2xmi_visitor(std::ostream &out, std::string schema_location,
+                                 std::string xmi_version = "2.0",
+                                 std::string xmi_url = "http://www.omg.org/XMI");
 
   void write(program_node &root);
 
@@ -157,6 +156,7 @@ private:
   static std::string rvalues_ns(expression_env expenv);
   static std::string operators_ns(expression_env expenv, dataflow_type dft);
   static std::string escape(const std::string &raw);
+  static std::string protect_identifier(const std::string &raw);
 
   std::string node_id(ast_node *node);
   void indent();

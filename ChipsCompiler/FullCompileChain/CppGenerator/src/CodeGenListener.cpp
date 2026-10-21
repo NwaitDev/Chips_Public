@@ -215,7 +215,6 @@ std::string CodeGenListener::translateIfElse(ChipsParser::If_else_statementConte
 
 std::string CodeGenListener::translateSuffixes(ChipsParser::SuffixesContext *s)
 {
-
     std::vector<std::string> dimExprs;
     for (auto *e : s->expr())
     {
@@ -798,16 +797,16 @@ std::string CodeGenListener::translateCLoop(ChipsParser::C_loop_statementContext
 {
     std::string pad(indent, ' ');
     std::string varName = ctx->IDENTIFIER()->getText();
-    auto *loopIn = ctx->loop_in();
+    auto *loopIn = ctx->c_loop_in();
     std::string source = loopIn->IDENTIFIER()->getText();
 
     std::ostringstream oss;
 
-    if (loopIn->expr().empty())
+    if (loopIn->c_expr().empty())
     {
-        for (auto *idx : loopIn->suffixes()->expr())
+        for (auto *idx : loopIn->c_suffixes()->c_stopless_expr())
         {
-            source += "[" + translateExpr(idx) + "]";
+            source += "[" + translateCStoplessExpr(idx) + "]";
         }
 
         oss << pad << "for (auto " << varName << " : " << source << ")\n";
@@ -818,7 +817,7 @@ std::string CodeGenListener::translateCLoop(ChipsParser::C_loop_statementContext
     else
     {
         std::string argList;
-        auto args = loopIn->expr();
+        auto args = loopIn->c_expr();
         for (size_t i = 0; i < args.size(); ++i)
         {
             if (i)
@@ -828,7 +827,7 @@ std::string CodeGenListener::translateCLoop(ChipsParser::C_loop_statementContext
 
         std::string genVar = varName;
         std::string indices("");
-        for (auto *idx : loopIn->suffixes()->expr())
+        for (auto *idx : loopIn->c_suffixes()->c_stopless_expr())
         {
             indices += "[" + tokens_.getText(idx) + "]";
         }
@@ -883,9 +882,9 @@ std::string CodeGenListener::translateCDecl(ChipsParser::Cdf_full_declarationCon
     storeVar(cctx, varName, chipType);
 
     std::string ctorArgs;
-    if (auto *suffixes = ctx->suffixes())
+    if (auto *suffixes = ctx->c_suffixes())
     {
-        ctorArgs = translateSuffixes(suffixes);
+        ctorArgs = translateCSuffixes(suffixes);
     }
 
     std::string initializer;
@@ -1644,25 +1643,28 @@ std::string CodeGenListener::translateCOutputs(ChipsParser::Collective_op_defCon
     bool hasDefault = false;
     std::set<std::string> coveredChannels;
 
-    for (auto *output : ctx->c_output())
+    if (auto *defaultOutput = ctx->c_default_output())
     {
-        if (auto *chan = dynamic_cast<ChipsParser::ChanneledOutputContext *>(output))
+        hasDefault = true;
+        defaultExprs = defaultOutput->c_expr();
+    }
+
+    for (auto *chan : ctx->c_channeled_output())
+    {
+        const std::string chanName = chan->IDENTIFIER()->getText();
+
+        const bool declared = chans && std::any_of(chans->begin(), chans->end(),
+            [&](const std::pair<std::string, std::string> &p) { return p.second == chanName; });
+
+        if (!declared)
         {
-            const std::string chanName = chan->IDENTIFIER()->getText();
-
-            const bool declared = chans && std::any_of(chans->begin(), chans->end(),
-                [&](const std::pair<std::string, std::string> &p) { return p.second == chanName; });
-
-            if (!declared)
-            {
-                throw std::runtime_error(
-                    "channeled output '" + chanName + "' does not match any channel declared "
-                    "for support object/physical function '" + supportTypeName + "'");
-            }
-
-            coveredChannels.insert(chanName);
-            emitAssignment(chanName + "_acc", chan->c_expr());
+            throw std::runtime_error(
+                "channeled output '" + chanName + "' does not match any channel declared "
+                "for support object/physical function '" + supportTypeName + "'");
         }
+
+        coveredChannels.insert(chanName);
+        emitAssignment(chanName + "_acc", chan->c_expr());
     }
 
     // Any declared channel not explicitly targeted by a #ChanneledOutput

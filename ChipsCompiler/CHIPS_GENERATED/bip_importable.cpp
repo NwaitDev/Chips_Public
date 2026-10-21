@@ -1533,7 +1533,7 @@ void DataProvider_then(chips_bool& redirection, chips_int& userID, chips_int& da
             }
         }
     }
-    if ((currentlyTreatedUserRequest >= chips_int{0}) && httpResponse == chips_int{0})
+    if ((currentlyTreatedUserRequest >= chips_int{0}) && (httpResponse == chips_int{0}))
     {
         if (cacheSearching)
         {
@@ -1640,16 +1640,18 @@ void allDataProvidersOutputs(chips_int channel_indicator, AggrAnswers_t _accumul
     {
         auto i0 = range(100);
         for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
-            if (prev_acc.answer[i].to_chips() != chips_int{0})
+            if (prev_acc.answers[i].to_chips() != chips_int{0})
             {
-                _accumulator.answers[i].to_chips() = prev_acc.answer[i].to_chips();
+                _accumulator.answers[i].to_chips() = prev_acc.answers[i].to_chips();
             }
-            if (next_acc.answer[i].to_chips() != chips_int{0})
+            if (next_acc.answers[i].to_chips() != chips_int{0})
             {
-                _accumulator.answers[i].to_chips() = next_acc.answer[i].to_chips();
+                _accumulator.answers[i].to_chips() = next_acc.answers[i].to_chips();
             }
         }
     }
+    next_acc.answers = _accumulator.answers;
+    prev_acc.answers = _accumulator.answers;
     allDataProvidersOutputs_target = _accumulator.answers;
 }
 
@@ -1677,6 +1679,8 @@ void responseToTheRightUser(chips_int channel_indicator, AggrFromInternet_t _acc
         returned = _accumulator.fromInternet;
         transmitted.stopFlag = true;
     }
+    next_acc.fromInternet = transmitted;
+    prev_acc.fromInternet = transmitted;
     responseToTheRightUser_target = returned;
 }
 
@@ -1710,6 +1714,8 @@ void aggregatingRequests(chips_int channel_indicator, AggrRequests_t _accumulato
             }
         }
     }
+    next_acc.requests = _accumulator.requests;
+    prev_acc.requests = _accumulator.requests;
     aggregatingRequests_target = _accumulator.requests;
 }
 
@@ -1736,8 +1742,8 @@ void PidController_then(chips_float& requested_time, chips_float& resulting_time
         integral = integral + error * dt;
         derivative = error / dt;
         knob_value = static_cast<chips_int>((p * error + i * integral + d * derivative));
-        knob_value = min(max_knob_value, knob_value);
-        knob_value = max(min_knob_value, knob_value);
+        knob_value = imin(max_knob_value, knob_value);
+        knob_value = imax(min_knob_value, knob_value);
     }
     knob_out = knob_value;
 }
@@ -1753,6 +1759,8 @@ void numberOfRespondedRequests(chips_int channel_indicator, AggrSum_t _accumulat
     {
         _accumulator.sum = _accumulator.sum + chips_int{1};
     }
+    next_acc.sum = _accumulator.sum;
+    prev_acc.sum = _accumulator.sum;
     numberOfRespondedRequests_target = _accumulator.sum;
 }
 
@@ -1762,6 +1770,8 @@ struct AggrRedirection_t{
 
 void broadcastRedirection(chips_int channel_indicator, AggrRedirection_t _accumulator, AggrRedirection_t next_acc, AggrRedirection_t prev_acc, chips_any broadcastRedirection_target)
 {
+    next_acc.redirection = _accumulator.redirection;
+    prev_acc.redirection = _accumulator.redirection;
     broadcastRedirection_target = _accumulator.redirection;
 }
 
@@ -1771,6 +1781,8 @@ struct AggrDataQtyToFind_t{
 
 void broadcastDataQty(chips_int channel_indicator, AggrDataQtyToFind_t _accumulator, AggrDataQtyToFind_t next_acc, AggrDataQtyToFind_t prev_acc, chips_any broadcastDataQty_target)
 {
+    next_acc.dataQtyToFind = _accumulator.dataQtyToFind;
+    prev_acc.dataQtyToFind = _accumulator.dataQtyToFind;
     broadcastDataQty_target = _accumulator.dataQtyToFind;
 }
 
