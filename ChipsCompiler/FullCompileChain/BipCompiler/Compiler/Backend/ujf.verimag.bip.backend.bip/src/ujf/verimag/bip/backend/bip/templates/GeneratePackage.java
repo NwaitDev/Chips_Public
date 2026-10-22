@@ -186,34 +186,34 @@ public class GeneratePackage extends AbstractAcceleoGenerator {
         // some javax.dontremembertheuri.Diagnostic is imported
         org.eclipse.emf.common.util.BasicDiagnostic diags = new org.eclipse.emf.common.util.BasicDiagnostic();
 
-        try {
-            if (!Diagnostician.INSTANCE.validate(model,(org.eclipse.emf.common.util.DiagnosticChain) diags)) {
-                for (org.eclipse.emf.common.util.Diagnostic child : diags.getChildren()) {
-                    System.err.println(child.getMessage());
-                }
-                throw new IOException("Input model is not valid relatively to the BIP metamodel.");
-            }
-        } catch (Exception innerError) {
-            TreeIterator<EObject> it = model.eAllContents();
-            while (it.hasNext()) {
-                EObject obj = it.next();
-                if ("AtomType".equals(obj.eClass().getName())) {
-                    String atomName = (String) obj.eGet(obj.eClass().getEStructuralFeature("name"));
-                    try {
-                        org.eclipse.emf.common.util.Diagnostic d = Diagnostician.INSTANCE.validate(obj);
-                        if (d.getSeverity() == org.eclipse.emf.common.util.Diagnostic.ERROR) {
-                            System.err.println("ERREUR de validation dans AtomType '" + atomName + "':");
-                            for (org.eclipse.emf.common.util.Diagnostic child : d.getChildren()) {
-                                System.err.println("   " + child.getMessage());
-                            }
-                        }
-                    } catch (RuntimeException e) {
-                        System.err.println("*** CRASH pendant la validation de AtomType '" + atomName + "' ***");
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
+        // try {
+        //     if (!Diagnostician.INSTANCE.validate(model,(org.eclipse.emf.common.util.DiagnosticChain) diags)) {
+        //         for (org.eclipse.emf.common.util.Diagnostic child : diags.getChildren()) {
+        //             System.err.println(child.getMessage());
+        //         }
+        //         throw new IOException("Input model is not valid relatively to the BIP metamodel.");
+        //     }
+        // } catch (Exception innerError) {
+        //     TreeIterator<EObject> it = model.eAllContents();
+        //     while (it.hasNext()) {
+        //         EObject obj = it.next();
+        //         if ("AtomType".equals(obj.eClass().getName())) {
+        //             String atomName = (String) obj.eGet(obj.eClass().getEStructuralFeature("name"));
+        //             try {
+        //                 org.eclipse.emf.common.util.Diagnostic d = Diagnostician.INSTANCE.validate(obj);
+        //                 if (d.getSeverity() == org.eclipse.emf.common.util.Diagnostic.ERROR) {
+        //                     System.err.println("ERREUR de validation dans AtomType '" + atomName + "':");
+        //                     for (org.eclipse.emf.common.util.Diagnostic child : d.getChildren()) {
+        //                         System.err.println("   " + child.getMessage());
+        //                     }
+        //                 }
+        //             } catch (RuntimeException e) {
+        //                 System.err.println("*** CRASH pendant la validation de AtomType '" + atomName + "' ***");
+        //                 e.printStackTrace();
+        //             }
+        //         }
+        //     }
+        // }
         
 
         super.doGenerate(monitor);

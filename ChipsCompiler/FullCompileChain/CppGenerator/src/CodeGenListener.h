@@ -6,19 +6,36 @@
 #include <map>
 #include <variant>
 #include <utility>
+#include <stdexcept>
+#include <cstddef>
 
 #include "antlr4-runtime.h"
 #include "ChipsBaseListener.h"
 #include "Dictionary.hpp"
 
+class ChipsGenerationError : public std::runtime_error
+{
+public:
+    ChipsGenerationError(std::size_t line, std::size_t column, const std::string &message);
+    std::size_t line() const noexcept { return line_; }
+    std::size_t column() const noexcept { return column_; }
+    const std::string &message() const noexcept { return message_; }
+
+private:
+    std::size_t line_;
+    std::size_t column_;
+    std::string message_;
+};
+
 class CodeGenListener : public ChipsBaseListener
 {
 public:
-    CodeGenListener(antlr4::CommonTokenStream &tokens, std::ostream &out)
-        : tokens_(tokens), out_(out)
+    CodeGenListener(antlr4::CommonTokenStream &tokens, std::ostream &headerOut, std::ostream &sourceOut)
+        : tokens_(tokens), header_out_(headerOut), source_out_(sourceOut)
     {
     }
 
+    void enterProgram(ChipsParser::ProgramContext *ctx) override;
     void exitL_function_def(ChipsParser::L_function_defContext *ctx) override;
     void exitObject_def(ChipsParser::Object_defContext *ctx) override;
     void exitP_function_def(ChipsParser::P_function_defContext *ctx) override;
@@ -45,6 +62,7 @@ private:
     std::set<std::string> emittedAggrStructs_;
 
     static std::string capitalize(const std::string &s);
+    static std::string contextualParamName(const std::string &name);
     std::string aggregateStructName(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
     std::string aggregateStructDef(const std::vector<ChipsParser::Cdf_defaulted_declContext *> &params);
     void emitAggregateStructIfNeeded(ChipsParser::Collective_op_defContext *ctx);
@@ -54,9 +72,18 @@ private:
     void storeVar(DefType ctx,const std::string& var_name, const std::string& type);
     const std::set<std::pair<std::string, std::string>> *findContextualVarsForSupportName(const std::string &name) const;
 
-    void emitSection(const std::string &funcName, const std::string &suffix, const std::vector<ChipsParser::StatementContext *> &statements, const std::string &params, const std::string &outputs, const bool& inScope);
+    void emitFunction(const std::string &funcName, const std::vector<std::string> &signatureParts, const std::string &body);
+    static std::string joinSortedByName(std::vector<std::pair<std::string, std::string>> namedDecls);
+    static std::string dfTypeName(ChipsParser::Df_typeContext *typeCtx);
+    static ChipsParser::Df_typeContext *pdfParameterType(ChipsParser::Pdf_parameter_declContext *param);
+    std::string translateContextualParams(ChipsParser::P_function_defContext *ctx);
 
     bool lookupVarType(const std::string &name, std::string &type) const;
+    bool isParameterOfCurrentDef(const std::string &name) const;
+    bool isContextualOfCurrentDef(const std::string &name) const;
+    bool isInnerOfCurrentDef(const std::string &name) const;
+    std::string resolveVariableReference(const std::string &name, antlr4::ParserRuleContext *where) const;
+    [[noreturn]] static void fail(antlr4::ParserRuleContext *where, const std::string &message);
     bool isSpreadOp(ChipsParser::Collective_op_defContext *ctx) const;
 
     std::string collectiveFunctionName(ChipsParser::Collective_op_defContext *ctx);
@@ -99,6 +126,8 @@ private:
     std::string translateContextualAssignment(ChipsParser::StatementContextualAssignmentContext *ctx, int indent);
 
     std::string translateSuffixes(ChipsParser::SuffixesContext *ctx);
+    std::string translateLhsSuffixes(ChipsParser::SuffixesContext *s);
+    std::string translateCLhsSuffixes(ChipsParser::C_suffixesContext *s);
     std::string translateFunction(ChipsParser::FunctionContext *ctx);
     std::string translateExpr(ChipsParser::ExprContext* ctx);
     std::string translateExpr0(ChipsParser::Expr0Context* ctx);
@@ -134,5 +163,6 @@ private:
     std::string outputText();
 
     antlr4::CommonTokenStream &tokens_;
-    std::ostream &out_;
+    std::ostream &header_out_;
+    std::ostream &source_out_;
 };

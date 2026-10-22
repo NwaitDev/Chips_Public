@@ -30,6 +30,8 @@ public:
 
     /*--------------------------  ctors  --------------------------*/
     chips() = default;
+    chips(const chips &) = default;
+    chips(chips &&) noexcept = default;
 
     explicit chips(const std::vector<int> &shape,
                    const std::vector<T> &flatdata_ = {})
@@ -150,6 +152,8 @@ public:
         return chips<U>(std::move(new_shape), std::move(newdata_));
     }
 
+    chips<T> to_chips() const { return *this; }
+
     /*--------------------------  element access  --------------------------*/
     T &operator()(const std::vector<int> &indices)
     {
@@ -224,6 +228,8 @@ private:
                                   std::size_t{1}, std::multiplies<std::size_t>());
             std::vector<T> sub_data(parent_->data_.begin() + static_cast<std::ptrdiff_t>(start),
                                     parent_->data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
+            if (sub_shape.empty())
+                sub_shape.push_back(1);
             return chips<T>(std::move(sub_shape), std::move(sub_data));
         }
 
@@ -233,6 +239,31 @@ private:
         chips<T> to_chips() const {
             return static_cast<chips<T>>(*this);
         }
+
+        slice_proxy(const slice_proxy &) = default;
+
+        slice_proxy &operator=(const slice_proxy &rhs) {
+            return *this = rhs.to_chips();
+        }
+
+        slice_proxy &operator=(const chips<T> &value) {
+            if (fixed_.size() > static_cast<std::size_t>(parent_->dimensions_))
+                throw std::out_of_range("Too many coordinates");
+            std::vector<int> full_idx = fixed_;
+            full_idx.resize(static_cast<std::size_t>(parent_->dimensions_), 0);
+            std::size_t start = parent_->linear_index(full_idx);
+            std::size_t sub_len = 1;
+            for (std::size_t d = fixed_.size(); d < static_cast<std::size_t>(parent_->dimensions_); ++d)
+                sub_len *= static_cast<std::size_t>(parent_->shape_[d]);
+            if (value.data().size() != sub_len)
+                throw std::invalid_argument("slice assignment : shape mismatch");
+            std::copy(value.data().begin(), value.data().end(),
+                      parent_->data_.begin() + static_cast<std::ptrdiff_t>(start));
+            parent_->age_ = 0;
+            return *this;
+        }
+
+        slice_proxy &operator=(const chips_any &value);
 
         class iterator {
             const slice_proxy* owner_;
@@ -302,6 +333,8 @@ public:
                               std::size_t{1}, std::multiplies<std::size_t>());
         std::vector<T> sub_data(data_.begin() + static_cast<std::ptrdiff_t>(start),
                                 data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
+        if (sub_shape.empty())
+            sub_shape.push_back(1);
         return chips<T>(std::move(sub_shape), std::move(sub_data));
     }
 
@@ -632,7 +665,7 @@ operator/(const chips<U> &lhs, const chips<U> &rhs)
 }
 
 /*-----------------------  modulo (int only)  ---------------------*/
-chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
+inline chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
 {
     if (lhs.shape() != rhs.shape())
         throw std::invalid_argument("operator% : shape mismatch");
@@ -935,15 +968,21 @@ inline chips_any operator!(const chips_any &v)
 
 template <typename T>
 chips<T>::chips(const chips_any &rhs)
+    : chips(std::get<chips<T>>(rhs.value()))
 {
-    *this = static_cast<chips<T>>(rhs);
 }
 
 template <typename T>
 chips<T> &chips<T>::operator=(const chips_any &rhs)
 {
-    *this = static_cast<chips<T>>(rhs);
+    *this = std::get<chips<T>>(rhs.value());
     return *this;
+}
+
+template <typename T>
+typename chips<T>::slice_proxy &chips<T>::slice_proxy::operator=(const chips_any &value)
+{
+    return *this = std::get<chips<T>>(value.value());
 }
 
 /*=====================================================================
@@ -1232,11 +1271,3 @@ chips<bool> is_fresh(chips<U> var)
 
 
 #endif // CHIPS_HPP
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//----------------Code section generated from chips sources---------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------

@@ -49,6 +49,7 @@ namespace
 
             const auto &type = value;
 
+            result += "[[maybe_unused]] ";
             result += type;
             result += "& ";
             result += name;

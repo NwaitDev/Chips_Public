@@ -1,1246 +1,10 @@
-#ifndef CHIPS_HPP
-#define CHIPS_HPP
+#include "bip_importable.hpp"
 
-#include <vector>
-#include <numeric>
-#include <stdexcept>
-#include <cstddef>
-#include <functional>
-#include <type_traits>
-#include <algorithm>
-#include <random>
-#include <variant>
+//--------------------------------------------------------------------------------
+//Definitions generated from chips sources
+//--------------------------------------------------------------------------------
 
-class chips_any;
-
-
-/**
- * @brief Multi‑dimensional container that stores its data linearly.
- */
-template <typename T>
-class chips
-{
-    static_assert(std::is_same_v<T, int> ||
-                      std::is_same_v<T, bool> ||
-                      std::is_same_v<T, double>,
-                  "chips<T> only supports T = int, bool or double");
-
-public:
-    using value_type = T;
-
-    /*--------------------------  ctors  --------------------------*/
-    chips() = default;
-
-    explicit chips(const std::vector<int> &shape,
-                   const std::vector<T> &flatdata_ = {})
-        : dimensions_(static_cast<int>(shape.size())),
-          shape_(shape),
-          data_(flatdata_),
-          age_(0)
-    {
-        const std::size_t needed = total_size();
-        if (!data_.empty() && data_.size() != needed)
-        {
-            throw std::invalid_argument(
-                "flatdata_ size does not match product of shape");
-        }
-        if (data_.empty())
-            data_.resize(needed);
-    }
-
-    template <typename... Dims,
-              typename = std::enable_if_t<
-                  std::conjunction_v<std::is_integral<Dims>...>>>
-    explicit chips(Dims... dims)
-        : chips(std::vector<int>{static_cast<int>(dims)...})
-    {
-    }
-
-    /*--------------------------  accessors  --------------------------*/
-    int dimensions() const noexcept { return dimensions_; }
-    const std::vector<int> &shape() const noexcept { return shape_; }
-    const std::vector<T> &data() const noexcept { return data_; }
-    std::vector<T> &data() noexcept { return data_; }
-
-    int age() const noexcept { return age_; }
-
-    void tick() noexcept { ++age_; }
-
-    void reset() noexcept { age_ = 0; }
-
-    /*--------------------------  age check   --------------------------*/
-
-    chips<bool> is_fresh() const
-    {
-        std::vector<int> fresh_shape{1};
-        std::vector<bool> freshdata_{age_ == 0};
-        return chips<bool>(std::move(fresh_shape), std::move(freshdata_));
-    }
-
-    /*--------------------------  assignment   --------------------------*/
-
-    chips &operator=(const chips &rhs)
-    {
-        if (this == &rhs)
-            return *this;
-
-        if (shape_ != rhs.shape_)
-        {
-            throw std::invalid_argument(
-                "chips::operator= – shape mismatch between lhs and rhs");
-        }
-
-        data_ = rhs.data_;
-
-        age_ = 0;
-
-        return *this;
-    }
-
-    /*--------------------------  chips_any interop  --------------------------*/
-    // Definitions are out-of-line, after chips_any is fully declared below.
-    explicit chips(const chips_any &rhs);
-    chips &operator=(const chips_any &rhs);
-
-    template <typename U = T,
-              typename = std::enable_if_t<
-                  (std::is_same_v<U, int> && std::is_same_v<T, int>) ||
-                  (std::is_same_v<U, double> && std::is_same_v<T, double>) ||
-                  (std::is_same_v<U, bool> && std::is_same_v<T, bool>)>>
-    chips &operator=(U scalar)
-    {
-        // shape becomes a single element {1}
-        shape_ = std::vector<int>{1};
-        dimensions_ = 1;
-
-        data_.clear();
-        data_.push_back(static_cast<T>(scalar));
-        age_ = 0;
-        return *this;
-    }
-
-    template <typename U = T,
-              typename = std::enable_if_t<
-                  (std::is_same_v<U, int> && std::is_same_v<T, int>) ||
-                  (std::is_same_v<U, double> && std::is_same_v<T, double>) ||
-                  (std::is_same_v<U, bool> && std::is_same_v<T, bool>)>>
-    chips(U scalar)
-        : dimensions_(1),
-          shape_{1},
-          data_{static_cast<T>(scalar)},
-          age_(0)
-    {
-    }
-
-    /*--------------------------  numeric cast  --------------------------*/
-
-    template <typename U,
-              typename = std::enable_if_t<
-                  (std::is_same_v<T, int> && std::is_same_v<U, double>) ||
-                  (std::is_same_v<T, double> && std::is_same_v<U, int>)>>
-    explicit operator chips<U>() const
-    {
-        std::vector<int> new_shape = shape_;
-
-        std::vector<U> newdata_;
-        newdata_.reserve(data_.size());
-        for (const T &v : data_)
-            newdata_.push_back(static_cast<U>(v));
-
-        return chips<U>(std::move(new_shape), std::move(newdata_));
-    }
-
-    /*--------------------------  element access  --------------------------*/
-    T &operator()(const std::vector<int> &indices)
-    {
-        return data_.at(linear_index(indices));
-    }
-    T operator()(const std::vector<int> &indices) const
-    {
-        return data_.at(linear_index(indices));
-    }
-
-    /*--------------------------  slice operator  --------------------------*/
-
-private:
-    std::size_t linear_index(const std::vector<int> &indices) const
-    {
-        if (static_cast<int>(indices.size()) != dimensions_)
-            throw std::out_of_range("Incorrect number of indices");
-
-        std::size_t idx = 0;
-        std::size_t stride = 1;
-        for (int d = dimensions_ - 1; d >= 0; --d)
-        {
-            int i = indices[d];
-            int dim = shape_[d];
-            if (i < 0 || i >= dim)
-                throw std::out_of_range("Index out of bounds");
-            idx += static_cast<std::size_t>(i) * stride;
-            stride *= static_cast<std::size_t>(dim);
-        }
-        return idx;
-    }
-
-    class slice_proxy {
-        chips*                parent_;
-        std::vector<int>      fixed_;
-
-        std::size_t linear_index_in_parent(std::size_t pos) const {
-            std::vector<int> idx = fixed_;
-            std::size_t stride = 1;
-            for (int d = static_cast<int>(parent_->dimensions_) - 1;
-                 d >= static_cast<int>(fixed_.size()); --d) {
-                int cur = static_cast<int>((pos / stride) % parent_->shape_[d]);
-                idx.push_back(cur);
-                stride *= static_cast<std::size_t>(parent_->shape_[d]);
-            }
-            return parent_->linear_index(idx);
-        }
-
-    public:
-        explicit slice_proxy(chips* p, const chips<int>& c)
-            : parent_(p) {
-            fixed_.push_back(static_cast<int>(c.data()[0]));
-        }
-
-        slice_proxy operator[](const chips<int>& c) const {
-            slice_proxy nxt(*this);
-            nxt.fixed_.push_back(static_cast<int>(c.data()[0]));
-            return nxt;
-        }
-
-        operator chips<T>() const {
-            if (fixed_.size() > static_cast<std::size_t>(parent_->dimensions_))
-                throw std::out_of_range("Too many coordinates");
-            std::vector<int> full_idx = fixed_;
-            full_idx.resize(parent_->dimensions_, 0);
-            std::size_t start = parent_->linear_index(full_idx);
-            std::vector<int> sub_shape(parent_->shape_.begin() + fixed_.size(),
-                                       parent_->shape_.end());
-            std::size_t sub_len = sub_shape.empty()
-                ? 1
-                : std::accumulate(sub_shape.begin(), sub_shape.end(),
-                                  std::size_t{1}, std::multiplies<std::size_t>());
-            std::vector<T> sub_data(parent_->data_.begin() + static_cast<std::ptrdiff_t>(start),
-                                    parent_->data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
-            return chips<T>(std::move(sub_shape), std::move(sub_data));
-        }
-
-        // Explicit equivalent of the implicit conversion above, for contexts
-        // (auto deduction, template argument deduction) where the implicit
-        // conversion operator is not considered by the compiler.
-        chips<T> to_chips() const {
-            return static_cast<chips<T>>(*this);
-        }
-
-        class iterator {
-            const slice_proxy* owner_;
-            std::size_t        pos_;
-        public:
-            using iterator_category = std::random_access_iterator_tag;
-            using value_type        = T;
-            using difference_type   = std::ptrdiff_t;
-            using pointer           = T*;
-            using reference         = T&;
-
-            iterator(const slice_proxy* o, std::size_t p) : owner_(o), pos_(p) {}
-
-            reference operator*() const {
-                std::size_t lin = owner_->linear_index_in_parent(pos_);
-                return const_cast<T&>(owner_->parent_->data_[lin]);
-            }
-            pointer operator->() const { return &**this; }
-
-            iterator& operator++() { ++pos_; return *this; }
-            iterator  operator++(int) { iterator tmp=*this; ++(*this); return tmp; }
-            iterator& operator--() { --pos_; return *this; }
-            iterator  operator--(int) { iterator tmp=*this; --(*this); return tmp; }
-            iterator& operator+=(difference_type n){ pos_+=n; return *this; }
-            iterator  operator+ (difference_type n) const { return iterator(*this)+=n; }
-            iterator& operator-=(difference_type n){ pos_-=n; return *this; }
-            iterator  operator- (difference_type n) const { return iterator(*this)-=n; }
-            difference_type operator-(const iterator& o) const {
-                return static_cast<difference_type>(pos_) - static_cast<difference_type>(o.pos_);
-            }
-            bool operator==(const iterator& o) const { return pos_==o.pos_; }
-            bool operator!=(const iterator& o) const { return !(*this==o); }
-            bool operator<(const iterator& o) const { return pos_<o.pos_; }
-            bool operator>(const iterator& o) const { return pos_>o.pos_; }
-            bool operator<=(const iterator& o) const { return pos_<=o.pos_; }
-            bool operator>=(const iterator& o) const { return pos_>=o.pos_; }
-        };
-
-        iterator begin() const {
-            std::size_t len = 1;
-            for (std::size_t i = fixed_.size(); i < parent_->dimensions_; ++i)
-                len *= static_cast<std::size_t>(parent_->shape_[i]);
-            return iterator(this, 0);
-        }
-
-        iterator end() const {
-            std::size_t len = 1;
-            for (std::size_t i = fixed_.size(); i < parent_->dimensions_; ++i)
-                len *= static_cast<std::size_t>(parent_->shape_[i]);
-            return iterator(this, len);
-        }
-    };
-
-public:
-    slice_proxy operator[](const chips<int>& coord) {
-        return slice_proxy(this, coord);
-    }
-
-    chips<T> operator[](const chips<int>& coord) const {
-        std::vector<int> idx{ static_cast<int>(coord.data()[0]) };
-        idx.resize(dimensions_, 0);
-        std::size_t start = linear_index(idx);
-        std::vector<int> sub_shape(shape_.begin() + 1, shape_.end());
-        std::size_t sub_len = sub_shape.empty()
-            ? 1
-            : std::accumulate(sub_shape.begin(), sub_shape.end(),
-                              std::size_t{1}, std::multiplies<std::size_t>());
-        std::vector<T> sub_data(data_.begin() + static_cast<std::ptrdiff_t>(start),
-                                data_.begin() + static_cast<std::ptrdiff_t>(start + sub_len));
-        return chips<T>(std::move(sub_shape), std::move(sub_data));
-    }
-
-    class slice_iterator {
-        chips* parent_;
-        std::size_t idx_;
-
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type        = chips;
-        using difference_type   = std::ptrdiff_t;
-        using pointer           = void;
-        using reference         = chips;
-
-        slice_iterator(chips* parent, std::size_t idx)
-            : parent_(parent), idx_(idx) {}
-        
-        slice_iterator& operator++() {
-            ++idx_;
-            return *this;
-        }
-        
-        slice_iterator operator++(int) {
-            slice_iterator tmp = *this;
-            ++(*this);
-            return tmp;
-        }
-
-        
-        bool operator==(const slice_iterator& other) const {
-            return parent_ == other.parent_ && idx_ == other.idx_;
-        }
-        bool operator!=(const slice_iterator& other) const {
-            return !(*this == other);
-        }
-
-        
-        chips operator*() const {
-            return (*parent_)[std::vector<int>{static_cast<int>(idx_)}];
-        }
-    };
-    
-    class const_slice_iterator {
-        const chips* parent_;
-        std::size_t idx_;
-
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type        = chips;
-        using difference_type   = std::ptrdiff_t;
-        using pointer           = void;
-        using reference         = chips;
-
-        const_slice_iterator(const chips* parent, std::size_t idx)
-            : parent_(parent), idx_(idx) {}
-
-        const_slice_iterator& operator++() { ++idx_; return *this; }
-        const_slice_iterator operator++(int) {
-            const_slice_iterator tmp = *this; ++(*this); return tmp;
-        }
-        bool operator==(const const_slice_iterator& o) const {
-            return parent_ == o.parent_ && idx_ == o.idx_;
-        }
-        bool operator!=(const const_slice_iterator& o) const { return !(*this == o); }
-
-        chips operator*() const {
-            return (*parent_)[std::vector<int>{static_cast<int>(idx_)}];
-        }
-    };
-
-    slice_iterator begin() {
-        return slice_iterator(this, 0);
-    }
-    slice_iterator end() {
-        // nombre de slices = taille de la première dimension
-        return slice_iterator(this, static_cast<std::size_t>(shape_.front()));
-    }
-
-    const_slice_iterator begin() const {
-        return const_slice_iterator(this, 0);
-    }
-    const_slice_iterator end() const {
-        return const_slice_iterator(this, static_cast<std::size_t>(shape_.front()));
-    }
-
-    const_slice_iterator cbegin() const { return begin(); }
-    const_slice_iterator cend()   const { return end();   }
-
-    /*---------------------  bool interpretable  ---------------------*/
-
-    template <typename U = T,
-              std::enable_if_t<std::is_same_v<U, bool>, int> = 0>
-    explicit operator bool() const
-    {
-        if (shape_.size() == 1 && shape_[0] == 1)
-        {
-            return data_.empty() ? false : data_[0];
-        }
-
-        return std::all_of(data_.begin(), data_.end(),
-                           [](bool v)
-                           { return v; });
-        // may be used with "any" instead of "all"
-    }
-
-    /*--------------------------  unary operators  --------------------------*/
-    template <typename U = T,
-              typename = std::enable_if_t<
-                  std::is_same_v<U, int> || std::is_same_v<U, double>>>
-    chips<T> operator-() const
-    {
-        chips<T> res(shape_);
-        res.stopFlag = stopFlag;
-        if (!res.stopFlag)
-        {
-            std::transform(data_.begin(), data_.end(), res.data().begin(),
-                           [](const T &v) { return -v; });
-        }
-        return res;
-    }
-
-    template <typename U = T,
-              typename = std::enable_if_t<std::is_same_v<U, bool>>>
-    chips<bool> operator!() const
-    {
-        chips<bool> res(shape_);
-        res.stopFlag = stopFlag;
-        if (!res.stopFlag)
-        {
-            std::transform(data_.begin(), data_.end(), res.data().begin(),
-                           [](bool v) { return !v; });
-        }
-        return res;
-    }
-
-    /*--------------------------  utilities  --------------------------*/
-    std::size_t total_size() const noexcept
-    {
-        if (shape_.empty())
-            return 0;
-        return std::accumulate(shape_.begin(),
-                               shape_.end(),
-                               std::size_t{1},
-                               std::multiplies<std::size_t>());
-    }
-
-    chips<int> size() const noexcept
-    {
-        if (shape_.empty())
-            return 0;
-        return chips<int>{shape_[0]};
-    }
-
-private:
-
-    int dimensions_{0};
-    std::vector<int> shape_;
-    std::vector<T> data_;
-    int age_{0};
-
-public:
-    bool stopFlag{false};
-
-private:
-
-    /*--------------------------------------------------------------------
-     *  Friends – element‑wise operators (only same‑type operands)
-     *--------------------------------------------------------------------*/
-    // Arithmetic operators – enabled for int and double only
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<U>>
-    operator+(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<U>>
-    operator-(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<U>>
-    operator*(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<U>>
-    operator/(const chips<U> &lhs, const chips<U> &rhs);
-
-    // mod operator only for integers
-    friend chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs);
-
-    // Logical operators – only for bool
-    template <typename U>
-    friend std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-    operator&&(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-    operator||(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-    operator^(const chips<U> &lhs, const chips<U> &rhs); // xor
-
-    // Comparison operators – return chips<bool>, defined for int and double
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator==(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator!=(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator<(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator<=(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator>(const chips<U> &lhs, const chips<U> &rhs);
-
-    template <typename U>
-    friend std::enable_if_t<
-        (std::is_same_v<U, int> || std::is_same_v<U, double>),
-        chips<bool>>
-    operator>=(const chips<U> &lhs, const chips<U> &rhs);
-};
-
-/*=====================================================================
- *  Implementation of friend operators
- *=====================================================================*/
-
-/*-----------------------  arithmetic (int / double)  -----------------------*/
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>>
-operator+(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator+ : shape mismatch");
-    chips<U> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::plus<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>>
-operator-(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator- : shape mismatch");
-    chips<U> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::minus<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>>
-operator*(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator* : shape mismatch");
-    chips<U> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::multiplies<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>>
-operator/(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator/ : shape mismatch");
-    chips<U> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](U a, U b)
-                       {
-                           if (b == U{0})
-                               throw std::domain_error("division by zero in chips operator/");
-                           return a / b;
-                       });
-    }
-    return res;
-}
-
-/*-----------------------  modulo (int only)  ---------------------*/
-chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator% : shape mismatch");
-    chips<int> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](int a, int b)
-                       {
-                           if (b == 0)
-                               throw std::domain_error("modulo by zero in chips operator%");
-                           return a%b;
-                       });
-    }
-    return res;
-}
-
-/*-----------------------  logical (bool)  -----------------------*/
-template <typename U>
-std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-operator&&(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator&& : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::logical_and<bool>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-operator||(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator|| : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::logical_or<bool>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
-operator^(const chips<U> &lhs, const chips<U> &rhs) // exclusive‑or
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator^ : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::bit_xor<bool>());
-    }
-    return res;
-}
-
-/*-----------------------  comparisons (int / double)  -----------------------*/
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator==(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator== : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::equal_to<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator!=(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator!= : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::not_equal_to<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator<(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator< : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::less<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator<=(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator<= : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::less_equal<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator>(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator> : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::greater<U>());
-    }
-    return res;
-}
-
-template <typename U>
-std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bool>>
-operator>=(const chips<U> &lhs, const chips<U> &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator>= : shape mismatch");
-    chips<bool> res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       std::greater_equal<U>());
-    }
-    return res;
-}
-
-/*-----------------------  convenient type aliases  -----------------------*/
-
-using chips_int = chips<int>;
-using chips_bool = chips<bool>;
-using chips_float = chips<double>; // float name used to match the BIP compiler namings
-
-
-
-
-/*=====================================================================
- *  chips_any : type-erased holder for one of chips_int/chips_bool/chips_float
- *  Used by the code generator when a static type cannot be resolved
- *  (e.g. forward-referenced loop variables, unresolved function returns).
- *=====================================================================*/
-class chips_any
-{
-public:
-    using storage_type = std::variant<chips_int, chips_bool, chips_float>;
-
-    chips_any() = default;
-    chips_any(chips_int v) : value_(std::move(v)) {}
-    chips_any(chips_bool v) : value_(std::move(v)) {}
-    chips_any(chips_float v) : value_(std::move(v)) {}
-
-    const storage_type &value() const noexcept { return value_; }
-    storage_type &value() noexcept { return value_; }
-
-    // enables static_cast<chips_int>(someChipsAny), etc.
-    template <typename U>
-    explicit operator U() const
-    {
-        if (const U *p = std::get_if<U>(&value_))
-            return *p;
-        throw std::bad_variant_access();
-    }
-
-private:
-    storage_type value_;
-};
-
-namespace chips_any_detail
-{
-    template <typename BinOp>
-    chips_any visit_binary(const chips_any &lhs, const chips_any &rhs, BinOp &&op, const char *opName)
-    {
-        return std::visit([&](const auto &a, const auto &b) -> chips_any
-        {
-            using L = std::decay_t<decltype(a)>;
-            using R = std::decay_t<decltype(b)>;
-            if constexpr (std::is_same_v<L, R>)
-                return op(a, b);
-            else
-                throw std::invalid_argument(std::string("chips_any ") + opName + " : mismatched underlying types");
-        }, lhs.value(), rhs.value());
-    }
-
-    template <typename UnOp>
-    chips_any visit_unary(const chips_any &v, UnOp &&op, const char *opName)
-    {
-        return std::visit([&](const auto &a) -> chips_any
-        {
-            using A = std::decay_t<decltype(a)>;
-            if constexpr (std::is_invocable_v<UnOp, const A &>)
-                return op(a);
-            else
-                throw std::invalid_argument(std::string("chips_any ") + opName + " : unsupported underlying type");
-        }, v.value());
-    }
-}
-
-inline chips_any operator+(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a + b; }, "operator+"); }
-
-inline chips_any operator-(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a - b; }, "operator-"); }
-
-inline chips_any operator*(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a * b; }, "operator*"); }
-
-inline chips_any operator/(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a / b; }, "operator/"); }
-
-inline chips_any operator%(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a % b; }, "operator%"); }
-
-inline chips_any operator&&(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a && b; }, "operator&&"); }
-
-inline chips_any operator||(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a || b; }, "operator||"); }
-
-inline chips_any operator==(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a == b; }, "operator=="); }
-
-inline chips_any operator!=(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a != b; }, "operator!="); }
-
-inline chips_any operator<(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a < b; }, "operator<"); }
-
-inline chips_any operator<=(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a <= b; }, "operator<="); }
-
-inline chips_any operator>(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a > b; }, "operator>"); }
-
-inline chips_any operator>=(const chips_any &lhs, const chips_any &rhs)
-{ return chips_any_detail::visit_binary(lhs, rhs, [](const auto &a, const auto &b) { return a >= b; }, "operator>="); }
-
-inline chips_any operator-(const chips_any &v)
-{ return chips_any_detail::visit_unary(v, [](const auto &a) { return -a; }, "unary operator-"); }
-
-inline chips_any operator!(const chips_any &v)
-{ return chips_any_detail::visit_unary(v, [](const auto &a) { return !a; }, "unary operator!"); }
-
-
-template <typename T>
-chips<T>::chips(const chips_any &rhs)
-{
-    *this = static_cast<chips<T>>(rhs);
-}
-
-template <typename T>
-chips<T> &chips<T>::operator=(const chips_any &rhs)
-{
-    *this = static_cast<chips<T>>(rhs);
-    return *this;
-}
-
-/*=====================================================================
- *  imin,imax,fmin and fmax : min and max functions for chips numerics
- *=====================================================================*/
-
-inline chips_int imin(const chips_int &lhs, const chips_int &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("imin : shape mismatch");
-    chips_int res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](int a, int b) { return std::min(a, b); });
-    }
-    return res;
-}
-
-inline chips_int imax(const chips_int &lhs, const chips_int &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("imax : shape mismatch");
-    chips_int res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](int a, int b) { return std::max(a, b); });
-    }
-    return res;
-}
-
-inline chips_float fmin(const chips_float &lhs, const chips_float &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("fmin : shape mismatch");
-    chips_float res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](double a, double b) { return std::min(a, b); });
-    }
-    return res;
-}
-
-inline chips_float fmax(const chips_float &lhs, const chips_float &rhs)
-{
-    if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("fmax : shape mismatch");
-    chips_float res(lhs.shape());
-    res.stopFlag = lhs.stopFlag || rhs.stopFlag;
-    if (!res.stopFlag)
-    {
-        std::transform(lhs.data().begin(), lhs.data().end(),
-                       rhs.data().begin(),
-                       res.data().begin(),
-                       [](double a, double b) { return std::max(a, b); });
-    }
-    return res;
-}
-
-
-/*=====================================================================
- *  ones : fill with 1
- *=====================================================================*/
-inline chips<int> ones(const chips<int> &first) // base‑case for one dimension
-{
-    // Verify that the argument really is a scalar chip (shape == {1})
-    if (first.shape().size() != 1 || first.shape()[0] != 1)
-        throw std::invalid_argument("ones(): each dimension argument must be a chips<int> of shape (1)");
-
-    // Extract the single integer value that defines the size of this dimension
-    int dim = first.data()[0]; // same as first({0}) but avoids extra vector creation
-
-    // Build the shape vector (just one element)
-    std::vector<int> shape{dim};
-
-    if (first.stopFlag)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    // Number of elements = product(shape) = dim
-    std::vector<int> data(static_cast<std::size_t>(dim), 1); // fill with 1s
-
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-template <typename... Rest>
-chips<int> ones(const chips<int> &first, const Rest &...rest)
-{
-    std::vector<int> shape;
-    bool anyStop = false;
-
-    auto push_dim = [&](const chips<int> &c)
-    {
-        if (c.shape().size() != 1 || c.shape()[0] != 1)
-            throw std::invalid_argument(
-                "ones(): each dimension argument must be a chips<int> of shape (1)");
-        shape.push_back(c.data()[0]); // scalar value stored in the chip
-        anyStop = anyStop || c.stopFlag;
-    };
-
-    push_dim(first);
-    (push_dim(rest), ...);
-
-    if (anyStop)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    std::size_t total = 1;
-    for (int d : shape)
-        total *= static_cast<std::size_t>(d);
-
-    std::vector<int> data(total, 1);
-
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-/*=====================================================================
- *  range : 0 … (product‑of‑dims – 1)
- *=====================================================================*/
-inline chips<int> range(const chips<int> &first) // 1‑dim overload
-{
-    if (first.shape().size() != 1 || first.shape()[0] != 1)
-        throw std::invalid_argument(
-            "range(): each dimension argument must be a chips<int> of shape (1)");
-
-    int dim = first.data()[0];
-    std::vector<int> shape{dim};
-
-    if (first.stopFlag)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    std::vector<int> data;
-    data.reserve(static_cast<std::size_t>(dim));
-    for (int i = 0; i < dim; ++i)
-        data.push_back(i); // 0,1,…,dim‑1
-
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-template <typename... Rest>
-chips<int> range(const chips<int> &first, const Rest &...rest) // variadic overload
-{
-    std::vector<int> shape;
-    bool anyStop = false;
-    auto push_dim = [&](const chips<int> &c)
-    {
-        if (c.shape().size() != 1 || c.shape()[0] != 1)
-            throw std::invalid_argument(
-                "range(): each dimension argument must be a chips<int> of shape (1)");
-        shape.push_back(c.data()[0]);
-        anyStop = anyStop || c.stopFlag;
-    };
-    push_dim(first);
-    (push_dim(rest), ...);
-
-    if (anyStop)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    std::size_t total = 1;
-    for (int d : shape)
-        total *= static_cast<std::size_t>(d);
-
-    std::vector<int> data;
-    data.reserve(total);
-    for (std::size_t i = 0; i < total; ++i)
-        data.push_back(static_cast<int>(i));
-
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-/*=====================================================================
- *  zeros : fill with 0
- *=====================================================================*/
-inline chips<int> zeros(const chips<int> &first) // 1‑dim overload
-{
-    if (first.shape().size() != 1 || first.shape()[0] != 1)
-        throw std::invalid_argument(
-            "zeros(): each dimension argument must be a chips<int> of shape (1)");
-
-    int dim = first.data()[0];
-    std::vector<int> shape{dim};
-
-    if (first.stopFlag)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    std::vector<int> data(static_cast<std::size_t>(dim), 0); // all zeros
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-template <typename... Rest>
-chips<int> zeros(const chips<int> &first, const Rest &...rest) // variadic overload
-{
-    std::vector<int> shape;
-    bool anyStop = false;
-    auto push_dim = [&](const chips<int> &c)
-    {
-        if (c.shape().size() != 1 || c.shape()[0] != 1)
-            throw std::invalid_argument(
-                "zeros(): each dimension argument must be a chips<int> of shape (1)");
-        shape.push_back(c.data()[0]);
-        anyStop = anyStop || c.stopFlag;
-    };
-    push_dim(first);
-    (push_dim(rest), ...);
-
-    if (anyStop)
-    {
-        chips<int> res(std::move(shape));
-        res.stopFlag = true;
-        return res;
-    }
-
-    std::size_t total = 1;
-    for (int d : shape)
-        total *= static_cast<std::size_t>(d);
-
-    std::vector<int> data(total, 0); // all zeros
-    return chips<int>(std::move(shape), std::move(data));
-}
-
-/*=====================================================================
- *  randin01 : returns a chips<double> containing a single random number
- *  uniformly distributed in [0,1)
- *=====================================================================*/
-inline chips_float randin01()
-{
-    // Thread‑local generator – each thread gets its own engine.
-    thread_local static std::mt19937 engine{
-        []
-        {
-            std::random_device rd;
-            return rd();
-        }()};
-
-    // Uniform distribution on [0,1)
-    // we need to use the next value after 1.0 to avoid rounding errors
-    // (uniform_real_distribution is based on computation over integers and not doubles)
-    static thread_local std::uniform_real_distribution<double> dist(0.0, std::nextafter(1.0, 2.0));
-
-    double value = dist(engine);
-
-    std::vector<int> shape{1};
-    std::vector<double> data{value};
-
-    return chips_float(std::move(shape), std::move(data));
-}
-
-/*=====================================================================
- *  is_fresh : returns a chips<bool> containing a single true if the
- *  variable has been updated since the last component clk cycle
- *=====================================================================*/
-template <typename U>
-chips<bool> is_fresh(chips<U> var)
-{
-    return var.is_fresh();
-}
-
-
-#endif // CHIPS_HPP
-
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//----------------Code section generated from chips sources---------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-void UserMachine_init(chips_int& httpResponse, chips_int& startTime, chips_int& endTime, chips_int& id, chips_int& maxNbData, chips_bool& active, chips_int& currentRequest, chips_int& httpRequest, chips_int& lastRequest, chips_bool& newPage, chips_bool& requiresAuth, chips_int& time, chips_bool& waiting, chips_any& fromUserToInternet_out)
+void UserMachine_init([[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& startTime, [[maybe_unused]] chips_int& endTime, [[maybe_unused]] chips_int& id, [[maybe_unused]] chips_int& maxNbData, [[maybe_unused]] chips_bool& active, [[maybe_unused]] chips_int& currentRequest, [[maybe_unused]] chips_int& httpRequest, [[maybe_unused]] chips_int& lastRequest, [[maybe_unused]] chips_bool& newPage, [[maybe_unused]] chips_bool& requiresAuth, [[maybe_unused]] chips_int& time, [[maybe_unused]] chips_bool& waiting, [[maybe_unused]] chips_any& fromUserToInternet_out)
 {
     active = chips_bool{false};
     waiting = chips_bool{false};
@@ -1252,7 +16,7 @@ void UserMachine_init(chips_int& httpResponse, chips_int& startTime, chips_int& 
     lastRequest = chips_int{0};
 }
 
-void UserMachine_then(chips_int& httpResponse, chips_int& startTime, chips_int& endTime, chips_int& id, chips_int& maxNbData, chips_bool& active, chips_any& computerID, chips_int& currentRequest, chips_int& httpRequest, chips_int& lastRequest, chips_bool& newPage, chips_bool& requiresAuth, chips_int& time, chips_bool& waiting, chips_any& fromUserToInternet_out)
+void UserMachine_then([[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& startTime, [[maybe_unused]] chips_int& endTime, [[maybe_unused]] chips_int& id, [[maybe_unused]] chips_int& maxNbData, [[maybe_unused]] chips_bool& active, [[maybe_unused]] chips_any& computerID, [[maybe_unused]] chips_int& currentRequest, [[maybe_unused]] chips_int& httpRequest, [[maybe_unused]] chips_int& lastRequest, [[maybe_unused]] chips_bool& newPage, [[maybe_unused]] chips_bool& requiresAuth, [[maybe_unused]] chips_int& time, [[maybe_unused]] chips_bool& waiting, [[maybe_unused]] chips_any& fromUserToInternet_out)
 {
     computerID = id;
     newPage = (httpResponse != chips_int{0}) && is_fresh(httpResponse);
@@ -1302,7 +66,7 @@ void UserMachine_then(chips_int& httpResponse, chips_int& startTime, chips_int& 
     fromUserToInternet_out = httpRequest;
 }
 
-void ServerMachine_init(chips_int& fromInternet, chips_int& wpServed, chips_int& maxNbData, chips_int& currentRequest, chips_int& httpResponse, chips_int& nbDataToOutput, chips_bool& requestFound, chips_int& requestList, chips_bool& userAuthToOutput, chips_int& userIDToOutput, chips_any& fromServerToInternet_out, chips_any& nbData_out, chips_any& userID_out, chips_any& userAuth_out)
+void ServerMachine_init([[maybe_unused]] chips_int& fromInternet, [[maybe_unused]] chips_int& wpServed, [[maybe_unused]] chips_int& maxNbData, [[maybe_unused]] chips_int& currentRequest, [[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& nbDataToOutput, [[maybe_unused]] chips_bool& requestFound, [[maybe_unused]] chips_int& requestList, [[maybe_unused]] chips_bool& userAuthToOutput, [[maybe_unused]] chips_int& userIDToOutput, [[maybe_unused]] chips_any& fromServerToInternet_out, [[maybe_unused]] chips_any& nbData_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& userAuth_out)
 {
     httpResponse = chips_int{0};
     currentRequest = chips_int{0};
@@ -1310,15 +74,15 @@ void ServerMachine_init(chips_int& fromInternet, chips_int& wpServed, chips_int&
     requestList = zeros(chips_int{100});
 }
 
-void ServerMachine_then(chips_int& fromInternet, chips_int& wpServed, chips_int& maxNbData, chips_int& currentRequest, chips_int& httpResponse, chips_int& nbDataToOutput, chips_bool& requestFound, chips_int& requestList, chips_bool& userAuthToOutput, chips_int& userIDToOutput, chips_any& fromServerToInternet_out, chips_any& nbData_out, chips_any& userID_out, chips_any& userAuth_out)
+void ServerMachine_then([[maybe_unused]] chips_int& fromInternet, [[maybe_unused]] chips_int& wpServed, [[maybe_unused]] chips_int& maxNbData, [[maybe_unused]] chips_int& currentRequest, [[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& nbDataToOutput, [[maybe_unused]] chips_bool& requestFound, [[maybe_unused]] chips_int& requestList, [[maybe_unused]] chips_bool& userAuthToOutput, [[maybe_unused]] chips_int& userIDToOutput, [[maybe_unused]] chips_any& fromServerToInternet_out, [[maybe_unused]] chips_any& nbData_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& userAuth_out)
 {
-    requestList = chips_int{0};
+    requestList[currentRequest] = chips_int{0};
     {
         auto i0 = range(100);
         for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
             if (fromInternet[i].to_chips() != chips_int{0})
             {
-                requestList = fromInternet[i].to_chips();
+                requestList[i] = fromInternet[i].to_chips();
             }
         }
     }
@@ -1359,31 +123,31 @@ void ServerMachine_then(chips_int& fromInternet, chips_int& wpServed, chips_int&
     userAuth_out = userAuthToOutput;
 }
 
-void UserActionInterpreter_init(chips_int& nbDataRcvd, chips_bool& authDataRcvd, chips_int& userIDRcvd, chips_any& nbData_out, chips_any& reqID_out, chips_any& authProvided_out)
+void UserActionInterpreter_init([[maybe_unused]] chips_int& nbDataRcvd, [[maybe_unused]] chips_bool& authDataRcvd, [[maybe_unused]] chips_int& userIDRcvd, [[maybe_unused]] chips_any& nbData_out, [[maybe_unused]] chips_any& reqID_out, [[maybe_unused]] chips_any& authProvided_out)
 {
 }
 
-void UserActionInterpreter_then(chips_int& nbDataRcvd, chips_bool& authDataRcvd, chips_int& userIDRcvd, chips_any& nbData_out, chips_any& reqID_out, chips_any& authProvided_out)
+void UserActionInterpreter_then([[maybe_unused]] chips_int& nbDataRcvd, [[maybe_unused]] chips_bool& authDataRcvd, [[maybe_unused]] chips_int& userIDRcvd, [[maybe_unused]] chips_any& nbData_out, [[maybe_unused]] chips_any& reqID_out, [[maybe_unused]] chips_any& authProvided_out)
 {
     nbData_out = nbDataRcvd;
     reqID_out = userIDRcvd;
     authProvided_out = authDataRcvd;
 }
 
-void Authenticator_init(chips_bool& authProvided, chips_any& isAuthenticated_out)
+void Authenticator_init([[maybe_unused]] chips_bool& authProvided, [[maybe_unused]] chips_any& isAuthenticated_out)
 {
 }
 
-void Authenticator_then(chips_bool& authProvided, chips_any& isAuthenticated_out)
+void Authenticator_then([[maybe_unused]] chips_bool& authProvided, [[maybe_unused]] chips_any& isAuthenticated_out)
 {
     isAuthenticated_out = authProvided;
 }
 
-void RequestValidator_init(chips_int& nbData, chips_int& requestID, chips_bool& isAuthenticated, chips_int& nbDataToFetch, chips_bool& needRedirection, chips_any& nbDataRequested_out, chips_any& userID_out, chips_any& redirection_out)
+void RequestValidator_init([[maybe_unused]] chips_int& nbData, [[maybe_unused]] chips_int& requestID, [[maybe_unused]] chips_bool& isAuthenticated, [[maybe_unused]] chips_int& nbDataToFetch, [[maybe_unused]] chips_bool& needRedirection, [[maybe_unused]] chips_any& nbDataRequested_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& redirection_out)
 {
 }
 
-void RequestValidator_then(chips_int& nbData, chips_int& requestID, chips_bool& isAuthenticated, chips_int& nbDataToFetch, chips_bool& needRedirection, chips_any& nbDataRequested_out, chips_any& userID_out, chips_any& redirection_out)
+void RequestValidator_then([[maybe_unused]] chips_int& nbData, [[maybe_unused]] chips_int& requestID, [[maybe_unused]] chips_bool& isAuthenticated, [[maybe_unused]] chips_int& nbDataToFetch, [[maybe_unused]] chips_bool& needRedirection, [[maybe_unused]] chips_any& nbDataRequested_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& redirection_out)
 {
     needRedirection = (nbData > chips_int{5}) && (!isAuthenticated);
     if (!needRedirection)
@@ -1399,12 +163,12 @@ void RequestValidator_then(chips_int& nbData, chips_int& requestID, chips_bool& 
     redirection_out = needRedirection;
 }
 
-void RequestLimiter_init(chips_bool& redirection, chips_int& maxRequests, chips_int& userID, chips_int& nbDataToFetch, chips_int& nbAnsweredReqs, chips_int& currentNbRequests, chips_any& redirection_out, chips_any& userID_out, chips_any& dataQty_out)
+void RequestLimiter_init([[maybe_unused]] chips_bool& redirection, [[maybe_unused]] chips_int& maxRequests, [[maybe_unused]] chips_int& userID, [[maybe_unused]] chips_int& nbDataToFetch, [[maybe_unused]] chips_int& nbAnsweredReqs, [[maybe_unused]] chips_int& currentNbRequests, [[maybe_unused]] chips_any& redirection_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& dataQty_out)
 {
     currentNbRequests = chips_int{0};
 }
 
-void RequestLimiter_then(chips_bool& redirection, chips_int& maxRequests, chips_int& userID, chips_int& nbDataToFetch, chips_int& nbAnsweredReqs, chips_int& currentNbRequests, chips_any& redirection_out, chips_any& userID_out, chips_any& dataQty_out)
+void RequestLimiter_then([[maybe_unused]] chips_bool& redirection, [[maybe_unused]] chips_int& maxRequests, [[maybe_unused]] chips_int& userID, [[maybe_unused]] chips_int& nbDataToFetch, [[maybe_unused]] chips_int& nbAnsweredReqs, [[maybe_unused]] chips_int& currentNbRequests, [[maybe_unused]] chips_any& redirection_out, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& dataQty_out)
 {
     currentNbRequests = currentNbRequests - nbAnsweredReqs;
     if (!redirection)
@@ -1424,7 +188,7 @@ void RequestLimiter_then(chips_bool& redirection, chips_int& maxRequests, chips_
     dataQty_out = nbDataToFetch;
 }
 
-void Cache_init(chips_int& requestedData, chips_int& cacheSize, chips_int& cache, chips_bool& found, chips_int& foundIndex, chips_int& maxCacheSize, chips_int& minCacheSize, chips_int& newestDataIndex, chips_any& foundInCache_out)
+void Cache_init([[maybe_unused]] chips_int& requestedData, [[maybe_unused]] chips_int& cacheSize, [[maybe_unused]] chips_int& cache, [[maybe_unused]] chips_bool& found, [[maybe_unused]] chips_int& foundIndex, [[maybe_unused]] chips_int& maxCacheSize, [[maybe_unused]] chips_int& minCacheSize, [[maybe_unused]] chips_int& newestDataIndex, [[maybe_unused]] chips_any& foundInCache_out)
 {
     maxCacheSize = chips_int{100};
     minCacheSize = chips_int{10};
@@ -1434,7 +198,7 @@ void Cache_init(chips_int& requestedData, chips_int& cacheSize, chips_int& cache
     foundIndex = chips_int{0};
 }
 
-void Cache_then(chips_int& requestedData, chips_int& cacheSize, chips_int& cache, chips_bool& found, chips_int& foundIndex, chips_int& maxCacheSize, chips_int& minCacheSize, chips_int& newestDataIndex, chips_any& foundInCache_out)
+void Cache_then([[maybe_unused]] chips_int& requestedData, [[maybe_unused]] chips_int& cacheSize, [[maybe_unused]] chips_int& cache, [[maybe_unused]] chips_bool& found, [[maybe_unused]] chips_int& foundIndex, [[maybe_unused]] chips_int& maxCacheSize, [[maybe_unused]] chips_int& minCacheSize, [[maybe_unused]] chips_int& newestDataIndex, [[maybe_unused]] chips_any& foundInCache_out)
 {
     if (cacheSize > maxCacheSize)
     {
@@ -1464,7 +228,7 @@ void Cache_then(chips_int& requestedData, chips_int& cacheSize, chips_int& cache
         if (!found)
         {
             newestDataIndex = (newestDataIndex + chips_int{1}) % cacheSize;
-            cache = requestedData;
+            cache[newestDataIndex] = requestedData;
         }
         else
         {
@@ -1475,8 +239,8 @@ void Cache_then(chips_int& requestedData, chips_int& cacheSize, chips_int& cache
                     auto i0 = range(newestDataIndex-foundIndex);
                     for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
                         temp = cache[foundIndex + i + chips_int{1}].to_chips();
-                        cache = cache[foundIndex + i].to_chips();
-                        cache = temp;
+                        cache[foundIndex + i + chips_int{1}] = cache[foundIndex + i].to_chips();
+                        cache[foundIndex + i] = temp;
                     }
                 }
             }
@@ -1487,8 +251,8 @@ void Cache_then(chips_int& requestedData, chips_int& cacheSize, chips_int& cache
                     auto i0 = range(cacheSize-foundIndex+newestDataIndex);
                     for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
                         temp = cache[(foundIndex + i + chips_int{1}) % cacheSize].to_chips();
-                        cache = cache[(foundIndex + i) % cacheSize].to_chips();
-                        cache = temp;
+                        cache[(foundIndex + i + chips_int{1}) % cacheSize] = cache[(foundIndex + i) % cacheSize].to_chips();
+                        cache[(foundIndex + i) % cacheSize] = temp;
                     }
                 }
             }
@@ -1497,7 +261,7 @@ void Cache_then(chips_int& requestedData, chips_int& cacheSize, chips_int& cache
     foundInCache_out = found;
 }
 
-void DataProvider_init(chips_bool& redirection, chips_int& userID, chips_int& dataQty, chips_bool& cacheResponse, chips_bool& cacheSearching, chips_int& currentlyTreatedUserRequest, chips_int& dataPerUserID, chips_int& dataToFetch, chips_int& httpResponse, chips_int& maxDifferentData, chips_int& maxUserID, chips_bool& oneLessPendingRequest, chips_float& time, chips_any& userID_out, chips_any& cacheRequest_out, chips_any& oneLessPendingRequest_out, chips_any& timeSpentOnReq_out, chips_any& enableTimeReading_out)
+void DataProvider_init([[maybe_unused]] chips_bool& redirection, [[maybe_unused]] chips_int& userID, [[maybe_unused]] chips_int& dataQty, [[maybe_unused]] chips_bool& cacheResponse, [[maybe_unused]] chips_bool& cacheSearching, [[maybe_unused]] chips_int& currentlyTreatedUserRequest, [[maybe_unused]] chips_int& dataPerUserID, [[maybe_unused]] chips_int& dataToFetch, [[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& maxDifferentData, [[maybe_unused]] chips_int& maxUserID, [[maybe_unused]] chips_bool& oneLessPendingRequest, [[maybe_unused]] chips_float& time, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& cacheRequest_out, [[maybe_unused]] chips_any& oneLessPendingRequest_out, [[maybe_unused]] chips_any& timeSpentOnReq_out, [[maybe_unused]] chips_any& enableTimeReading_out)
 {
     maxDifferentData = chips_int{40};
     maxUserID = chips_int{100};
@@ -1510,7 +274,7 @@ void DataProvider_init(chips_bool& redirection, chips_int& userID, chips_int& da
     oneLessPendingRequest = chips_bool{false};
 }
 
-void DataProvider_then(chips_bool& redirection, chips_int& userID, chips_int& dataQty, chips_bool& cacheResponse, chips_bool& cacheSearching, chips_int& currentlyTreatedUserRequest, chips_int& dataPerUserID, chips_int& dataToFetch, chips_int& httpResponse, chips_int& maxDifferentData, chips_int& maxUserID, chips_bool& oneLessPendingRequest, chips_float& time, chips_any& userID_out, chips_any& cacheRequest_out, chips_any& oneLessPendingRequest_out, chips_any& timeSpentOnReq_out, chips_any& enableTimeReading_out)
+void DataProvider_then([[maybe_unused]] chips_bool& redirection, [[maybe_unused]] chips_int& userID, [[maybe_unused]] chips_int& dataQty, [[maybe_unused]] chips_bool& cacheResponse, [[maybe_unused]] chips_bool& cacheSearching, [[maybe_unused]] chips_int& currentlyTreatedUserRequest, [[maybe_unused]] chips_int& dataPerUserID, [[maybe_unused]] chips_int& dataToFetch, [[maybe_unused]] chips_int& httpResponse, [[maybe_unused]] chips_int& maxDifferentData, [[maybe_unused]] chips_int& maxUserID, [[maybe_unused]] chips_bool& oneLessPendingRequest, [[maybe_unused]] chips_float& time, [[maybe_unused]] chips_any& userID_out, [[maybe_unused]] chips_any& cacheRequest_out, [[maybe_unused]] chips_any& oneLessPendingRequest_out, [[maybe_unused]] chips_any& timeSpentOnReq_out, [[maybe_unused]] chips_any& enableTimeReading_out)
 {
     if (oneLessPendingRequest)
     {
@@ -1526,7 +290,7 @@ void DataProvider_then(chips_bool& redirection, chips_int& userID, chips_int& da
         }
         else
         {
-            dataPerUserID = dataQty;
+            dataPerUserID[userID - chips_int{1}] = dataQty;
             if (currentlyTreatedUserRequest < chips_int{0})
             {
                 currentlyTreatedUserRequest = userID - chips_int{1};
@@ -1545,7 +309,7 @@ void DataProvider_then(chips_bool& redirection, chips_int& userID, chips_int& da
             {
                 time = time + chips_float{2.0};
             }
-            dataPerUserID = dataPerUserID[currentlyTreatedUserRequest].to_chips() - chips_int{1};
+            dataPerUserID[currentlyTreatedUserRequest] = dataPerUserID[currentlyTreatedUserRequest].to_chips() - chips_int{1};
         }
         if (dataPerUserID[currentlyTreatedUserRequest].to_chips() > chips_int{0})
         {
@@ -1587,23 +351,54 @@ void DataProvider_then(chips_bool& redirection, chips_int& userID, chips_int& da
     enableTimeReading_out = oneLessPendingRequest;
 }
 
-void WebPageService_init(chips_int& respondToThisIDs, chips_int& currentRequestAnswered, chips_bool& requestFound, chips_int& requestsToAnswerTo, chips_any& httpResponse_out)
+void allDataProvidersOutputs([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrAnswers_t _accumulator, [[maybe_unused]] AggrAnswers_t next_acc, [[maybe_unused]] AggrAnswers_t prev_acc, [[maybe_unused]] chips_int input, [[maybe_unused]] chips_any allDataProvidersOutputs_target)
+{
+    if (input != chips_int{0})
+    {
+        if (input > chips_int{0})
+        {
+            _accumulator.answers[input - chips_int{1}] = input;
+        }
+        else
+        {
+            _accumulator.answers[-input - chips_int{1}] = input;
+        }
+    }
+    {
+        auto i0 = range(100);
+        for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
+            if (prev_acc.answers[i].to_chips() != chips_int{0})
+            {
+                _accumulator.answers[i] = prev_acc.answers[i].to_chips();
+            }
+            if (next_acc.answers[i].to_chips() != chips_int{0})
+            {
+                _accumulator.answers[i] = next_acc.answers[i].to_chips();
+            }
+        }
+    }
+    next_acc.answers = _accumulator.answers;
+    prev_acc.answers = _accumulator.answers;
+    allDataProvidersOutputs_target = _accumulator.answers;
+}
+
+void WebPageService_init([[maybe_unused]] chips_int& respondToThisIDs, [[maybe_unused]] chips_int& currentRequestAnswered, [[maybe_unused]] chips_bool& requestFound, [[maybe_unused]] chips_int& requestsToAnswerTo, [[maybe_unused]] chips_any& httpResponse_out)
 {
     currentRequestAnswered = chips_int{0};
     requestsToAnswerTo = zeros(chips_int{100});
     requestFound = chips_bool{false};
 }
 
-void WebPageService_then(chips_int& respondToThisIDs, chips_int& currentRequestAnswered, chips_bool& requestFound, chips_int& requestsToAnswerTo, chips_any& httpResponse_out)
+void WebPageService_then([[maybe_unused]] chips_int& respondToThisIDs, [[maybe_unused]] chips_int& currentRequestAnswered, [[maybe_unused]] chips_bool& requestFound, [[maybe_unused]] chips_int& requestsToAnswerTo, [[maybe_unused]] chips_any& httpResponse_out)
 {
-    requestsToAnswerTo = chips_int{0};
+    requestsToAnswerTo[currentRequestAnswered] = chips_int{0};
     requestFound = chips_bool{false};
     {
         auto i0 = range(100);
         for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
             if (respondToThisIDs[i].to_chips() != chips_int{0})
             {
-                requestsToAnswerTo = respondToThisIDs[i].to_chips();
+                requestsToAnswerTo[i] = respondToThisIDs[i].to_chips();
             }
         }
     }
@@ -1620,46 +415,7 @@ void WebPageService_then(chips_int& respondToThisIDs, chips_int& currentRequestA
     httpResponse_out = requestsToAnswerTo[currentRequestAnswered].to_chips();
 }
 
-struct AggrAnswers_t{
-    chips_int answers{zeros(chips_int{100})};
-};
-
-void allDataProvidersOutputs(chips_int channel_indicator, AggrAnswers_t _accumulator, AggrAnswers_t next_acc, AggrAnswers_t prev_acc, chips_int input, chips_any allDataProvidersOutputs_target)
-{
-    if (input != chips_int{0})
-    {
-        if (input > chips_int{0})
-        {
-            _accumulator.answers[input - chips_int{1}].to_chips() = input;
-        }
-        else
-        {
-            _accumulator.answers[-input - chips_int{1}].to_chips() = input;
-        }
-    }
-    {
-        auto i0 = range(100);
-        for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
-            if (prev_acc.answers[i].to_chips() != chips_int{0})
-            {
-                _accumulator.answers[i].to_chips() = prev_acc.answers[i].to_chips();
-            }
-            if (next_acc.answers[i].to_chips() != chips_int{0})
-            {
-                _accumulator.answers[i].to_chips() = next_acc.answers[i].to_chips();
-            }
-        }
-    }
-    next_acc.answers = _accumulator.answers;
-    prev_acc.answers = _accumulator.answers;
-    allDataProvidersOutputs_target = _accumulator.answers;
-}
-
-struct AggrFromInternet_t{
-    chips_int fromInternet{chips_int{0}};
-};
-
-void responseToTheRightUser(chips_int channel_indicator, AggrFromInternet_t _accumulator, AggrFromInternet_t next_acc, AggrFromInternet_t prev_acc, chips_int& computerID, chips_any responseToTheRightUser_target)
+void responseToTheRightUser([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrFromInternet_t _accumulator, [[maybe_unused]] AggrFromInternet_t next_acc, [[maybe_unused]] AggrFromInternet_t prev_acc, [[maybe_unused]] const chips_int& ctx_computerID, [[maybe_unused]] chips_any responseToTheRightUser_target)
 {
     chips_int id;
     id = _accumulator.fromInternet;
@@ -1684,21 +440,17 @@ void responseToTheRightUser(chips_int channel_indicator, AggrFromInternet_t _acc
     responseToTheRightUser_target = returned;
 }
 
-struct AggrRequests_t{
-    chips_int requests{zeros(chips_int{100})};
-};
-
-void aggregatingRequests(chips_int channel_indicator, AggrRequests_t _accumulator, AggrRequests_t next_acc, AggrRequests_t prev_acc, chips_int& computerID, chips_int input, chips_any aggregatingRequests_target)
+void aggregatingRequests([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrRequests_t _accumulator, [[maybe_unused]] AggrRequests_t next_acc, [[maybe_unused]] AggrRequests_t prev_acc, [[maybe_unused]] const chips_int& ctx_computerID, [[maybe_unused]] chips_int input, [[maybe_unused]] chips_any aggregatingRequests_target)
 {
     if (input != chips_int{0})
     {
         if (input < chips_int{0})
         {
-            _accumulator.requests[-input].to_chips() = input;
+            _accumulator.requests[-input] = input;
         }
         else
         {
-            _accumulator.requests[input].to_chips() = input;
+            _accumulator.requests[input] = input;
         }
     }
     {
@@ -1706,11 +458,11 @@ void aggregatingRequests(chips_int channel_indicator, AggrRequests_t _accumulato
         for(chips_int i{0}; i < i0.size(); i = i+chips_int{1}) {
             if (prev_acc.requests[i].to_chips() != chips_int{0})
             {
-                _accumulator.requests[i].to_chips() = prev_acc.requests[i].to_chips();
+                _accumulator.requests[i] = prev_acc.requests[i].to_chips();
             }
             if (next_acc.requests[i].to_chips() != chips_int{0})
             {
-                _accumulator.requests[i].to_chips() = next_acc.requests[i].to_chips();
+                _accumulator.requests[i] = next_acc.requests[i].to_chips();
             }
         }
     }
@@ -1719,7 +471,7 @@ void aggregatingRequests(chips_int channel_indicator, AggrRequests_t _accumulato
     aggregatingRequests_target = _accumulator.requests;
 }
 
-void PidController_init(chips_float& requested_time, chips_float& resulting_time, chips_bool& enabled, chips_float& d, chips_float& derivative, chips_float& dt, chips_float& error, chips_float& i, chips_float& integral, chips_int& knob_value, chips_int& max_knob_value, chips_int& min_knob_value, chips_float& p, chips_any& knob_out)
+void PidController_init([[maybe_unused]] chips_float& requested_time, [[maybe_unused]] chips_float& resulting_time, [[maybe_unused]] chips_bool& enabled, [[maybe_unused]] chips_float& d, [[maybe_unused]] chips_float& derivative, [[maybe_unused]] chips_float& dt, [[maybe_unused]] chips_float& error, [[maybe_unused]] chips_float& i, [[maybe_unused]] chips_float& integral, [[maybe_unused]] chips_int& knob_value, [[maybe_unused]] chips_int& max_knob_value, [[maybe_unused]] chips_int& min_knob_value, [[maybe_unused]] chips_float& p, [[maybe_unused]] chips_any& knob_out)
 {
     derivative = chips_float{0.};
     integral = chips_float{0.};
@@ -1733,7 +485,7 @@ void PidController_init(chips_float& requested_time, chips_float& resulting_time
     max_knob_value = chips_int{100};
 }
 
-void PidController_then(chips_float& requested_time, chips_float& resulting_time, chips_bool& enabled, chips_float& d, chips_float& derivative, chips_float& dt, chips_float& error, chips_float& i, chips_float& integral, chips_int& knob_value, chips_int& max_knob_value, chips_int& min_knob_value, chips_float& p, chips_any& knob_out)
+void PidController_then([[maybe_unused]] chips_float& requested_time, [[maybe_unused]] chips_float& resulting_time, [[maybe_unused]] chips_bool& enabled, [[maybe_unused]] chips_float& d, [[maybe_unused]] chips_float& derivative, [[maybe_unused]] chips_float& dt, [[maybe_unused]] chips_float& error, [[maybe_unused]] chips_float& i, [[maybe_unused]] chips_float& integral, [[maybe_unused]] chips_int& knob_value, [[maybe_unused]] chips_int& max_knob_value, [[maybe_unused]] chips_int& min_knob_value, [[maybe_unused]] chips_float& p, [[maybe_unused]] chips_any& knob_out)
 {
     if (enabled)
     {
@@ -1748,11 +500,7 @@ void PidController_then(chips_float& requested_time, chips_float& resulting_time
     knob_out = knob_value;
 }
 
-struct AggrSum_t{
-    chips_int sum{chips_int{0}};
-};
-
-void numberOfRespondedRequests(chips_int channel_indicator, AggrSum_t _accumulator, AggrSum_t next_acc, AggrSum_t prev_acc, chips_bool input, chips_any numberOfRespondedRequests_target)
+void numberOfRespondedRequests([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrSum_t _accumulator, [[maybe_unused]] AggrSum_t next_acc, [[maybe_unused]] AggrSum_t prev_acc, [[maybe_unused]] chips_bool input, [[maybe_unused]] chips_any numberOfRespondedRequests_target)
 {
     _accumulator.sum = _accumulator.sum + prev_acc.sum + next_acc.sum;
     if (input)
@@ -1764,34 +512,21 @@ void numberOfRespondedRequests(chips_int channel_indicator, AggrSum_t _accumulat
     numberOfRespondedRequests_target = _accumulator.sum;
 }
 
-struct AggrRedirection_t{
-    chips_bool redirection{chips_bool{false}};
-};
-
-void broadcastRedirection(chips_int channel_indicator, AggrRedirection_t _accumulator, AggrRedirection_t next_acc, AggrRedirection_t prev_acc, chips_any broadcastRedirection_target)
+void broadcastRedirection([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrRedirection_t _accumulator, [[maybe_unused]] AggrRedirection_t next_acc, [[maybe_unused]] AggrRedirection_t prev_acc, [[maybe_unused]] chips_any broadcastRedirection_target)
 {
     next_acc.redirection = _accumulator.redirection;
     prev_acc.redirection = _accumulator.redirection;
     broadcastRedirection_target = _accumulator.redirection;
 }
 
-struct AggrDataQtyToFind_t{
-    chips_int dataQtyToFind{chips_int{0}};
-};
-
-void broadcastDataQty(chips_int channel_indicator, AggrDataQtyToFind_t _accumulator, AggrDataQtyToFind_t next_acc, AggrDataQtyToFind_t prev_acc, chips_any broadcastDataQty_target)
+void broadcastDataQty([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrDataQtyToFind_t _accumulator, [[maybe_unused]] AggrDataQtyToFind_t next_acc, [[maybe_unused]] AggrDataQtyToFind_t prev_acc, [[maybe_unused]] chips_any broadcastDataQty_target)
 {
     next_acc.dataQtyToFind = _accumulator.dataQtyToFind;
     prev_acc.dataQtyToFind = _accumulator.dataQtyToFind;
     broadcastDataQty_target = _accumulator.dataQtyToFind;
 }
 
-struct AggrUserIDNbJumps_t{
-    chips_int userID{chips_int{0}};
-    chips_int nbJumps{chips_int{0}};
-};
-
-void findRightDataProvider(chips_int channel_indicator, AggrUserIDNbJumps_t _accumulator, AggrUserIDNbJumps_t next_acc, AggrUserIDNbJumps_t prev_acc, chips_any findRightDataProvider_target)
+void findRightDataProvider([[maybe_unused]] chips_int channel_indicator, [[maybe_unused]] AggrUserIDNbJumps_t _accumulator, [[maybe_unused]] AggrUserIDNbJumps_t next_acc, [[maybe_unused]] AggrUserIDNbJumps_t prev_acc, [[maybe_unused]] chips_any findRightDataProvider_target)
 {
     chips_int currentBackendTransmittedID;
     chips_int nextBackendData;

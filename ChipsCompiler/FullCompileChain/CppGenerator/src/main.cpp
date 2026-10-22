@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <filesystem>
+#include <cctype>
 
 #include "antlr4-runtime.h"
 #include "ChipsLexer.h"
@@ -112,62 +113,84 @@ void ensure_parent_dirs(const std::string &path)
     }
 }
 
-void cppGenerated_file(const char *srcPath, const std::string &dstPath)
+std::string read_file(const std::string &path)
 {
-    std::ifstream in(srcPath);
+    std::ifstream in(path, std::ios::binary);
     if (!in)
     {
-        std::cerr << "Failed to open input file for reading." << std::endl;
+        std::cerr << "Failed to open " << path << " for reading." << std::endl;
         exit(1);
     }
     std::ostringstream buffer;
     buffer << in.rdbuf();
-    std::string input = buffer.str();
-
-    antlr4::ANTLRInputStream inputStream(input);
-
-    ChipsLexer lexer(&inputStream);
-
-    antlr4::CommonTokenStream tokens(&lexer);
-
-    ChipsParser parser(&tokens);
-
-    antlr4::tree::ParseTree *tree = parser.program();
-
-    ensure_parent_dirs(dstPath);
-    std::ofstream out(dstPath, std::ios::app);
-    if (!out)
-    {
-        std::cerr << "Failed to open output file for writing." << std::endl;
-        exit(1);
-    }
-    CodeGenListener listener(tokens, out);
-    antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-    out.close();
+    return buffer.str();
 }
 
-void copy_file(const char *srcPath, const std::string &dstPath)
+void write_file(const std::string &path, const std::string &content)
 {
-    ensure_parent_dirs(dstPath);
-    std::ifstream src(srcPath, std::ios::binary);
-    std::ofstream dst(dstPath, std::ios::binary);
-    const std::size_t bufSize = 65536;
-    std::vector<char> buf(bufSize);
-
-    while (src)
+    ensure_parent_dirs(path);
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out)
     {
-        src.read(buf.data(), static_cast<std::streamsize>(bufSize));
-        std::streamsize n = src.gcount();
-        if (n > 0)
-            dst.write(buf.data(), n);
+        std::cerr << "Failed to open " << path << " for writing." << std::endl;
+        exit(1);
     }
+    out << content;
+}
+
+std::string include_guard_for(const std::filesystem::path &headerPath)
+{
+    std::string guard;
+    for (char c : headerPath.filename().string())
+        guard += std::isalnum(static_cast<unsigned char>(c)) ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : '_';
+    return guard + "_INCLUDED";
+}
+
+std::string section_banner(const std::string &title)
+{
+    const std::string rule(80, '-');
+    return "//" + rule + "\n//" + title + "\n//" + rule + "\n\n";
+}
+
+void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeaderPath,
+                  const std::filesystem::path &hppPath, const std::filesystem::path &cppPath)
+{
+    antlr4::ANTLRInputStream inputStream(read_file(chipsPath));
+    ChipsLexer lexer(&inputStream);
+    antlr4::CommonTokenStream tokens(&lexer);
+    ChipsParser parser(&tokens);
+    antlr4::tree::ParseTree *tree = parser.program();
+
+    std::ostringstream headerBody;
+    std::ostringstream sourceBody;
+    CodeGenListener listener(tokens, headerBody, sourceBody);
+    antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+    const std::string guard = include_guard_for(hppPath);
+    std::ostringstream hpp;
+    hpp << "#ifndef " << guard << "\n#define " << guard << "\n\n";
+    hpp << read_file(runtimeHeaderPath) << "\n";
+    hpp << section_banner("Declarations generated from chips sources");
+    hpp << headerBody.str();
+    hpp << "#endif // " << guard << "\n";
+
+    const std::filesystem::path includePath =
+        std::filesystem::absolute(hppPath).lexically_relative(std::filesystem::absolute(cppPath).parent_path());
+    std::ostringstream cpp;
+    cpp << "#include \"" << includePath.generic_string() << "\"\n\n";
+    cpp << section_banner("Definitions generated from chips sources");
+    cpp << sourceBody.str();
+
+    write_file(hppPath.string(), hpp.str());
+    write_file(cppPath.string(), cpp.str());
 }
 
 int main(int argc, char **argv)
 {
     const std::map<std::string, std::string> paramDescriptions{
         {"input", "path to the chips file to compile"},
-        {"-o", "path of the file in which to output the generated cpp code (default: bip_importable.cpp)"}};
+        {"-o", "path of the generated source file (default: bip_importable.cpp)"},
+        {"-oh", "path of the generated header file (default: the source path with a .hpp extension)"}};
 
     std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
 
@@ -176,12 +199,27 @@ int main(int argc, char **argv)
     const std::string chipsPath = std::filesystem::absolute(args.at("input")).string();
     const std::string outputPath = std::filesystem::absolute(
         args.count("-o") ? args.at("-o") : "bip_importable.cpp").string();
-    const std::string headerPath = std::filesystem::canonical(
+    const std::filesystem::path cppPath = std::filesystem::absolute(outputPath);
+    const std::filesystem::path hppPath = args.count("-oh")
+        ? std::filesystem::absolute(args.at("-oh"))
+        : std::filesystem::path(cppPath).replace_extension(".hpp");
+    const std::string runtimeHeaderPath = std::filesystem::canonical(
         exeDir / ".." / "src" / "cppHeaderAutoInclude.hpp").string();
 
-    copy_file(headerPath.c_str(), outputPath);
-    cppGenerated_file(chipsPath.c_str(), outputPath);
-    // std::cout << "Generated code written to " << outputPath << std::endl;
+    try
+    {
+        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath);
+    }
+    catch (const ChipsGenerationError &e)
+    {
+        std::cerr << chipsPath << ":" << e.line() << ":" << e.column() << ": error: " << e.message() << std::endl;
+        return 1;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << chipsPath << ": error: " << e.what() << std::endl;
+        return 1;
+    }
 
     return 0;
 }
