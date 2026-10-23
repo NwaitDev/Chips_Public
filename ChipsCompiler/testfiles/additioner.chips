@@ -1,0 +1,15 @@
+logical addi(int a, int b) init {
+    int ticks = 0;
+} then {
+    ticks = ticks +1;
+} -> out(a+b)
+
+logical consumer(int data) init {} then {}
+
+system {
+    addi helloworld;
+    consumer goodbyeworld;
+    goodbyeworld.data(helloworld.out);
+    helloworld.a(40);
+    helloworld.b(2);
+}

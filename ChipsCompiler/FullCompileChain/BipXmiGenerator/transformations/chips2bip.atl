@@ -15,13 +15,6 @@ create OUT: bip from IN: chips;
 -- 
 -- $ sed -i 's/@0//g' file.bip
 --
---
---
---
---
---
-
-
 
 helper def : id : Integer = 0;
 
@@ -58,6 +51,14 @@ helper context chips!function_definition def : writectxPortName : String = self.
 
 helper def : dictionary : Map(String, Map(OclAny, OclAny)) = Map{};
 helper def : temp_dic : Map(OclAny,OclAny) = Map{};
+
+helper def : dictionaryValues(key : String) : Sequence(OclAny) =
+	let entry : OclAny = thisModule.dictionary->get(key) in
+	if entry.oclIsUndefined() then
+		Sequence{}
+	else
+		entry->getValues()->asSequence()
+	endif;
 
 --						|'DataType'
 --						|'PortType'
@@ -141,6 +142,84 @@ lazy rule MakeBipNativePrototypeParameterDeclaration{
 	)
 }
 
+unique lazy rule MakeNativeFunctionCallPrototype{
+	from
+		functionName : String,
+		rtype : String
+
+	to p : bip!FunctionCallPrototype(
+		functionName <- functionName,
+		parameterDeclarations <- Sequence{},
+		returnType <- thisModule.MakeBackendDataType(rtype),
+		native <- false,
+		const <- false
+	)
+
+	do {
+		thisModule.temp <- thisModule.types->get('FunctionCallPrototype');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+
+		thisModule.temp <- thisModule.temp->append(p);
+		thisModule.types <- thisModule.types->including('FunctionCallPrototype', thisModule.temp);
+
+		p;
+	}
+}
+
+lazy rule MakeBinaryOpExpression{
+	from
+		op : OclAny,
+		l : bip!ValuedExpression,
+		r : bip!ValuedExpression
+
+	to e : bip!BinaryOpExpression(
+		operator <- op,
+		left <- l,
+		right <- r
+	)
+}
+
+lazy rule MakeFunctionCallExpression{
+	from
+		fname : String,
+		params : Sequence(OclAny)
+
+	to e : bip!FunctionCallExpression(
+		functionName <- fname,
+		parameters <- params
+	)
+}
+
+unique lazy rule MakeTicksDataDeclaration{
+	from
+		functiondef : chips!function_definition
+
+	to datadecl : bip!AtomInternalDataDeclaration(
+		dataType <- thisModule.MakeBackendDataType('int'),
+		name <- 'ticks'
+	)
+}
+
+helper def : MakeTicksComparison(
+	ticks : bip!AtomInternalDataDeclaration,
+	reached : Boolean) : bip!ValuedExpression =
+	thisModule.MakeBinaryOpExpression(
+		if reached then #greater_than_or_equal else #less_than endif,
+		thisModule.MakeDirectDataDeclarationReferenceExpression(ticks),
+		thisModule.MakeFunctionCallExpression('chips_max_ticks', Sequence{})
+	);
+
+helper def : MakeTicksIncrement(ticks : bip!AtomInternalDataDeclaration) : bip!Expression =
+	thisModule.MakeAssignment(
+		thisModule.MakeDirectDataDeclarationReferenceExpression(ticks),
+		thisModule.MakeBinaryOpExpression(
+			#addition,
+			thisModule.MakeDirectDataDeclarationReferenceExpression(ticks),
+			thisModule.MakeDirectIntegerExpression(1)
+		)
+	);
 
 unique lazy rule MakeInitCtxFunctionPrototype{
 	from 
@@ -1786,44 +1865,56 @@ lazy rule MakeTrivialGuard{
 -- 				)
 
 
-helper def: MakeTransitions(
-	stateslist : Sequence(bip!State), 
-	portslist : Sequence(bip!AtomInternalPortDeclaration), 
-	starts_rcv:bip!ValuedExpression, 
-	starts_snd:bip!ValuedExpression,
-	action: bip!Expression) : Sequence(bip!Transition) =
-
-	if (stateslist->size()=6) then 
-		Sequence{ -- contextual case
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),starts_rcv), -- init to rcv / add guard
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd / add guard
-			thisModule.MakeTransition(stateslist->get(1),stateslist->get(4),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to readctx
-			thisModule.MakeTransition(stateslist->get(4),stateslist->get(2),portslist->get(4),thisModule.MakeTrivialGuard(true)), -- readctx to then
-			thisModule.MakeTransitionWithOperations(
-				stateslist->get(2),
-				stateslist->get(5),
-				portslist->get(1),
-				thisModule.MakeTrivialGuard(true),
-				Sequence{action}
-			), -- then to writectx
-			thisModule.MakeTransition(stateslist->get(5),stateslist->get(3),portslist->get(5),thisModule.MakeTrivialGuard(true)), -- writectx to snd
-			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
-		}
-	else
-		Sequence{ -- regular case
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(1),portslist->get(0),starts_rcv), -- init to rcv
-			thisModule.MakeTransition(stateslist->get(0),stateslist->get(3),portslist->get(0),starts_snd), -- init to snd
-			thisModule.MakeTransition(stateslist->get(1),stateslist->get(2),portslist->get(3),thisModule.MakeTrivialGuard(true)), -- rcv to then
-			thisModule.MakeTransitionWithOperations(
-				stateslist->get(2),
-				stateslist->get(3),
-				portslist->get(1),
-				thisModule.MakeTrivialGuard(true),
-				Sequence{action}
-			), -- then to snd
-			thisModule.MakeTransition(stateslist->get(3),stateslist->get(1),portslist->get(2),thisModule.MakeTrivialGuard(true)) -- snd to rcv
-		}
-	endif;
+helper def : MakeCoreTransitions(
+	states : Map(String, bip!State),
+	ports : Map(String, bip!AtomInternalPortDeclaration),
+	starts : bip!ComponentDataParameterDeclaration,
+	action : bip!Expression,
+	ticks : bip!AtomInternalDataDeclaration) : Sequence(bip!Transition) =
+	let chain : Sequence(String) =
+		Sequence{'RECEIVE', 'READCTX', 'THEN', 'WRITECTX', 'SEND'}
+			->select(n | not states->get(n).oclIsUndefined()) in
+	let leaving_port : Map(String, String) =
+		Map{('RECEIVE', 'recv'), ('READCTX', 'readctx'), ('WRITECTX', 'writectx'), ('SEND', 'send')} in
+	let init_transitions : Sequence(bip!Transition) =
+		if states->get('SEND').oclIsUndefined() then
+			Sequence{
+				thisModule.MakeTransition(
+					states->get('INIT'), states->get(chain->first()), ports->get('starts'),
+					thisModule.MakeTrivialGuard(true))
+			}
+		else
+			Sequence{
+				thisModule.MakeTransition(
+					states->get('INIT'), states->get(chain->first()), ports->get('starts'),
+					thisModule.MakeNotExpression(thisModule.MakeDirectDataDeclarationReferenceExpression(starts))),
+				thisModule.MakeTransition(
+					states->get('INIT'), states->get('SEND'), ports->get('starts'),
+					thisModule.MakeDirectDataDeclarationReferenceExpression(starts))
+			}
+		endif in
+	init_transitions
+	->union(
+		thisModule.range(Sequence{chain->size()})->collect(i |
+			let src : String = chain->get(i) in
+			let dst : String = if i = chain->size() - 1 then chain->first() else chain->get(i + 1) endif in
+			if src = 'THEN' then
+				thisModule.MakeTransitionWithOperations(
+					states->get(src), states->get(dst), ports->get('then'),
+					thisModule.MakeTicksComparison(ticks, false),
+					Sequence{action, thisModule.MakeTicksIncrement(ticks)})
+			else
+				thisModule.MakeTransition(
+					states->get(src), states->get(dst), ports->get(leaving_port->get(src)),
+					thisModule.MakeTrivialGuard(true))
+			endif
+		)
+	)
+	->append(
+		thisModule.MakeTransition(
+			states->get('THEN'), states->get('DONE'), ports->get('then'),
+			thisModule.MakeTicksComparison(ticks, true))
+	);
 
 unique lazy rule MakeAtomInternalDataDeclaration{
 	from
@@ -2070,7 +2161,7 @@ lazy rule MakeChipsInitialValue{
 					if dims->isEmpty() then
 						Sequence{}
 					else
-						thisModule.range(Sequence{dims->size()})->collect(i | Tuple{t = 'int', n = 'dim_' + i.toString()})
+						thisModule.range(Sequence{dims->size()})->collect(i | Tuple{t = 'int', n = 'dim_' + (i+1).toString()})
 						--Sequence{1..dims->size()}->collect(i | Tuple{t = 'int', n = 'dim_' + i.toString()})
 					endif
 				),
@@ -2085,6 +2176,16 @@ lazy rule MakeChipsInitialValue{
 		)
 }
 
+helper context chips!function_definition def : allParametersHaveDefaults : Boolean =
+	self.parameters
+		->union(
+			if self.oclIsTypeOf(chips!physical_definition) then
+				self.sensor
+			else
+				Sequence{}
+			endif
+		)
+		->forAll(p | not p.default_value.oclIsUndefined());
 
 unique lazy rule MakeCoreAtomType {
 	from 
@@ -2105,22 +2206,24 @@ unique lazy rule MakeCoreAtomType {
 
 		-- Defining the states for the petri net (order matters)
 		--------------------------------------------------------
-		all_states : Sequence(bip!State) = Sequence{
-			thisModule.MakeState('INIT'),
-			thisModule.MakeState('RECEIVE'),
-			thisModule.MakeState('THEN'),
-			thisModule.MakeState('SEND')
-		}->union(
-			if (all_contextuals->size()>0) then 
-				Sequence{
-					thisModule.MakeState('READCTX'),
-					thisModule.MakeState('WRITECTX')
-				}
-			else
-				Sequence{}
-			endif
+		has_inputs : Boolean = all_inputs->notEmpty();
+		has_outputs : Boolean = all_outputs->notEmpty();
+		has_ctx : Boolean = all_contextuals->notEmpty();
 
-		);
+		states_map : Map(String, bip!State) =
+			Map{
+				('INIT', thisModule.MakeState('INIT')),
+				('THEN', thisModule.MakeState('THEN')),
+				('DONE', thisModule.MakeState('DONE'))
+			}
+			->union(if has_inputs then Map{('RECEIVE', thisModule.MakeState('RECEIVE'))} else Map{} endif)
+			->union(if has_outputs then Map{('SEND', thisModule.MakeState('SEND'))} else Map{} endif)
+			->union(if has_ctx then Map{('READCTX', thisModule.MakeState('READCTX')), ('WRITECTX', thisModule.MakeState('WRITECTX'))} else Map{} endif);
+
+		all_states : Sequence(bip!State) =
+			Sequence{'INIT', 'RECEIVE', 'THEN', 'SEND', 'READCTX', 'WRITECTX', 'DONE'}
+			->select(n | not states_map->get(n).oclIsUndefined())
+			->collect(n | states_map->get(n));
 
 		-- generating bip data declarations
 		-----------------------------------
@@ -2165,6 +2268,9 @@ unique lazy rule MakeCoreAtomType {
 				thisModule.innerCategory
 			));
 		aidd_inner_data : Sequence(OclAny) = aidd_inner_tuples->merge(aidd_inner);
+		
+		ticks_aidd : bip!AtomInternalDataDeclaration = thisModule.MakeTicksDataDeclaration(chipsfunction);
+		max_ticks_prototype : bip!FunctionCallPrototype = thisModule.MakeNativeFunctionCallPrototype('chips_max_ticks', 'int');
 
 
 		-- generating port parameter declarations
@@ -2191,37 +2297,68 @@ unique lazy rule MakeCoreAtomType {
 			endif;
 
 
-		input_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
-		output_aipd : bip!AtomInternalPortDeclaration = 
-			thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
+		input_aipd : bip!AtomInternalPortDeclaration =
+			if has_inputs then
+				thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction)
+			else
+				OclUndefined
+			endif;
+		output_aipd : bip!AtomInternalPortDeclaration =
+			if has_outputs then
+				thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction)
+			else
+				OclUndefined
+			endif;
 		
 
 		-- generating ports (order matters)
 		-----------------------------------
-		all_aipdecl : Sequence(bip!AtomInternalPortDeclaration) = Sequence{
-			thisModule.MakeCoreAtomInternalPortDeclaration('starts_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction), -- (start port AIPD) 
-			thisModule.MakeCoreAtomInternalPortDeclaration('then_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction), -- (then port AIPD),
-			output_aipd, -- (send port AIPD) 
-			input_aipd  -- (recv port AIPPD)
-		}->union(
-			if (all_contextuals->size()>0) then
-				Sequence{
-					thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.readctxPortName,all_contextuals->collect(t | t.type),pdpd_read_ctx,chipsfunction), 
-					thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.writectxPortName,all_contextuals->collect(t | t.type),pdpd_write_ctx,chipsfunction) 
-				}
-			else 
-				Sequence{}
-			endif
-		);
+		starts_aipd : bip!AtomInternalPortDeclaration =
+			thisModule.MakeCoreAtomInternalPortDeclaration('starts_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction);
+		then_aipd : bip!AtomInternalPortDeclaration =
+			thisModule.MakeCoreAtomInternalPortDeclaration('then_'+chipsfunction.name,Sequence{},Sequence{},chipsfunction);
+		readctx_aipd : bip!AtomInternalPortDeclaration =
+			if has_ctx then
+				thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.readctxPortName,all_contextuals->collect(t | t.type),pdpd_read_ctx,chipsfunction)
+			else
+				OclUndefined
+			endif;
+		writectx_aipd : bip!AtomInternalPortDeclaration =
+			if has_ctx then
+				thisModule.MakeCoreAtomInternalPortDeclaration(chipsfunction.writectxPortName,all_contextuals->collect(t | t.type),pdpd_write_ctx,chipsfunction)
+			else
+				OclUndefined
+			endif;
+
+		ports_map : Map(String, bip!AtomInternalPortDeclaration) =
+			Map{('starts', starts_aipd), ('then', then_aipd)}
+			->union(if has_inputs then Map{('recv', input_aipd)} else Map{} endif)
+			->union(if has_outputs then Map{('send', output_aipd)} else Map{} endif)
+			->union(if has_ctx then Map{('readctx', readctx_aipd), ('writectx', writectx_aipd)} else Map{} endif);
+
+		all_aipdecl : Sequence(bip!AtomInternalPortDeclaration) =
+			Sequence{'starts', 'then', 'send', 'recv', 'readctx', 'writectx'}
+			->select(n | not ports_map->get(n).oclIsUndefined())
+			->collect(n | ports_map->get(n));
 
 		-- generating atom exported port declarations
 		---------------------------------------------
 
 		aepd_snd : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction);
+			if has_outputs then
+				thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.sendPortName,all_outputs->collect(t | t.type),pdpd_outputs,chipsfunction)
+			else
+				OclUndefined
+			endif;
 		aepd_rcv : bip!AtomExportPortDeclaration =
-			thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction);
+			if has_inputs then
+				thisModule.MakeCoreAtomExportPortDeclaration(chipsfunction.recvPortName,all_inputs->collect(t | t.type),pdpd_inputs,chipsfunction)
+			else
+				OclUndefined
+			endif;
+		io_to_export : Sequence(bip!AtomExportPortDeclaration) =
+			(if has_outputs then Sequence{aepd_snd} else Sequence{} endif)
+			->union(if has_inputs then Sequence{aepd_rcv} else Sequence{} endif);
 
 
 
@@ -2243,24 +2380,22 @@ unique lazy rule MakeCoreAtomType {
         native <- false,
         superTypes <- Sequence{},
         castableTypes <- Sequence{},
-        exportedPortDeclarations <- Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export),
-        exportedDataDeclarations <- Sequence{},
+        exportedPortDeclarations <- io_to_export->union(ctx_to_export),
+        exportPortDeclarations <- io_to_export->union(ctx_to_export),
 		dataParameterDeclarations <- Sequence{starts},
         internalPortDeclarations <- all_aipdecl,
         externalPortDeclarations <- Sequence{},
         behavior <- pn,
-        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output),
-        exportPortDeclarations <-Sequence{aepd_snd,aepd_rcv}->union(ctx_to_export)
+        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output)->append(ticks_aidd)
     ),
 
 	pn : bip!PetriNet(
 		states <- all_states,
-		initStates <- Sequence{all_states->get(0)},
-		transitions <- thisModule.MakeTransitions(
-			all_states, 
-			all_aipdecl,
-			thisModule.MakeNotExpression(thisModule.MakeDirectDataDeclarationReferenceExpression(starts)),
-			thisModule.MakeDirectDataDeclarationReferenceExpression(starts),
+		initStates <- Sequence{states_map->get('INIT')},
+		transitions <- thisModule.MakeCoreTransitions(
+			states_map,
+			ports_map,
+			starts,
 			thisModule.MakeCppFunctionCall(
 				'then_'+chipsfunction.name,
 				aidd_input_data
@@ -2281,46 +2416,55 @@ unique lazy rule MakeCoreAtomType {
 						}
 					),
 				'void'
-			)
+			),
+			ticks_aidd
 		),
-		initialActions <- 
-			aidd_input_data
-			->union(aidd_ctx_data)
-			->union(aidd_inner_data)
-			->union(aidd_output_data)
-			->collect(
-				datum |
+		initialActions <-
+			Sequence{
 				thisModule.MakeAssignment(
-					thisModule.MakeDirectDataDeclarationReferenceExpression(
-						datum.second
-					),
-					thisModule.MakeChipsInitialValue(
-						datum.first.type.typenameToDefaultDirectExpression(),
-						datum.first.type,
-						chipsfunction.dimsOf(datum.first.name)
-					)
+					thisModule.MakeDirectDataDeclarationReferenceExpression(ticks_aidd),
+					thisModule.MakeDirectIntegerExpression(0)
 				)
-			)->append(
-				thisModule.MakeCppFunctionCall(
-					'init_'+chipsfunction.name,
-					aidd_input_data
-						->union(aidd_ctx_data)
-						->union(aidd_inner_data)
-						->union(aidd_output_data)
-						->collect(datum |
-							thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+			}
+			->union(
+				aidd_input_data
+				->union(aidd_ctx_data)
+				->union(aidd_inner_data)
+				->union(aidd_output_data)
+				->collect(
+					datum |
+					thisModule.MakeAssignment(
+						thisModule.MakeDirectDataDeclarationReferenceExpression(
+							datum.second
 						),
-					aidd_input_data
-						->union(aidd_ctx_data)
-						->union(aidd_inner_data)
-						->union(aidd_output_data)
-						->collect(datum |
-							Tuple{
-								t=datum.first.type,
-								n=datum.first.name
-							}
-						),
-					'void'
+						thisModule.MakeChipsInitialValue(
+							datum.first.type.typenameToDefaultDirectExpression(),
+							datum.first.type,
+							chipsfunction.dimsOf(datum.first.name)
+						)
+					)
+				)->append(
+					thisModule.MakeCppFunctionCall(
+						'init_'+chipsfunction.name,
+						aidd_input_data
+							->union(aidd_ctx_data)
+							->union(aidd_inner_data)
+							->union(aidd_output_data)
+							->collect(datum |
+								thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+							),
+						aidd_input_data
+							->union(aidd_ctx_data)
+							->union(aidd_inner_data)
+							->union(aidd_output_data)
+							->collect(datum |
+								Tuple{
+									t=datum.first.type,
+									n=datum.first.name
+								}
+							),
+						'void'
+					)
 				)
 			)
 	),
@@ -4246,120 +4390,116 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 		core_component_declaration : bip!ComponentDeclaration = 
 			thisModule.MakeCoreComponentDeclaration(chipsfunction);
 			
-		input_buffer_declaration : bip!ComponentDeclaration = 
-			thisModule.MakeBufferCompoundDeclaration(
-				chipsfunction.name+'_input_buffer',
-				thisModule.MakeInputBufferType(all_inputs->collect(t | t.type))
-			);
+		has_inputs : Boolean = all_inputs->notEmpty();
+		has_outputs : Boolean = all_outputs->notEmpty();
+		has_ctx : Boolean = all_contextuals->notEmpty();
 
-		output_buffer_declaration : bip!ComponentDeclaration = 
-			thisModule.MakeBufferCompoundDeclaration(
-				chipsfunction.name+'_output_buffer',
-				thisModule.MakeOutputBufferType(all_outputs->collect(t | t.type))
-			);
+		input_buffer_declaration : bip!ComponentDeclaration =
+			if has_inputs then
+				thisModule.MakeBufferCompoundDeclaration(
+					chipsfunction.name+'_input_buffer',
+					thisModule.MakeInputBufferType(all_input_ordered_types)
+				)
+			else
+				OclUndefined
+			endif;
 
-		-- do not change the order of the components in the following data structure
-		buffers_sequence : Sequence(bip!ComponentDeclaration) = 
-			Sequence{
-				input_buffer_declaration,
-				output_buffer_declaration
-			}
-			->union(
-				if (all_contextuals->isEmpty()) then
-					Sequence{}
-				else
+		output_buffer_declaration : bip!ComponentDeclaration =
+			if has_outputs then
+				thisModule.MakeBufferCompoundDeclaration(
+					chipsfunction.name+'_output_buffer',
+					thisModule.MakeOutputBufferType(all_output_ordered_types)
+				)
+			else
+				OclUndefined
+			endif;
+
+		input_ctx_buffer_declaration : bip!ComponentDeclaration =
+			if has_ctx then
+				thisModule.MakeBufferCompoundDeclaration(
+					chipsfunction.name+'_input_ctx',
+					thisModule.MakeInputBufferType(all_contextuals_ordered_types)
+				)
+			else
+				OclUndefined
+			endif;
+
+		output_ctx_buffer_declaration : bip!ComponentDeclaration =
+			if has_ctx then
+				thisModule.MakeBufferCompoundDeclaration(
+					chipsfunction.name+'_output_ctx',
+					thisModule.MakeOutputBufferType(all_contextuals_ordered_types)
+				)
+			else
+				OclUndefined
+			endif;
+
+		buffers_sequence : Sequence(bip!ComponentDeclaration) =
+			(if has_inputs then Sequence{input_buffer_declaration} else Sequence{} endif)
+			->union(if has_outputs then Sequence{output_buffer_declaration} else Sequence{} endif)
+			->union(if has_ctx then Sequence{input_ctx_buffer_declaration, output_ctx_buffer_declaration} else Sequence{} endif);
+
+		--------------------------------------------
+		--------------------------------------------
+		--------------------------------------------
+
+		connector_input_buffer_to_core : bip!ConnectorDeclaration =
+			if has_inputs then
+				thisModule.MakeConnectorDeclaration(
+					'input_to_core',
+					thisModule.MakeFlowConnectorType(all_input_ordered_types),
 					Sequence{
-						thisModule.MakeBufferCompoundDeclaration(
-							chipsfunction.name+'_input_ctx',
-							thisModule.MakeInputBufferType(all_contextuals->collect(t | t.type))
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary->get('FlowConnectorTypes')->get(all_input_ordered_types)->get('s_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary->get('InputBufferTypes')->get(all_input_ordered_types)->get('eoutput'),
+								input_buffer_declaration
+							)
 						),
-						thisModule.MakeBufferCompoundDeclaration(
-							chipsfunction.name+'_output_ctx',
-							thisModule.MakeOutputBufferType(all_contextuals->collect(t | t.type))
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary->get('FlowConnectorTypes')->get(all_input_ordered_types)->get('r_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary->get('CoreAtomTypes')->get(chipsfunction.name)->get('aepd')->get('input'),
+								core_component_declaration
+							)
 						)
 					}
-				endif
-			);
+				)
+			else
+				OclUndefined
+			endif;
 
-		--------------------------------------------
-		--------------------------------------------
-		--------------------------------------------
+		connector_core_to_output_buffer : bip!ConnectorDeclaration =
+			if has_outputs then
+				thisModule.MakeConnectorDeclaration(
+					'core_to_output',
+					thisModule.MakeFlowConnectorType(all_output_ordered_types),
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary->get('FlowConnectorTypes')->get(all_output_ordered_types)->get('s_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary->get('CoreAtomTypes')->get(chipsfunction.name)->get('aepd')->get('output'),
+								core_component_declaration
+							)
+						),
+						thisModule.MakePortDeclarationReferenceParameter(
+							thisModule.dictionary->get('FlowConnectorTypes')->get(all_output_ordered_types)->get('r_port'),
+							thisModule.MakeComponentSubPortDeclarationReference(
+								thisModule.dictionary->get('OutputBufferTypes')->get(all_output_ordered_types)->get('einput'),
+								output_buffer_declaration
+							)
+						)
+					}
+				)
+			else
+				OclUndefined
+			endif;
 
-		connector_input_buffer_to_core: bip!ConnectorDeclaration =
-			thisModule.MakeConnectorDeclaration(
-				'input_to_core',
-				thisModule.MakeFlowConnectorType(all_inputs->collect(t|t.type)),
-				Sequence{
-					thisModule.MakePortDeclarationReferenceParameter(
-						thisModule.dictionary
-							->get('FlowConnectorTypes')
-							->get(all_input_ordered_types)
-							->get('s_port'),
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('InputBufferTypes')
-								->get(all_input_ordered_types)
-								->get('eoutput'),
-							input_buffer_declaration
-						)
-					),
-					thisModule.MakePortDeclarationReferenceParameter(
-						thisModule.dictionary
-							->get('FlowConnectorTypes')
-							->get(all_input_ordered_types)
-							->get('r_port'),
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('CoreAtomTypes')
-								->get(chipsfunction.name)
-								->get('aepd')
-								->get('input'),
-							core_component_declaration
-						)
-					)
-				}
-			);
-
-		connector_core_to_output_buffer: bip!ConnectorDeclaration =
-			thisModule.MakeConnectorDeclaration(
-				'core_to_output',
-				thisModule.MakeFlowConnectorType(all_outputs->collect(t|t.type)),
-				Sequence{
-					thisModule.MakePortDeclarationReferenceParameter(
-						thisModule.dictionary
-							->get('FlowConnectorTypes')
-							->get(all_output_ordered_types)
-							->get('s_port'),
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('CoreAtomTypes')
-								->get(chipsfunction.name)
-								->get('aepd')
-								->get('output'),
-							core_component_declaration
-						)
-					),
-					thisModule.MakePortDeclarationReferenceParameter(
-						thisModule.dictionary
-							->get('FlowConnectorTypes')
-							->get(all_input_ordered_types)
-							->get('r_port'),
-						thisModule.MakeComponentSubPortDeclarationReference(
-							thisModule.dictionary
-								->get('OutputBufferTypes')
-								->get(all_output_ordered_types)
-								->get('einput'),
-							output_buffer_declaration
-						)
-					)
-				}
-			);
-		
-		-- do not change the order of the components in the following data structure
-		connectors_sequence : Sequence(bip!ConnectorDeclaration) = 
-			Sequence{connector_input_buffer_to_core, connector_core_to_output_buffer}
+		connectors_sequence : Sequence(bip!ConnectorDeclaration) =
+			(if has_inputs then Sequence{connector_input_buffer_to_core} else Sequence{} endif)
+			->union(if has_outputs then Sequence{connector_core_to_output_buffer} else Sequence{} endif)
 			->union(
-				if (all_contextuals->isEmpty()) then 
+				if not has_ctx then
 					Sequence{}
 				else
 					Sequence{
@@ -4368,29 +4508,16 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							thisModule.MakeFlowConnectorType(all_contextuals_ordered_types),
 							Sequence{
 								thisModule.MakePortDeclarationReferenceParameter(
-									thisModule.dictionary
-										->get('FlowConnectorTypes')
-										->get(all_contextuals_ordered_types)
-										->get('s_port'),
+									thisModule.dictionary->get('FlowConnectorTypes')->get(all_contextuals_ordered_types)->get('s_port'),
 									thisModule.MakeComponentSubPortDeclarationReference(
-										thisModule.dictionary
-											->get('InputBufferTypes')
-											->get(all_contextuals_ordered_types)
-											->get('eoutput'),
-										buffers_sequence->at(3)
+										thisModule.dictionary->get('InputBufferTypes')->get(all_contextuals_ordered_types)->get('eoutput'),
+										input_ctx_buffer_declaration
 									)
 								),
 								thisModule.MakePortDeclarationReferenceParameter(
-									thisModule.dictionary
-										->get('FlowConnectorTypes')
-										->get(all_input_ordered_types)
-										->get('r_port'),
+									thisModule.dictionary->get('FlowConnectorTypes')->get(all_contextuals_ordered_types)->get('r_port'),
 									thisModule.MakeComponentSubPortDeclarationReference(
-										thisModule.dictionary
-											->get('CoreAtomTypes')
-											->get(chipsfunction.name)
-											->get('aepd')
-											->get('read_ctx'),
+										thisModule.dictionary->get('CoreAtomTypes')->get(chipsfunction.name)->get('aepd')->get('read_ctx'),
 										core_component_declaration
 									)
 								)
@@ -4401,30 +4528,17 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 							thisModule.MakeFlowConnectorType(all_contextuals_ordered_types),
 							Sequence{
 								thisModule.MakePortDeclarationReferenceParameter(
-									thisModule.dictionary
-										->get('FlowConnectorTypes')
-										->get(all_contextuals_ordered_types)
-										->get('s_port'),
+									thisModule.dictionary->get('FlowConnectorTypes')->get(all_contextuals_ordered_types)->get('s_port'),
 									thisModule.MakeComponentSubPortDeclarationReference(
-										thisModule.dictionary
-											->get('CoreAtomTypes')
-											->get(chipsfunction.name)
-											->get('aepd')
-											->get('write_ctx'),
+										thisModule.dictionary->get('CoreAtomTypes')->get(chipsfunction.name)->get('aepd')->get('write_ctx'),
 										core_component_declaration
 									)
 								),
 								thisModule.MakePortDeclarationReferenceParameter(
-									thisModule.dictionary
-										->get('FlowConnectorTypes')
-										->get(all_contextuals_ordered_types)
-										->get('r_port'),
+									thisModule.dictionary->get('FlowConnectorTypes')->get(all_contextuals_ordered_types)->get('r_port'),
 									thisModule.MakeComponentSubPortDeclarationReference(
-										thisModule.dictionary
-											->get('OutputBufferTypes')
-											->get(all_contextuals_ordered_types)
-											->get('einput'),
-										buffers_sequence->at(4)
+										thisModule.dictionary->get('OutputBufferTypes')->get(all_contextuals_ordered_types)->get('einput'),
+										output_ctx_buffer_declaration
 									)
 								)
 							}
@@ -4487,7 +4601,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 								->get(all_contextuals_ordered_types)
 								->get('einputs')
 								->get(p.iindex),
-							buffers_sequence->at(3)
+							input_ctx_buffer_declaration
 						)}
 					)
 				)
@@ -4507,7 +4621,7 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 								->get(all_contextuals_ordered_types)
 								->get('eoutputs')
 								->get(p.iindex),
-							buffers_sequence->at(4)
+							output_ctx_buffer_declaration
 						)}
 					)
 				)
@@ -6011,27 +6125,28 @@ rule Program2BipPackage {
 		
 		functional_input_buffer_types : Sequence(bip!CompoundType) =
 			all_chips_function_defs
+			->select(d | d.all_inputs->notEmpty())
 			->collect(d | thisModule.MakeInputBufferType(d.all_inputs->collect(t | t.type)))->toArray();
-		
+
 		functional_output_buffer_types : Sequence(bip!CompoundType) =
 			all_chips_function_defs
+			->select(d | d.all_outputs->notEmpty())
 			->collect(d | thisModule.MakeOutputBufferType(d.all_outputs->collect(t | t.type)))->toArray();
 
-
 		all_exporting_connector_types: Sequence(bip!ConnectorType) =
-			all_chips_function_defs->collect(
+			all_chips_function_defs->select(d | d.all_inputs->notEmpty())->collect(
 				d | thisModule.MakeMany2OneConnectorType(d.all_inputs->collect(i | i.type))
 			)->union(
-				all_chips_function_defs->collect(
+				all_chips_function_defs->select(d | d.all_outputs->notEmpty())->collect(
 					d | thisModule.MakeOne2ManyConnectorType(d.all_outputs->collect(o | o.type))
 				)
 			)->toArray();
-		
+
 		non_trivial_flow_connector_types:Sequence(bip!ConnectorType) =
-			all_chips_function_defs->collect(
+			all_chips_function_defs->select(d | d.all_inputs->notEmpty())->collect(
 				d | thisModule.MakeFlowConnectorType(d.all_inputs->collect(i | i.type))
 			)->union(
-				all_chips_function_defs->collect(
+				all_chips_function_defs->select(d | d.all_outputs->notEmpty())->collect(
 					d | thisModule.MakeFlowConnectorType(d.all_outputs->collect(o | o.type))
 				)
 			)->toArray();
@@ -6355,7 +6470,7 @@ rule Program2BipPackage {
 		all_adapters : Sequence(bip!ConnectorDeclaration) = 
 			instantiated_collective_connectors_trees->getValues()->asSequence()->collect(list_of_roots | list_of_roots->collect(r | r.adapters_list))->flatten()->toArray();
 
-		bip_package : TupleType(
+				bip_package : TupleType(
 			components: Sequence(bip!ComponentDeclaration),
 			connectors: Sequence(bip!ConnectorDeclaration)
 		) =
@@ -6364,14 +6479,14 @@ rule Program2BipPackage {
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{} |
 				seq->union(memory.mem.fblocks->get(fbname).instances)
 			)->union(
-				thisModule.dictionary->get('PlaceholderDeclaration')->getValues()->asSequence()
+				thisModule.dictionaryValues('PlaceholderDeclaration')
 			)->union(
-				thisModule.dictionary->get('ContextualAtomDeclaration')->getValues()->asSequence()
+				thisModule.dictionaryValues('ContextualAtomDeclaration')
 			),
 			connectors = thisModule.sortConnectors(
 				memory.mem.dataflows->getValues()->asSequence()
 				->union(ctx_connectors)
-				->union(thisModule.dictionary->get('CollectiveConnectorDeclaration')->getValues()->asSequence())
+				->union(thisModule.dictionaryValues('CollectiveConnectorDeclaration'))
 				->union(all_adapters)
 			)
 		};
@@ -8035,7 +8150,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 						thisModule.MakeCompoundDeclaration(
 							fdecl.variable.name+'_'+i.toString(),
 							fdecl."def",
-							Sequence{thisModule.MakeDirectBooleanExpression(true)}
+							Sequence{thisModule.MakeDirectBooleanExpression(fdecl."def".allParametersHaveDefaults)}
 						)
 					)
 				)
@@ -8051,7 +8166,7 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 					thisModule.MakeCompoundDeclaration(
 						fdecl.variable.name+'_0',
 						fdecl."def",
-						Sequence{thisModule.MakeDirectBooleanExpression(true)}
+						Sequence{thisModule.MakeDirectBooleanExpression(fdecl."def".allParametersHaveDefaults)}
 					)
 				}	
 			}

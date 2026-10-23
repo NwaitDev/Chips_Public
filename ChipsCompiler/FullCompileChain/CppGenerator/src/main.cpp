@@ -153,7 +153,7 @@ std::string section_banner(const std::string &title)
 }
 
 void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeaderPath,
-                  const std::filesystem::path &hppPath, const std::filesystem::path &cppPath)
+                  const std::filesystem::path &hppPath, const std::filesystem::path &cppPath, long long maxTicks)
 {
     antlr4::ANTLRInputStream inputStream(read_file(chipsPath));
     ChipsLexer lexer(&inputStream);
@@ -165,6 +165,7 @@ void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeader
     std::ostringstream sourceBody;
     CodeGenListener listener(tokens, headerBody, sourceBody);
     listener.setSourcePath(chipsPath);
+    listener.setMaxTicks(maxTicks);
     antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
     const std::string guard = include_guard_for(hppPath);
@@ -191,7 +192,8 @@ int main(int argc, char **argv)
     const std::map<std::string, std::string> paramDescriptions{
         {"input", "path to the chips file to compile"},
         {"-o", "path of the generated source file (default: bip_importable.cpp)"},
-        {"-oh", "path of the generated header file (default: the source path with a .hpp extension)"}};
+        {"-oh", "path of the generated header file (default: the source path with a .hpp extension)"},
+        {"-max-ticks", "number of THEN cycles after which each core component stops (default: 1000)"}};
 
     std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
 
@@ -207,9 +209,26 @@ int main(int argc, char **argv)
     const std::string runtimeHeaderPath = std::filesystem::canonical(
         exeDir / ".." / "src" / "cppHeaderAutoInclude.hpp").string();
 
+    long long maxTicks = 1000;
+    if (args.count("-max-ticks"))
+    {
+        try
+        {
+            std::size_t used = 0;
+            maxTicks = std::stoll(args.at("-max-ticks"), &used);
+            if (used != args.at("-max-ticks").size() || maxTicks < 0 || maxTicks > 2147483647LL)
+                throw std::invalid_argument("out of range");
+        }
+        catch (const std::exception &)
+        {
+            std::cerr << "Invalid value for -max-ticks: " << args.at("-max-ticks") << " (expected an integer between 0 and 2147483647)" << std::endl;
+            return 1;
+        }
+    }
+
     try
     {
-        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath);
+        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath, maxTicks);
     }
     catch (const ChipsGenerationError &e)
     {

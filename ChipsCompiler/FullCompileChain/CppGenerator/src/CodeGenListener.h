@@ -37,6 +37,7 @@ public:
     }
 
     void setSourcePath(const std::string &path);
+    void setMaxTicks(long long maxTicks);
     void enterProgram(ChipsParser::ProgramContext *ctx) override;
     void exitProgram(ChipsParser::ProgramContext *ctx) override;
     void exitL_function_def(ChipsParser::L_function_defContext *ctx) override;
@@ -146,6 +147,7 @@ private:
     static std::string shapedValue(const std::string &chipType, const std::vector<std::string> &dims);
     std::string statementGuard(antlr4::ParserRuleContext *ctx, int indent, const std::string &text) const;
     std::string sourcePath_;
+    long long maxTicks_ = 1000;
     std::string translateLoop(ChipsParser::Loop_statementContext *ctx, int indent);
     std::string translateIf(ChipsParser::If_statementContext *ctx, int indent);
     std::string translateIfElse(ChipsParser::If_else_statementContext *ctx, int indent);

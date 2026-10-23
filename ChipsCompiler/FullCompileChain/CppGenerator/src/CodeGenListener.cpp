@@ -318,6 +318,11 @@ std::string CodeGenListener::sourceText(antlr4::ParserRuleContext *ctx)
     return out;
 }
 
+void CodeGenListener::setMaxTicks(long long maxTicks)
+{
+    maxTicks_ = maxTicks;
+}
+
 void CodeGenListener::setSourcePath(const std::string &path)
 {
     sourcePath_.clear();
@@ -1102,6 +1107,8 @@ void CodeGenListener::exitProgram(ChipsParser::ProgramContext *)
 void CodeGenListener::enterProgram(ChipsParser::ProgramContext *ctx)
 {
     source_out_ << "const char *const chips_diag::source_file = \"" << (sourcePath_.empty() ? std::string("<unknown file>") : sourcePath_) << "\";\n\n";
+    header_out_ << "constexpr int CHIPS_MAX_TICKS = " << maxTicks_ << ";\n\n";
+    header_out_ << "inline int chips_max_ticks()\n{\n    return CHIPS_MAX_TICKS;\n}\n\n";
     for (auto *preamble : ctx->preamble())
     {
         if (auto *objDef = dynamic_cast<ChipsParser::ObjectDefinitionContext *>(preamble))

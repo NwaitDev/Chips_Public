@@ -3,7 +3,7 @@ SUBDIRS := BipXmiGenerator ChipsXmiGenerator CppGenerator
 DIR := FullCompileChain
 
 CHIPS_SANDBOX := CHIPS_GENERATED
-TESTS := testfiles
+TEST := testfiles/additioner.chips
 
 .PHONY: compile setup BipCompiler $(SUBDIRS) $(TESTS) $(CHIPS_SANDBOX) clean test clean_test
 
@@ -17,7 +17,7 @@ BipCompiler:
 $(SUBDIRS):
 	$(MAKE) -C $(DIR)/$@
 
-$(CHIPS_SANDBOX)/test.chips.xmi: $(TESTS)/TeaStoreVariation.chips $(DIR)/ChipsXmiGenerator
+$(CHIPS_SANDBOX)/test.chips.xmi: $(TEST) $(DIR)/ChipsXmiGenerator
 	./$(DIR)/ChipsXmiGenerator/chipsparser $< $@
 
 $(CHIPS_SANDBOX)/test.bip.xmi: $(CHIPS_SANDBOX)/test.chips.xmi $(DIR)/BipXmiGenerator
@@ -31,7 +31,7 @@ $(CHIPS_SANDBOX)/ChipsModel.bip: $(CHIPS_SANDBOX)/test.bip.xmi
 	bipc --xmi $< -d "SYSTEM_COMPOUND" --genbip-output-dir $(CHIPS_SANDBOX) 2>$(CHIPS_SANDBOX)/debug.log
 	sed -i 's/@0//g' $(CHIPS_SANDBOX)/ChipsModel.bip
 
-$(CHIPS_SANDBOX)/bip_importable.o: testfiles/TeaStoreVariation.chips $(DIR)/CppGenerator 
+$(CHIPS_SANDBOX)/bip_importable.o: $(TEST) $(DIR)/CppGenerator 
 	./$(DIR)/CppGenerator/build/Chips2Cpp $< -o $(CHIPS_SANDBOX)/bip_importable.cpp
 	g++ -Wall -Wextra -std=c++17 $(CHIPS_SANDBOX)/bip_importable.cpp -c -o $@ 2>$(CHIPS_SANDBOX)/debug.log
 
