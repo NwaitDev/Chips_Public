@@ -164,6 +164,7 @@ void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeader
     std::ostringstream headerBody;
     std::ostringstream sourceBody;
     CodeGenListener listener(tokens, headerBody, sourceBody);
+    listener.setSourcePath(chipsPath);
     antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
     const std::string guard = include_guard_for(hppPath);

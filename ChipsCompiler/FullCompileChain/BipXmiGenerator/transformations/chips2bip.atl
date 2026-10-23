@@ -34,7 +34,10 @@ rule NextId() {
 
 helper def : nodeId : Integer = 0;
 
-
+-- We need it to sort parameters in the same order as the cpp generator 
+-- (which has to protect BIP reserved keywords to preserve compatibility)
+helper context String def : unprotected() : String =
+	if self.startsWith('kw_') then self.substring(4, self.size()) else self endif;
 
 helper def : connectorCreationOrder : Sequence(bip!ConnectorDeclaration) = Sequence{};
 
@@ -126,7 +129,7 @@ lazy rule MakePrototypeParameterDeclaration{
 	)
 }
 
-unique lazy rule MakeBipNativePrototypeParameterDeclaration{
+lazy rule MakeBipNativePrototypeParameterDeclaration{
 	from
 		t:String,
 		n:String
@@ -320,7 +323,7 @@ helper context chips!function_definition def : all_inputs : Sequence(TupleType(t
 		else
 			Sequence{}
 		endif
-	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(t | t.name);
+	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(t | t.name.unprotected());
 
 helper context chips!function_definition def : all_outputs : Sequence(TupleType(type: String, name:String)) = 
 	self.outputs->union(
@@ -329,8 +332,7 @@ helper context chips!function_definition def : all_outputs : Sequence(TupleType(
 		else
 			Sequence{}
 		endif 
-	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(o | o.type);
-
+	)->collect(param | Tuple{type=param.extract_type, name=param.name})->sortedBy(o | o.name);
 
 helper context chips!logical_parameter  def : extract_type : String =
 	if self.oclIsTypeOf(chips!int_logical_parameter)
@@ -1316,7 +1318,7 @@ helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Se
 
 
 helper context chips!function_definition def : all_contextuals() : Sequence(TupleType(name:String, type:String)) =
-self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.name);
+self."then".statements->uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.name.unprotected());
 
 
 --------------- (helpers to detect which chips COLLECTIVE functions use contextual data)
@@ -1413,11 +1415,37 @@ helper context Sequence(chips!collective_statement) def : collective_uses_contex
 	self->collect(stt | stt->collective_uses_contextuals()->asSequence())->asSequence();
 
 
+helper context OclAny def : isContainedIn(container : OclAny) : Boolean =
+	let parent : OclAny = self.refImmediateComposite() in
+	if parent.oclIsUndefined() then
+		false
+	else if parent = container then
+		true
+	else
+		parent.isContainedIn(container)
+	endif endif;
+
+helper def : collectiveContextualKinds : Sequence(TupleType(cls : OclAny, type : String)) =
+	Sequence{
+		Tuple{cls = chips!"chips::xvalues::collective::contextual_int_expression", type = 'int'},
+		Tuple{cls = chips!"chips::xvalues::collective::contextual_float_expression", type = 'float'},
+		Tuple{cls = chips!"chips::xvalues::collective::contextual_bool_expression", type = 'bool'}
+	};
+
 helper context chips!collective_function_definition def : collective_all_contextuals() : Sequence(TupleType(name:String, type:String)) =
-if self.operations->oclIsUndefined() 
-then Sequence{}
-else self.operations.statements->collective_uses_contextuals()->flatten()->asSet()->asSequence()->sortedBy(t | t.type)
-endif;
+	thisModule.collectiveContextualKinds
+		->collect(k |
+			k.cls.allInstances()
+				->select(e | e.isContainedIn(self))
+				->collect(e | Tuple{name = e.variable.name, type = k.type})
+		)
+		->flatten()
+		->asSet()
+		->asSequence()
+		->sortedBy(t | t.name.unprotected());
+
+helper context chips!collective_function_definition def : orderedCollectiveContextuals() : Sequence(TupleType(name:String, type:String)) =
+	self.collective_all_contextuals();
 
 unique lazy rule MakeBackendDataType {
 	from type: String
@@ -1468,8 +1496,6 @@ helper context chips!collective_function_definition def : targetType() : String 
 		'ATL transformation Error'.debug('unrecognized type for target output of ' + self.name)
 	endif endif endif;
 
-helper context chips!collective_function_definition def : orderedCollectiveContextuals() : Sequence(TupleType(name:String,type:String)) =
-	self->collective_all_contextuals()->sortedBy(t | t.name);
 
 helper context chips!collective_function_definition def : inputType() : String =
 	self.operations.statements->extract_input_type();
@@ -1928,6 +1954,138 @@ unique lazy rule MakeCompoundExportPortDeclaration{
 		)
 }
 
+helper context OclAny def : isStaticInt(names : Sequence(String)) : Boolean =
+	if self.oclIsTypeOf(chips!"chips::rvalues::primitive::direct_int") then
+		true
+	else if self.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression") then
+		if self.index->isEmpty() 
+		then names->includes(self.variable.name) 
+		else false 
+		endif
+	else if self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::plus")
+		or self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::minus")
+		or self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mult")
+		or self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::div")
+		or self.oclIsTypeOf(chips!"chips::rvalues::primitive::operators::int::mod") then
+		if self.left_operand.isStaticInt(names) then self.right_operand.isStaticInt(names) else false endif
+	else
+		false
+	endif endif endif;
+
+helper def : staticDims(dims : Sequence(OclAny), mem : Sequence(OclAny), varName : String) : Sequence(Integer) =
+	dims->collect(d |
+		if d.isStaticInt(mem->collect(v | v.name)) then
+			d.evaluate(Tuple{variables = mem}).value->first()
+		else
+			let a : OclAny = 'ATL transformation Error'.debug('a dimension of ' + varName + ' cannot be computed statically, 1 is used instead') in
+			1
+		endif
+	);
+
+helper context chips!function_definition def : initDimensions : Map(String, Sequence(Integer)) =
+	if self.init.oclIsUndefined() then
+		Map{}
+	else
+		self.init.statements->iterate(stt ; acc : TupleType(mem : Sequence(OclAny), dims : Map(String, Sequence(Integer))) = Tuple{mem = Sequence{}, dims = Map{}} |
+			if stt.oclIsKindOf(chips!primitive_declaration) then
+				Tuple{
+					mem = acc.mem,
+					dims = acc.dims->including(stt.name, thisModule.staticDims(stt.variable.dimensions, acc.mem, stt.name))
+				}
+			else if stt.oclIsTypeOf(chips!"chips::statements::primitive::int_assignment") then
+				if stt.lvalue.oclIsTypeOf(chips!"chips::xvalues::primitive::int_variable_expression") then
+					if stt.lvalue.index->isEmpty() then
+						if stt.rvalue.isStaticInt(acc.mem->collect(v | v.name)) then
+							Tuple{
+								mem = acc.mem
+									->reject(v | v.name = stt.lvalue.variable.name)
+									->append(Tuple{
+										name = stt.lvalue.variable.name,
+										type = 'int',
+										value = stt.rvalue.evaluate(Tuple{variables = acc.mem}).value,
+										dims = Sequence{1}
+									}),
+								dims = acc.dims
+							}
+						else acc endif
+					else acc endif
+				else acc endif
+			else acc endif endif
+		).dims
+	endif;
+
+helper context chips!function_definition def : contextualDims(name : String) : OclAny =
+	if not self.oclIsTypeOf(chips!physical_definition) then
+		OclUndefined
+	else if self."with".oclIsUndefined() then
+		OclUndefined
+	else
+		let decls : Sequence(OclAny) =
+			self."with".statements
+				->select(s | s.oclIsKindOf(chips!contextual_declaration))
+				->select(s | s.identifier = name) in
+		if decls->isEmpty() then
+			OclUndefined
+		else
+			let decl : OclAny = decls->first() in
+			thisModule.staticDims(
+				if decl.oclIsTypeOf(chips!contextual_int_declaration)
+				then decl.variable.dimensions
+				else decl.variable.variable.dimensions
+				endif,
+				Sequence{},
+				name
+			)
+		endif
+	endif endif;
+
+helper context chips!function_definition def : dimsOf(name : String) : Sequence(Integer) =
+	let params : Sequence(OclAny) =
+		self.parameters
+			->union(if self.oclIsTypeOf(chips!physical_definition) then self.sensor else Sequence{} endif)
+			->select(p | p.name = name) in
+	if params->notEmpty() then
+		thisModule.staticDims(params->first().declaration.variable.dimensions, Sequence{}, name)
+	else
+		let ctxDims : OclAny = self.contextualDims(name) in
+		if not ctxDims.oclIsUndefined() then
+			ctxDims
+		else
+			let innerDims : OclAny = self.initDimensions->get(name) in
+			if innerDims.oclIsUndefined() then Sequence{} else innerDims endif
+		endif
+	endif;
+
+lazy rule MakeChipsInitialValue{
+	from
+		ve : bip!ValuedExpression,
+		type : String,
+		dims : Sequence(Integer)
+
+	using {
+		proto : OclAny = thisModule.MakeFunctionCallPrototypeWithReturnOnBipNativeParameters(
+			'create_chips_' + type,
+			Sequence{Tuple{t = type, n = 'native_' + type + '_rvalue'}}
+				->union(
+					if dims->isEmpty() then
+						Sequence{}
+					else
+						thisModule.range(Sequence{dims->size()})->collect(i | Tuple{t = 'int', n = 'dim_' + i.toString()})
+						--Sequence{1..dims->size()}->collect(i | Tuple{t = 'int', n = 'dim_' + i.toString()})
+					endif
+				),
+			type
+		);
+	}
+
+	to
+		e : bip!FunctionCallExpression(
+			functionName <- 'create_chips_' + type,
+			parameters <- Sequence{ve}->union(dims->collect(d | thisModule.MakeDirectIntegerExpression(d)))
+		)
+}
+
+
 unique lazy rule MakeCoreAtomType {
 	from 
 		chipsfunction: chips!function_definition
@@ -1996,7 +2154,7 @@ unique lazy rule MakeCoreAtomType {
 			->collect(stt |  Tuple{
 				type=stt.extract_type,
 				name=stt.name
-			})->sortedBy(t | t.name);
+			})->sortedBy(t | t.name.unprotected());
 				
 		aidd_inner : Sequence(bip!AtomInternalDataDeclaration) = 
 			aidd_inner_tuples
@@ -2004,7 +2162,7 @@ unique lazy rule MakeCoreAtomType {
 				t.type,
 				t.name,
 				chipsfunction,
-				thisModule.outputCategory
+				thisModule.innerCategory
 			));
 		aidd_inner_data : Sequence(OclAny) = aidd_inner_tuples->merge(aidd_inner);
 
@@ -2136,9 +2294,10 @@ unique lazy rule MakeCoreAtomType {
 					thisModule.MakeDirectDataDeclarationReferenceExpression(
 						datum.second
 					),
-					thisModule.MakeTypeConverterNativeToChips(
+					thisModule.MakeChipsInitialValue(
 						datum.first.type.typenameToDefaultDirectExpression(),
-						datum.first.type
+						datum.first.type,
+						chipsfunction.dimsOf(datum.first.name)
 					)
 				)
 			)->append(
@@ -2163,7 +2322,6 @@ unique lazy rule MakeCoreAtomType {
 						),
 					'void'
 				)
-
 			)
 	),
 
@@ -2526,8 +2684,9 @@ unique lazy rule MakeContextualAtomType{
 
 unique lazy rule MakeContextualAtomDeclaration {
 	from
-		name:String,
-		type: String,
+		name : String,
+		ctxKey : String,
+		type : String,
 		nodeId : Integer
 
 	using {
@@ -2540,7 +2699,7 @@ unique lazy rule MakeContextualAtomDeclaration {
 	),
 
 	dse:bip!DirectStringExpression(
-		value <- '"'+name+'"'
+		value <- '"'+ctxKey+'"'
 	)
 	do {
 		thisModule.temp_dic <- thisModule.dictionary->get('ContextualAtomDeclaration');
@@ -2555,7 +2714,7 @@ unique lazy rule MakeContextualAtomDeclaration {
 			);
 		thisModule.dictionary <- thisModule.dictionary
 			->including('ContextualAtomDeclaration', thisModule.temp_dic);
-		
+
 		contextual;
 	}
 }
@@ -5804,6 +5963,15 @@ rule Program2BipPackage {
 				all_chips_collective_defs->collect(cfd | thisModule.MakeBipDataType(cfd.accumulatorTypeName()))
 			)->toArray();
 
+		chips_converter_prototypes : Sequence(bip!FunctionCallPrototype) =
+			Sequence{'int', 'float', 'bool'}->collect(t |
+				thisModule.MakeFunctionCallPrototypeWithReturnOnBipNativeParameters(
+					'create_chips_' + t,
+					Sequence{Tuple{t = t, n = 'native_' + t + '_rvalue'}},
+					t
+				)
+			)->toArray();
+
 		base_port_types: Sequence(bip!PortType) = 
 			Sequence{Sequence{'int'},Sequence{'float'},Sequence{'bool'},Sequence{}}
 				->collect( t | thisModule.MakePortType(t))->toArray();
@@ -6219,8 +6387,8 @@ rule Program2BipPackage {
 			atomTypes <- thisModule.types->get('AtomType'),
 			compoundTypes <- thisModule.types->get('CompoundType')->append(system_compound),
 			used_packages <- Sequence{},
-			constData <- Sequence{}, -- what for ? oh wait, yes
-			prototypes <- thisModule.types->get('FunctionCallPrototype')->asSequence() 
+			constData <- Sequence{},
+			prototypes <- thisModule.types->get('FunctionCallPrototype')->asSequence()->union(chips_converter_prototypes)
 		),
 
 		cpp_annotation_entry : bip!StringToAnnotationMapEntry(
@@ -6679,11 +6847,14 @@ helper def: updatenodeswith(
 							t.name, 
 							Tuple{
 								dimensions = t.dims,
-								instances = thisModule.zeros(t.dims)->collect(z | thisModule.MakeContextualAtomDeclaration(
-									t.name+'_'+id->toString()+'_'+ndecl.variable.name,
-									t.type,
-									id
-								))
+								instances = Sequence{
+									thisModule.MakeContextualAtomDeclaration(
+										t.name+'_'+id->toString()+'_'+ndecl.variable.name,
+										ndecl."def".name.unprotected()+'.'+t.name.unprotected(),
+										t.type,
+										id
+									)
+								}
 							}
 						)
 					)
@@ -6704,11 +6875,14 @@ helper def: updatenodeswith(
 							t.name, 
 							Tuple{
 								dimensions = t.dims,
-								instances = thisModule.zeros(t.dims)->collect(z | thisModule.MakeContextualAtomDeclaration(
-									t.name+'_'+ndecl.variable.name,
-									t.type,
-									0
-								))
+								instances = Sequence{
+									thisModule.MakeContextualAtomDeclaration(
+										t.name+'_'+ndecl.variable.name,
+										ndecl."def".name.unprotected()+'.'+t.name.unprotected(),
+										t.type,
+										0
+									)
+								}
 							}
 						)
 					)

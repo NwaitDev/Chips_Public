@@ -21,9 +21,9 @@ public:
 
     void addCollect(ChipsParser::Collective_op_defContext* key, const std::string& name, const std::string& value);
 
-    std::string serializeL(ChipsParser::L_function_defContext* key) const;
+    std::string serializeL(ChipsParser::L_function_defContext* key, const std::string& nameSuffix = "") const;
 
-    std::string serializeP(ChipsParser::P_function_defContext* key) const;
+    std::string serializeP(ChipsParser::P_function_defContext* key, const std::string& nameSuffix = "") const;
 
     std::string serializeCollective(ChipsParser::Collective_op_defContext* key) const;
     

@@ -10,8 +10,98 @@
 #include <algorithm>
 #include <random>
 #include <variant>
+#include <ostream>
+#include <fstream>
+#include <cctype>
+#include <string>
+#include <initializer_list>
 
 class chips_any;
+
+struct chips_diag
+{
+    static const char *const source_file;
+
+    static inline thread_local int current_line = 0;
+    static inline thread_local int current_column = 0;
+
+    static void at(int line, int column) noexcept
+    {
+        current_line = line;
+        current_column = column;
+    }
+
+    struct function_scope
+    {
+        int previous_line;
+        int previous_column;
+        function_scope() noexcept : previous_line(current_line), previous_column(current_column) {}
+        ~function_scope()
+        {
+            current_line = previous_line;
+            current_column = previous_column;
+        }
+        function_scope(const function_scope &) = delete;
+        function_scope &operator=(const function_scope &) = delete;
+    };
+
+    static std::string format_shape(const std::vector<int> &shape)
+    {
+        std::string out = "{";
+        for (std::size_t i = 0; i < shape.size(); ++i)
+            out += (i ? ", " : "") + std::to_string(shape[i]);
+        return out + "}";
+    }
+
+    static std::string statement_text(int line, int column)
+    {
+        std::ifstream in(source_file);
+        if (!in)
+            return std::string();
+
+        std::string text;
+        for (int i = 0; i < line; ++i)
+            if (!std::getline(in, text))
+                return std::string();
+
+        if (column < 1 || static_cast<std::size_t>(column) > text.size())
+            return std::string();
+        text = text.substr(static_cast<std::size_t>(column - 1));
+
+        const std::size_t comment = text.find("//");
+        if (comment != std::string::npos)
+            text = text.substr(0, comment);
+        const std::size_t brace = text.find('{');
+        if (brace != std::string::npos)
+            text = text.substr(0, brace);
+        while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())))
+            text.pop_back();
+        return text;
+    }
+
+    static std::string context()
+    {
+        if (current_line <= 0)
+            return std::string();
+        std::string out = std::string("\n    at ") + source_file + ":" +
+                          std::to_string(current_line) + ":" + std::to_string(current_column);
+        const std::string text = statement_text(current_line, current_column);
+        if (!text.empty())
+            out += ": " + text;
+        return out;
+    }
+
+    [[noreturn]] static void shape_mismatch(const std::string &what, const std::vector<int> &lhs, const std::vector<int> &rhs)
+    {
+        throw std::invalid_argument(what + " : shape mismatch between lhs " + format_shape(lhs) +
+                                    " and rhs " + format_shape(rhs) + context());
+    }
+
+    [[noreturn]] static void error(const std::string &what)
+    {
+        throw std::invalid_argument(what + context());
+    }
+};
 
 
 /**
@@ -86,10 +176,14 @@ public:
         if (this == &rhs)
             return *this;
 
-        if (shape_ != rhs.shape_)
+        if (shape_.empty())
         {
-            throw std::invalid_argument(
-                "chips::operator= – shape mismatch between lhs and rhs");
+            dimensions_ = rhs.dimensions_;
+            shape_ = rhs.shape_;
+        }
+        else if (shape_ != rhs.shape_)
+        {
+            chips_diag::shape_mismatch("chips::operator=", shape_, rhs.shape_);
         }
 
         data_ = rhs.data_;
@@ -153,6 +247,14 @@ public:
     }
 
     chips<T> to_chips() const { return *this; }
+
+    void reset_to(const chips &rhs)
+    {
+        dimensions_ = rhs.dimensions_;
+        shape_ = rhs.shape_;
+        data_ = rhs.data_;
+        age_ = 0;
+    }
 
     /*--------------------------  element access  --------------------------*/
     T &operator()(const std::vector<int> &indices)
@@ -256,7 +358,8 @@ private:
             for (std::size_t d = fixed_.size(); d < static_cast<std::size_t>(parent_->dimensions_); ++d)
                 sub_len *= static_cast<std::size_t>(parent_->shape_[d]);
             if (value.data().size() != sub_len)
-                throw std::invalid_argument("slice assignment : shape mismatch");
+                chips_diag::error("slice assignment : shape mismatch, " + std::to_string(sub_len) +
+                                  " element(s) expected, " + std::to_string(value.data().size()) + " given");
             std::copy(value.data().begin(), value.data().end(),
                       parent_->data_.begin() + static_cast<std::ptrdiff_t>(start));
             parent_->age_ = 0;
@@ -592,7 +695,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>
 operator+(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator+ : shape mismatch");
+        chips_diag::shape_mismatch("operator+", lhs.shape(), rhs.shape());
     chips<U> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -610,7 +713,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>
 operator-(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator- : shape mismatch");
+        chips_diag::shape_mismatch("operator-", lhs.shape(), rhs.shape());
     chips<U> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -628,7 +731,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>
 operator*(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator* : shape mismatch");
+        chips_diag::shape_mismatch("operator*", lhs.shape(), rhs.shape());
     chips<U> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -646,7 +749,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<U>
 operator/(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator/ : shape mismatch");
+        chips_diag::shape_mismatch("operator/", lhs.shape(), rhs.shape());
     chips<U> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -668,7 +771,7 @@ operator/(const chips<U> &lhs, const chips<U> &rhs)
 inline chips<int> operator%(const chips<int> &lhs, const chips<int> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator% : shape mismatch");
+        chips_diag::shape_mismatch("operator%", lhs.shape(), rhs.shape());
     chips<int> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -692,7 +795,7 @@ std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
 operator&&(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator&& : shape mismatch");
+        chips_diag::shape_mismatch("operator&&", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -710,7 +813,7 @@ std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
 operator||(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator|| : shape mismatch");
+        chips_diag::shape_mismatch("operator||", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -728,7 +831,7 @@ std::enable_if_t<std::is_same_v<U, bool>, chips<bool>>
 operator^(const chips<U> &lhs, const chips<U> &rhs) // exclusive‑or
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator^ : shape mismatch");
+        chips_diag::shape_mismatch("operator^", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -747,7 +850,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator==(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator== : shape mismatch");
+        chips_diag::shape_mismatch("operator==", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -765,7 +868,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator!=(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator!= : shape mismatch");
+        chips_diag::shape_mismatch("operator!=", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -783,7 +886,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator<(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator< : shape mismatch");
+        chips_diag::shape_mismatch("operator<", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -801,7 +904,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator<=(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator<= : shape mismatch");
+        chips_diag::shape_mismatch("operator<=", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -819,7 +922,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator>(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator> : shape mismatch");
+        chips_diag::shape_mismatch("operator>", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -837,7 +940,7 @@ std::enable_if_t<(std::is_same_v<U, int> || std::is_same_v<U, double>), chips<bo
 operator>=(const chips<U> &lhs, const chips<U> &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("operator>= : shape mismatch");
+        chips_diag::shape_mismatch("operator>=", lhs.shape(), rhs.shape());
     chips<bool> res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -992,7 +1095,7 @@ typename chips<T>::slice_proxy &chips<T>::slice_proxy::operator=(const chips_any
 inline chips_int imin(const chips_int &lhs, const chips_int &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("imin : shape mismatch");
+        chips_diag::shape_mismatch("imin", lhs.shape(), rhs.shape());
     chips_int res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -1008,7 +1111,7 @@ inline chips_int imin(const chips_int &lhs, const chips_int &rhs)
 inline chips_int imax(const chips_int &lhs, const chips_int &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("imax : shape mismatch");
+        chips_diag::shape_mismatch("imax", lhs.shape(), rhs.shape());
     chips_int res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -1024,7 +1127,7 @@ inline chips_int imax(const chips_int &lhs, const chips_int &rhs)
 inline chips_float fmin(const chips_float &lhs, const chips_float &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("fmin : shape mismatch");
+        chips_diag::shape_mismatch("fmin", lhs.shape(), rhs.shape());
     chips_float res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -1040,7 +1143,7 @@ inline chips_float fmin(const chips_float &lhs, const chips_float &rhs)
 inline chips_float fmax(const chips_float &lhs, const chips_float &rhs)
 {
     if (lhs.shape() != rhs.shape())
-        throw std::invalid_argument("fmax : shape mismatch");
+        chips_diag::shape_mismatch("fmax", lhs.shape(), rhs.shape());
     chips_float res(lhs.shape());
     res.stopFlag = lhs.stopFlag || rhs.stopFlag;
     if (!res.stopFlag)
@@ -1269,5 +1372,144 @@ chips<bool> is_fresh(chips<U> var)
     return var.is_fresh();
 }
 
+
+/*=====================================================================
+ *  chips_reset : assignment that adopts the shape of the right-hand side
+ *  (used for function outputs, whose shape is the shape of their expression)
+ *=====================================================================*/
+template <typename T>
+inline void chips_reset(chips<T> &lhs, const chips<T> &rhs)
+{
+    lhs.reset_to(rhs);
+}
+
+template <typename T>
+inline void chips_reset(chips<T> &lhs, const chips_any &rhs)
+{
+    lhs.reset_to(std::get<chips<T>>(rhs.value()));
+}
+
+inline void chips_reset(chips_any &lhs, const chips_any &rhs)
+{
+    lhs = rhs;
+}
+
+/*=====================================================================
+ *  create_chips_* : initial values of BIP data, built from a native value
+ *  and, for arrays, the dimensions of the declared variable
+ *=====================================================================*/
+template <typename T, typename... Dims>
+inline chips<T> create_filled_chips(T value, Dims... dims)
+{
+    static_assert(std::conjunction_v<std::is_integral<Dims>...>, "dimensions must be integers");
+    if constexpr (sizeof...(Dims) == 0)
+    {
+        return chips<T>(std::vector<int>{1}, std::vector<T>{value});
+    }
+    else
+    {
+        chips<T> res(std::vector<int>{static_cast<int>(dims)...});
+        std::fill(res.data().begin(), res.data().end(), value);
+        return res;
+    }
+}
+
+template <typename... Dims>
+inline chips_int create_chips_int(int value, Dims... dims)
+{
+    return create_filled_chips<int>(value, dims...);
+}
+
+template <typename... Dims>
+inline chips_float create_chips_float(double value, Dims... dims)
+{
+    return create_filled_chips<double>(value, dims...);
+}
+
+template <typename... Dims>
+inline chips_bool create_chips_bool(bool value, Dims... dims)
+{
+    return create_filled_chips<bool>(value, dims...);
+}
+
+/*=====================================================================
+ *  chips_make_shaped / chips_fill_from : initial values of contextual data
+ *=====================================================================*/
+template <typename T>
+inline chips<T> chips_make_shaped(T value, std::initializer_list<chips_int> dims)
+{
+    std::vector<int> shape;
+    for (const chips_int &d : dims)
+        shape.push_back(d.data().at(0));
+    if (shape.empty())
+        shape.push_back(1);
+    chips<T> res(shape);
+    std::fill(res.data().begin(), res.data().end(), value);
+    return res;
+}
+
+template <typename T, typename U>
+inline void chips_fill_from(chips<T> &target, const chips<U> &init)
+{
+    if (init.data().size() == 1)
+        std::fill(target.data().begin(), target.data().end(), static_cast<T>(init.data()[0]));
+    else if (init.data().size() == target.data().size())
+        std::transform(init.data().begin(), init.data().end(), target.data().begin(),
+                       [](const U &v) { return static_cast<T>(v); });
+    else
+        chips_diag::shape_mismatch("chips_fill_from", target.shape(), init.shape());
+}
+
+namespace chips_print_detail
+{
+    template <typename T>
+    void print_value(std::ostream &os, const T &v)
+    {
+        if constexpr (std::is_same_v<T, bool>)
+            os << (v ? "true" : "false");
+        else
+            os << v;
+    }
+
+    template <typename T>
+    void print_block(std::ostream &os, const chips<T> &c, std::size_t dim, std::size_t &pos)
+    {
+        const std::size_t extent = static_cast<std::size_t>(c.shape()[dim]);
+        os << '[';
+        for (std::size_t i = 0; i < extent; ++i)
+        {
+            if (i)
+                os << ", ";
+            if (dim + 1 == c.shape().size())
+                print_value<T>(os, c.data()[pos++]);
+            else
+                print_block(os, c, dim + 1, pos);
+        }
+        os << ']';
+    }
+}
+
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const chips<T> &c)
+{
+    if (c.stopFlag)
+        return os << "stop";
+    if (c.shape().empty() || c.data().empty())
+        return os << "[]";
+    if (c.shape().size() == 1 && c.shape()[0] == 1)
+    {
+        chips_print_detail::print_value<T>(os, c.data()[0]);
+        return os;
+    }
+    std::size_t pos = 0;
+    chips_print_detail::print_block(os, c, 0, pos);
+    return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const chips_any &c)
+{
+    std::visit([&os](const auto &v) { os << v; }, c.value());
+    return os;
+}
 
 #endif // CHIPS_HPP

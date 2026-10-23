@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <variant>
 #include <utility>
 #include <stdexcept>
@@ -35,7 +36,9 @@ public:
     {
     }
 
+    void setSourcePath(const std::string &path);
     void enterProgram(ChipsParser::ProgramContext *ctx) override;
+    void exitProgram(ChipsParser::ProgramContext *ctx) override;
     void exitL_function_def(ChipsParser::L_function_defContext *ctx) override;
     void exitObject_def(ChipsParser::Object_defContext *ctx) override;
     void exitP_function_def(ChipsParser::P_function_defContext *ctx) override;
@@ -69,6 +72,16 @@ private:
 
     void registerChannels(const ObjectType &key);
     void registerContextualVars(const ObjectType &key);
+    struct ContextualInit
+    {
+        std::string key;
+        ChipsParser::ContextualDeclarationContext *decl;
+    };
+    std::vector<ContextualInit> contextualInits_;
+    void collectContextualInits(const std::string &defName, ChipsParser::With_sectionContext *withSection);
+    void emitContextualInitializers();
+    static bool referencesVariables(antlr4::tree::ParseTree *node);
+    static void collectContextualReferences(antlr4::tree::ParseTree *node, std::set<std::string> &names);
     void storeVar(DefType ctx,const std::string& var_name, const std::string& type);
     const std::set<std::pair<std::string, std::string>> *findContextualVarsForSupportName(const std::string &name) const;
 
@@ -82,7 +95,15 @@ private:
     bool isParameterOfCurrentDef(const std::string &name) const;
     bool isContextualOfCurrentDef(const std::string &name) const;
     bool isInnerOfCurrentDef(const std::string &name) const;
+    struct ResolvedVariable
+    {
+        std::string base;
+        std::string emitted;
+    };
+    ResolvedVariable resolveVariable(const std::string &name, antlr4::ParserRuleContext *where) const;
     std::string resolveVariableReference(const std::string &name, antlr4::ParserRuleContext *where) const;
+    bool isLocalOfCurrentDef(const std::string &name) const;
+    std::string currentDefName() const;
     [[noreturn]] static void fail(antlr4::ParserRuleContext *where, const std::string &message);
     bool isSpreadOp(ChipsParser::Collective_op_defContext *ctx) const;
 
@@ -119,6 +140,12 @@ private:
     std::string translateDecl(ChipsParser::StatementDeclarationContext *ctx, int indent, bool inScope);
     std::string translateStatements(const std::vector<ChipsParser::StatementContext *> &statements, int indent, bool inScope);
     std::string translateStatement(ChipsParser::StatementContext *stmt, int indent, bool inScope);
+    std::string translateStatementBody(ChipsParser::StatementContext *stmt, int indent, bool inScope);
+    std::string translateCStatementBody(ChipsParser::C_statementContext *stmt, int indent);
+    static std::string sourceText(antlr4::ParserRuleContext *ctx);
+    static std::string shapedValue(const std::string &chipType, const std::vector<std::string> &dims);
+    std::string statementGuard(antlr4::ParserRuleContext *ctx, int indent, const std::string &text) const;
+    std::string sourcePath_;
     std::string translateLoop(ChipsParser::Loop_statementContext *ctx, int indent);
     std::string translateIf(ChipsParser::If_statementContext *ctx, int indent);
     std::string translateIfElse(ChipsParser::If_else_statementContext *ctx, int indent);

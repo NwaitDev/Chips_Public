@@ -25,10 +25,10 @@ $(CHIPS_SANDBOX)/test.bip.xmi: $(CHIPS_SANDBOX)/test.chips.xmi $(DIR)/BipXmiGene
 	$(DIR)/metamodels/chips1.1.ecore \
 	$(DIR)/metamodels/BIP.ecore \
 	$< $(DIR)/BipXmiGenerator/transformations/chips2bip.atl $@ \
-	2> $(DIR)/debug.log
+	2> $(CHIPS_SANDBOX)/debug.log
 
 $(CHIPS_SANDBOX)/ChipsModel.bip: $(CHIPS_SANDBOX)/test.bip.xmi
-	bipc --xmi $< -d "SYSTEM_COMPOUND" --genbip-output-dir $(CHIPS_SANDBOX) 2>debug.log
+	bipc --xmi $< -d "SYSTEM_COMPOUND" --genbip-output-dir $(CHIPS_SANDBOX) 2>$(CHIPS_SANDBOX)/debug.log
 	sed -i 's/@0//g' $(CHIPS_SANDBOX)/ChipsModel.bip
 
 $(CHIPS_SANDBOX)/bip_importable.o: testfiles/TeaStoreVariation.chips $(DIR)/CppGenerator 
@@ -41,7 +41,6 @@ $(CHIPS_SANDBOX)/output/build/system: $(CHIPS_SANDBOX)/bip_importable.o  $(CHIPS
 	mkdir -p $(CHIPS_SANDBOX)/output/build
 	cd $(CHIPS_SANDBOX) && bipc -p ChipsModel \
 	-d "SYSTEM_COMPOUND()" \
-	--gencpp-ld-extra-obj *.o \
 	--gencpp-cc-extra-src *.cpp \
 	--gencpp-cc-I . \
 	--gencpp-cc-extra-opt -std=c++17 \

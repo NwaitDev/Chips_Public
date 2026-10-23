@@ -35,7 +35,7 @@ void Dictionary::addCollect(
 namespace
 {
 
-    std::string serializeValue(const Dictionary::Value &values)
+    std::string serializeValue(const Dictionary::Value &values, const std::string &nameSuffix = "")
     {
         std::string result;
         bool first = true;
@@ -53,6 +53,7 @@ namespace
             result += type;
             result += "& ";
             result += name;
+            result += nameSuffix;
 
             first = false;
         }
@@ -63,7 +64,7 @@ namespace
 } // namespace
 
 std::string Dictionary::serializeL(
-    ChipsParser::L_function_defContext *key) const
+    ChipsParser::L_function_defContext *key, const std::string &nameSuffix) const
 {
     const auto it = logicals_.find(key);
 
@@ -72,11 +73,11 @@ std::string Dictionary::serializeL(
         return {};
     }
 
-    return serializeValue(it->second);
+    return serializeValue(it->second, nameSuffix);
 }
 
 std::string Dictionary::serializeP(
-    ChipsParser::P_function_defContext *key) const
+    ChipsParser::P_function_defContext *key, const std::string &nameSuffix) const
 {
     const auto it = physicals_.find(key);
 
@@ -85,7 +86,7 @@ std::string Dictionary::serializeP(
         return {};
     }
 
-    return serializeValue(it->second);
+    return serializeValue(it->second, nameSuffix);
 }
 
 std::string Dictionary::serializeCollective(
