@@ -1,12 +1,14 @@
-.PHONY: all test clean run
+.PHONY: all test clean run chipsc
 
-SRCS := $(shell ls -d src/*)
+SRCS := $(wildcard src/*) CMakeLists.txt
 
-all: chipsc
+all: build/Chips2Cpp
 
-chipsc: $(SRCS)
-	mkdir -p build ; cd build ; cmake ..
-	cd build && make 2> ../debug.log
+build/Makefile: CMakeLists.txt
+	mkdir -p build && cd build && cmake ..
+
+build/Chips2Cpp: $(SRCS) build/Makefile
+	$(MAKE) -C build 2> debug.log
 
 clean:
 	rm -rf ./generated ./build

@@ -34,6 +34,8 @@ public class emftvm {
     static String outputModelPath;
     static String modulePath;
     static String moduleName;
+    static boolean recompile = false;
+    static boolean compileOnly = false;
 
     private static URI fileUri(String path) {
         return URI.createFileURI(new File(path).getAbsolutePath());
@@ -80,51 +82,83 @@ public class emftvm {
     }
 
     private static void usagePrint(){
-        System.err.println("usage: ./emftvm.sh <input metamodel> <output metamodel> <input model> <atl transformations> <output model>");
+        System.err.println("usage: ./emftvm.sh [-r] <input metamodel> <output metamodel> <input model> <atl transformations> <output model>");
+        System.err.println("       ./emftvm.sh -c <atl transformations>");
+        System.err.println();
+        System.err.println("  -r  recompile the atl transformations before running them");
+        System.err.println("  -c  only compile the atl transformations into their .emftvm file");
+    }
+
+    private static boolean setModule(String atlFile){
+        if(!getFileExtension(atlFile).equals("atl")){
+            System.err.println("error, transformation must be a .atl file...");
+            return false;
+        }
+        moduleName = getFileName(atlFile);
+        Path parent = Paths.get(atlFile).toAbsolutePath().getParent();
+        modulePath = parent.toString() + "/";
+        return true;
     }
 
     private static boolean parseArgs(String [] args){
-        if(args.length != 5){
+        java.util.List<String> positional = new java.util.ArrayList<>();
+        for(String arg : args){
+            if(arg.equals("-r")){
+                recompile = true;
+            } else if(arg.equals("-c")){
+                compileOnly = true;
+            } else if(arg.startsWith("-")){
+                System.err.println("error, unknown option "+arg+"...");
+                return false;
+            } else {
+                positional.add(arg);
+            }
+        }
+
+        if(compileOnly){
+            if(recompile){
+                System.err.println("error, -c and -r cannot be used together...");
+                return false;
+            }
+            if(positional.size() != 1){
+                System.err.println("error, -c expects exactly one .atl file, received "+positional.size()+" argument(s)...");
+                return false;
+            }
+            return setModule(positional.get(0));
+        }
+
+        if(positional.size() != 5){
             System.err.println("error, wrong number of arguments...");
-            System.err.println("expected 5, received "+args.length);
             return false;
         }
 
-        if(!getFileExtension(args[0]).equals("ecore")){
+        if(!getFileExtension(positional.get(0)).equals("ecore")){
             System.err.println("error, input metamodel must be a .ecore file...");
             return false;
-        } else {
-            chipsPath = args[0];
         }
+        chipsPath = positional.get(0);
 
-        if(!getFileExtension(args[1]).equals("ecore")){
+        if(!getFileExtension(positional.get(1)).equals("ecore")){
             System.err.println("error, output metamodel must be a .ecore file...");
             return false;
-        } else {
-            bipPath = args[1];
         }
+        bipPath = positional.get(1);
 
-        if(!getFileExtension(args[2]).equals("xmi")){
+        if(!getFileExtension(positional.get(2)).equals("xmi")){
             System.err.println("error, input model must be a .xmi file...");
             return false;
-        } else {
-            inputModelPath = args[2];
         }
+        inputModelPath = positional.get(2);
 
-        if(!getFileExtension(args[3]).equals("atl")){
-            System.err.println("error, transformation must be a .atl file...");
+        if(!setModule(positional.get(3))){
             return false;
-        } else {
-            moduleName = getFileName(args[3]);
-            modulePath = getPath(args[3]) + "/";
         }
 
-        if(!getFileExtension(args[4]).equals("xmi")){
+        if(!getFileExtension(positional.get(4)).equals("xmi")){
             System.err.println("error, output model must be a .xmi file...");
             return false;
-        } else {
-            outputModelPath = args[4];
         }
+        outputModelPath = positional.get(4);
         return true;
     }
 
@@ -152,18 +186,28 @@ public class emftvm {
 
     public static void main(String[] args) throws Exception{
 
-        boolean commandParseError = !parseArgs(args);
-    
-        if(commandParseError){
+        if(!parseArgs(args)){
             usagePrint();
-            return;
+            System.exit(1);
         }
 
+        String atlFile = modulePath+moduleName+".atl";
+        String emftvmFile = modulePath+moduleName+".emftvm";
+
         try {
-            compile(
-                modulePath+moduleName+".atl",
-                modulePath+moduleName+".emftvm"
-            );
+            if(compileOnly){
+                compile(atlFile, emftvmFile);
+                return;
+            }
+
+            if(recompile){
+                compile(atlFile, emftvmFile);
+            } else if(!new File(emftvmFile).exists()){
+                System.err.println("error, "+emftvmFile+" does not exist, run again with -r to compile "+atlFile+"...");
+                System.exit(1);
+            } else if(new File(atlFile).lastModified() > new File(emftvmFile).lastModified()){
+                System.err.println("warning, "+atlFile+" is newer than "+emftvmFile+", use -r to recompile it");
+            }
 
             ResourceSet rs = new ResourceSetImpl();
             rs.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl());
@@ -187,8 +231,6 @@ public class emftvm {
             outModel.setResource(rs.createResource(fileUri(outputModelPath)));
             env.registerOutputModel("OUT", outModel);
 
-
-
             ModuleResolver mr = new DefaultModuleResolver(modulePath, rs);
             TimingData td = new TimingData();
             env.loadModule(mr, moduleName);
@@ -196,15 +238,13 @@ public class emftvm {
             env.run(td);
             td.finish();
 
-
             outModel.getResource().save(Collections.emptyMap());
 
             System.out.println("Transformation finished successfully.");
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw e;
+            System.exit(1);
         }
     }
 }
-

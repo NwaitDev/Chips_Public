@@ -5,14 +5,18 @@ DIR := FullCompileChain
 CHIPS_SANDBOX := CHIPS_GENERATED
 TEST := testfiles/additioner.chips
 
-.PHONY: compile setup BipCompiler $(SUBDIRS) $(TESTS) $(CHIPS_SANDBOX) clean test clean_test
+.PHONY: compile setup BipCompiler $(SUBDIRS) $(CHIPS_SANDBOX) clean test clean_test
 
-all: compile
 
-compile: BipCompiler $(SUBDIRS)
+BIPC := $(DIR)/BipCompiler/distribution/build/bipc-latest/bin/bipc
+BIPC_SRCS := $(shell find $(DIR)/BipCompiler -path '$(DIR)/BipCompiler/distribution/build' -prune -o -type f -print)
 
-BipCompiler:
+
+all: $(BIPC) $(SUBDIRS)
+
+$(BIPC): $(BIPC_SRCS)
 	cd $(DIR)/BipCompiler/distribution && ./wrap.sh
+	touch $@
 
 $(SUBDIRS):
 	$(MAKE) -C $(DIR)/$@

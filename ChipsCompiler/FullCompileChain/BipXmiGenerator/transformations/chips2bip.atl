@@ -1523,8 +1523,6 @@ helper context chips!collective_function_definition def : collective_all_context
 		->asSequence()
 		->sortedBy(t | t.name.unprotected());
 
-helper context chips!collective_function_definition def : orderedCollectiveContextuals() : Sequence(TupleType(name:String, type:String)) =
-	self.collective_all_contextuals();
 
 unique lazy rule MakeBackendDataType {
 	from type: String
@@ -1575,6 +1573,8 @@ helper context chips!collective_function_definition def : targetType() : String 
 		'ATL transformation Error'.debug('unrecognized type for target output of ' + self.name)
 	endif endif endif;
 
+helper context chips!collective_function_definition def : orderedCollectiveContextuals() : Sequence(TupleType(name:String,type:String)) =
+	self->collective_all_contextuals()->sortedBy(t | t.name);
 
 helper context chips!collective_function_definition def : inputType() : String =
 	self.operations.statements->extract_input_type();
@@ -1582,8 +1582,244 @@ helper context chips!collective_function_definition def : inputType() : String =
 helper context chips!collective_function_definition def : sortedChannels() : Sequence(String) =
 	thisModule.getNodeData(self.support_object).channels->getKeys()->asSequence()->sortedBy(c | c);
 
-helper context chips!collective_function_definition def : channelIndex(chan : String) : Integer =
-	self.sortedChannels()->indexOf(chan) - 1;
+helper context chips!collective_function_definition def : upPortTypes() : Sequence(String) =
+	self.sortedChannels()->collect(chan | self.accumulatorTypeName())->append('int')->append(self.targetType());
+
+helper context chips!collective_function_definition def : upIndicatorIndex() : Integer =
+	self.sortedChannels()->size();
+
+helper context chips!collective_function_definition def : upTargetIndex() : Integer =
+	self.sortedChannels()->size() + 1;
+
+helper def : rootChannel : String = '_root';
+
+helper context chips!collective_function_definition def : channelIndicator(chan : String) : Integer =
+	if chan = thisModule.rootChannel then
+		-1
+	else
+		let position : Integer = self.sortedChannels()->indexOf(chan) in
+		if position = 0 then
+			let a : OclAny = 'ATL transformation Error'.debug(chan + ' is not a channel of ' + self.support_object.name + ', the root indicator is used for ' + self.name) in
+			-1
+		else
+			position - 1
+		endif
+	endif;
+
+helper context chips!collective_function_definition def : channelIndicatorExpression(chan : String) : bip!ValuedExpression =
+	thisModule.MakeTypeConverterNativeToChips(
+		thisModule.MakeDirectIntegerExpression(self.channelIndicator(chan)),
+		'int'
+	);
+
+
+helper def : ccastTag(key : OclAny) : String =
+	key.collective_cast + '_' + key.root_function + '_' + key.root_index.toString() + '_' + key.root_parameter.name;
+
+helper def : ccastRootComponent(memory : OclAny, key : OclAny) : bip!ComponentDeclaration =
+	let fb : OclAny = memory.fblocks->get(key.root_function) in
+	if fb.instances->size() = 1 then fb.instances->first() else fb.instances->get(key.root_index) endif;
+
+helper def : resolveSupportNode(memory : OclAny, obj : String, index : Integer, supportType : String, depth : Integer) : OclAny =
+	if depth > 64 then
+		OclUndefined
+	else
+		let node : OclAny = memory.nodes->get(obj) in
+		let is_support : Boolean = if node.oclIsUndefined() then false else node.type = supportType endif in
+		if is_support then
+			Tuple{obj = obj, index = index}
+		else
+			let link : OclAny =
+				memory.links->any(l |
+					if l.src = obj then
+						thisModule.sameInstance(memory, obj, thisModule.linkLinearIndex(memory, obj, l.src_index), index)
+					else
+						false
+					endif
+				) in
+			if link.oclIsUndefined() then
+				OclUndefined
+			else
+				thisModule.resolveSupportNode(
+					memory,
+					link.trg,
+					thisModule.linkLinearIndex(memory, link.trg, link.trg_index),
+					supportType,
+					depth + 1
+				)
+			endif
+		endif
+	endif;
+
+helper def : ccastRootNode(memory : OclAny, key : OclAny, supportType : String) : OclAny =
+	let fb : OclAny = memory.fblocks->get(key.root_function) in
+	thisModule.resolveSupportNode(
+		memory,
+		key.root_function,
+		if fb.instances->size() = 1 then 0 else key.root_index endif,
+		supportType,
+		0
+	);
+
+unique lazy rule MakeSpreadRootConnectorType{
+	from
+		cfd : chips!collective_function_definition,
+		input_type : String
+
+	using{
+		fname : String = cfd.name;
+		acc_type : String = cfd.accumulatorTypeName();
+		acc_port_types : Sequence(String) = Sequence{acc_type, 'int'};
+
+		input_dd : bip!ConnectorDataDeclaration =
+			thisModule.MakeCollectiveConnectorDataDeclaration(
+				thisModule.MakeBipDataType(input_type),
+				'root_input',
+				cfd
+			);
+	}
+
+	to cct : bip!ConnectorType(
+		name <- fname + '_root_' + input_type + '_conn_t',
+		interactions <- Sequence{interaction},
+		interactionDefinition <- thisModule.MakeConnectorInteractionNestedDefinition(Sequence{downport}),
+		exportedPortDeclaration <- cepd,
+		dataDeclarations <- Sequence{input_dd},
+		ports <- Sequence{downport}
+	),
+
+	interaction : bip!ConnectorInteractionAction(
+		onPorts <- Sequence{downport},
+		down <- Sequence{
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentSubDataOperand(
+					downport,
+					thisModule.MakePortDataParameterDeclaration(acc_type, 0, acc_port_types)
+				),
+				thisModule.MakeCppFunctionCall(
+					fname + '_root',
+					Sequence{thisModule.MakeAssignmentDataOperand(input_dd)},
+					Sequence{Tuple{t = input_type, n = 'input'}},
+					acc_type
+				)
+			),
+			thisModule.MakeAssignment(
+				thisModule.MakeAssignmentSubDataOperand(
+					downport,
+					thisModule.MakePortDataParameterDeclaration('int', 1, acc_port_types)
+				),
+				cfd.channelIndicatorExpression(thisModule.rootChannel)
+			)
+		}
+	),
+
+	cepd : bip!ConnectorExportedPortDeclaration(
+		portType <- thisModule.MakePortType(Sequence{input_type}),
+		name <- 'cepd',
+		dataParameters <- Sequence{
+			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+				input_type,
+				input_dd,
+				thisModule.MakePortDataParameterDeclaration(input_type, 0, Sequence{input_type})
+			)
+		}
+	),
+
+	downport : bip!ConnectorPortParameterDeclaration(
+		portType <- thisModule.MakePortType(acc_port_types),
+		name <- 'p_root_accumulator_cppd'
+	)
+
+	do {
+		thisModule.temp_dic <- thisModule.dictionary->get('SpreadRootConnectorType');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				Tuple{fct = fname, type = input_type},
+				Map{
+					('cepd', cepd),
+					('down_port', downport)
+				}
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('SpreadRootConnectorType', thisModule.temp_dic);
+
+		thisModule.temp <- thisModule.types->get('ConnectorType');
+		if (thisModule.temp.oclIsUndefined()) {
+			thisModule.temp <- Sequence{};
+		}
+		thisModule.temp <- thisModule.temp->append(cct);
+		thisModule.types <- thisModule.types->including('ConnectorType', thisModule.temp);
+
+		cct;
+	}
+}
+
+helper def : ccastRootConnectors(key : OclAny, root : OclAny, memory : OclAny, cfd : chips!collective_function_definition) : Sequence(bip!ConnectorDeclaration) =
+	let is_spread : Boolean = cfd.collective_function_type = #spread in
+	let fb : OclAny = memory.fblocks->get(key.root_function) in
+	let pname : String = key.root_parameter.name in
+	let io : OclAny =
+		if is_spread
+		then fb.ftype.all_outputs->any(o | o.name = pname)
+		else fb.ftype.all_inputs->any(i | i.name = pname)
+		endif in
+	if io.oclIsUndefined() then
+		let a : OclAny = 'ATL transformation Error'.debug(pname + ' is not a parameter of ' + key.root_function + ', the collective cast ' + key.collective_cast + ' is not plugged') in
+		Sequence{}
+	else
+		let tag : String = thisModule.ccastTag(key) in
+		let flow_type : bip!ConnectorType = thisModule.MakeFlowConnectorType(Sequence{io.type}) in
+		let flow_ports : OclAny = thisModule.dictionary->get('FlowConnectorTypes')->get(Sequence{io.type}) in
+		let fb_port : bip!SubPortDeclarationReference =
+			thisModule.MakeComponentSubPortDeclarationReference(
+				thisModule.dictionary
+					->get('FunctionalBlockCompoundTypes')
+					->get(fb.ftype.name)
+					->get(if is_spread then 'eoutputs' else 'einputs' endif)
+					->get(pname),
+				thisModule.ccastRootComponent(memory, key)
+			) in
+		if is_spread then
+			let root_type : bip!ConnectorType = thisModule.MakeSpreadRootConnectorType(cfd, io.type) in
+			let root_ports : OclAny = thisModule.dictionary->get('SpreadRootConnectorType')->get(Tuple{fct = cfd.name, type = io.type}) in
+			let filter : bip!ConnectorDeclaration =
+				thisModule.MakeConnectorDeclaration(
+					tag + '_root_filter',
+					root_type,
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(root_ports->get('down_port'), root.exported_port)
+					}
+				) in
+			Sequence{
+				filter,
+				thisModule.MakeConnectorDeclaration(
+					tag + '_root_flow',
+					flow_type,
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(flow_ports->get('s_port'), fb_port),
+						thisModule.MakePortDeclarationReferenceParameter(
+							flow_ports->get('r_port'),
+							thisModule.MakeConnectorSubPortDeclarationReference(root_ports->get('cepd'), filter)
+						)
+					}
+				)
+			}
+		else
+			Sequence{
+				thisModule.MakeConnectorDeclaration(
+					tag + '_root_flow',
+					flow_type,
+					Sequence{
+						thisModule.MakePortDeclarationReferenceParameter(flow_ports->get('s_port'), root.exported_port),
+						thisModule.MakePortDeclarationReferenceParameter(flow_ports->get('r_port'), fb_port)
+					}
+				)
+			}
+		endif
+	endif;
 
 lazy rule MakeConstantPetriNet {
 	from 
@@ -3604,7 +3840,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 		acc_type : String = cfd.accumulatorTypeName();
 		target_type : String = cfd.targetType();
 		is_target : Boolean = to_keep = 'target';
-		source_types : Sequence(String) = Sequence{acc_type, 'int', target_type};
+		source_types : Sequence(String) = cfd.upPortTypes();
 		kept_data_type : String = if is_target then target_type else acc_type endif;
 		kept_types : Sequence(String) = if is_target then Sequence{target_type} else Sequence{acc_type, 'int'} endif;
 
@@ -3645,7 +3881,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 					downport,
 					thisModule.MakePortDataParameterDeclaration(
 						kept_data_type,
-						if is_target then 2 else 0 endif,
+						if is_target then cfd.upTargetIndex() else cfd.channelIndicator(to_keep) endif,
 						source_types
 					)
 				)
@@ -3657,10 +3893,7 @@ unique lazy rule MakeUpAdapterConnectorType{
 				Sequence{
 					thisModule.MakeAssignment(
 						thisModule.MakeAssignmentDataOperand(indicator_dd),
-						thisModule.MakeTypeConverterNativeToChips(
-							thisModule.MakeDirectIntegerExpression(cfd.channelIndex(to_keep)),
-							'int'
-						)
+						cfd.channelIndicatorExpression(to_keep)
 					)
 				}
 			endif
@@ -3734,7 +3967,6 @@ unique lazy rule MakeDownAdapterConnectorType{
 		fname : String = cfd.name;
 		acc_type : String = cfd.accumulatorTypeName();
 		acc_port_types : Sequence(String) = Sequence{acc_type, 'int'};
-		channel_indicator : Integer = cfd.channelIndex(receiving_chan);
 
 		data_dd : bip!ConnectorDataDeclaration =
 			thisModule.MakeCollectiveConnectorDataDeclaration(
@@ -3775,10 +4007,7 @@ unique lazy rule MakeDownAdapterConnectorType{
 					downport,
 					thisModule.MakePortDataParameterDeclaration('int', 1, acc_port_types)
 				),
-				thisModule.MakeTypeConverterNativeToChips(
-					thisModule.MakeDirectIntegerExpression(channel_indicator),
-					'int'
-				)
+				cfd.channelIndicatorExpression(receiving_chan)
 			)
 		}
 	),
@@ -3845,7 +4074,7 @@ unique lazy rule MakeCollectConnectorType{
 		target_type : String = cfd.targetType();
 		input_type : String = cfd.inputType();
 		acc_port_types : Sequence(String) = Sequence{acc_type, 'int'};
-		up_types : Sequence(String) = Sequence{acc_type, 'int', target_type};
+		up_types : Sequence(String) = cfd.upPortTypes();
 		channel_names : Sequence(String) = cfd.sortedChannels();
 
 		all_ctx : Sequence(TupleType(name:String,type:String)) = cfd.orderedCollectiveContextuals();
@@ -3875,16 +4104,14 @@ unique lazy rule MakeCollectConnectorType{
 				) 
 			);
 
-		accumulator_decl : TupleType(name:String,type:String,dd:bip!ConnectorDataDeclaration) =
-			Tuple{
-				name = '_accumulator',
-				type = acc_type,
-				dd = thisModule.MakeCollectiveConnectorDataDeclaration(
+		up_decls : Sequence(bip!ConnectorDataDeclaration) =
+			channel_names->collect(chan |
+				thisModule.MakeCollectiveConnectorDataDeclaration(
 					thisModule.MakeBipDataType(acc_type),
-					'_accumulator',
+					chan + '_up',
 					cfd
 				)
-			};
+			);
 
 		indicator_decl : TupleType(name:String,type:String,dd:bip!ConnectorDataDeclaration) =
 			Tuple{
@@ -3938,7 +4165,8 @@ unique lazy rule MakeCollectConnectorType{
 			ordered_downports->append(cppd_input)->union(ordered_ctx_ports)
 		),
 		exportedPortDeclaration <- up_accumulator,
-		dataDeclarations <- Sequence{indicator_decl.dd, accumulator_decl.dd}
+		dataDeclarations <- Sequence{indicator_decl.dd}
+			->union(up_decls)
 			->union(ctx_datadecls->collect(d | d.dd))
 			->append(target_decl.dd),
 		ports <- ordered_downports->append(cppd_input)->union(ordered_ctx_ports)
@@ -3958,9 +4186,10 @@ unique lazy rule MakeCollectConnectorType{
 			thisModule.MakeCppFunctionCall(
 				fname,
 				Sequence{
-					thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_decl.dd),
-					thisModule.MakeDirectDataDeclarationReferenceExpression(accumulator_decl.dd)
+					thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_decl.dd)
 				}->union(
+					up_decls->collect(d | thisModule.MakeDirectDataDeclarationReferenceExpression(d))
+				)->union(
 					channel_names->collect(chan |
 						thisModule.MakeAssignmentSubDataOperand(
 							downports->get(chan),
@@ -3980,9 +4209,10 @@ unique lazy rule MakeCollectConnectorType{
 					thisModule.MakeDirectDataDeclarationReferenceExpression(target_decl.dd)
 				),
 				Sequence{
-					Tuple{t = 'int', n = 'channel_indicator'},
-					Tuple{t = acc_type, n = '_accumulator'}
+					Tuple{t = 'int', n = 'channel_indicator'}
 				}->union(
+					channel_names->collect(chan | Tuple{t = acc_type, n = chan + '_up'})
+				)->union(
 					channel_names->collect(chan | Tuple{t = acc_type, n = chan + '_acc'})
 				)->union(
 					ctx_datadecls->collect(ctx | Tuple{t = ctx.type, n = ctx.name + '_ctx'})
@@ -3999,23 +4229,26 @@ unique lazy rule MakeCollectConnectorType{
 	up_accumulator:bip!ConnectorExportedPortDeclaration(
 		portType <- thisModule.MakePortType(up_types),
 		name <- 'up_accumulator',
-		dataParameters <- Sequence{
-			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-				acc_type,
-				accumulator_decl.dd,
-				thisModule.MakePortDataParameterDeclaration(acc_type, 0, up_types)
-			),
-			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-				'int',
-				indicator_decl.dd,
-				thisModule.MakePortDataParameterDeclaration('int', 1, up_types)
-			),
-			thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
-				target_type,
-				target_decl.dd,
-				thisModule.MakePortDataParameterDeclaration(target_type, 2, up_types)
+		dataParameters <-
+			channel_names->collect(chan |
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					acc_type,
+					up_decls->get(cfd.channelIndicator(chan)),
+					thisModule.MakePortDataParameterDeclaration(acc_type, cfd.channelIndicator(chan), up_types)
+				)
+			)->append(
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					'int',
+					indicator_decl.dd,
+					thisModule.MakePortDataParameterDeclaration('int', cfd.upIndicatorIndex(), up_types)
+				)
+			)->append(
+				thisModule.MakeConnectorDataDeclarationReferenceDataParameter(
+					target_type,
+					target_decl.dd,
+					thisModule.MakePortDataParameterDeclaration(target_type, cfd.upTargetIndex(), up_types)
+				)
 			)
-		}
 	),
 
 	cppd_input:bip!ConnectorPortParameterDeclaration(
@@ -4944,7 +5177,14 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		internalPortDeclarations <- Sequence{aipd},
 		behavior <- pn,
 		internalDataDeclarations <- aidds,
+		dataParameterDeclarations <- Sequence{indicator_cdpd},
 		exportPortDeclarations <- Sequence{aepd}
+	),
+
+	indicator_cdpd : bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBackendDataType('int'),
+		name <- 'indicator',
+		const <- true
 	),
 	
 	pn : bip!PetriNet(
@@ -4955,7 +5195,7 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 			thisModule.MakeAssignment(
 				thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_aidd),
 				thisModule.MakeTypeConverterNativeToChips(
-					thisModule.MakeDirectIntegerExpression(0),
+					thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_cdpd),
 					'int'
 				)
 			)
@@ -5010,39 +5250,6 @@ unique lazy rule MakeCollectiveCastPlaceholderType{
 		thisModule.types <- thisModule.types->including('AtomType', thisModule.temp);
 	
 		pht;
-	}
-}
-
-lazy rule MakeCollectiveCastPlaceholderDeclaration{
-	from 
-		collective_cast: chips!collective_function_definition,
-		nodename:String,
-		chname:String,
-		nodeId : Integer
-
-	using {
-		fullname : String = collective_cast.name+'_placeholder_'+nodename+'_'+nodeId->toString()+'_'+chname;
-	}
-	to
-		placeholder: bip!ComponentDeclaration(
-			type <- thisModule.MakeCollectiveCastPlaceholderType(collective_cast),
-			name <- fullname
-		)
-	do {
-		thisModule.temp_dic <- thisModule.dictionary->get('PlaceholderDeclaration');
-		if (thisModule.temp_dic.oclIsUndefined()) {
-			thisModule.temp_dic <- Map{};
-		}
-
-		thisModule.temp_dic <- thisModule.temp_dic
-			->including(
-				fullname,
-				placeholder
-			);
-		thisModule.dictionary <- thisModule.dictionary
-			->including('PlaceholderDeclaration', thisModule.temp_dic);
-		
-		placeholder;
 	}
 }
 
@@ -5351,7 +5558,6 @@ makeTreeRec(current_index:Integer,
 	endif;
 
 
-
 helper context Map(
 	TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 	Sequence(Map(String,OclAny))
@@ -5391,14 +5597,24 @@ helper context Map(
 	Sequence(OclAny)
 ) = self->getKeys()->iterate(
 		key ; themap : Map(OclAny, OclAny) = Map{} |
+		let cfd : chips!collective_function_definition = all_chips_collective_defs->any(d | d.name = key.collective_cast) in
 		themap->including(
 			key,
 			self->get(key)->collect(
 				root |
-				root->instantiation_visit(key, memory, Tuple{name='_origin',index=0,channel='_none'},all_chips_collective_defs)
+				let visited : OclAny = root->instantiation_visit(key, memory, Tuple{name = '_origin', index = 0, channel = '_none'}, all_chips_collective_defs) in
+				Tuple{
+					obj = visited.obj,
+					index = visited.index,
+					instance = visited.instance,
+					adapters_list = visited.adapters_list->union(thisModule.ccastRootConnectors(key, visited, memory, cfd)),
+					exported_port = visited.exported_port,
+					children = visited.children
+				}
 			)
-		) 
+		)
 	);
+
 helper def : nodeInstanceContextuals(memory : OclAny, obj : String, index : Integer) : OclAny =
 	let node : OclAny = memory.nodes->get(obj) in
 	if node.oclIsUndefined() then
@@ -5442,10 +5658,8 @@ helper def : ownContextualAtom(memory : OclAny, obj : String, index : Integer, s
 		endif
 	endif;
 
-helper def : maxReccursiveDepth : Integer = 60;
-
 helper def : findContextualAtom(memory : OclAny, obj : String, index : Integer, supportType : String, ctxName : String, depth : Integer) : OclAny =
-	if depth > thisModule.maxReccursiveDepth then
+	if depth > 64 then
 		OclUndefined
 	else
 		let own : OclAny = thisModule.ownContextualAtom(memory, obj, index, supportType, ctxName) in
@@ -5474,6 +5688,41 @@ helper def : findContextualAtom(memory : OclAny, obj : String, index : Integer, 
 			endif
 		endif
 	endif;
+
+
+lazy rule MakeCollectiveCastPlaceholderDeclaration{
+	from 
+		collective_cast: chips!collective_function_definition,
+		nodename:String,
+		chname:String,
+		nodeId : Integer
+
+	using {
+		fullname : String = collective_cast.name+'_placeholder_'+nodename+'_'+nodeId->toString()+'_'+chname;
+	}
+	to
+		placeholder: bip!ComponentDeclaration(
+			type <- thisModule.MakeCollectiveCastPlaceholderType(collective_cast),
+			parameters <- Sequence{thisModule.MakeDirectIntegerExpression(collective_cast.channelIndicator(chname))},
+			name <- fullname
+		)
+	do {
+		thisModule.temp_dic <- thisModule.dictionary->get('PlaceholderDeclaration');
+		if (thisModule.temp_dic.oclIsUndefined()) {
+			thisModule.temp_dic <- Map{};
+		}
+
+		thisModule.temp_dic <- thisModule.temp_dic
+			->including(
+				fullname,
+				placeholder
+			);
+		thisModule.dictionary <- thisModule.dictionary
+			->including('PlaceholderDeclaration', thisModule.temp_dic);
+		
+		placeholder;
+	}
+}
 
 
 unique lazy rule MakeCollectiveIOPlaceholderType{
@@ -5639,8 +5888,8 @@ helper context TupleType(
 	exported_port:OclAny,
 	children:Map(String, OclAny)
 ) = 
-	let collfuncdef: chips!collective_function_definition =  all_chips_collective_defs->any(ccast | ccast.name = collectiveop.collective_cast) in
-	if self.obj='placeholder'
+	let collfuncdef : chips!collective_function_definition = all_chips_collective_defs->any(ccast | ccast.name = collectiveop.collective_cast) in
+	if self.obj = 'placeholder'
 	then
 		let compdecl : bip!ComponentDeclaration =
 			thisModule.MakeCollectiveCastPlaceholderDeclaration(
@@ -5650,18 +5899,18 @@ helper context TupleType(
 				origin.index
 			) in
 		Tuple{
-			obj='ph_of_'+origin.name+'_from_chan_'+origin.channel+'_for_'+collectiveop.collective_cast,
-			index=origin.index,
-			instance=compdecl,
-			adapters_list=Sequence{},
-			exported_port=thisModule.MakeComponentSubPortDeclarationReference(
-					thisModule.dictionary
-						->get('PlaceholderAtomTypes')
-						->get(collectiveop.collective_cast)
-						->get('aepd'),
-					compdecl
-				),
-			children=Map{}
+			obj = 'ph_of_' + origin.name + '_from_chan_' + origin.channel + '_for_' + collectiveop.collective_cast,
+			index = origin.index,
+			instance = compdecl,
+			adapters_list = Sequence{},
+			exported_port = thisModule.MakeComponentSubPortDeclarationReference(
+				thisModule.dictionary
+					->get('PlaceholderAtomTypes')
+					->get(collectiveop.collective_cast)
+					->get('aepd'),
+				compdecl
+			),
+			children = Map{}
 		}
 	else
 		let channels : Sequence(String) = collfuncdef.sortedChannels() in
@@ -6305,6 +6554,7 @@ rule Program2BipPackage {
 			->select(fbkey | not memory.mem.fblocks->get(fbkey).ftype.oclIsUndefined())
 			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.mem.fblocks->get(fbkey).ftype->all_contextuals() } )
 			->select(fb | not fb.ctxs->isEmpty())
+			->debug('fblocks with ctx')
 			->iterate(
 				fb ; connectorlist1 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
 				connectorlist1->union(
@@ -6327,7 +6577,7 @@ rule Program2BipPackage {
 														->get('ContextualTypes')
 														->get(ctx.type)
 														->get('aepd_give'),
-													memory.mem->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1)
+													memory.mem->getCtxAtom(fb.fbkey, Sequence{comp_index}, ctx.name)
 												)
 											),
 											thisModule.MakePortDeclarationReferenceParameter(
@@ -6374,7 +6624,7 @@ rule Program2BipPackage {
 														->get('ContextualTypes')
 														->get(ctx.type)
 														->get('aepd_rcv'),
-													memory.mem->getCtxDeclarations(fb.fbkey,Sequence{comp_index})->at(1).comp->at(1) -- temporarily set to 0
+													memory.mem->getCtxAtom(fb.fbkey, Sequence{comp_index}, ctx.name)
 												)
 											)
 										}
@@ -6384,7 +6634,7 @@ rule Program2BipPackage {
 						)
 					)
 				)
-			)->flatten();
+			)->flatten()->debug('ctx_connectors');
 		
 
 		---------------------------------------------------------------------------------
@@ -6430,14 +6680,28 @@ rule Program2BipPackage {
 			Sequence(Map(String,OclAny))
 		) = collective_connectors_sequences->getKeys()
 			->iterate(
-				key ; themap: Map(
-					TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
-					Sequence(TupleType(obj:String, index:Integer, children:Map(String, OclAny)))
-				) = Map{} |
-				themap->including(
-					key,
-					collective_connectors_sequences->get(key).asTrees()
-				)
+				key ; themap : Map(OclAny, OclAny) = Map{} |
+				let seq : Sequence(OclAny) = collective_connectors_sequences->get(key) in
+				let supportname : String = all_chips_collective_defs->any(d | d.name = key.collective_cast).support_object.name in
+				let rootnode : OclAny = thisModule.ccastRootNode(memory.mem, key, supportname) in
+				let rootelem : OclAny =
+					if rootnode.oclIsUndefined() then OclUndefined
+					else seq->any(n | if n.obj = rootnode.obj then n.index = rootnode.index else false endif)
+					endif in
+				if rootelem.oclIsUndefined() then
+					let a : OclAny = 'ATL transformation Error'.debug(key.root_function + ' is not linked to any ' + supportname + ' node, the collective cast ' + key.collective_cast + ' is ignored') in
+					themap
+				else
+					themap->including(
+						key,
+						Sequence{
+							seq->makeTreeRec(
+								seq->indexOf(rootelem) - 1,
+								Tuple{visited_nodes = Set{}, obj = rootelem.obj, index = rootelem.index, children = rootelem.children}
+							)
+						}
+					)
+				endif
 			);
 		
 		collective_connectors_placeholder_types : Sequence(bip!CompoundType) =
@@ -6470,7 +6734,7 @@ rule Program2BipPackage {
 		all_adapters : Sequence(bip!ConnectorDeclaration) = 
 			instantiated_collective_connectors_trees->getValues()->asSequence()->collect(list_of_roots | list_of_roots->collect(r | r.adapters_list))->flatten()->toArray();
 
-				bip_package : TupleType(
+		bip_package : TupleType(
 			components: Sequence(bip!ComponentDeclaration),
 			connectors: Sequence(bip!ConnectorDeclaration)
 		) =
@@ -6678,6 +6942,48 @@ rule Program2BipPackage {
 -- helpers for interpretation of node related instructions
 -------------------------------------------------
 
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+	nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+	ccasts_map : Map(
+		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+	),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : linearIndexOf(name : String, idx : Sequence(Integer)) : Integer =
+	let dims : Sequence(Integer) =
+		if self.nodes->get(name).oclIsUndefined() then
+			if self.fblocks->get(name).oclIsUndefined() then Sequence{} else self.fblocks->get(name).dimensions endif
+		else
+			self.nodes->get(name).dimensions
+		endif in
+	if idx->isEmpty() then
+		0
+	else if idx->size() = dims->size() then
+		idx->linearize(dims)
+	else
+		idx->first()
+	endif endif;
 
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
@@ -6707,10 +7013,18 @@ helper context TupleType(
 		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-) def : getNodeCtxDeclarations(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
-let node : OclAny = self.nodes->get(nodename).instances->get(index.linearize(self.nodes->get(nodename).dimensions)) in
-	node->getKeys()->collect(k | Tuple{name=k, comp=node->get(k).instances})->asSequence();
-
+) def : nodeLinkOf(name : String, idx : Sequence(Integer)) : OclAny =
+	let candidates : Sequence(OclAny) =
+		self.links->select(e |
+			if e.src = name then self.linearIndexOf(e.src, e.src_index) = self.linearIndexOf(name, idx) else false endif
+		)->asSequence() in
+	if candidates->isEmpty() then
+		OclUndefined
+	else if candidates->size() > 1 then
+		'ATL transformation Error'.debug(name + idx->toString() + ' is linked to ' + candidates->size().toString() + ' nodes, only one link is allowed')
+	else
+		candidates->first()
+	endif endif;
 
 helper context TupleType(
 	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
@@ -6740,16 +7054,93 @@ helper context TupleType(
 		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-) def : getNodeCtxDeclarationsRec(nodename:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+) def : getNodeCtxDeclarations(nodename : String, index : Sequence(Integer)) : Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+	let entry : OclAny = self.nodes->get(nodename) in
+	if entry.oclIsUndefined() then
+		Sequence{}
+	else
+		let node : OclAny = entry.instances->get(self.linearIndexOf(nodename, index)) in
+		node->getKeys()->collect(k | Tuple{name = k, comp = node->get(k).instances})->asSequence()
+	endif;
+
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+	nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+	ccasts_map : Map(
+		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+	),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getNodeCtxDeclarationsRec(nodename : String, index : Sequence(Integer)) : Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
 	self.getNodeCtxDeclarations(nodename, index)
 	->union(
-		let singletonlink : OclAny = self.links->select(e |(e.src = nodename) and (e.src_index.debug('there is probably an error if this isn\'t the next type as the next print') = index.debug('the next print'))) in
-		if singletonlink->isEmpty() then
+		let link : OclAny = self.nodeLinkOf(nodename, index) in
+		if link.oclIsUndefined() then
+			Sequence{}
+		else if link.oclIsTypeOf(String) then
 			Sequence{}
 		else
-			self.getNodeCtxDeclarationsRec(singletonlink.trg, singletonlink.trg_index)
-		endif
+			self.getNodeCtxDeclarationsRec(link.trg, link.trg_index)
+		endif endif
 	);
+
+helper context TupleType(
+	fblocks: Map(String,TupleType(ftype:chips!function_definition, dimensions:Sequence(Integer), instances:Sequence(bip!ComponentDeclaration))),
+	dataflows: Map(TupleType(fcomp:String,fparam:String,tcomp:String,tparam:String),bip!ConnectorDeclaration),
+	links: Set(TupleType(src:String, src_index:Integer, src_type:String, trg:String, trg_index:String, trg_type:String)),
+	nodes: Map(
+			String,
+			TupleType(
+				dimensions:Sequence(Integer),
+				type:String,
+				channels:Map(String,String),
+				type:String,
+				instances:Sequence(
+					Map(
+						String,
+						TupleType(
+							dimensions:Sequence(Integer),
+							instances:Sequence(bip!ComponentDeclaration)
+						)
+					)
+				)
+			)
+		),
+	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
+	ccasts_map : Map(
+		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
+		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
+	),
+	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
+) def : getCtxDeclarations(fblockname : String, index : Sequence(Integer)) : Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+	let found : Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+		self.getNodeCtxDeclarationsRec(fblockname, index) in
+	if found->isEmpty() then
+		let a : OclAny = 'ATL transformation Error'.debug(fblockname + index->toString() + ' uses contextual data but neither declares it nor is linked to a node') in
+		Sequence{}
+	else
+		found
+	endif;
 
 
 helper context TupleType(
@@ -6775,16 +7166,21 @@ helper context TupleType(
 			)
 		),
 	connections: Sequence(TupleType(from_ob:String,from_index:Integer,from_chan:String, from_type:String, to_ob:String,to_index:Integer, to_chan:String, to_type:String)),
-		ccasts_map : Map(
+	ccasts_map : Map(
 		TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 		Sequence(TupleType(obj:String, obj_index:Integer, leaf_fct:String, leaf_index:Integer, leaf_param : String, leaf_fct_type : String))
 	),
 	variables:Sequence(TupleType(name:String,type:String,value:OclAny,dims:Sequence(Integer)))
-) def : 
-getCtxDeclarations(fblockname:String, index:Sequence(Integer)): Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
-	self->getNodeCtxDeclarationsRec(fblockname, index);
-
-
+) def : getCtxAtom(fblockname : String, index : Sequence(Integer), ctxName : String) : bip!ComponentDeclaration =
+	let matching : Sequence(TupleType(name:String, comp:Sequence(bip!ComponentDeclaration))) =
+		self.getCtxDeclarations(fblockname, index)->select(d | d.name = ctxName) in
+	if matching->isEmpty() then
+		'ATL transformation Error'.debug('no node linked to ' + fblockname + index->toString() + ' holds a contextual variable named ' + ctxName)
+	else if matching->first().comp->isEmpty() then
+		'ATL transformation Error'.debug('the contextual variable ' + ctxName + ' reached from ' + fblockname + index->toString() + ' has no atom')
+	else
+		matching->first().comp->first()
+	endif endif;
 
 
 helper context chips!channel_declaration def: evaluate(node_data : TupleType(

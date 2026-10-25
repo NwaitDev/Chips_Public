@@ -125,7 +125,7 @@ bool CodeGenListener::lookupVarType(const std::string &name, std::string &type) 
                 type = dfTypeName(p->df_type());
                 return true;
             }
-        return false;
+        return lookupContextualType(name, type);
     }
 
     if (const auto *ph = std::get_if<ChipsParser::P_function_defContext*>(&current_def))
@@ -138,21 +138,31 @@ bool CodeGenListener::lookupVarType(const std::string &name, std::string &type) 
                 type = dfTypeName(pdfParameterType(p));
                 return true;
             }
-        const auto it = ctx_vars_.find(ObjectType{*ph});
-        if (it != ctx_vars_.end())
-            for (const auto &[ctxType, ctxName] : it->second)
-                if (ctxName == name)
-                {
-                    type = ctxType;
-                    return true;
-                }
-        return false;
+        return lookupContextualType(name, type);
     }
 
     if (std::holds_alternative<ChipsParser::Collective_op_defContext*>(current_def))
     {
         auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
-        return isSpreadOp(cctx) ? dico.lookupSpread(cctx, name, type) : dico.lookupCollect(cctx, name, type);
+        if (isSpreadOp(cctx) ? dico.lookupSpread(cctx, name, type) : dico.lookupCollect(cctx, name, type))
+            return true;
+        const auto it = vars_for_def_.find(current_def);
+        if (it != vars_for_def_.end())
+        {
+            const auto local = it->second.find(name);
+            if (local != it->second.end())
+            {
+                type = local->second;
+                return true;
+            }
+        }
+        for (auto *field : cctx->c_signature()->cdf_defaulted_decl())
+            if (field->IDENTIFIER()->getText() == name)
+            {
+                type = dfTypeName(field->df_type());
+                return true;
+            }
+        return false;
     }
 
     return false;
@@ -177,16 +187,77 @@ bool CodeGenListener::isParameterOfCurrentDef(const std::string &name) const
 
 bool CodeGenListener::isContextualOfCurrentDef(const std::string &name) const
 {
-    const auto *ph = std::get_if<ChipsParser::P_function_defContext*>(&current_def);
-    if (!ph)
-        return false;
-    const auto it = ctx_vars_.find(ObjectType{*ph});
-    if (it == ctx_vars_.end())
-        return false;
-    return std::any_of(it->second.begin(), it->second.end(),
-        [&](const std::pair<std::string, std::string> &v) { return v.second == name; });
+    std::string type;
+    return lookupContextualType(name, type);
 }
 
+bool CodeGenListener::lookupContextualType(const std::string &name, std::string &type) const
+{
+    const auto it = fn_contextuals_.find(current_def);
+    if (it == fn_contextuals_.end())
+        return false;
+    const auto found = it->second.find(name);
+    if (found == it->second.end())
+        return false;
+    type = found->second;
+    return true;
+}
+
+void CodeGenListener::collectFunctionContextualUses(antlr4::tree::ParseTree *node, std::vector<std::pair<std::string, antlr4::ParserRuleContext *>> &uses)
+{
+    if (auto *read = dynamic_cast<ChipsParser::VarContextContext *>(node))
+        uses.emplace_back(read->IDENTIFIER()->getText(), read);
+    else if (auto *write = dynamic_cast<ChipsParser::StatementContextualAssignmentContext *>(node))
+        uses.emplace_back(write->IDENTIFIER()->getText(), write);
+    for (auto *child : node->children)
+        collectFunctionContextualUses(child, uses);
+}
+
+void CodeGenListener::computeFunctionContextuals(antlr4::tree::ParseTree *defCtx, const ObjectType *ownKey)
+{
+    std::vector<std::pair<std::string, antlr4::ParserRuleContext *>> uses;
+    collectFunctionContextualUses(defCtx, uses);
+
+    std::map<std::string, std::string> resolved;
+    for (const auto &[name, where] : uses)
+        for (antlr4::tree::ParseTree *up = where->parent; up && up != defCtx; up = up->parent)
+            if (dynamic_cast<ChipsParser::Init_sectionContext *>(up))
+                fail(where, "'ctx." + name + "' cannot be used in the init section of a function");
+
+    for (const auto &[name, where] : uses)
+    {
+        if (resolved.count(name))
+            continue;
+
+        if (ownKey)
+        {
+            const auto own = ctx_vars_.find(*ownKey);
+            if (own != ctx_vars_.end())
+            {
+                const auto declared = std::find_if(own->second.begin(), own->second.end(),
+                    [&](const std::pair<std::string, std::string> &v) { return v.second == name; });
+                if (declared != own->second.end())
+                {
+                    resolved[name] = declared->first;
+                    continue;
+                }
+            }
+        }
+
+        std::set<std::string> types;
+        for (const auto &[key, vars] : ctx_vars_)
+            for (const auto &[type, varName] : vars)
+                if (varName == name)
+                    types.insert(type);
+
+        if (types.empty())
+            fail(where, "'ctx." + name + "' is not declared as a contextual variable by any object or physical function");
+        if (types.size() > 1)
+            fail(where, "'ctx." + name + "' is declared with different types by several objects or physical functions, its type is ambiguous");
+        resolved[name] = *types.begin();
+    }
+    fn_contextuals_[current_def] = resolved;
+}
 bool CodeGenListener::isInnerOfCurrentDef(const std::string &name) const
 {
     std::string type;
@@ -614,7 +685,7 @@ std::string CodeGenListener::translateContextualAssignment(ChipsParser::Statemen
     const std::string varName = ctx->IDENTIFIER()->getText();
 
     if (!isContextualOfCurrentDef(varName))
-        fail(ctx, "'ctx." + varName + "' is not a contextual variable declared in the with-section of this function");
+        fail(ctx, "'ctx." + varName + "' is not a contextual variable known by this function");
 
     std::ostringstream oss;
     oss << pad << varName << "_ctx" << translateLhsSuffixes(ctx->suffixes()) << " = " << translateExpr(ctx->expr()) << ";\n";
@@ -742,7 +813,7 @@ std::string CodeGenListener::translateExpr2(ChipsParser::Expr2Context *ctx)
     {
         const std::string varName = ctxvar->IDENTIFIER()->getText();
         if (!isContextualOfCurrentDef(varName))
-            fail(ctxvar, "'ctx." + varName + "' is not a contextual variable declared in the with-section of '" + currentDefName() + "'");
+            fail(ctxvar, "'ctx." + varName + "' is not a contextual variable known by '" + currentDefName() + "'");
         return varName + "_ctx" + translateSuffixes(ctxvar->suffixes());
     }
 
@@ -924,16 +995,15 @@ std::string CodeGenListener::translateParams(const std::vector<ChipsParser::Pdf_
     return joinSortedByName(decls);
 }
 
-std::string CodeGenListener::translateContextualParams(ChipsParser::P_function_defContext *ctx)
+std::string CodeGenListener::translateContextualParams()
 {
     std::vector<std::pair<std::string, std::string>> decls;
-    const auto it = ctx_vars_.find(ObjectType{ctx});
-    if (it != ctx_vars_.end())
-        for (const auto &[type, name] : it->second)
+    const auto it = fn_contextuals_.find(current_def);
+    if (it != fn_contextuals_.end())
+        for (const auto &[name, type] : it->second)
             decls.emplace_back(name, "[[maybe_unused]] " + type + "& " + name + "_ctx");
     return joinSortedByName(decls);
 }
-
 std::string CodeGenListener::translateOutputs(const std::vector<ChipsParser::Named_outputContext *> &outputs)
 {
     std::vector<std::pair<std::string, std::string>> decls;
@@ -1133,12 +1203,14 @@ void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx
 {
     current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
+    computeFunctionContextuals(ctx, nullptr);
 
     const std::string initBody = translateStatements(ctx->init_section()->statement(), 4, false);
     const std::string thenBody = translateStatements(ctx->then_section()->statement(), 4, true) + outputText();
 
     const std::vector<std::string> signature{
         translateParams(ctx->df_parameter_decl()),
+        translateContextualParams(),
         dico.serializeL(ctx, "_inner"),
         translateOutputs(ctx->named_output())};
 
@@ -1151,13 +1223,15 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
     const std::string name = ctx->IDENTIFIER()->getText();
     registerChannels(ObjectType{ctx});
     registerContextualVars(ObjectType{ctx});
+    const ObjectType ownKey{ctx};
+    computeFunctionContextuals(ctx, &ownKey);
 
     const std::string initBody = translateStatements(ctx->init_section()->statement(), 4, false);
     const std::string thenBody = translateStatements(ctx->then_section()->statement(), 4, true) + outputText();
 
     const std::vector<std::string> signature{
         translateParams(ctx->pdf_parameter_decl()),
-        translateContextualParams(ctx),
+        translateContextualParams(),
         dico.serializeP(ctx, "_inner"),
         translateOutputs(ctx->p_named_output())};
 
@@ -1710,6 +1784,25 @@ std::string CodeGenListener::chipsTypeFor(ChipsParser::C_stopless_expr2Context *
     if (auto *parens = dynamic_cast<ChipsParser::CParenthesisContext *>(ctx))
         return chipsTypeFor(parens->c_stopless_expr());
 
+    if (auto *channeled = dynamic_cast<ChipsParser::ChanneledAccuExpressionContext *>(ctx))
+    {
+        if (const auto *cctx = std::get_if<ChipsParser::Collective_op_defContext*>(&current_def))
+            for (auto *field : (*cctx)->c_signature()->cdf_defaulted_decl())
+                if (field->IDENTIFIER()->getText() == channeled->IDENTIFIER(1)->getText())
+                    return dfTypeName(field->df_type());
+        return "chips_any";
+    }
+
+    if (auto *ctxvar = dynamic_cast<ChipsParser::CtxVariableExpressionContext *>(ctx))
+    {
+        if (const auto *cctx = std::get_if<ChipsParser::Collective_op_defContext*>(&current_def))
+            if (const auto *ctxVars = findContextualVarsForSupportName((*cctx)->c_signature()->IDENTIFIER(1)->getText()))
+                for (const auto &[type, name] : *ctxVars)
+                    if (name == ctxvar->IDENTIFIER()->getText())
+                        return type;
+        return "chips_any";
+    }
+
     return "/* unknown type */";
 }
 
@@ -2019,6 +2112,11 @@ void CodeGenListener::storeVar(
     vars_for_def_[ctx][var_name] = type;
 }
 
+std::string CodeGenListener::channelOutputVar(ChipsParser::Collective_op_defContext *ctx, const std::string &chanName)
+{
+    return chanName + (isSpreadOp(ctx) ? "_acc" : "_up");
+}
+
 std::string CodeGenListener::translateCOutputs(ChipsParser::Collective_op_defContext *ctx, int indent)
 {
     std::string pad(indent, ' ');
@@ -2082,7 +2180,7 @@ std::string CodeGenListener::translateCOutputs(ChipsParser::Collective_op_defCon
 
         coveredChannels.insert(chanName);
         oss << statementGuard(chan, indent, sourceText(chan));
-        emitAssignment(chanName + "_acc", chan->c_expr());
+        emitAssignment(channelOutputVar(ctx, chanName), chan->c_expr());
     }
 
     // Any declared channel not explicitly targeted by a #ChanneledOutput
@@ -2095,7 +2193,7 @@ std::string CodeGenListener::translateCOutputs(ChipsParser::Collective_op_defCon
                 continue;
 
             oss << statementGuard(ctx->c_default_output(), indent, sourceText(ctx->c_default_output()));
-            emitAssignment(chanName + "_acc", defaultExprs);
+            emitAssignment(channelOutputVar(ctx, chanName), defaultExprs);
         }
     }
 
@@ -2126,7 +2224,11 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
     oss << "[[maybe_unused]] chips_int channel_indicator";
 
     storeVar(ctx, "_accumulator", structName);
-    oss << ", [[maybe_unused]] " << structName << " _accumulator";
+    if (isSpreadOp(ctx))
+        oss << ", [[maybe_unused]] " << structName << " _accumulator";
+    else
+        for (const auto &chan : sortedChannelNames(ctx))
+            oss << ", [[maybe_unused]] " << structName << "& " << chan << "_up";
 
     const std::string supportTypeName = signature->IDENTIFIER(1)->getText();
 
@@ -2136,7 +2238,7 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
         {
             const std::string paramName = name + "_acc";
             storeVar(ctx, paramName, structName);
-            oss << ", [[maybe_unused]] " << structName << " " << paramName;
+            oss << ", [[maybe_unused]] " << structName << (isSpreadOp(ctx) ? "& " : " ") << paramName;
         }
     }
 
@@ -2170,11 +2272,74 @@ std::string CodeGenListener::extractParameters(ChipsParser::Collective_op_defCon
     }
 
     const std::string targetParamName = collectiveFunctionName(ctx) + "_target";
-    const std::string targetType = chipsTypeFor(ctx->c_expr(0));
+    std::string targetType = chipsTypeFor(ctx->c_expr(0));
+    if (targetType == "chips_any")
+    {
+        const std::string targetText = ctx->c_expr(0)->getText();
+        std::vector<antlr4::tree::ParseTree *> pending{ctx};
+        while (!pending.empty())
+        {
+            auto *node = pending.back();
+            pending.pop_back();
+            if (auto *decl = dynamic_cast<ChipsParser::Cdf_full_declarationContext *>(node))
+                if (decl->IDENTIFIER()->getText() == targetText)
+                {
+                    targetType = dfTypeName(decl->df_type());
+                    break;
+                }
+            for (auto *child : node->children)
+                pending.push_back(child);
+        }
+    }
     storeVar(ctx, targetParamName, targetType);
-    oss << ", [[maybe_unused]] " << targetType << " " << targetParamName;
+    oss << ", [[maybe_unused]] " << targetType << "& " << targetParamName;
 
     return oss.str();
+}
+
+std::string CodeGenListener::spreadRootFunction(ChipsParser::Collective_op_defContext *ctx)
+{
+    const auto &params = ctx->c_signature()->cdf_defaulted_decl();
+    const std::string structName = aggregateStructName(params);
+    const std::string funcName = collectiveFunctionName(ctx) + "_root";
+
+    std::vector<ChipsParser::INPUTContext*> inputs;
+    collectInputContexts(ctx->c_signature(), inputs);
+    const std::string inputType = inputs.empty() ? std::string("chips_any") : inferInputType(inputs.front());
+
+    const std::string signature = structName + " " + funcName + "([[maybe_unused]] " + inputType + " input)";
+    header_out_ << signature << ";\n\n";
+
+    std::ostringstream oss;
+    oss << signature << "\n{\n";
+    oss << "    chips_diag::function_scope chips_function_scope_guard;\n";
+    oss << accumulatorInitialization(ctx, 4);
+    oss << "    return _accumulator;\n}\n\n";
+    return oss.str();
+}
+
+std::string CodeGenListener::accumulatorInitialization(ChipsParser::Collective_op_defContext *ctx, int indent)
+{
+    const std::string pad(indent, ' ');
+    const auto &params = ctx->c_signature()->cdf_defaulted_decl();
+    std::ostringstream oss;
+    oss << pad << aggregateStructName(params) << " _accumulator;\n";
+    for (auto *p : params)
+    {
+        oss << pad << "chips_diag::at(" << p->getStart()->getLine() << ", " << p->getStart()->getCharPositionInLine() + 1 << ");\n";
+        oss << pad << "_accumulator." << p->IDENTIFIER()->getText() << " = " << translateCExpr(p->c_expr()) << ";\n";
+    }
+    return oss.str();
+}
+
+std::vector<std::string> CodeGenListener::sortedChannelNames(ChipsParser::Collective_op_defContext *ctx) const
+{
+    std::vector<std::string> names;
+    if (const auto *chans = findChannelsForObjectName(ctx->c_signature()->IDENTIFIER(1)->getText()))
+        for (const auto &[type, name] : *chans)
+            names.push_back(name);
+    std::sort(names.begin(), names.end());
+    return names;
 }
 
 std::string CodeGenListener::translateCTarget(ChipsParser::Collective_op_defContext *ctx, int indent)
@@ -2189,6 +2354,7 @@ void CodeGenListener::exitCollective_op_def(ChipsParser::Collective_op_defContex
 {
     current_def = ctx;
     emitAggregateStructIfNeeded(ctx);
+    const bool isCollect = !isSpreadOp(ctx);
 
     const std::string funcName = collectiveFunctionName(ctx);
     const std::string params = extractParameters(ctx);
@@ -2196,8 +2362,12 @@ void CodeGenListener::exitCollective_op_def(ChipsParser::Collective_op_defContex
     header_out_ << "void " << funcName << "(" << params << ");\n\n";
     source_out_ << "void " << funcName << "(" << params << ")\n{\n";
     source_out_ << "    chips_diag::function_scope chips_function_scope_guard;\n";
+    if (isCollect)
+        source_out_ << accumulatorInitialization(ctx, 4);
     source_out_ << translateCStatements(ctx->c_statement(), 4);
     source_out_ << translateCOutputs(ctx, 4);
     source_out_ << translateCTarget(ctx, 4);
     source_out_ << "}\n\n";
+    if (!isCollect && !ctx->c_signature()->cdf_defaulted_decl().empty())
+        source_out_ << spreadRootFunction(ctx);
 }

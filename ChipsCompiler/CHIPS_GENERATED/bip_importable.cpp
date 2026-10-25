@@ -4,32 +4,30 @@
 //Definitions generated from chips sources
 //--------------------------------------------------------------------------------
 
-const char *const chips_diag::source_file = "/home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/testfiles/additioner.chips";
+const char *const chips_diag::source_file = "/home/ohnoanna/Code/Chips_Public/ChipsCompiler/testfiles/autoincrement.chips";
 
-void init_addi([[maybe_unused]] chips_int& a_in, [[maybe_unused]] chips_int& b_in, [[maybe_unused]] chips_int& ticks_inner, [[maybe_unused]] chips_int& out_out)
+void init_addi([[maybe_unused]] chips_int& a_in, [[maybe_unused]] chips_int& b_in, [[maybe_unused]] chips_int& out_out)
 {
     chips_diag::function_scope chips_function_scope_guard;
-    chips_diag::at(2, 5);
-    ticks_inner = chips_int{0};
 }
 
-void then_addi([[maybe_unused]] chips_int& a_in, [[maybe_unused]] chips_int& b_in, [[maybe_unused]] chips_int& ticks_inner, [[maybe_unused]] chips_int& out_out)
+void then_addi([[maybe_unused]] chips_int& a_in, [[maybe_unused]] chips_int& b_in, [[maybe_unused]] chips_int& out_out)
 {
     chips_diag::function_scope chips_function_scope_guard;
-    chips_diag::at(4, 5);
-    ticks_inner = ticks_inner + chips_int{1};
-    chips_diag::at(5, 3);
+    chips_diag::at(2, 1);
     chips_reset(out_out, a_in + b_in);
 }
 
-void init_consumer([[maybe_unused]] chips_int& data_in)
+void init_buffer([[maybe_unused]] chips_int& data_in, [[maybe_unused]] chips_int& out_out)
 {
     chips_diag::function_scope chips_function_scope_guard;
 }
 
-void then_consumer([[maybe_unused]] chips_int& data_in)
+void then_buffer([[maybe_unused]] chips_int& data_in, [[maybe_unused]] chips_int& out_out)
 {
     chips_diag::function_scope chips_function_scope_guard;
+    chips_diag::at(4, 42);
+    chips_reset(out_out, data_in);
 }
 
 chips_int int_init_ctx(const std::string &ctx_name)

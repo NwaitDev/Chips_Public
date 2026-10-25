@@ -1,0 +1,51 @@
+object NodeType0 with {
+	Chan left;
+	Chan right;
+	ctx int id;
+}
+
+logical setid (int id_to_set) 
+init{}
+then{
+	ctx.id = id_to_set;
+}->out(id_to_set)
+
+logical datasrc () init{} then {} ->out(0)
+logical datasnk(int data) init {} then{}
+
+spread (int d = input) aspecificid among NodeType0 {} -> @(d)
+->left(d-1)
+->right(d+1)
+
+collect (int sum = 0) sumabs among NodeType0{
+	if (input<0){
+		sum = sum + left.sum + right.sum - input;
+	} else {
+		sum = sum + left.sum + right.sum + input;
+	}
+}
+->@(sum)
+->default(sum)
+
+collect (int depth = 0) treedepth among NodeType0 {
+	int useless = input;
+	if (left.depth > right.depth) { depth = left.depth; } else { depth = right.depth; }
+} -> @(depth)
+->default(depth + 1)
+
+system{
+	setid [10] setters;
+	NodeType0 [10] nt0s;
+	datasrc src; datasnk snk;
+	for i in range(10){
+		link setters[i] to nt0s[i];
+		setters[i].id_to_set((aspecificid) src.out);
+		if(i<9){
+			nt0s[i].right(nt0s[i+1].left);
+			nt0s[i+1].left(nt0s[i].right);
+		}
+		snk.data((treedepth) setters[i].out);
+	}
+	link src to nt0s[5];
+	link snk to nt0s[0];
+}

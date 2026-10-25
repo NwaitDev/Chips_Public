@@ -42,9 +42,7 @@
                                           userExtraLdOpts : Sequence(String))]
 [comment @main /]
 [file ('CMakeLists.txt', false, 'UTF-8')]
-cmake_minimum_required(VERSION 2.8)
-# 2.8.3 has "CMAKE_CURRENT_LIST_DIR" variable. We have 2.8.2 deployed, 
-# so using "CMAKE_SOURCE_DIR" instead.
+cmake_minimum_required(VERSION 3.5)
 set(GEN_ROOT ${CMAKE_SOURCE_DIR})
 
 # Select flags.
@@ -137,7 +135,7 @@ target_link_libraries(system
                                    extraObjs: Sequence(String),) post(trim())]
 [file (getCMakeList(aPackage), false, 'UTF-8')]
 #start
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 
 ##set(ATOM_FILES)
 ##set(COMPOUND_FILES)

@@ -653,17 +653,30 @@ build_system_iterable_variable(chips_ast_builder &b,
           static_cast<rvalue<dft, expression_env::SYSTEM> *>(expr))));
 }
 
+static bool is_node_definition(ChipsParser::PreambleContext *def) {
+  if (dynamic_cast<ChipsParser::ObjectDefinitionContext *>(def) != nullptr)
+    return true;
+  auto *function = dynamic_cast<ChipsParser::FunctionDefinitionContext *>(def);
+  return function != nullptr &&
+         dynamic_cast<ChipsParser::PhysicalDefinitionContext *>(function->function_def()) != nullptr;
+}
+
 // Visit methods
 
 std::any chips_ast_builder::visitProgram(ChipsParser::ProgramContext *ctx) {
   VERBOSE_VISIT_ENTER
+  std::vector<ChipsParser::PreambleContext *> preambles = ctx->preamble();
+  std::vector<std::optional<definition_variant>> slots(preambles.size());
+  for (std::size_t i = 0; i < preambles.size(); ++i)
+    if (is_node_definition(preambles[i]))
+      slots[i] = std::any_cast<definition_variant>(preambles[i]->accept(this));
+  for (std::size_t i = 0; i < preambles.size(); ++i)
+    if (!slots[i].has_value())
+      slots[i] = std::any_cast<definition_variant>(preambles[i]->accept(this));
+
   std::vector<definition_variant> defs{};
-  for (ChipsParser::PreambleContext *def : ctx->preamble())
-  {
-    definition_variant dv =
-        std::any_cast<definition_variant>(def->accept(this));
-    defs.push_back(dv);
-  }
+  for (const auto &slot : slots)
+    defs.push_back(*slot);
 
   system_section_node system =
       std::any_cast<system_section_node>(ctx->system()->accept(this));
@@ -950,6 +963,7 @@ std::any chips_ast_builder::visitL_function_def(
   VERBOSE_VISIT_ENTER
   venv.m_current_def_name = ctx->IDENTIFIER()->getText();
   visitor_env::scope_guard function_scope(venv);
+  venv.m_in_logical = true;
 
   std::vector<function_parameter_variant> parameters{};
   for (ChipsParser::Df_parameter_declContext *param :
@@ -977,8 +991,9 @@ std::any chips_ast_builder::visitL_function_def(
   auto *logical = make_node<logical_definition>(
       line_of(ctx), col_of(ctx), ctx->IDENTIFIER()->getText(), parameters, init,
       then, outputs);
+  
   venv.declare_definition(venv.m_current_def_name, logical);
-
+  venv.m_in_logical = false;
   return definition_variant(logical);
 }
 

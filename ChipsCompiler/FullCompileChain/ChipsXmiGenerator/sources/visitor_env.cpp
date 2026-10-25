@@ -24,21 +24,46 @@ void visitor_env::declare_variable_node(const std::string &name, ast_node *node)
 }
 
 void visitor_env::declare_contextual(const std::string &var, dataflow_type type, ast_node *node) {
+  if (m_contextuals.find(m_current_def_name) == m_contextuals.end()) {
+    m_contextual_owners.push_back(m_current_def_name);
+  }
   m_contextuals[m_current_def_name][var] = type;
   if (node != nullptr) {
     m_contextual_nodes[m_current_def_name][var] = node;
   }
 }
+
+std::string visitor_env::unique_contextual_owner(const std::string &var) const {
+  std::vector<std::string> owners;
+  for (const std::string &name : m_contextual_owners) {
+    if (m_contextuals.at(name).count(var) > 0)
+      owners.push_back(name);
+  }
+  if (owners.size() > 1) {
+    std::string list;
+    for (std::size_t i = 0; i < owners.size(); ++i)
+      list += (i == 0 ? "'" : ", '") + owners[i] + "'";
+    throw std::runtime_error("in '" + m_current_def_name + "': contextual variable '" + var +
+                             "' is ambiguous, it is declared in nodes " + list);
+  }
+  return owners.empty() ? std::string() : owners.front();
+}
+
 std::optional<dataflow_type> visitor_env::lookup_contextual(const std::string &var) const {
   const std::string &owner =
       m_support_name.empty() ? m_current_def_name : m_support_name;
   auto node = m_contextuals.find(owner);
-  if (node == m_contextuals.end())
+  if (node != m_contextuals.end()) {
+    auto it = node->second.find(var);
+    if (it != node->second.end())
+      return it->second;
+  }
+  if (!m_in_logical)
     return std::nullopt;
-  auto it = node->second.find(var);
-  if (it == node->second.end())
+  std::string unique = unique_contextual_owner(var);
+  if (unique.empty())
     return std::nullopt;
-  return it->second;
+  return m_contextuals.at(unique).at(var);
 }
 
 void visitor_env::declare_parameter(const std::string &function, const std::string &var,

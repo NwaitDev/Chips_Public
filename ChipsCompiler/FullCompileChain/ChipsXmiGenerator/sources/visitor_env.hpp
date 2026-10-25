@@ -52,7 +52,8 @@ class visitor_env {
     actuator_table m_actuators;
 
 
-
+    bool m_in_logical = false;
+    std::vector<std::string> m_contextual_owners;
     std::string m_support_name;
     std::string m_current_def_name;
     std::vector<input*> m_collective_inputs;
@@ -110,8 +111,7 @@ class visitor_env {
     std::optional<dataflow_type> lookup_contextual(const std::string& var) const;
 
     template <typename V>
-    V* lookup_contextual_node(const std::string& var) const {
-        const std::string& owner = m_support_name.empty() ? m_current_def_name : m_support_name;
+    V* contextual_node_of(const std::string& owner, const std::string& var) const {
         auto node = m_contextual_nodes.find(owner);
         if (node == m_contextual_nodes.end()) {
             return nullptr;
@@ -119,7 +119,21 @@ class visitor_env {
         auto it = node->second.find(var);
         return it == node->second.end() ? nullptr : dynamic_cast<V*>(it->second);
     }
+
+    template <typename V>
+    V* lookup_contextual_node(const std::string& var) const {
+        const std::string& owner = m_support_name.empty() ? m_current_def_name : m_support_name;
+        if (auto* found = contextual_node_of<V>(owner, var)) {
+            return found;
+        }
+        if (!m_in_logical) {
+            return nullptr;
+        }
+        std::string node = unique_contextual_owner(var);
+        return node.empty() ? nullptr : contextual_node_of<V>(node, var);
+    }
     
+    std::string unique_contextual_owner(const std::string& var) const;
 	void declare_parameter(const std::string& function, const std::string& var, dataflow_type type);
     void declare_sensor(const std::string& function, const std::string& sensor, dataflow_type type);
     std::optional<dataflow_type> lookup_parameter(const std::string& function, const std::string& var) const;

@@ -19,13 +19,13 @@ package ChipsModel
     
     extern function int chips_max_ticks()
     
-    extern function then_addi(chips_int a, chips_int b, chips_int ticks, chips_int out)
+    extern function then_addi(chips_int a, chips_int b, chips_int out)
     
-    extern function init_addi(chips_int a, chips_int b, chips_int ticks, chips_int out)
+    extern function init_addi(chips_int a, chips_int b, chips_int out)
     
-    extern function then_consumer(chips_int kw_data)
+    extern function then_buffer(chips_int kw_data, chips_int out)
     
-    extern function init_consumer(chips_int kw_data)
+    extern function init_buffer(chips_int kw_data, chips_int out)
 
 
 
@@ -146,8 +146,6 @@ package ChipsModel
         
         data chips_int b_aidd_input
         
-        data chips_int ticks_aidd_inner
-        
         data chips_int out_aidd_output
         
         data int ticks
@@ -167,9 +165,8 @@ package ChipsModel
                 ticks = 0;
                 a_aidd_input = create_chips_int(1);
                 b_aidd_input = create_chips_int(1);
-                ticks_aidd_inner = create_chips_int(1);
                 out_aidd_output = create_chips_int(1);
-                init_addi(a_aidd_input, b_aidd_input, ticks_aidd_inner, out_aidd_output);
+                init_addi(a_aidd_input, b_aidd_input, out_aidd_output);
             }
             
             on starts_addi_portdecl
@@ -192,7 +189,7 @@ package ChipsModel
                 to SEND
                 provided ((ticks  <  chips_max_ticks()))
                 do {
-                        then_addi(a_aidd_input, b_aidd_input, ticks_aidd_inner, out_aidd_output);
+                        then_addi(a_aidd_input, b_aidd_input, out_aidd_output);
                         ticks = (ticks  +  1);
                 }
             
@@ -210,48 +207,63 @@ package ChipsModel
     end
 
     
-    atom type consumer_core (const bool starts_consumer)
+    atom type buffer_core (const bool starts_buffer)
     
         
         data chips_int kw_data_aidd_input
         
+        data chips_int out_aidd_output
+        
         data int ticks
         
         
-        export port int_port_t consumer_recv_portdecl(kw_data_aidd_input)
+        export port int_port_t buffer_send_portdecl(out_aidd_output)
         
-        port port_t starts_consumer_portdecl()
+        export port int_port_t buffer_recv_portdecl(kw_data_aidd_input)
         
-        port port_t then_consumer_portdecl()
+        port port_t starts_buffer_portdecl()
         
-        place INIT, RECEIVE, THEN, DONE
+        port port_t then_buffer_portdecl()
+        
+        place INIT, RECEIVE, THEN, SEND, DONE
         initial to INIT
             do {
                 ticks = 0;
                 kw_data_aidd_input = create_chips_int(1);
-                init_consumer(kw_data_aidd_input);
+                out_aidd_output = create_chips_int(1);
+                init_buffer(kw_data_aidd_input, out_aidd_output);
             }
             
-            on starts_consumer_portdecl
+            on starts_buffer_portdecl
                 from INIT
                 to RECEIVE
-                provided (true)
+                provided (! starts_buffer)
             
-            on consumer_recv_portdecl
+            on starts_buffer_portdecl
+                from INIT
+                to SEND
+                provided (starts_buffer)
+            
+            on buffer_recv_portdecl
                 from RECEIVE
                 to THEN
                 provided (true)
             
-            on then_consumer_portdecl
+            on then_buffer_portdecl
                 from THEN
-                to RECEIVE
+                to SEND
                 provided ((ticks  <  chips_max_ticks()))
                 do {
-                        then_consumer(kw_data_aidd_input);
+                        then_buffer(kw_data_aidd_input, out_aidd_output);
                         ticks = (ticks  +  1);
                 }
             
-            on then_consumer_portdecl
+            on buffer_send_portdecl
+                from SEND
+                to RECEIVE
+                provided (true)
+            
+            on then_buffer_portdecl
                 from THEN
                 to DONE
                 provided ((ticks  >=  chips_max_ticks()))
@@ -464,28 +476,30 @@ package ChipsModel
     end
 
     
-    compound type consumer_compoundtype (const bool starts_param_of_consumer)
+    compound type buffer_compoundtype (const bool starts_param_of_buffer)
     
-        component consumer_core core (starts_param_of_consumer)
-        component int_input_buffer_t consumer_input_buffer_buffer_compounddecl ()
+        component buffer_core core (starts_param_of_buffer)
+        component int_input_buffer_t buffer_input_buffer_buffer_compounddecl ()
+        component int_output_buffer_t buffer_output_buffer_buffer_compounddecl ()
     
-        connector flow_int_t input_to_core_cd (consumer_input_buffer_buffer_compounddecl.one_cepd, core.consumer_recv_portdecl)
+        connector flow_int_t input_to_core_cd (buffer_input_buffer_buffer_compounddecl.one_cepd, core.buffer_recv_portdecl)
+        connector flow_int_t core_to_output_cd (core.buffer_send_portdecl, buffer_output_buffer_buffer_compounddecl.one_cepd)
     
-        export port consumer_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as kw_data_input_cepd
+        export port buffer_input_buffer_buffer_compounddecl.int0_input_cepd_cepd as kw_data_input_cepd
+        export port buffer_output_buffer_buffer_compounddecl.int0_output_cepd_cepd as out_output_cepd
     
     end
 
     
     compound type SYSTEM_COMPOUND ()
     
-        component addi_compoundtype helloworld_1_compounddecl (false)
-        component int_constant_t cst2 (2)
-        component int_constant_t cst1 (40)
-        component consumer_compoundtype goodbyeworld_1_compounddecl (false)
+        component addi_compoundtype comp_1_compounddecl (true)
+        component buffer_compoundtype b_1_compounddecl (false)
+        component int_constant_t cst1 (1)
     
-        connector flow_int_t from_helloworld_0_out_to_goodbyeworld_0_kw_data_cd (helloworld_1_compounddecl.out_output_cepd, goodbyeworld_1_compounddecl.kw_data_input_cepd)
-        connector flow_int_t from_direct_expression1_to_helloworld_0_a_cd (cst1.int_output_portdecl, helloworld_1_compounddecl.a_input_cepd)
-        connector flow_int_t from_direct_expression2_to_helloworld_0_b_cd (cst2.int_output_portdecl, helloworld_1_compounddecl.b_input_cepd)
+        connector flow_int_t from_direct_expression1_to_comp_0_a_cd (cst1.int_output_portdecl, comp_1_compounddecl.a_input_cepd)
+        connector flow_int_t from_b_0_out_to_comp_0_b_cd (b_1_compounddecl.out_output_cepd, comp_1_compounddecl.b_input_cepd)
+        connector flow_int_t from_comp_0_out_to_b_0_kw_data_cd (comp_1_compounddecl.out_output_cepd, b_1_compounddecl.kw_data_input_cepd)
     
     end
 end

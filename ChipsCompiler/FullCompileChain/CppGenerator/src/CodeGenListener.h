@@ -90,7 +90,15 @@ private:
     static std::string joinSortedByName(std::vector<std::pair<std::string, std::string>> namedDecls);
     static std::string dfTypeName(ChipsParser::Df_typeContext *typeCtx);
     static ChipsParser::Df_typeContext *pdfParameterType(ChipsParser::Pdf_parameter_declContext *param);
-    std::string translateContextualParams(ChipsParser::P_function_defContext *ctx);
+    std::string translateContextualParams();
+    std::map<DefType, std::map<std::string, std::string>> fn_contextuals_;
+    bool lookupContextualType(const std::string &name, std::string &type) const;
+    static void collectFunctionContextualUses(antlr4::tree::ParseTree *node, std::vector<std::pair<std::string, antlr4::ParserRuleContext *>> &uses);
+    std::string spreadRootFunction(ChipsParser::Collective_op_defContext *ctx);
+    std::string accumulatorInitialization(ChipsParser::Collective_op_defContext *ctx, int indent);
+    std::vector<std::string> sortedChannelNames(ChipsParser::Collective_op_defContext *ctx) const;
+    std::string channelOutputVar(ChipsParser::Collective_op_defContext *ctx, const std::string &chanName);
+    void computeFunctionContextuals(antlr4::tree::ParseTree *defCtx, const ObjectType *ownKey);
 
     bool lookupVarType(const std::string &name, std::string &type) const;
     bool isParameterOfCurrentDef(const std::string &name) const;
