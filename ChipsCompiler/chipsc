@@ -34,6 +34,7 @@ declare -A DESCRIPTIONS=(
     ["--cpp-only"]="Only generate the c++ procedures relative to <file> components. Only works with .chips files."
     ["--max-ticks"]="Maximum number of computation cycles after which every component stops (default: 10000)."
     ["--metrics"]="Print the time spent in each step and statistics about the models."
+    ["--include"]="Prepend the content of the chips <lib> file to <file> before compiling it. Can be given several times: the files are prepended in the given order. An included file must not contain a system section. Only works with .chips files."
     ["-o"]="The name of the folder in which to store the model elements generated. If no <folder> is specified, artifacts will be stored in CHIPS_GENERATED."
 )
 
@@ -52,6 +53,7 @@ print_usage() {
     printf "  %-17s %s\n" "--cpp-only" "${DESCRIPTIONS["--cpp-only"]}"
     printf "  %-17s %s\n" "--max-ticks <n>" "${DESCRIPTIONS["--max-ticks"]}"
     printf "  %-17s %s\n" "--metrics" "${DESCRIPTIONS["--metrics"]}"
+    printf "  %-17s %s\n" "--include <lib>" "${DESCRIPTIONS["--include"]}"
     printf "  %-17s %s\n" "-o <folder>" "${DESCRIPTIONS["-o"]}"
 }
 
@@ -74,6 +76,7 @@ STOP_FLAGS=()
 MAX_TICKS=""
 METRICS=0
 OUTPUT_DIR=""
+INCLUDES=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -97,6 +100,15 @@ while [[ $# -gt 0 ]]; do
         --metrics)
             METRICS=1
             shift
+            ;;
+        --include)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --include requires a value." >&2
+                print_usage
+                exit 1
+            fi
+            INCLUDES+=("$2")
+            shift 2
             ;;
         -o)
             if [[ $# -lt 2 ]]; then
@@ -179,6 +191,22 @@ case "$STOP_FLAG" in
     --cpp-only)  require_format "$STOP_FLAG" chips ;;
 esac
 
+if [[ "${#INCLUDES[@]}" -gt 0 && "$FORMAT" != "chips" ]]; then
+    echo "Error: --include only works with .chips files." >&2
+    exit 1
+fi
+
+for include in "${INCLUDES[@]}"; do
+    if [[ ! -f "$include" ]]; then
+        echo "Error: included file '$include' does not exist." >&2
+        exit 1
+    fi
+    if sed -e 's://.*$::' -- "$include" | grep -qE '(^|[^[:alnum:]_])(system|SYSTEM)[[:space:]]*(\{|$)'; then
+        echo "Error: included file '$include' must not contain a system section." >&2
+        exit 1
+    fi
+done
+
 if [[ -n "$MAX_TICKS" && "$FORMAT" != "chips" ]]; then
     echo "Error: --max-ticks only works with .chips files (it is used when generating the c++ procedures)." >&2
     exit 1
@@ -190,6 +218,85 @@ fi
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR="$(cd -- "$OUTPUT_DIR" && pwd)"
 FILE="$(cd -- "$(dirname -- "$FILE")" && pwd)/$(basename -- "$FILE")"
+
+absolute_path() {
+    echo "$(cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")"
+}
+
+CHIPS_SOURCE="$FILE"
+SOURCE_MAP=""
+if [[ "${#INCLUDES[@]}" -gt 0 ]]; then
+    MERGED_DIR="$OUTPUT_DIR/merged"
+    mkdir -p "$MERGED_DIR"
+    CHIPS_SOURCE="$MERGED_DIR/$(basename -- "$FILE")"
+    SOURCE_MAP="$CHIPS_SOURCE.map"
+    : > "$CHIPS_SOURCE"
+    : > "$SOURCE_MAP"
+    next_line=1
+    for part in "${INCLUDES[@]}" "$FILE"; do
+        part="$(absolute_path "$part")"
+        printf '%s\t%s\n' "$next_line" "$part" >> "$SOURCE_MAP"
+        cat -- "$part" >> "$CHIPS_SOURCE"
+        if [[ -s "$part" && "$(tail -c 1 -- "$part" | od -An -c | tr -d ' ')" != '\n' ]]; then
+            echo >> "$CHIPS_SOURCE"
+        fi
+        next_line=$(( $(wc -l < "$CHIPS_SOURCE") + 1 ))
+    done
+fi
+
+remap_positions() {
+    if [[ -z "$SOURCE_MAP" ]]; then
+        cat
+        return
+    fi
+    awk -v map="$SOURCE_MAP" -v merged="$CHIPS_SOURCE" '
+        BEGIN {
+            n = 0
+            while ((getline entry < map) > 0) {
+                split(entry, parts, "\t")
+                n++
+                first[n] = parts[1] + 0
+                path[n] = parts[2]
+            }
+        }
+        function locate(line,    i, k) {
+            k = 0
+            for (i = 1; i <= n; i++)
+                if (first[i] <= line)
+                    k = i
+            return k
+        }
+        function position(line, column,    k) {
+            k = locate(line)
+            if (k == 0)
+                return merged ":" line ":" column
+            return path[k] ":" (line - first[k] + 1) ":" column
+        }
+        {
+            out = ""
+            rest = $0
+            while (1) {
+                if (match(rest, /line [0-9]+, column [0-9]+/)) {
+                    token = substr(rest, RSTART, RLENGTH)
+                    split(token, f, /[^0-9]+/)
+                    out = out substr(rest, 1, RSTART - 1) position(f[2] + 0, f[3] + 0)
+                    rest = substr(rest, RSTART + RLENGTH)
+                } else if (match(rest, /line [0-9]+:[0-9]+/)) {
+                    token = substr(rest, RSTART, RLENGTH)
+                    split(token, f, /[^0-9]+/)
+                    out = out substr(rest, 1, RSTART - 1) position(f[2] + 0, f[3] + 0)
+                    rest = substr(rest, RSTART + RLENGTH)
+                } else if ((i = index(rest, merged ":")) > 0 && match(substr(rest, i + length(merged) + 1), /^[0-9]+:[0-9]+/)) {
+                    token = substr(rest, i + length(merged) + 1, RLENGTH)
+                    split(token, f, ":")
+                    out = out substr(rest, 1, i - 1) position(f[1] + 0, f[2] + 0)
+                    rest = substr(rest, i + length(merged) + 1 + RLENGTH)
+                } else
+                    break
+            }
+            print out rest
+        }'
+}
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +310,7 @@ run_step() {
     local log_file="$2"
     shift 2
 
-    echo "${YELLOW}running:${RESET} $*"
+    echo "${YELLOW}running : $*${RESET}"
     local start_time end_time elapsed
     start_time=$(date +%s.%N)
 
@@ -226,7 +333,7 @@ run_step() {
 
         if [[ -f "$log_file" ]]; then
             echo "-------------------- BEGIN LOG --------------------"
-            cat "$log_file"
+            remap_positions < "$log_file"
             echo "--------------------- END LOG ---------------------"
         else
             echo "WARNING: Log file '$log_file' does not exist."
@@ -240,7 +347,6 @@ run_step() {
     STEP_DURATIONS+=("$elapsed")
 
     echo "${GREEN}Step '$step_name' completed successfully in ${elapsed}s.${RESET}"
-    echo "---------------------------------------------------"
 }
 
 in_dir() {
@@ -267,7 +373,7 @@ print_timing_summary() {
 print_model_statistics() {
     echo
     if [[ "$FORMAT" == "chips" ]]; then
-        printf "  %-30s %s\n" "Lines of the chips model" "$(wc -l < "$FILE")"
+        printf "  %-30s %s\n" "Lines of the chips model" "$(wc -l < "$CHIPS_SOURCE")"
     fi
     if [[ -n "${BIP_FILE:-}" && -f "$BIP_FILE" ]]; then
         local components connectors
@@ -329,7 +435,7 @@ if stage_selected 1; then
         "CHIPS -> CHIPS XMI" \
         "$OUTPUT_DIR/ChipsXmiGeneratorDebug.log" \
         "$CHIPS_PARSER" \
-        "$FILE" \
+        "$CHIPS_SOURCE" \
         "$CHIPS_XMI_FILE"
 fi
 
@@ -347,7 +453,8 @@ if stage_selected 2; then
 fi
 
 if [[ "$DO_CPP" -eq 1 ]]; then
-    CPP_ARGS=("$FILE" -o "$OUTPUT_DIR/$CPP_BASENAME.cpp")
+    CPP_ARGS=("$CHIPS_SOURCE" -o "$OUTPUT_DIR/$CPP_BASENAME.cpp")
+    [[ -n "$SOURCE_MAP" ]] && CPP_ARGS+=(-source-map "$SOURCE_MAP")
     [[ -n "$MAX_TICKS" ]] && CPP_ARGS+=(-max-ticks "$MAX_TICKS")
     run_step \
         "CHIPS -> C++" \

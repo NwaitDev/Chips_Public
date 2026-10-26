@@ -152,8 +152,41 @@ std::string section_banner(const std::string &title)
     return "//" + rule + "\n//" + title + "\n//" + rule + "\n\n";
 }
 
+using SourceSegments = std::vector<std::pair<int, std::string>>;
+
+SourceSegments read_source_map(const std::string &path)
+{
+    std::ifstream in(path);
+    if (!in)
+        throw std::runtime_error("cannot open source map '" + path + "'");
+    SourceSegments segments;
+    std::string line;
+    while (std::getline(in, line))
+    {
+        if (line.empty())
+            continue;
+        const std::size_t tab = line.find('\t');
+        if (tab == std::string::npos)
+            throw std::runtime_error("malformed line in source map '" + path + "': " + line);
+        segments.emplace_back(std::stoi(line.substr(0, tab)), line.substr(tab + 1));
+    }
+    return segments;
+}
+
+std::pair<std::string, std::size_t> original_position(const SourceSegments &segments, const std::string &mergedPath, std::size_t line)
+{
+    const std::pair<int, std::string> *found = nullptr;
+    for (const auto &segment : segments)
+        if (static_cast<std::size_t>(segment.first) <= line)
+            found = &segment;
+    if (!found)
+        return {mergedPath, line};
+    return {found->second, line - static_cast<std::size_t>(found->first) + 1};
+}
+
 void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeaderPath,
-                  const std::filesystem::path &hppPath, const std::filesystem::path &cppPath, long long maxTicks)
+                  const std::filesystem::path &hppPath, const std::filesystem::path &cppPath, long long maxTicks,
+                  const SourceSegments &segments)
 {
     antlr4::ANTLRInputStream inputStream(read_file(chipsPath));
     ChipsLexer lexer(&inputStream);
@@ -165,6 +198,7 @@ void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeader
     std::ostringstream sourceBody;
     CodeGenListener listener(tokens, headerBody, sourceBody);
     listener.setSourcePath(chipsPath);
+    listener.setSourceSegments(segments);
     listener.setMaxTicks(maxTicks);
     antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
@@ -193,7 +227,8 @@ int main(int argc, char **argv)
         {"input", "path to the chips file to compile"},
         {"-o", "path of the generated source file (default: bip_importable.cpp)"},
         {"-oh", "path of the generated header file (default: the source path with a .hpp extension)"},
-        {"-max-ticks", "number of THEN cycles after which each core component stops (default: 1000)"}};
+        {"-max-ticks", "number of THEN cycles after which each core component stops (default: 1000)"},
+        {"-source-map", "file mapping the lines of <input> to the files it was merged from (one '<first line>\\t<path>' per line)"}};
 
     std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
 
@@ -226,13 +261,17 @@ int main(int argc, char **argv)
         }
     }
 
+    SourceSegments segments;
     try
     {
-        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath, maxTicks);
+        if (args.count("-source-map"))
+            segments = read_source_map(args.at("-source-map"));
+        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath, maxTicks, segments);
     }
     catch (const ChipsGenerationError &e)
     {
-        std::cerr << chipsPath << ":" << e.line() << ":" << e.column() << ": error: " << e.message() << std::endl;
+        const auto [path, line] = original_position(segments, chipsPath, e.line());
+        std::cerr << path << ":" << line << ":" << e.column() << ": error: " << e.message() << std::endl;
         return 1;
     }
     catch (const std::exception &e)

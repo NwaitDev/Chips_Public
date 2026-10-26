@@ -394,15 +394,28 @@ void CodeGenListener::setMaxTicks(long long maxTicks)
     maxTicks_ = maxTicks;
 }
 
-void CodeGenListener::setSourcePath(const std::string &path)
+std::string CodeGenListener::escapeCString(const std::string &text)
 {
-    sourcePath_.clear();
-    for (char c : path)
+    std::string out;
+    for (char c : text)
     {
         if (c == '\\' || c == '"')
-            sourcePath_ += '\\';
-        sourcePath_ += c;
+            out += '\\';
+        out += c;
     }
+    return out;
+}
+
+void CodeGenListener::setSourcePath(const std::string &path)
+{
+    sourcePath_ = escapeCString(path);
+}
+
+void CodeGenListener::setSourceSegments(const std::vector<std::pair<int, std::string>> &segments)
+{
+    sourceSegments_.clear();
+    for (const auto &[firstLine, path] : segments)
+        sourceSegments_.emplace_back(firstLine, escapeCString(path));
 }
 
 std::string CodeGenListener::statementGuard(antlr4::ParserRuleContext *ctx, int indent, const std::string &) const
@@ -1176,7 +1189,16 @@ void CodeGenListener::exitProgram(ChipsParser::ProgramContext *)
 
 void CodeGenListener::enterProgram(ChipsParser::ProgramContext *ctx)
 {
-    source_out_ << "const char *const chips_diag::source_file = \"" << (sourcePath_.empty() ? std::string("<unknown file>") : sourcePath_) << "\";\n\n";
+    const std::string sourceFile = sourcePath_.empty() ? std::string("<unknown file>") : sourcePath_;
+    source_out_ << "const char *const chips_diag::source_file = \"" << sourceFile << "\";\n\n";
+    const auto segments = sourceSegments_.empty()
+        ? std::vector<std::pair<int, std::string>>{{1, sourceFile}}
+        : sourceSegments_;
+    source_out_ << "const chips_diag::source_segment chips_diag::source_segments[] = {";
+    for (std::size_t i = 0; i < segments.size(); ++i)
+        source_out_ << (i ? ", " : "") << "{" << segments[i].first << ", \"" << segments[i].second << "\"}";
+    source_out_ << "};\n";
+    source_out_ << "const std::size_t chips_diag::source_segment_count = " << segments.size() << ";\n\n";
     header_out_ << "constexpr int CHIPS_MAX_TICKS = " << maxTicks_ << ";\n\n";
     header_out_ << "inline int chips_max_ticks()\n{\n    return CHIPS_MAX_TICKS;\n}\n\n";
     for (auto *preamble : ctx->preamble())

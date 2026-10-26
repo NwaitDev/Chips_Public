@@ -22,6 +22,23 @@ struct chips_diag
 {
     static const char *const source_file;
 
+    struct source_segment
+    {
+        int first_line;
+        const char *path;
+    };
+    static const source_segment source_segments[];
+    static const std::size_t source_segment_count;
+
+    static const source_segment *segment_of(int line) noexcept
+    {
+        const source_segment *found = nullptr;
+        for (std::size_t i = 0; i < source_segment_count; ++i)
+            if (source_segments[i].first_line <= line)
+                found = &source_segments[i];
+        return found;
+    }
+
     static inline thread_local int current_line = 0;
     static inline thread_local int current_column = 0;
 
@@ -53,9 +70,9 @@ struct chips_diag
         return out + "}";
     }
 
-    static std::string statement_text(int line, int column)
+    static std::string statement_text(const char *path, int line, int column)
     {
-        std::ifstream in(source_file);
+        std::ifstream in(path);
         if (!in)
             return std::string();
 
@@ -83,9 +100,12 @@ struct chips_diag
     {
         if (current_line <= 0)
             return std::string();
-        std::string out = std::string("\n    at ") + source_file + ":" +
-                          std::to_string(current_line) + ":" + std::to_string(current_column);
-        const std::string text = statement_text(current_line, current_column);
+        const source_segment *segment = segment_of(current_line);
+        const char *path = segment ? segment->path : source_file;
+        const int line = segment ? current_line - segment->first_line + 1 : current_line;
+        std::string out = std::string("\n    at ") + path + ":" +
+                          std::to_string(line) + ":" + std::to_string(current_column);
+        const std::string text = statement_text(path, line, current_column);
         if (!text.empty())
             out += ": " + text;
         return out;
