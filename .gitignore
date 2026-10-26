@@ -1,12 +1,13 @@
 ChipsCompiler/ATL Chips2BIP/models/output.xmi
 ChipsCompiler/ATL Chips2BIP/emftvm.class
 ChipsCompiler/ATL Chips2BIP/transformations/chips2bip.emftvm
-ChipsCompiler/Chips_Parser/build
-ChipsCompiler/Chips_Parser/generated
-ChipsCompiler/Chips_Parser/.antlr
+ChipsCompiler/FullCompileChain/Chips_Parser/build
+ChipsCompiler/FullCompileChain/Chips_Parser/generated
+ChipsCompiler/FullCompileChain/Chips_Parser/.antlr
 ChipsCompiler/ATL Chips2BIP/models/TeaStoreVariation.xmi
 *.bip.xmi
 *.class
+*.o
 venv/*
 *.emftvm
 *.antlr
@@ -19,10 +20,15 @@ ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariat
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/output/TeaStoreVariation.bip
 ChipsCompiler/FullCompileChain/Chips2BipTransformer/examplemodels/TeaStoreVariation.bip.xmi
 *.emftvm
-*/build/*
+**/build/*
 */generated/*
 .vscode/*
 *.class
-ChipsCompiler/Chips_Parser/build/
-ChipsCompiler/Chips_Parser/generated/
+ChipsCompiler/FullCompileChain/Chips_Parser/build/
+ChipsCompiler/FullCompileChain/Chips_Parser/generated/
 *.log
+ChipsCompiler/FullCompileChain/Chips2BipTransformer/venv
+ChipsCompiler/FullCompileChain/Chips2CppTransformer/build
+ChipsCompiler/FullCompileChain/ChipsXmiGenerator/chipsparser
+ChipsCompiler/FullCompileChain/BipCompiler/Compiler/Frontend/ujf.verimag.bip.userinterface.cli/src/main/java/ujf/verimag/bip/userinterface/cli/Version.java
+**/CHIPS_GENERATED/

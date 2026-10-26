@@ -1,0 +1,544 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+CHIPS_PARSER="$SCRIPT_DIR/FullCompileChain/ChipsXmiGenerator/chipsparser"
+ATL_RUNNER="$SCRIPT_DIR/FullCompileChain/BipXmiGenerator/emftvm.sh"
+CHIPS_METAMODEL="$SCRIPT_DIR/FullCompileChain/metamodels/chips1.1.ecore"
+BIP_METAMODEL="$SCRIPT_DIR/FullCompileChain/metamodels/BIP.ecore"
+ATL_TRANSFORMATION="$SCRIPT_DIR/FullCompileChain/BipXmiGenerator/transformations/chips2bip.atl"
+CPP_GENERATOR="$SCRIPT_DIR/FullCompileChain/CppGenerator/build/Chips2Cpp"
+BIPC="$SCRIPT_DIR/FullCompileChain/BipCompiler/distribution/build/bipc-latest/bin/bipc"
+
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    YELLOW=$'\033[33m'
+    GREEN=$'\033[32m'
+    RESET=$'\033[0m'
+else
+    YELLOW=""
+    GREEN=""
+    RESET=""
+fi
+
+ROOT_COMPONENT="SYSTEM_COMPOUND"
+CPP_BASENAME="bip_importable"
+
+declare -A DESCRIPTIONS=(
+    ["-h"]="Print this message."
+    ["-i"]="Print information about this software."
+    ["file"]="Source file to work with. Accepted formats are .chips, .chips.xmi, .bip.xmi or .bip."
+    ["--chips-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> chips model. Only works with .chips files."
+    ["--bip-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> equivalent bip model. Only works with .chips and .chips.xmi files."
+    ["--bip"]="Stop the compilation after having generated the bip model of <file>. Only works with .chips, .chips.xmi and .bip.xmi files."
+    ["--cpp-only"]="Only generate the c++ procedures relative to <file> components. Only works with .chips files."
+    ["--max-ticks"]="Maximum number of computation cycles after which every component stops (default: 10000)."
+    ["--metrics"]="Print the time spent in each step and statistics about the models."
+    ["--include"]="Prepend the content of the chips <lib> file to <file> before compiling it. Can be given several times: the files are prepended in the given order. An included file must not contain a system section. Only works with .chips files."
+    ["-o"]="The name of the folder in which to store the model elements generated. If no <folder> is specified, artifacts will be stored in CHIPS_GENERATED."
+)
+
+print_usage() {
+    echo "Usage: $(basename "$0") [options] <file>"
+    echo
+    echo "Positional arguments:"
+    printf "  %-17s %s\n" "file" "${DESCRIPTIONS["file"]}"
+    echo
+    echo "Options:"
+    printf "  %-17s %s\n" "-h" "${DESCRIPTIONS["-h"]}"
+    printf "  %-17s %s\n" "-i" "${DESCRIPTIONS["-i"]}"
+    printf "  %-17s %s\n" "--chips-xmi" "${DESCRIPTIONS["--chips-xmi"]}"
+    printf "  %-17s %s\n" "--bip-xmi" "${DESCRIPTIONS["--bip-xmi"]}"
+    printf "  %-17s %s\n" "--bip" "${DESCRIPTIONS["--bip"]}"
+    printf "  %-17s %s\n" "--cpp-only" "${DESCRIPTIONS["--cpp-only"]}"
+    printf "  %-17s %s\n" "--max-ticks <n>" "${DESCRIPTIONS["--max-ticks"]}"
+    printf "  %-17s %s\n" "--metrics" "${DESCRIPTIONS["--metrics"]}"
+    printf "  %-17s %s\n" "--include <lib>" "${DESCRIPTIONS["--include"]}"
+    printf "  %-17s %s\n" "-o <folder>" "${DESCRIPTIONS["-o"]}"
+}
+
+print_info() {
+    echo " ▗▄▄▖▐▌   ▄ ▄▄▄▄   ▄▄▄      ▗▄▄▖▄▄▄  ▄▄▄▄  ▄▄▄▄  ▄ █ ▗▞▀▚▖ ▄▄▄ "
+    echo "▐▌   ▐▌   ▄ █   █ ▀▄▄      ▐▌  █   █ █ █ █ █   █ ▄ █ ▐▛▀▀▘█    "
+    echo "▐▌   ▐▛▀▚▖█ █▄▄▄▀ ▄▄▄▀     ▐▌  ▀▄▄▄▀ █   █ █▄▄▄▀ █ █ ▝▚▄▄▖█    "
+    echo "▝▚▄▄▖▐▌ ▐▌█ █              ▝▚▄▄▖           █     █ █           "
+    echo "            ▀                              ▀                   "
+    echo ""
+    echo "v1.0.0 October 2026"
+    echo "The command line interface for the interpretation of"
+    echo "Distributed Cyber-Physical Systems specifications in"
+    echo "the Chips language."
+}
+
+
+FILE=""
+STOP_FLAGS=()
+MAX_TICKS=""
+METRICS=0
+OUTPUT_DIR=""
+INCLUDES=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --chips-xmi|--bip-xmi|--bip|--cpp-only)
+            STOP_FLAGS+=("$1")
+            shift
+            ;;
+        --max-ticks)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --max-ticks requires a value." >&2
+                print_usage
+                exit 1
+            fi
+            if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+                echo "Error: --max-ticks expects a non-negative integer, got '$2'." >&2
+                exit 1
+            fi
+            MAX_TICKS="$2"
+            shift 2
+            ;;
+        --metrics)
+            METRICS=1
+            shift
+            ;;
+        --include)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --include requires a value." >&2
+                print_usage
+                exit 1
+            fi
+            INCLUDES+=("$2")
+            shift 2
+            ;;
+        -o)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: -o requires a value." >&2
+                print_usage
+                exit 1
+            fi
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -h)
+            print_usage
+            exit 0
+            ;;
+        -i)
+            print_info
+            exit 0
+            ;;
+        -*)
+            echo "Error: unknown option '$1'." >&2
+            print_usage
+            exit 1
+            ;;
+        *)
+            if [[ -n "$FILE" ]]; then
+                echo "Error: unexpected extra positional argument '$1'." >&2
+                print_usage
+                exit 1
+            fi
+            FILE="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$FILE" ]]; then
+    echo "Error: missing required <file> argument." >&2
+    print_usage
+    exit 1
+fi
+
+if [[ ! -f "$FILE" ]]; then
+    echo "Error: '$FILE' does not exist." >&2
+    exit 1
+fi
+
+if [[ "${#STOP_FLAGS[@]}" -gt 1 ]]; then
+    echo "Error: only one of --chips-xmi, --bip-xmi, --bip and --cpp-only can be given." >&2
+    exit 1
+fi
+STOP_FLAG="${STOP_FLAGS[0]:-}"
+
+case "$FILE" in
+    *.chips.xmi) FORMAT="chips.xmi" ;;
+    *.bip.xmi)   FORMAT="bip.xmi" ;;
+    *.chips)     FORMAT="chips" ;;
+    *.bip)       FORMAT="bip" ;;
+    *)
+        echo "Error: unrecognized file format for '$FILE'." >&2
+        echo "Accepted formats are .chips, .chips.xmi, .bip.xmi or .bip." >&2
+        exit 1
+        ;;
+esac
+
+require_format() {
+    local flag="$1"
+    shift
+    local f
+    for f in "$@"; do
+        [[ "$FORMAT" == "$f" ]] && return 0
+    done
+    echo "Error: $flag does not work with .$FORMAT files." >&2
+    exit 1
+}
+
+case "$STOP_FLAG" in
+    --chips-xmi) require_format "$STOP_FLAG" chips ;;
+    --bip-xmi)   require_format "$STOP_FLAG" chips chips.xmi ;;
+    --bip)       require_format "$STOP_FLAG" chips chips.xmi bip.xmi ;;
+    --cpp-only)  require_format "$STOP_FLAG" chips ;;
+esac
+
+if [[ "${#INCLUDES[@]}" -gt 0 && "$FORMAT" != "chips" ]]; then
+    echo "Error: --include only works with .chips files." >&2
+    exit 1
+fi
+
+for include in "${INCLUDES[@]}"; do
+    if [[ ! -f "$include" ]]; then
+        echo "Error: included file '$include' does not exist." >&2
+        exit 1
+    fi
+    if sed -e 's://.*$::' -- "$include" | grep -qE '(^|[^[:alnum:]_])(system|SYSTEM)[[:space:]]*(\{|$)'; then
+        echo "Error: included file '$include' must not contain a system section." >&2
+        exit 1
+    fi
+done
+
+if [[ -n "$MAX_TICKS" && "$FORMAT" != "chips" ]]; then
+    echo "Error: --max-ticks only works with .chips files (it is used when generating the c++ procedures)." >&2
+    exit 1
+fi
+
+if [[ -z "$OUTPUT_DIR" ]]; then
+    OUTPUT_DIR="CHIPS_GENERATED"
+fi
+mkdir -p "$OUTPUT_DIR"
+OUTPUT_DIR="$(cd -- "$OUTPUT_DIR" && pwd)"
+FILE="$(cd -- "$(dirname -- "$FILE")" && pwd)/$(basename -- "$FILE")"
+
+absolute_path() {
+    echo "$(cd -- "$(dirname -- "$1")" && pwd)/$(basename -- "$1")"
+}
+
+CHIPS_SOURCE="$FILE"
+SOURCE_MAP=""
+if [[ "${#INCLUDES[@]}" -gt 0 ]]; then
+    MERGED_DIR="$OUTPUT_DIR/merged"
+    mkdir -p "$MERGED_DIR"
+    CHIPS_SOURCE="$MERGED_DIR/$(basename -- "$FILE")"
+    SOURCE_MAP="$CHIPS_SOURCE.map"
+    : > "$CHIPS_SOURCE"
+    : > "$SOURCE_MAP"
+    next_line=1
+    for part in "${INCLUDES[@]}" "$FILE"; do
+        part="$(absolute_path "$part")"
+        printf '%s\t%s\n' "$next_line" "$part" >> "$SOURCE_MAP"
+        cat -- "$part" >> "$CHIPS_SOURCE"
+        if [[ -s "$part" && "$(tail -c 1 -- "$part" | od -An -c | tr -d ' ')" != '\n' ]]; then
+            echo >> "$CHIPS_SOURCE"
+        fi
+        next_line=$(( $(wc -l < "$CHIPS_SOURCE") + 1 ))
+    done
+fi
+
+remap_positions() {
+    if [[ -z "$SOURCE_MAP" ]]; then
+        cat
+        return
+    fi
+    awk -v map="$SOURCE_MAP" -v merged="$CHIPS_SOURCE" '
+        BEGIN {
+            n = 0
+            while ((getline entry < map) > 0) {
+                split(entry, parts, "\t")
+                n++
+                first[n] = parts[1] + 0
+                path[n] = parts[2]
+            }
+        }
+        function locate(line,    i, k) {
+            k = 0
+            for (i = 1; i <= n; i++)
+                if (first[i] <= line)
+                    k = i
+            return k
+        }
+        function position(line, column,    k) {
+            k = locate(line)
+            if (k == 0)
+                return merged ":" line ":" column
+            return path[k] ":" (line - first[k] + 1) ":" column
+        }
+        {
+            out = ""
+            rest = $0
+            while (1) {
+                if (match(rest, /line [0-9]+, column [0-9]+/)) {
+                    token = substr(rest, RSTART, RLENGTH)
+                    split(token, f, /[^0-9]+/)
+                    out = out substr(rest, 1, RSTART - 1) position(f[2] + 0, f[3] + 0)
+                    rest = substr(rest, RSTART + RLENGTH)
+                } else if (match(rest, /line [0-9]+:[0-9]+/)) {
+                    token = substr(rest, RSTART, RLENGTH)
+                    split(token, f, /[^0-9]+/)
+                    out = out substr(rest, 1, RSTART - 1) position(f[2] + 0, f[3] + 0)
+                    rest = substr(rest, RSTART + RLENGTH)
+                } else if ((i = index(rest, merged ":")) > 0 && match(substr(rest, i + length(merged) + 1), /^[0-9]+:[0-9]+/)) {
+                    token = substr(rest, i + length(merged) + 1, RLENGTH)
+                    split(token, f, ":")
+                    out = out substr(rest, 1, i - 1) position(f[1] + 0, f[2] + 0)
+                    rest = substr(rest, i + length(merged) + 1 + RLENGTH)
+                } else
+                    break
+            }
+            print out rest
+        }'
+}
+
+
+# ---------------------------------------------------------------------------
+# Pipeline error handling
+# ---------------------------------------------------------------------------
+STEP_NAMES=()
+STEP_DURATIONS=()
+
+run_step() {
+    local step_name="$1"
+    local log_file="$2"
+    shift 2
+
+    echo "${YELLOW}running : $*${RESET}"
+    local start_time end_time elapsed
+    start_time=$(date +%s.%N)
+
+    set +e
+    "$@" 2>"$log_file"
+    local status=$?
+    set -e
+
+    end_time=$(date +%s.%N)
+    elapsed=$(awk -v s="$start_time" -v e="$end_time" 'BEGIN { printf "%.3f", e - s }')
+
+    if [[ $status -ne 0 ]]; then
+        echo
+        echo "PIPELINE FAILED"
+        echo "Step: $step_name"
+        echo "Exit code: $status"
+        echo "Time elapsed: ${elapsed}s"
+        echo "Log file: $log_file"
+        echo
+
+        if [[ -f "$log_file" ]]; then
+            echo "-------------------- BEGIN LOG --------------------"
+            remap_positions < "$log_file"
+            echo "--------------------- END LOG ---------------------"
+        else
+            echo "WARNING: Log file '$log_file' does not exist."
+        fi
+
+        echo
+        exit "$status"
+    fi
+
+    STEP_NAMES+=("$step_name")
+    STEP_DURATIONS+=("$elapsed")
+
+    echo "${GREEN}Step '$step_name' completed successfully in ${elapsed}s.${RESET}"
+}
+
+in_dir() {
+    local dir="$1"
+    shift
+    (cd -- "$dir" && "$@")
+}
+
+print_timing_summary() {
+    if [[ "${#STEP_NAMES[@]}" -eq 0 ]]; then
+        return
+    fi
+
+    local total=0
+    local i
+    for i in "${!STEP_NAMES[@]}"; do
+        printf "  %-30s %ss\n" "${STEP_NAMES[$i]}" "${STEP_DURATIONS[$i]}"
+        total=$(awk -v t="$total" -v d="${STEP_DURATIONS[$i]}" 'BEGIN { printf "%.3f", t + d }')
+    done
+    echo "----------------------------------------------------------------"
+    printf "  %-30s %ss\n" "Total" "$total"
+}
+
+print_model_statistics() {
+    echo
+    if [[ "$FORMAT" == "chips" ]]; then
+        printf "  %-30s %s\n" "Lines of the chips model" "$(wc -l < "$CHIPS_SOURCE")"
+    fi
+    if [[ -n "${BIP_FILE:-}" && -f "$BIP_FILE" ]]; then
+        local components connectors
+        components=$(grep -cE '^[[:space:]]*component[[:space:]]' "$BIP_FILE" || true)
+        connectors=$(grep -E '^[[:space:]]*connector[[:space:]]' "$BIP_FILE" | grep -cvE '^[[:space:]]*connector[[:space:]]+type[[:space:]]' || true)
+        printf "  %-30s %s\n" "Components (instances)" "$components"
+        printf "  %-30s %s\n" "Connectors (instances)" "$connectors"
+        printf "  %-30s %s\n" "Lines of the bip model" "$(wc -l < "$BIP_FILE")"
+    fi
+}
+
+print_report() {
+    if [[ "$METRICS" -eq 1 ]]; then
+        print_timing_summary
+        print_model_statistics
+    fi
+}
+
+
+# ---------------------------------------------------------------------------
+# Decide which steps to run
+# ---------------------------------------------------------------------------
+# stages: 1 chips xmi, 2 bip xmi, 3 bip, 4 bip c++ project and system build
+case "$FORMAT" in
+    chips)     FIRST_STAGE=1 ;;
+    chips.xmi) FIRST_STAGE=2 ;;
+    bip.xmi)   FIRST_STAGE=3 ;;
+    bip)       FIRST_STAGE=4 ;;
+esac
+
+case "$STOP_FLAG" in
+    --chips-xmi) LAST_STAGE=1 ;;
+    --bip-xmi)   LAST_STAGE=2 ;;
+    --bip)       LAST_STAGE=3 ;;
+    --cpp-only)  LAST_STAGE=0 ;;
+    *)           LAST_STAGE=4 ;;
+esac
+
+stage_selected() {
+    [[ "$1" -ge "$FIRST_STAGE" && "$1" -le "$LAST_STAGE" ]]
+}
+
+DO_CPP=0
+if [[ "$FORMAT" == "chips" && ( "$STOP_FLAG" == "--cpp-only" || "$LAST_STAGE" -eq 4 ) ]]; then
+    DO_CPP=1
+fi
+
+CHIPS_XMI_FILE="$OUTPUT_DIR/out.chips.xmi"
+BIP_XMI_FILE="$OUTPUT_DIR/out.bip.xmi"
+BIP_FILE=""
+
+
+# ---------------------------------------------------------------------------
+# Run the steps
+# ---------------------------------------------------------------------------
+
+if stage_selected 1; then
+    run_step \
+        "CHIPS -> CHIPS XMI" \
+        "$OUTPUT_DIR/ChipsXmiGeneratorDebug.log" \
+        "$CHIPS_PARSER" \
+        "$CHIPS_SOURCE" \
+        "$CHIPS_XMI_FILE"
+fi
+
+if stage_selected 2; then
+    [[ "$FORMAT" == "chips.xmi" ]] && CHIPS_XMI_FILE="$FILE"
+    run_step \
+        "CHIPS XMI -> BIP XMI" \
+        "$OUTPUT_DIR/BipXmiGeneratorDebug.log" \
+        "$ATL_RUNNER" \
+        "$CHIPS_METAMODEL" \
+        "$BIP_METAMODEL" \
+        "$CHIPS_XMI_FILE" \
+        "$ATL_TRANSFORMATION" \
+        "$BIP_XMI_FILE"
+fi
+
+if [[ "$DO_CPP" -eq 1 ]]; then
+    CPP_ARGS=("$CHIPS_SOURCE" -o "$OUTPUT_DIR/$CPP_BASENAME.cpp")
+    [[ -n "$SOURCE_MAP" ]] && CPP_ARGS+=(-source-map "$SOURCE_MAP")
+    PROBE_FILE="$OUTPUT_DIR/$(basename -- "$FILE" .chips).probe.csv"
+    CPP_ARGS+=(-probe-file "$PROBE_FILE")
+    [[ -n "$MAX_TICKS" ]] && CPP_ARGS+=(-max-ticks "$MAX_TICKS")
+    run_step \
+        "CHIPS -> C++" \
+        "$OUTPUT_DIR/CppGeneratorDebug.log" \
+        "$CPP_GENERATOR" \
+        "${CPP_ARGS[@]}"
+fi
+
+if stage_selected 3; then
+    [[ "$FORMAT" == "bip.xmi" ]] && BIP_XMI_FILE="$FILE"
+    MARKER="$OUTPUT_DIR/.chipsc_bip_marker"
+    touch "$MARKER"
+    run_step \
+        "BIP XMI -> BIP" \
+        "$OUTPUT_DIR/BipGeneratorDebug.log" \
+        "$BIPC" \
+        --xmi "$BIP_XMI_FILE" \
+        -d "$ROOT_COMPONENT" \
+        --genbip-output-dir "$OUTPUT_DIR"
+    BIP_FILE="$(find "$OUTPUT_DIR" -maxdepth 1 -name '*.bip' -newer "$MARKER" -print -quit)"
+    rm -f "$MARKER"
+    if [[ -z "$BIP_FILE" ]]; then
+        echo "Error: bipc did not produce any .bip file in '$OUTPUT_DIR'." >&2
+        exit 1
+    fi
+    run_step \
+        "BIP identifiers cleanup" \
+        "$OUTPUT_DIR/BipCleanupDebug.log" \
+        sed -i 's/@0//g' "$BIP_FILE"
+fi
+
+if stage_selected 4; then
+    if [[ "$FORMAT" == "bip" ]]; then
+        BIP_FILE="$FILE"
+    fi
+    BIP_DIR="$(dirname -- "$BIP_FILE")"
+    PACKAGE="$(basename -- "$BIP_FILE" .bip)"
+
+    CPP_DIR="$OUTPUT_DIR"
+    [[ "$FORMAT" == "bip" ]] && CPP_DIR="$BIP_DIR"
+    for ext in cpp hpp; do
+        if [[ ! -f "$CPP_DIR/$CPP_BASENAME.$ext" ]]; then
+            echo "Error: '$CPP_DIR/$CPP_BASENAME.$ext' is missing." >&2
+            echo "Generate it from the .chips specification (--cpp-only) before building the system." >&2
+            exit 1
+        fi
+    done
+
+    if [[ -z "${BIP2_ENGINE_LIB_DIR:-}" || -z "${BIP2_ENGINE_GENERIC_DIR:-}" || -z "${BIP2_ENGINE_SPECIFIC_DIR:-}" ]]; then
+        echo "Warning: BIP2_ENGINE_* variables are not set; the build will probably fail." >&2
+        echo "Run: cd $SCRIPT_DIR/FullCompileChain ; source ./setenv.sh" >&2
+    fi
+
+    BUILD_ROOT="$OUTPUT_DIR/output"
+    mkdir -p "$BUILD_ROOT/build"
+
+    run_step \
+        "BIP -> C++ project" \
+        "$OUTPUT_DIR/BipCppGeneratorDebug.log" \
+        in_dir "$BIP_DIR" \
+        "$BIPC" \
+        -I "$BIP_DIR" \
+        -p "$PACKAGE" \
+        -d "$ROOT_COMPONENT()" \
+        --gencpp-cc-extra-opt=-std=c++17 \
+        --gencpp-cc-extra-opt=-I"$CPP_DIR" \
+        --gencpp-cc-I="$CPP_BASENAME.hpp" \
+        --gencpp-cc-extra-src="$CPP_DIR/$CPP_BASENAME.cpp" \
+        --gencpp-output-dir="$BUILD_ROOT"
+
+    run_step \
+        "CMake configuration" \
+        "$OUTPUT_DIR/CMakeDebug.log" \
+        cmake -S "$BUILD_ROOT" -B "$BUILD_ROOT/build" -Wno-dev
+
+    run_step \
+        "System build" \
+        "$OUTPUT_DIR/BuildDebug.log" \
+        cmake --build "$BUILD_ROOT/build"
+
+    echo
+    echo "System executable: $BUILD_ROOT/build/system"
+fi
+
+print_report

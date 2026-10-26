@@ -1,0 +1,12 @@
+logical addi(int a = 0, int b = 0) init{} then{}
+->out(a+b)
+
+logical buffer(int data) init {} then {} -> out(data)
+
+system{
+	addi comp;
+	buffer b;
+	comp.a(1);
+	comp.b(b.out);
+	b.data(comp.out);
+}

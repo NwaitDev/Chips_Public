@@ -1,0 +1,1074 @@
+[comment encoding = UTF-8 /]
+[module generatePackage('http://www.eclipse.org/emf/2002/Ecore')/]
+
+[comment]
+************ useful commands ************
+[/comment]
+
+[comment return true if object is annoted by 'http://engine' /]
+[query public hasEngineAnnotation(object : EModelElement) : Boolean = 
+    object.getEAnnotation('http://engine') <> null
+/]
+
+[comment get entry details of annotation 'http://engine' for object /]
+[query private getEngineAnnotation(object : EModelElement) : Set(EStringToStringMapEntry) =
+    object.getEAnnotation('http://engine').details 
+/]
+
+[comment return true if object is annoted by an annotation 'http://engine' which has an entry (key,value) /]
+[query public hasEngineAnnotation(object : EModelElement, key : String,) : Boolean = 
+    hasEngineAnnotation(object) and
+    getEngineAnnotation(object)->select(e|e.key.equalsIgnoreCase(key))->notEmpty()
+/]
+
+[comment return true if object is annoted by an annotation 'http://engine' which has an entry (key,value) /]
+[query public getEngineAnnotation(object : EModelElement, key : String,) : Bag(String) = 
+    getEngineAnnotation(object)->select(e|e.key.equalsIgnoreCase(key))->collect(value)
+/]
+
+[comment return true if object is annoted by an annotation 'http://engine' which has an entry (key,value) /]
+[query public hasEngineAnnotation(object : EModelElement, key : String, value : String) : Boolean = 
+    hasEngineAnnotation(object) and
+    getEngineAnnotation(object)->select(e|e.key.equalsIgnoreCase(key) and e.value.equalsIgnoreCase(value))->notEmpty()
+/]
+
+[query private isFriendDeploy(class : EClass) : Boolean = hasEngineAnnotation(class, 'isFriendDeploy', 'true') /]
+
+
+[comment]
+************ queries used to determine basic properties of the element of the model ************
+  In the following, isPointer, isReference, isConst, isVector and isMap control how ETypedElement (EReference, EAttribute,
+  EOperation and EParameter) are translated into C++ type elements. Notice that the following constraints should hold:
+    * not (isPointer and isReference and not (isVector or isMap))
+    * not (isVector and isMap)
+    * not (isConst and (isVector or isMap) and not isPointer)
+
+  For EOperation we should have:
+    * not isConstructor and (isReference or isPointer or isConst or isVector or isMap or isPureVirtual or isVirtual or isConstOperation)
+[/comment]
+
+
+[comment]
+*** references ***
+[/comment]
+
+[comment return true if ref must be implemented as a map aggregation /]
+[query private isMapAggregation(ref : EReference) : Boolean =
+    allAttributes(ref.eReferenceType)->select(
+        a : EAttribute | a.name = 'name' and a.eAttributeType.name = 'string' and
+        a.lowerBound = 1 and a.upperBound = 1)->notEmpty()
+    and
+    not hasEngineAnnotation(ref, 'noMap', 'true')
+/]
+
+[comment return true if the reference ref must be implemented as a pointer /]
+[query private isPointer(ref : EReference) : Boolean = not isReference(ref) /]
+
+[comment return true if the reference ref must be implemented as a reference /]
+[query private isReference(ref : EReference) : Boolean = ref.upperBound = 1 and ref.lowerBound = 1 and not isChangeable(ref) /]
+
+[comment return true if the reference ref must be implemented as a const pointer or reference /]
+[query private isConst(ref : EReference) : Boolean = hasEngineAnnotation(ref, 'isConst', 'true' ) /]
+
+[comment return true if the reference can be changed /]
+[query private isChangeable(ref : EReference) : Boolean = ref.changeable or ref.containment or ref.upperBound = -1 /]
+
+[comment return true if the reference ref must be implemented as a vector /]
+[query private isVector(ref : EReference) : Boolean = (ref.upperBound > 1 or ref.upperBound = -1) and not isMapAggregation(ref) /]
+
+[comment return true if the reference ref must be implemented as a map /]
+[query private isMap(ref : EReference) : Boolean =  (ref.upperBound > 1 or ref.upperBound = -1) and isMapAggregation(ref) /]
+
+[query private hasAlsoFills(ref : EReference) : Boolean = 
+    hasEngineAnnotation(ref) and 
+    getEngineAnnotation(ref)->select(e|e.key.equalsIgnoreCase('alsoFills'))->notEmpty()
+/]
+
+[comment return true if only methods prototype should be generated, not implementation  /]
+[query private isInterface(ref : EReference) : Boolean = hasEngineAnnotation(ref, 'isInterface', 'true' ) /]
+
+[comment return true if ref is implemented as a single pointer (not a vector or map or pointer) /]
+[query private isSimplePointer(ref : EReference) : Boolean = isPointer(ref) and not (isVector(ref) or isMap(ref)) /]
+
+[comment return true if ref is implemented as a single reference /]
+[query private isSimpleReference(ref : EReference) : Boolean = isReference(ref) and not (isVector(ref) or isMap(ref)) /]
+
+[comment return true if ref must be initialize by the constructor of the containing class through a parameter /]
+[query private isInitialize(ref : EReference) : Boolean = (isSimpleReference(ref) or not isChangeable(ref)) and not isInterface(ref) /]
+
+[comment return true if attr must be initialize to NULL by the constructor of the containing class  /]
+[query private isInitializeNull(ref : EReference) : Boolean = isSimplePointer(ref) and isChangeable(ref) and not isInterface(ref) /]
+
+[comment]
+*** attributes ***
+[/comment]
+
+[comment return true if attr must be implemented as a pointer /]
+[query private isPointer(attr : EAttribute) : Boolean = hasEngineAnnotation(attr, 'isPointer', 'true') /]
+
+[comment return true if attr must be implemented as a reference /]
+[query private isReference(attr : EAttribute) : Boolean = hasEngineAnnotation(attr, 'isReference', 'true') /]
+
+[comment return true if attr must be implemented as a const type /]
+[query private isConst(attr : EAttribute) : Boolean = hasEngineAnnotation(attr, 'isConst' , 'true') /]
+
+[comment return true if the attribute can be changed /]
+[query private isChangeable(attr : EAttribute) : Boolean =
+    attr.changeable
+        and not (isConst(attr) and not isPointer(attr) and not isReference(attr) and not isVector(attr) and not isMap(attr))
+/]
+
+[comment return true if attr must be implemented as a vector /]
+[query private isVector(attr : EAttribute) : Boolean = not (lowerBound = 1 and upperBound = 1) /]
+
+[comment return true if attr must be implemented as a map /]
+[query private isMap(attr : EAttribute) : Boolean = false /]
+
+[comment return true if attr is implemented as a single pointer (not a vector or map or pointer) /]
+[query private isSimplePointer(attr : EAttribute) : Boolean = isPointer(attr) and not (isVector(attr) or isMap(attr)) /]
+
+[comment return true if attr is implemented as a single reference /]
+[query private isSimpleReference(attr : EAttribute) : Boolean = isReference(attr) and not (isVector(attr) or isMap(attr)) /]
+
+[comment return true if attr must be initialize by the constructor of the containing class through a parameter /]
+[query private isInitialize(attr : EAttribute) : Boolean =
+    isReference(attr) or not isChangeable(attr) or (isConst(attr) and not isPointer(attr))
+/]
+
+[comment return true if attr must be initialize to NULL by the constructor of the containing class  /]
+[query private isInitializeNull(attr : EAttribute) : Boolean = isSimplePointer(attr) and isChangeable(attr) /]
+
+[comment return true if attr must be initialized by class  /]
+[query private isInitializeValue(class : EClass, attr : EStructuralFeature) : Boolean =
+    hasEngineAnnotation(class, 'initialize') and
+    getEngineAnnotation(class, 'initialize')->collect(tokenize(' '))->collectNested(tokenize('='))
+        ->select(pair : Sequence(String) | pair->at(1) = attr.name)->notEmpty()
+/]
+
+[comment return the value for initialization of attr in class (only if isInitializeValue is true) /]
+[query private getInitializeValue(class : EClass, attr : EStructuralFeature) : String =
+    getEngineAnnotation(class, 'initialize')->collect(tokenize(' '))->collectNested(tokenize('='))
+        ->any(pair : Sequence(String) | pair->at(1) = attr.name)->at(2)
+/]
+
+[comment]
+*** operations ***
+[/comment]
+
+[comment return true if the return type of op must be implemented as a pointer /]
+[query private isPointer(op : EOperation) : Boolean = hasEngineAnnotation(op, 'isPointer', 'true') /]
+
+[comment return true if the return type of op must be implemented as a reference /]
+[query private isReference(op : EOperation) : Boolean = hasEngineAnnotation(op, 'isReference', 'true') /]
+
+[comment return true if the return type of op must be implemented as a const type /]
+[query private isConst(op : EOperation) : Boolean =  hasEngineAnnotation(op ,'isConst', 'true') /]
+
+[comment return true if the return type of op /]
+[query private isChangeable(op : EOperation) : Boolean =
+    not hasEngineAnnotation(op ,'isNotChangeable', 'true')
+        and not (isConst(op) and not isPointer(op) and not isReference(op) and not isVector(op) and not isMap(op))
+/]
+
+[comment return true if the return type of op must be implemented as a vector /]
+[query private isVector(op : EOperation) : Boolean = op.upperBound > 1 or op.upperBound = -1 /]
+
+[comment return true if the return type of op must be implemented as a map /]
+[query private isMap(op : EOperation) : Boolean = false /]
+
+[comment return true iff operation is a constructor (i.e. its name is the name of its containing class) /]
+[query private isConstructor(operation : EOperation) : Boolean = operation.eContainingClass.name.equalsIgnoreCase(operation.name) /]
+
+[comment return true if operation must be implemented as virtual /]
+[query private isVirtual(operation : EOperation) : Boolean =
+	not isConstructor(operation) and (operation.eContainingClass.abstract or operation.eContainingClass.interface or hasEngineAnnotation(operation, 'isVirtual', 'true'))
+/]
+
+[comment return true if operation must be implemented as pure virtual /]
+[query private isPureVirtual(operation : EOperation) : Boolean =
+	not isConstructor(operation) and (operation.eContainingClass.interface  or hasEngineAnnotation(operation, 'isVirtual', 'true'))
+/]
+
+[comment return true if method must be implemented const /]
+[query private isConstOperation(operation : EOperation) : Boolean =
+    not isConstructor(operation) and hasEngineAnnotation(operation, 'isConstOperation', 'true')
+/]
+
+[comment return true if two operations has the same prototype /]
+[query private samePrototype(op1 : EOperation, op2 : EOperation) : Boolean =
+  op1.eParameters       = op2.eParameters       and
+  op1.eType             = op2.eType             and
+  isPointer(op1)        = isPointer(op2)        and
+  isReference(op1)      = isReference(op2)      and
+  isConst(op1)          = isConst(op2)          and
+  isVector(op1)         = isVector(op2)         and
+  isMap(op1)            = isMap(op2)            and
+  isConstructor(op1)    = isConstructor(op2)    and
+  isVirtual(op1)        = isVirtual(op2)        and
+  isPureVirtual(op1)    = isPureVirtual(op2)    and
+  isConstOperation(op1) = isConstOperation(op2)
+  
+/]
+
+
+[comment]
+*** parameter ***
+[/comment]
+
+[comment return true if elem must be implemented as a pointer /]
+[query private isPointer(param : EParameter) : Boolean = hasEngineAnnotation(param, 'isPointer', 'true') /]
+
+[comment return true if elem must be implemented as a reference /]
+[query private isReference(param : EParameter) : Boolean = hasEngineAnnotation(param, 'isReference', 'true') /]
+
+[comment return true if elem must be implemented as a const /]
+[query private isConst(param : EParameter) : Boolean = hasEngineAnnotation(param, 'isConst', 'true') /]
+
+[comment return true if elem must cannot be changed /]
+[query private isChangeable(param : EParameter) : Boolean =
+    not hasEngineAnnotation(param, 'isNotChangeable', 'true')
+        and not (isConst(param) and not isPointer(param) and not isReference(param) and not isVector(param) and not isMap(param))
+/]
+
+[comment return true if elem must be implemented as a vector /]
+[query private isVector(param : EParameter) : Boolean = param.upperBound > 1 or param.upperBound = -1 /]
+
+[comment return true if elem must be implemented as a map /]
+[query private isMap(param : EParameter) : Boolean = false /]
+
+
+[comment]
+*** others ***
+[/comment]
+
+[comment return true if elem is fully used, not only referenced (i.e. ref.eContaining class must includes ref.eReferenceType class) /]
+[query private cantBePartialType(elem : ETypedElement) : Boolean = hasEngineAnnotation(elem, 'includesClass', 'true') /]
+
+[comment return true if derived must virtually inherit from base /]
+[query private isVirtualInheritanceItf(base : EClass, derived: EClass) : Boolean =
+    derived.eSuperTypes->select(c | c.name.equalsIgnoreCase(base.name))->notEmpty()
+/]
+
+[comment return true if implementation of class base must virtually inherit from its interface (class.name)"Itf" /]
+[query private isVirtualInheritanceImpl(base : EClass, derived : EClass) : Boolean =
+    hasEngineAnnotation(derived, 'isVirtualInheritance', 'true')
+/]
+
+[comment return true if implementation of class base must virtually inherit from its interface (class.name)"Itf" /]
+[query private isVirtualInheritanceImplFromItf(base : EClass) : Boolean =
+    base.ePackage.eContents(EClass)->select(derived | isVirtualInheritanceItf(base, derived))->notEmpty()
+/]
+
+[comment return true if set/add method for a reference must be implemented in the interface /]
+[query private addMethodImplementedInInterface(ref : EReference) : Boolean = not ref.containment /]
+
+[comment return true if a reference is a containment (aggregation) /]
+[query public refIsAggregationOfClass(cl : EClass, target:EReference) : Boolean = target.containment and target.eType.name.equalsIgnoreCase(cl.name) /]
+
+[comment return true if cl references target through containment (aggregation) /]
+[query public classHasAggreagationOnClass(cl : EClass, target: EClass ) : Boolean = target.eReferences->select(e | refIsAggregationOfClass(cl, e))->notEmpty() /]
+
+
+[comment]
+************ filtered lists of elements computed ************
+[/comment]
+
+[comment /]
+[query public allClass(pack : EPackage): Sequence(EClass) = pack.eAllContents(EClass) /]
+
+[comment all also fill references /]
+[query private getAlsoFills(ref : EReference) : Collection(Sequence(String)) = 
+    getEngineAnnotation(ref)->any(e|e.key.equalsIgnoreCase('alsoFills')).value.tokenize(' ')->collectNested(e|e.tokenize('::'))
+/]
+
+[comment return the operations of class /]
+[query private operations(class : EClass) : OrderedSet(EOperation) = class.eOperations /]
+
+[comment return the constructors of class (i.e. operations of class s.t. their name is the name of the class /]
+[query private constructors(class : EClass) : OrderedSet(EOperation) = 
+    class.eOperations->select(operation : EOperation | isConstructor(operation))
+/]
+
+[comment return the methods (non-constructors) of class (i.e. operations(class) minuset constructors(class)) /]
+[query private methods(class : EClass) : OrderedSet(EOperation) = 
+    class.eOperations->select(operation : EOperation | not isConstructor(operation))
+/]
+
+[comment return the of parameters involved in all operations of class /]
+[query public parameters(class : EClass) : Sequence(EParameter) = (class.eOperations->collect(eParameters)) /]
+
+[comment return the references of class /]
+[query public references(class : EClass) : OrderedSet(EReference) = class.eReferences /]
+
+[comment return the references of class and its super classes /]
+[query public allReferences(class : EClass) : OrderedSet(EReference) = class.eAllReferences /]
+
+[comment return the attributes of class /]
+[query public attributes(class : EClass) : OrderedSet(EAttribute) = class.eAttributes /]
+
+[comment return the attributes of class and its super classes /]
+[query public allAttributes(class : EClass) : OrderedSet(EAttribute) = class.eAllAttributes /]
+
+[comment return the sequence of operations of class 
+ the result is provided in alphabettically order /]
+[query public typedElements(class : EClass) : Sequence(ETypedElement) =
+    parameters(class)
+        ->union(references(class)->asSequence())
+        ->union(methods(class)->asSequence())
+/]
+
+[comment return the sequence of references that are fully used (i.e. their classes must be fully included) /]
+[query public cantBePartialTypedElements(class : EClass) : Sequence(ETypedElement) =
+    references(class)->select(e : EReference | cantBePartialType(e))->asSequence()
+        ->union(parameters(class)->select(p : EParameter | cantBePartialType(p) or not (isPointer(p) or (isReference(p) and not (isVector(p) or isMap(p)))))->asSequence())
+        ->union(methods(class)->select(m : EOperation    | cantBePartialType(m) or not (isPointer(m) or (isReference(m) and not (isVector(m) or isMap(m)))))->asSequence())
+/]
+
+[comment return the sequence of classes containing cl /]
+[query public getClassWithAggregationOnClass(cl : EClass) : OrderedSet(EClass) =
+    cl.ePackage.eAllContents(EClass)->select(e | classHasAggreagationOnClass(cl, e))->asOrderedSet()
+/]
+
+[comment return the sequence of classes involved in a sequence of parameters /]
+[query public getClasses(elements : Collection(ETypedElement)) : Set(EClass) =
+   (elements->collect(eType)->select(element : EClassifier | element <> null))
+       ->select(element : EClassifier | element.oclIsKindOf(EClass))
+       ->asSet()
+/]
+
+
+[comment]
+************ computation of dependencies ************
+[/comment]
+
+[comment return the references and attributes that should be initialized by the constructor of class itsefl, using parameters
+ the result is provided in alphabettically order /]
+[query public initialize(class : EClass) : Sequence(EStructuralFeature) =
+	attributes(class)->asSequence()->select(a : EAttribute | isInitialize(a))
+    	->union(references(class)->asSequence()->select(r : EReference | isInitialize(r)))
+/]
+
+[comment return the references and attributes that should be initialized as NULL by the constructor of class itsefl
+ the result is provided in alphabettically order /]
+[query public initializeAsNull(class : EClass) : Sequence(EStructuralFeature) =
+    references(class)->asSequence()->select(r : EReference | isInitializeNull(r))
+        ->union(attributes(class)->asSequence()->select(a : EAttribute | isInitializeNull(a) and not isInitializeValue(class, a)))
+/]
+
+[comment return the attributes that should be initialized by using a specific value, by the constructor of class itsefl
+ the result is provided in alphabettically order /]
+[query public initializeAsValue(class : EClass) : Sequence(EStructuralFeature) =
+    allAttributes(class)->asSequence()->select(a : EAttribute | isInitializeValue(class, a))
+/]
+
+[comment return the references and attributes that are initialized by using a specific value in super classes (direct of indirect) /]
+[query public initializeAsValueInSuperClasses(class : EClass) : Sequence(EStructuralFeature) = 
+    allInheritedClasses(class)->collect(c : EClass | initializeAsValue(c))
+/]
+
+[comment return the references and attributes that should be initialized by calling super classes constructors, using parameters
+ the result is provided in alphabettically order /]
+[query public initializeAsParameter(class : EClass) : Sequence(EStructuralFeature) =
+    allReferences(class)->asSequence()->select(r : EReference | isInitialize(r))
+        ->union(allAttributes(class)->asSequence()->select(a : EAttribute | isInitialize(a) and
+                                                  not isInitializeValue(class, a) and
+                                                  not initializeAsValueInSuperClasses(class)->includes(a)))
+/]
+
+[comment return the references and attributes that should be initialized by calling super classes constructors, using parameters
+ the result is provided in alphabettically order /]
+[query public initializeAsParameterInSuperClasses(class : EClass) : Sequence(EStructuralFeature) = 
+    inheritedClasses(class)->collect(c : EClass | initializeAsParameter(c))
+/]
+
+[comment return the classes whose class is dependent /]
+[query public dependentClasses(class : EClass) : OrderedSet(EClass) =
+    class.eSuperTypes
+        ->union(getClasses(typedElements(class)))
+        ->union(getClassWithAggregationOnClass(class))
+        ->asOrderedSet()
+        ->sortedBy(name)
+/]
+
+[comment return all classes that are fully used (must be included) by class through references or operations parameters
+ the result is provided in alphabettically order /]
+[query public includedClasses(class : EClass) : OrderedSet(EClass) =
+    class.eSuperTypes
+        ->union(getClasses(cantBePartialTypedElements(class)))
+        ->asOrderedSet()
+        ->sortedBy(name)
+/]
+
+[comment return all classes that are fully used (must be included) by class through references or operations parameters
+ the result is provided in alphabettically order /]
+[query public referencedClasses(class : EClass) : OrderedSet(EClass) =
+    dependentClasses(class)->select(c : EClass | not includedClasses()->includes(c))
+        ->sortedBy(name)
+/]
+
+[comment return the classes whose class is dependent /]
+[query public includeClassesImpl(class : EClass) : OrderedSet(EClass) =
+    class.eSuperTypes
+        ->union(getClasses(references(class)->select(r : EReference | r.containment)))
+        ->asOrderedSet()
+        ->sortedBy(name)
+/]
+
+[comment return the set of inherited classes (direct inheritance) /]
+[query public inheritedClasses(class : EClass) : OrderedSet(EClass) = class.eSuperTypes /]
+
+[comment return the set of all inherited classes (direct and indirect inheritance) /]
+[query public allInheritedClasses(class : EClass) : OrderedSet(EClass) = class.eAllSuperTypes /]
+
+
+[comment]
+************ names ************
+[/comment]
+
+[comment class names Impl (for implementation), inherit from Itf (for interface) /]
+[template private generateNameImpl(class : EClass)][class.name/][/template]
+[template private generateNameItf(class : EClass)][class.name/]Itf[/template]
+[template private generateName(class : EClass, itf : Boolean)][if (itf)][generateNameItf(class)/][else][generateNameImpl(class)/][/if][/template]
+
+[comment names for typed element (EStructuralFeature = EReference + EAttribute, EOperation) /]
+[template private generateName(op : EOperation, itf : Boolean)][if (isConstructor(op))][generateName(op.eContainingClass, itf)/][else][op.name/][/if][/template]
+[template private generateName(elem : ETypedElement)]m[elem.name.toUpperFirst()/][/template]
+
+[comment names for EReference and EAttribute when they are given as parameters, for setters, constructors, ... /]
+[template private generateNameAsParam(elem : EStructuralFeature)][elem.name/][/template]
+[template private generateNameAsParam(elem : ETypedElement)][elem.name/][/template]
+[template private generateNameAsParamNonMultiple(elem : ETypedElement)]
+[if (elem.name.size() > 3)]
+[if (elem.name.substring(elem.name.size() - 2, elem.name.size()) = 'ies')]
+[elem.name.substring(1, elem.name.size() - 3) + 'y'/][elseif (elem.name.substring(elem.name.size(), elem.name.size()) = 's')]
+[elem.name.substring(1, elem.name.size() - 1)/][else][elem.name/][/if][else]
+[if (elem.name.substring(elem.name.size(), elem.name.size()) = 's')]
+[elem.name.substring(1, elem.name.size() - 1)/][else][elem.name/][/if][/if]
+[/template]
+
+[comment names for getter/setter methods /]
+[template private generateNameGetter(elem : EStructuralFeature)][generateNameAsParam(elem).toLowerFirst()/][/template]
+[template private generateNameHasGetter(elem : EStructuralFeature)]has[generateNameAsParam(elem).toUpperFirst()/][/template]
+[template private generateNameSetter(ref : EReference)][if (isVector(ref) or isMap(ref))]add[generateNameAsParamNonMultiple(ref).toUpperFirst()/][else]set[generateNameAsParam(ref).toUpperFirst()/][/if][/template]
+[template private generateNameSetter(attr: EAttribute)][if (isVector(attr) or isMap(attr))]add[generateNameAsParamNonMultiple(attr).toUpperFirst()/][else]set[generateNameAsParam(attr).toUpperFirst()/][/if][/template]
+[template private generateNameClear(ref : EReference)]clear[generateNameAsParam(ref).toUpperFirst()/][/template]
+
+[comment names for opposite methods: in case of containment (i.e. aggregation) we generate an opposite link to the holder /]
+[template private generateNameOpposite(class : EClass)]mHolder[/template]
+[template private generateNameOppositeAsParam(class : EClass)][generateNameImpl(class).toLowerFirst()/][/template]
+[template private generateNameGetOpposite(class : EClass)]holder[/template]
+[template private generateNameHasOpposite(class : EClass)]hasHolder[/template]
+[template private generateNameSetOpposite(class : EClass)]setHolder[/template]
+
+[comment generation of scoped names, e.g. for .cpp/]
+[template private generateScope(elem : EStructuralFeature, itf : Boolean)][generateName(elem.eContainingClass, itf)/][/template]
+[template private generateScope(op : EOperation, itf : Boolean)][generateName(op.eContainingClass, itf)/][/template]
+[template private generateScope(elem : ETypedElement, itf : Boolean)][/template]
+[template private generateScoped(op : EOperation, itf : Boolean)][generateScope(op, itf)/]::[generateName(op, itf)/][/template]
+[template private generateScoped(elem : ETypedElement, itf : Boolean)][generateScope(elem, itf)/]::[generateName(elem)/][/template]
+
+[comment]
+************ ifdef/define/endif sequences in includes ************
+[/comment]
+
+[template private generateIfdefName(name : String)]_BIP_Engine_[name/]_HPP_[/template]
+[template private generateIfdef(name : String)]
+#ifndef [generateIfdefName(name)/]
+#define [generateIfdefName(name)/]
+[/template]
+[template private generateEndif(name : String)]
+#endif // [generateIfdefName(name)/]
+[/template]
+[template private generateIfdefImpl(class : EClass)][generateIfdef(generateNameImpl(class))/][/template]
+[template private generateIfdefItf(class : EClass)][generateIfdef(generateNameItf(class))/][/template]
+[template private generateEndifImpl(class : EClass)][generateEndif(generateNameImpl(class))/][/template]
+[template private generateEndifItf(class : EClass)][generateEndif(generateNameItf(class))/][/template]
+
+
+[comment]
+************ types ************
+[/comment]
+
+[comment templates for the generation of types names /]
+[template private generateTypeName(class : EClass)][generateNameImpl(class)/][/template]
+[template private generateTypeName(dataType : EDataType)][dataType.name/][/template]
+[template private generateTypeName(classifier : EClassifier)][/template]
+[template private generateTypeName(op : EOperation)][if not (isConstructor(op))][if (op.eType = null)]void[else][generateTypeName(op.eType)/][/if][/if][/template]
+[template private generateTypeName(element : ETypedElement)][if (element.eType = null)]void[else][generateTypeName(element.eType)/][/if][/template]
+
+[comment templates for the generation modifiers (const, &, *) and types for multiplicity (vector<>, map<,>) /]
+[template private const(typeName : String)]const [typeName/][/template]
+[template private pointer(typeName : String)][typeName/] *[/template]
+[template private constPointer(typeName : String)][typeName/] *const[/template]
+[template private reference(typeName : String)][typeName/] &[/template]
+[template private vector(typeName : String)]vector<[typeName/]>[/template]
+[template private map(typeName : String)]map<string, [typeName/]>[/template]
+
+[comment same template but parameterized by booleans /]
+[template private commonConst(b : Boolean, typeName : String)][if (b)][const(typeName)/][else][typeName/][/if][/template]
+[template private commonPointer(b : Boolean, typeName : String)][if (b)][pointer(typeName)/][else][typeName/][/if][/template]
+[template private commonConstPointer(b : Boolean, typeName : String)][if (b)][constPointer(typeName)/][else][typeName/][/if][/template]
+[template private commonReference(b : Boolean, typeName : String)][if (b)][reference(typeName)/][else][typeName/][/if][/template]
+[template private commonVector(b : Boolean, typeName : String)][if (b)][vector(typeName)/][else][typeName/][/if][/template]
+[template private commonMap(b : Boolean, typeName : String)][if (b)][map(typeName)/][else][typeName/][/if][/template]
+
+[comment generic template for type of a single object without considering its multiplicity (i.e. without vector<> or map<,>) /]
+[template private commonType(forced_const : Boolean, forced_reference : Boolean,
+ is_const : Boolean, is_changeable : Boolean, is_pointer : Boolean, is_reference : Boolean,  is_vector : Boolean, is_map : Boolean, typeName : String)]
+[commonConst(is_const or forced_const or (not is_changeable and not is_pointer and not is_reference and not is_vector and not is_map),
+ commonReference((is_reference and not (is_map or is_pointer)) or forced_reference,
+ commonPointer(is_pointer and not forced_reference and is_changeable,
+ commonConstPointer(is_pointer and not forced_reference and not is_changeable,
+ typeName))))/]
+[/template]
+
+[comment generic template for type of a complete object, considering its multiplicity (i.e. with vector<> or map<,>) /]
+[template private commonTypeMultiple(forced_const : Boolean, forced_reference : Boolean,
+ is_const : Boolean, is_changeable : Boolean, is_pointer : Boolean, is_reference : Boolean, is_vector : Boolean, is_map : Boolean, typeName : String)]
+[if (is_vector or is_map)][commonConst(forced_const or not is_changeable,
+                           commonReference(forced_reference or is_reference,
+                           commonVector(is_vector,
+                           commonMap(is_map,
+                           commonConst(is_const,
+                           commonPointer(is_pointer,
+                           typeName))))))/][else]
+[commonType(forced_const, forced_reference, is_const, is_changeable, is_pointer, is_reference, is_vector, is_map, typeName)/][/if]
+[/template]
+
+[comment polymorphic templates managing type generation of a single object (without vector or map) for sub-classes of ETypedElement /]
+[template private generateType(element : ETypedElement, forced_const : Boolean, forced_reference : Boolean)][/template]
+[template private generateType(reference : EReference, forced_const : Boolean, forced_reference : Boolean)]
+[commonType(forced_const, forced_reference, isConst(reference), isChangeable(reference), isPointer(reference), isReference(reference), isVector(reference), isMap(reference), generateTypeName(reference))/][/template]
+[template private generateType(attribute : EAttribute, forced_const : Boolean, forced_reference : Boolean)]
+[commonType(forced_const, forced_reference, isConst(attribute), isChangeable(attribute), isPointer(attribute), isReference(attribute), isVector(attribute), isMap(attribute), generateTypeName(attribute))/][/template]
+[template private generateType(operation : EOperation, forced_const : Boolean, forced_reference : Boolean)]
+[commonType(forced_const, forced_reference, isConst(operation), isChangeable(operation), isPointer(operation), isReference(operation), isVector(operation), isMap(operation), generateTypeName(operation))/][/template]
+[template private generateType(parameter : EParameter, forced_const : Boolean, forced_reference : Boolean)]
+[commonType(forced_const, forced_reference, isConst(parameter), isChangeable(parameter), isPointer(parameter), isReference(parameter), isVector(parameter), isMap(parameter), generateTypeName(parameter))/][/template]
+
+[comment polymorphic templates managing complete type generation (with vector or map) for sub-classes of ETypedElement /]
+[template private generateTypeMultiple(element : ETypedElement, forced_const : Boolean, forced_reference : Boolean)][/template]
+[template private generateTypeMultiple(reference : EReference, forced_const : Boolean, forced_reference : Boolean)]
+[commonTypeMultiple(forced_const, forced_reference, isConst(reference), isChangeable(reference), isPointer(reference), isReference(reference), isVector(reference), isMap(reference), generateTypeName(reference))/][/template]
+[template private generateTypeMultiple(attribute : EAttribute, forced_const : Boolean, forced_reference : Boolean)]
+[commonTypeMultiple(forced_const, forced_reference, isConst(attribute), isChangeable(attribute), isPointer(attribute), isReference(attribute), isVector(attribute), isMap(attribute), generateTypeName(attribute))/][/template]
+[template private generateTypeMultiple(operation : EOperation, forced_const : Boolean, forced_reference : Boolean)]
+[commonTypeMultiple(forced_const, forced_reference, isConst(operation), isChangeable(operation), isPointer(operation), isReference(operation), isVector(operation), isMap(operation), generateTypeName(operation))/][/template]
+[template private generateTypeMultiple(parameter : EParameter, forced_const : Boolean, forced_reference : Boolean)]
+[commonTypeMultiple(forced_const, forced_reference, isConst(parameter), isChangeable(parameter), isPointer(parameter), isReference(parameter), isVector(parameter), isMap(parameter), generateTypeName(parameter))/][/template]
+
+[comment generate the type of a single object of element (without vector or map) /]
+[template private generateType(element : ETypedElement)][generateType(element, false, false)/][/template]
+[template private generateTypeConstReference(element : ETypedElement)][generateType(element, true, true)/][/template]
+[template private generateTypeReference(element : ETypedElement)][generateType(element, false, true)/][/template]
+
+[comment generate the type of class /]
+[template private generateType(class : EClass)][generateTypeName(class)/][/template]
+[template private generateTypeConstReference(class : EClass)][const(reference(generateTypeName(class)))/][/template]
+[template private generateTypeReference(class : EClass)][reference(generateTypeName(class))/][/template]
+
+[comment generate the type of element (with vector or map) /]
+[template private generateTypeMultiple(element : ETypedElement)][generateTypeMultiple(element, false, false)/][/template]
+[template private generateTypeMultipleConstReference(element : ETypedElement)][generateTypeMultiple(element, true, true)/][/template]
+[template private generateTypeMultipleReference(element : ETypedElement)][generateTypeMultiple(element, false, true)/][/template]
+
+[comment given a type name, generate the a typed variable, parameter, or function name /]
+[template private generateTyped(type : String, name : String)]
+[type/][if (type.size() > 0)][if not (type.substring(type.size(), type.size()) = '&' or type.substring(type.size(), type.size()) = '*')] [/if][/if][name/]
+[/template]
+
+[comment generate a typed element using newName as a variable, parameter, or function name /]
+[template private generateTyped(element : ETypedElement, newName : String)][generateTyped(generateTypeMultiple(element), newName)/][/template]
+[template private generateTypedConstReference(element : ETypedElement, newName : String)][generateTyped(generateTypeMultipleConstReference(element), newName)/][/template]
+[template private generateTypedReference(element : ETypedElement, newName : String)][generateTyped(generateTypeMultipleReference(element), newName)/][/template]
+
+[comment generate a typed element (using the name of the element) /]
+[template private generateTyped(op : EOperation, itf : Boolean)][generateTyped(op, generateName(op, itf))/][/template]
+[template private generateTyped(element : ETypedElement)][generateTyped(element, generateName(element))/][/template]
+[template private generateTypedParam(element : ETypedElement)][generateTyped(generateTypeMultiple(element), generateNameAsParam(element))/][/template]
+[template private generateTypedReferenceParam(element : ETypedElement)][generateTyped(generateTypeMultipleReference(element), generateNameAsParam(element))/][/template]
+[template private generateNonMultipleTypedReferenceParam(element : ETypedElement)][generateTyped(generateTypeReference(element), generateNameAsParamNonMultiple(element))/][/template]
+
+[template private castForcedReference(attribute : EAttribute)]
+[if (isSimplePointer(attribute))]&[/if]
+[/template]
+
+[template private castForcedReference(reference : EReference)]
+[if (isSimplePointer(reference))]&[/if]
+[/template]
+
+[template private castForcedReference(elem : EStructuralFeature)][/template]
+
+[template private castForcedReferenceNonMultiple(attribute : EAttribute)][if (isPointer(attribute))]&[/if][/template]
+[template private castForcedReferenceNonMultiple(reference : EReference)][if (isPointer(reference))]&[/if][/template]
+[template private castForcedReferenceNonMultiple(elem : EStructuralFeature)][/template]
+
+
+[comment]
+************ methods ************
+[/comment]
+
+[template private generateList(parameters : Sequence(String))]
+[if (parameters <> null)][for (parameter : String | parameters->select(p : String | p.size() > 0)) separator(', ')][parameter/][/for][/if]
+[/template]
+
+[template private commonPrototypeParameters(parameters : Sequence(ETypedElement))]
+[if (parameters <> null)][for (parameter : ETypedElement | parameters) separator(', ')][generateTypedParam(parameter)/][/for][/if]
+[/template]
+
+[template private commonPrototypeReferencedParameters(parameters : Sequence(ETypedElement))]
+[if (parameters <> null)][for (parameter : ETypedElement | parameters) separator(', ')][generateTypedReferenceParam(parameter)/][/for][/if]
+[/template]
+
+[template private callParameters(parameters : Sequence(ETypedElement))]
+[if (parameters <> null)][for (param : ETypedElement | parameters) separator(', ')][generateNameAsParam(param)/][/for][/if]
+[/template]
+
+[template private commonOperationPrototype(typedName : String, parameters : String,
+ is_virtual : Boolean, is_pure_virtual : Boolean, is_const : Boolean, hpp : Boolean)]
+[if (is_virtual and hpp)]virtual [/if][typedName/]([parameters/])[if (is_const)] const[/if][if (is_pure_virtual and hpp)] = 0[/if]
+[/template]
+
+[template private generateOperationPrototype(operation : EOperation, parameters : Sequence(ETypedElement), hpp : Boolean, itf : Boolean)]
+[if (hpp)][commonOperationPrototype(generateTyped(operation, itf), commonPrototypeParameters(parameters), isVirtual(operation), isPureVirtual(operation), isConstOperation(operation), hpp)/][else]
+[commonOperationPrototype(generateTyped(operation, generateScoped(operation, itf)), commonPrototypeParameters(parameters), isVirtual(operation), isPureVirtual(operation), isConstOperation(operation), hpp)/][/if]
+[/template]
+
+[template private generateOperationPrototypeReferencedParameters(operation : EOperation, parameters : Sequence(ETypedElement), hpp : Boolean, itf : Boolean)]
+[if (hpp)][commonOperationPrototype(generateTyped(operation, itf), commonPrototypeReferencedParameters(parameters), isVirtual(operation), isPureVirtual(operation), isConstOperation(operation), hpp)/][else]
+[commonOperationPrototype(generateTyped(operation, generateScoped(operation, itf)), commonPrototypeReferencedParameters(parameters), isVirtual(operation), isPureVirtual(operation), isConstOperation(operation), hpp)/][/if]
+[/template]
+
+[template private generateMethodCall(operation : EOperation, parameters : Sequence(String), itf : Boolean)]
+[generateName(operation, itf)/]([generateList(parameters)/])
+[/template]
+
+[template private generateMethodPrototype(operation : EOperation, hpp : Boolean, itf : Boolean)]
+[generateOperationPrototype(operation, operation.eParameters->asSequence(), hpp, itf)/]
+[/template]
+
+
+[comment]
+*** constructors ***
+[/comment]
+
+[template private generateInitialization(name : String, value : String)][name/]([value/])[/template]
+
+[template private generateConstructorPrototype(operation : EOperation, hpp : Boolean, itf : Boolean)]
+[generateOperationPrototypeReferencedParameters(operation, initializeAsParameter(operation.eContainingClass)->union(operation.eParameters->asSequence()), hpp, itf)/]
+[/template]
+
+[template private generateConstructorCallParameter(caller : EOperation, elem : EStructuralFeature)]
+[if (initializeAsValue(caller.eContainingClass)->includes(elem))][getInitializeValue(caller.eContainingClass, elem)/][else][generateNameAsParam(elem)/][/if]
+[/template]
+
+[template private generateConstructorCallParameters(caller : EOperation, callee : EOperation)]
+[for (p : EStructuralFeature | initializeAsParameter(callee.eContainingClass)) separator(', ')][generateConstructorCallParameter(caller, p)/][/for]
+[/template]
+
+[template private generateConstructorCall(caller : EOperation, callee : EOperation, itf : Boolean)]
+[generateMethodCall(callee, Sequence{generateConstructorCallParameters(caller, callee), callParameters(callee.eParameters->asSequence())},
+     itf)/]
+[/template]
+
+[template private generateInitialize(class : EClass)]
+[for (elem : EStructuralFeature | initialize(class)) separator(',\n')]  [generateInitialization(generateName(elem), castForcedReference(elem) + generateNameAsParam(elem))/][/for]
+[/template]
+
+[template private generateInitializeNull(class : EClass)]
+[for (elem : EStructuralFeature | initializeAsNull(class)) separator(',\n')]  [generateInitialization(generateName(elem), 'NULL')/][/for][if (not initializeAsNull(class)->isEmpty() and not getClassWithAggregationOnClass(class)->isEmpty())]
+[',\n'/][/if][for (container : EClass | getClassWithAggregationOnClass(class)) separator(',\n')]
+  [generateInitialization(generateNameOpposite(container), 'NULL')/][/for]
+[/template]
+
+[template private generateInitializeValue(class : EClass)]
+[for (attr : EStructuralFeature | initializeAsValue(class)->select(a : EStructuralFeature | not initializeAsParameterInSuperClasses(class)->includes(a))) separator(',\n')]  [generateInitialization(generateName(attr), getInitializeValue(class, attr))/][/for]
+[/template]
+
+[template private generateSuperConstructorCalls(ctor : EOperation, itf : Boolean)]
+[for (superc : EClass | ctor.eContainingClass.eSuperTypes) separator(',\n')][for (c : EOperation | constructors(superc)->select(o : EOperation | samePrototype(ctor, o)))]  [generateConstructorCall(ctor, c, itf)/][/for][/for]
+[/template]
+
+[template private generateListWithReturn(l : Sequence(String))]
+[for (s : String | l->select(e : String | e.size() > 0)) separator(',\n')][s/][/for]
+[/template]
+
+[template private generateInitializeConstructor(ctor : EOperation, itf : Boolean)]
+[let class : EClass = ctor.eContainingClass][if (itf)][generateListWithReturn(
+               Sequence{generateSuperConstructorCalls(ctor, itf),
+               generateInitialize(class),
+               generateInitializeNull(class),
+               generateInitializeValue(class)})/][else][generateListWithReturn(
+    Sequence{generateSuperConstructorCalls(ctor, true),
+    generateSuperConstructorCalls(ctor, itf),
+    '  ' + 	generateConstructorCall(ctor, true)})/][/if][/let]
+[/template]
+
+[template private generateConstructor(ctor : EOperation, hpp : Boolean, itf : Boolean)]
+[generateConstructorPrototype(ctor, hpp, itf)/][if (generateInitializeConstructor(ctor, itf).size() > 0)][' :\n'/][/if][generateInitializeConstructor(ctor, itf)/] {
+[if (not itf)]  /* implement your constructor here */
+[/if]}
+[/template]
+
+
+[comment]
+*** getters/setters ***
+[/comment]
+
+[comment generate a getter method for a reference /]
+[template private generateGetter(ref : EReference)]
+[commonOperationPrototype(generateTypedReference(ref, generateNameGetter(ref)), '',
+ isInterface(ref), isInterface(ref), false, true)/][if (not isInterface(ref))] { return [if (isSimplePointer(ref))]*[/if][generateName(ref)/]; }[else];[/if]
+[/template]
+
+[comment generate a getter method for an attribute /]
+[template private generateGetter(attr : EAttribute)]
+[commonOperationPrototype(generateTypedReference(attr, generateNameGetter(attr)), '',
+ false, false, false, true)/] { return [if (isSimplePointer(attr))]*[/if][generateName(attr)/]; }
+[/template]
+
+[comment for polymorphism /]
+[template private generateGetter(elem : EStructuralFeature)]
+[/template]
+
+[comment generate a const getter method a reference /]
+[template private generateConstGetter(ref : EReference)]
+[if (isSimpleReference(ref) or isSimplePointer(ref))][commonOperationPrototype(generateTypedReference(ref, generateNameGetter(ref)), '',
+ isInterface(ref), isInterface(ref), true, true)/][else]
+[commonOperationPrototype(generateTypedConstReference(ref, generateNameGetter(ref)), '',
+ isInterface(ref), isInterface(ref), true, true)/][/if][if (not isInterface(ref))]
+ { return [if (isSimplePointer(ref))]*[/if][generateName(ref)/]; }[else];[/if]
+[/template]
+
+[comment generate a const getter method for an attribute /]
+[template private generateConstGetter(attr : EAttribute)]
+[commonOperationPrototype(generateTypedConstReference(attr, generateNameGetter(attr)), '',
+ false, false, true, true)/] { return [if (isSimplePointer(attr))]*[/if][generateName(attr)/]; }
+[/template]
+
+[comment for polymorphism /]
+[template private generateConstGetter(elem : EStructuralFeature)]
+[/template]
+
+[comment generate a const getter method a reference /]
+[template private generateHasGetter(ref : EReference)]
+[commonOperationPrototype(generateTyped('bool', generateNameHasGetter(ref)), '',
+ isInterface(ref), isInterface(ref), true, true)/][if (not isInterface(ref))] { return [if (isSimplePointer(ref))][generateName(ref)/] != NULL[elseif (isVector(ref) or isMap(ref))]
+![generateName(ref)/].empty()[else]true[/if]; }[else];[/if]
+[/template]
+
+[comment generate a const getter method a reference /]
+[template private generateHasGetter(attr : EAttribute)]
+[commonOperationPrototype(generateTyped('bool', generateNameHasGetter(attr)), '',
+ false, false, true, true)/] { return [if (isSimplePointer(attr))][generateName(attr)/] != NULL[elseif (isVector(attr) or isMap(attr))]
+![generateName(attr)/].empty()[else]true[/if]; }
+[/template]
+
+[comment for polymorphism /]
+[template private generateHasGetter(elem : EStructuralFeature)]
+[/template]
+
+[comment generate a setter method for a reference /]
+[template public generateSetterPrototype(ref : EReference, itf : Boolean)]
+[commonOperationPrototype('void ' + generateNameSetter(ref), generateNonMultipleTypedReferenceParam(ref),
+ (itf and not addMethodImplementedInInterface(ref)) or isInterface(ref), (itf and not addMethodImplementedInInterface(ref)) or isInterface(ref), false, true)/]
+[/template]
+
+[comment generate a setter method for an attribute /]
+[template public generateSetterPrototype(attr : EAttribute, itf : Boolean)]
+[commonOperationPrototype('void ' + generateNameSetter(attr), generateNonMultipleTypedReferenceParam(attr),
+ false, false, false, true)/]
+[/template]
+
+[comment generate a setter method body for a reference /]
+[template public generateSetterBody(ref : EReference)]
+{[if (ref.containment)]['\n '/][/if][if (isMap(ref))]
+ [generateName(ref)/][ '[' /][generateNameAsParamNonMultiple(ref)/].name()[ ']' /] = [castForcedReferenceNonMultiple(ref)/][generateNameAsParamNonMultiple(ref)/];[elseif (isVector(ref))]
+ [generateName(ref)/].push_back([if (isPointer(ref))][castForcedReferenceNonMultiple(ref)/][/if][generateNameAsParamNonMultiple(ref)/]);[else]
+ [generateName(ref)/] = [if (isPointer(ref))][/if][castForcedReferenceNonMultiple(ref)/][generateNameAsParamNonMultiple(ref)/];[/if][if (ref.containment)]
+['\n'/]  [generateNameAsParamNonMultiple(ref)/].[generateNameSetOpposite(ref.eContainingClass)/](*this);[/if] [if (ref.containment)]['\n'/][else] [/if]}
+[/template]
+
+[comment generate a setter method body for an attribute /]
+[template public generateSetterBody(attr : EAttribute)]
+{[if (isMap(attr))][generateName(attr)/][ '[' /][generateNameAsParamNonMultiple(attr)/].name()[ ']' /] = [castForcedReferenceNonMultiple(attr)/][generateNameAsParamNonMultiple(attr)/];[elseif (isVector(attr))]
+ [generateName(attr)/].push_back([if (isPointer(attr))][castForcedReferenceNonMultiple(attr)/][/if][generateNameAsParamNonMultiple(attr)/]);[else]
+ [generateName(attr)/] = [if (isPointer(attr))][castForcedReferenceNonMultiple(attr)/][/if][generateNameAsParamNonMultiple(attr)/];[/if]}
+[/template]
+
+[comment generate a setter method for a reference /]
+[template public generateClearPrototype(ref : EReference, itf : Boolean)]
+[commonOperationPrototype('void ' + generateNameClear(ref), '',
+ (itf and not addMethodImplementedInInterface(ref)) or isInterface(ref), (itf and not addMethodImplementedInInterface(ref)) or isInterface(ref), false, true)/]
+[/template]
+
+[comment generate a setter method body for a reference /]
+[template public generateClearBody(ref : EReference)]
+{ [if (isVector(ref) or isMap(ref))][generateName(ref)/].clear()[elseif (isPointer(ref))][generateName(ref)/] = NULL[/if]; }
+[/template]
+
+[comment generate a getter method for an opposite link to the holder class, in case of containment (i.e. aggregation) /]
+[template public generateGetOpposite(class : EClass)]
+[commonOperationPrototype(generateTyped(generateTypeReference(class), generateNameGetOpposite(class)),
+ null,
+ false, false, true, true)/] { return *[generateNameOpposite(class)/]; }
+[/template]
+
+[comment generate a const getter method for an opposite link to the holder class, in case of containment (i.e. aggregation) /]
+[template public generateHasOpposite(class : EClass)]
+[commonOperationPrototype(generateTyped('bool', generateNameHasOpposite(class)),
+ null,
+ false, false, true, true)/] { return [generateNameOpposite(class)/] != NULL; }
+[/template]
+
+[comment generate a setter method for an opposite link to the holder class, in case of containment (i.e. aggregation) /]
+[template public generateSetOpposite(class : EClass)]
+[commonOperationPrototype('void ' + generateNameSetOpposite(class),
+ generateTyped(generateTypeReference(class), generateNameOppositeAsParam(class)),
+ false, false, false, true)/] { [generateNameOpposite(class)/] = &[generateNameOppositeAsParam(class)/]; }
+[/template]
+
+[comment]
+	[if (hasAlsoFills(ref))]
+	[for (af : Sequence(String) | getAlsoFills(ref)) 
+    	before('  // alsoFills references\n') 
+     	after( '  // after the alsoFills references\n')]
+  [af->at(1)/]::addTo[af->at(2).toUpperFirst() /]([ref.name /]);
+	[/for][/if]}
+[/comment]
+
+
+[comment]
+************ inheritance ************
+[/comment]
+
+[template private generateInheritItf(superc : EClass, class : EClass)]
+public [if (isVirtualInheritanceItf(superc, class))]virtual [/if][generateNameItf(superc)/]
+[/template]
+
+[template private generateInheritImpl(superc : EClass, class : EClass)]
+public [if (isVirtualInheritanceImpl(superc, class))]virtual [/if][generateNameImpl(superc)/]
+[/template]
+
+[template private generateInheritImplFromItf(class : EClass)]
+public [if (isVirtualInheritanceImplFromItf(class))]virtual [/if][generateNameItf(class)/]
+[/template]
+
+[template public generateInheritanceItf(class : EClass)]
+[for (superc : EClass | inheritedClasses(class)) separator(', ')][generateInheritItf(superc, class)/][/for]
+[/template]
+
+[template public generateInheritanceImpl(class : EClass)]
+[for (superc : EClass | inheritedClasses(class)->select(c | isVirtualInheritanceItf(c, class))) separator(', ') after(', ')][generateInheritItf(superc, class)/][/for][for (superc : EClass | inheritedClasses(class)) separator(', ') after(', ')]
+[generateInheritImpl(superc, class)/][/for][generateInheritImplFromItf(class)/]
+[/template]
+
+
+
+
+
+[template public generatePackage(aEPackage : EPackage) post(trim())]
+[comment]
+[file ('CMakeLists.txt', false, 'UTF-8')]
+cmake_minimum_required(VERSION 2.8)
+
+[for (itf : EClass | aEPackage.eContents(EClass))]
+list(INSERT SOURCE_FILES 0 src/[itf.name/].cpp)
+list(INSERT SOURCE_FILES 0 include/[itf.name/].hpp)
+[/for]
+
+[comment]list(INSERT SOURCE_FILES 0 include/bip-basetypes.hpp)[/comment]
+list(INSERT SOURCE_FILES 0 include/bip-types.hpp)
+
+include_directories(include)
+add_library(engineinterface ${SOURCE_FILES})
+[/file][/comment]
+
+[comment @main /]
+[file ('generic/include/bip-interface.hpp', false, 'UTF-8')]
+[generateIfdef('bip_interface')/]
+
+[for (itf : EClass | aEPackage.eContents(EClass))]
+#include <[generateNameImpl(itf)/].hpp>
+[/for]
+[generateEndif('bip_interface')/]
+[/file]
+
+[comment @main /]
+[comment][file ('include/bip-basetypes.hpp', false, 'UTF-8')]
+#ifndef __BIP_INTERFACES_HPP__
+#define __BIP_INTERFACES_HPP__
+
+#include "bip-types.hpp"
+
+// some common includes
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <bitset>
+
+#include <iostream>
+#include <assert.h>
+
+namespace bipbasetypes = std;
+
+#endif /* __BIP_INTERFACES_HPP__ */
+[/file][/comment]
+
+
+[comment @main /]
+[file ('generic/include/bip-types.hpp', false, 'UTF-8')]
+[generateIfdef('bip_types')/]
+
+namespace biptypes {
+[for (enumt : EEnum | aEPackage.eContents(EEnum))]
+    enum [enumt.name/] {
+[for (enumlit : EEnumLiteral | enumt.eLiterals) separator(',\n') after('\n')]
+        [enumlit.name/] = [enumlit.value/][/for]
+    };
+[/for]
+}
+
+[generateEndif('bip_types')/]
+[/file]
+
+[comment @main /]
+	
+[for (itf : EClass | aEPackage.eContents(EClass))]
+[comment implementation src /]
+[file ('specific/src/' + generateNameImpl(itf) + '.cpp', false, 'UTF-8')]
+#include <[generateNameImpl(itf)/].hpp>
+
+[for (op : EOperation | constructors(itf)) before('// constructors\n')]
+[generateConstructor(op, false, false)/]
+[/for]
+
+// destructor
+[generateNameImpl(itf)/]::~[generateNameImpl(itf)/]() {
+  /* implement your destructor here */
+}
+[/file]
+
+
+[comment implementation includes /]
+[file ('specific/include/' + generateNameImpl(itf) + '.hpp', false, 'UTF-8')]
+[generateIfdefImpl(itf)/]
+
+// inherited classes
+#include <[generateNameItf(itf)/].hpp>
+[for (scl : EClass | includeClassesImpl(itf))]
+#include "[generateNameImpl(scl)/].hpp"
+[/for]
+
+class [generateNameImpl(itf)/][if (generateInheritanceImpl(itf).size() > 0)] : [/if][generateInheritanceImpl(itf)/] {
+ public:
+[for (op : EOperation | constructors(itf)) before('  // constructors\n') after('\n')]
+  [generateConstructorPrototype(op, true, false)/];
+[/for]
+  // destructor
+  virtual ~[generateNameImpl(itf)/]();
+[for (ref : EReference | itf.eReferences->select(r | not addMethodImplementedInInterface(r) and not isInterface(r) and isChangeable(r) and r.changeable)) before('\n  // setters for references\n') separator('\n')]
+  [generateSetterPrototype(ref, false)/] [generateSetterBody(ref)/]
+  [generateClearPrototype(ref, true)/] [generateClearBody(ref)/]
+[/for]
+[for (ref : EReference | itf.eReferences->select(r | not addMethodImplementedInInterface(r) and not isInterface(r) and isChangeable(r) and not r.changeable)) before('\n protected:\n  // protected setters for references\n') separator('\n')]
+  [generateSetterPrototype(ref, false)/] [generateSetterBody(ref)/]
+[/for]
+};
+
+[generateEndifImpl(itf)/]
+[/file]
+
+
+[comment interface src /]
+[file ('generic/src/' + generateNameItf(itf) + '.cpp', false, 'UTF-8')]
+#include <[generateNameItf(itf)/].hpp>
+
+[for (op : EOperation | constructors(itf)) before('// constructors\n') separator('\n')]
+[generateConstructor(op, false, true)/]
+[/for]
+
+// destructor
+[generateNameItf(itf)/]::~[generateNameItf(itf)/]() {
+}
+[for (op : EOperation | methods(itf)->select(o | not isPureVirtual(o))) before('// operations\n') separator('\n')]
+[generateMethodPrototype(op, false, true)/] {
+}
+[/for]
+[/file]
+
+
+[comment interface includes /]
+[file ('generic/include/' + generateNameItf(itf) + '.hpp', false, 'UTF-8')]
+[generateIfdefItf(itf)/]
+
+#include <bip-engineiface-config.hpp>
+using namespace bipbasetypes;
+using namespace biptypes;
+
+[for (scl : EClass | inheritedClasses(itf)->sortedBy(name)) before('// inherited classes\n') after('\n')]
+#include "[generateNameItf(scl)/].hpp"
+[/for]
+[for (class : EClass | includedClasses(itf)) before('// used classes\n') after('\n')]
+#include "[generateNameImpl(class)/].hpp"
+[/for]
+[for (class : EClass | referencedClasses(itf)) before('// referenced classes\n') after('\n')]
+class [generateNameImpl(class)/];
+[/for][if (itf.isFriendDeploy() or references(itf)->select(ref : EReference | not ref.changeable and isChangeable(ref))->notEmpty())]class Component;['\n'/][/if]
+class [generateNameItf(itf)/][if (generateInheritanceItf(itf).size() > 0)] : [/if][generateInheritanceItf(itf)/] {
+ public:
+  // destructor
+  virtual ~[generateNameItf(itf)/]();
+
+[for (op : EOperation | methods(itf)) before('  // operations\n') after('\n')]
+  [generateMethodPrototype(op, true, true)/];
+[/for]
+[for (ref : EReference | references(itf)) before('  // getters for references\n') after('\n')]
+  [if (ref.changeable and not isSimplePointer(ref) and not isSimpleReference(ref))][generateGetter(ref)/]['\n  '/][/if][generateConstGetter(ref)/][if (isSimplePointer(ref) or isVector(ref) or isMap(ref))]['\n  '/][generateHasGetter(ref)/][/if]
+[/for]
+[for (attr : EAttribute | attributes(itf)) before('  // getters for attributes\n') after('\n')]
+  [if (isChangeable(attr))][generateGetter(attr)/]['\n  '/][/if][generateConstGetter(attr)/][if (isSimplePointer(attr) or isVector(attr) or isMap(attr))]['\n  '/][generateHasGetter(attr)/][/if]
+[/for]
+[for (ref : EReference | references(itf)->select(r : EReference | isChangeable(r) and r.changeable)) before('  // setters for references\n') after('\n')]
+  [generateSetterPrototype(ref, true)/][if (addMethodImplementedInInterface(ref) and not isInterface(ref))] [generateSetterBody(ref)/][else];[/if]
+  [generateClearPrototype(ref, true)/][if (not isInterface(ref))] [generateClearBody(ref)/][else];[/if]
+[/for]
+[for (attr : EAttribute | attributes(itf)->select(a : EAttribute | not isSimpleReference(a) and isChangeable(a) and not (isConst(a) and not isPointer(a)))) before('  // setters for attributes\n') after('\n')]
+  [generateSetterPrototype(attr, true)/] [generateSetterBody(attr)/]
+[/for]
+[for (container : EClass | getClassWithAggregationOnClass(itf)) before('  // opposites accessors\n') separator('\n') after('\n')]
+  [generateGetOpposite(container)/]
+  [generateHasOpposite(container)/]
+  [generateSetOpposite(container)/]
+[/for]
+ protected:[for (op : EOperation | constructors(itf)) before('\n  // protected constructors\n')]
+  [generateConstructorPrototype(op, true, true)/];
+[/for]
+[for (ref : EReference | references(itf)->select(ref : EReference | not ref.changeable and isChangeable(ref))) before('\n  // protected getters for references\n')]
+  [generateGetter(ref)/]
+[/for]
+[for (ref : EReference | references(itf)->select(r : EReference | not r.changeable and isChangeable(r) and not isInterface(r))) before('\n  // protected setters for references\n')]
+  [generateSetterPrototype(ref, true)/][if (addMethodImplementedInInterface(ref))] [generateSetterBody(ref)/][else];[/if]
+[/for]
+[for (attr : EAttribute | attributes(itf)) before('\n  // attributes\n') ]
+  [generateTyped(attr, generateName(attr))/];
+[/for]
+[for (ref : EReference | references(itf)->select(r : EReference | not isInterface(r))) before('\n  // references\n') ]
+  [generateTyped(ref, generateName(ref))/];
+[/for]
+[for (container : EClass | getClassWithAggregationOnClass(itf)) before('\n  // opposites\n')]
+  [generateTyped(pointer(generateNameImpl(container)), generateNameOpposite(container))/];
+[/for]
+[if (isFriendDeploy(itf))]['\n'/]  // specific rights for deploying the system
+  friend Component* deploy(int argc, char** argv);
+[/if]
+};
+
+[generateEndifItf(itf)/]
+[/file]
+
+[/for]
+
+[/template]

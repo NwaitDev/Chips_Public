@@ -177,7 +177,8 @@ for eng in $ENGINES; do
     pushd $PWD
     mkdir -p build/ENGINE-$eng && \
     cd build/ENGINE-$eng && \
-    cmake \
+    
+    CMAKE_POLICY_VERSION_MINIMUM=3.5 cmake \
        -D VERSION="$V" \
        -D CMAKE_BUILD_TYPE=${CMAKE_PROFILE_ENGINE} \
        $ENGINES_ROOT/$eng && make package && cp *.tar.gz $DISTRIB_BUILD_ROOT

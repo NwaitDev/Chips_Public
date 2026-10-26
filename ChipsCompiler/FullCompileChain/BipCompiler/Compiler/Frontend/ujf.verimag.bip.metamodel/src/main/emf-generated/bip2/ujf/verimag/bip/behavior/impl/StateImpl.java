@@ -199,4 +199,33 @@ public class StateImpl extends AnnotatedEObjectImpl implements State {
         return result.toString();
     }
 
+    /**
+     * <!-- begin-user-doc -->
+     * COMPARISON BY VALUE REQUIRED
+     * (Sometimes, states, when used in
+     * list of states and lists of initial 
+     * states are re created for a reason I
+     * don't have time to investigate about)
+     * <!-- end-user-doc -->
+     * @generated NOT
+     */
+    @Override
+    public boolean equals(Object o) {
+        // If the object is compared with itself then return true  
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof State)) {
+            return false;
+        }
+        
+        // typecast o to Complex so that we can compare data members 
+        State s = (State) o;
+        
+        // Compare the data members and return accordingly 
+        return this.getName().equals(s.getName());
+    }
+    
+
 } //StateImpl
