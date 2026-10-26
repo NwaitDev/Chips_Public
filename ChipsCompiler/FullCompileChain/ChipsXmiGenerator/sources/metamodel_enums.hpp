@@ -69,7 +69,8 @@ namespace chips{
         // system specific statements
         PLUGGING, // identifier.identifier(identifier.identifier)
         FEEDING, // identifier.identifier(expression | identifier.identifier)
-        LINKING // link identifier to identifier
+        LINKING, // link identifier to identifier
+        PROBE // probe(expr) // printing to a csv file the value of the expression in parameter
     };
 
     /**

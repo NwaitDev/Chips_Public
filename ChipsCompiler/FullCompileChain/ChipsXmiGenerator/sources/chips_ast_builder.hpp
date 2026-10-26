@@ -213,6 +213,8 @@ public:
 
   std::any visitLoop_statement(ChipsParser::Loop_statementContext *ctx) override;
 
+  std::any visitStatementProbe(ChipsParser::StatementProbeContext *ctx) override;
+
   std::any visitC_loop_statement(ChipsParser::C_loop_statementContext *ctx) override;
   std::any visitC_loop_in(ChipsParser::C_loop_inContext *ctx) override;
 

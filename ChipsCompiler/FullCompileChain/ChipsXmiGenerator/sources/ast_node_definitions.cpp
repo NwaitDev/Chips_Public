@@ -19,6 +19,7 @@ void collectiveops_section::accept(chips_ast2xmi_visitor &v) {
 void accumulator_definition::accept(chips_ast2xmi_visitor &v) {
   v.visit(*this);
 }
+void probe_statement::accept(chips_ast2xmi_visitor &v) { v.visit(*this); }
 
 void object_definition::accept(chips_ast2xmi_visitor &v) { v.visit(*this); }
 

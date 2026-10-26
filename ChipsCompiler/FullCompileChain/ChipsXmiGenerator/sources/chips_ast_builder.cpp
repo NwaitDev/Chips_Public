@@ -2139,6 +2139,33 @@ std::any chips_ast_builder::visitLoop_statement(
   throw std::runtime_error("unknown dataflow_type in visitLoop_statement");
 }
 
+std::any
+chips_ast_builder::visitStatementProbe(ChipsParser::StatementProbeContext *ctx) {
+  VERBOSE_VISIT_ENTER
+  for (antlr4::tree::ParseTree *up = ctx->parent; up != nullptr; up = up->parent)
+  {
+    if (dynamic_cast<ChipsParser::With_sectionContext *>(up) != nullptr ||
+        dynamic_cast<ChipsParser::SystemContext *>(up) != nullptr)
+    {
+      semantic_fail(ctx, "probe can only be used in the init and then sections of a function");
+    }
+  }
+  checker.infer_type(ctx->expr());
+  rvalue_variant<expression_env::PRIMITIVE> value =
+      eval<expression_env::PRIMITIVE>(*this, ctx->expr());
+  antlr4::Token *start = ctx->expr()->getStart();
+  antlr4::Token *stop = ctx->expr()->getStop();
+  std::string text = start->getInputStream()->getText(
+      antlr4::misc::Interval(start->getStartIndex(), stop->getStopIndex()));
+  std::string location =
+      std::to_string(line_of(ctx)) + ":" + std::to_string(col_of(ctx) + 1);
+  auto *node = make_node<probe_statement>(line_of(ctx), col_of(ctx), value,
+                                          location, text);
+  return std::vector<primitive_statement_variant>{primitive_statement_variant(
+      static_cast<primitive_statement<recurring_statement::PROBE> *>(node))};
+}
+
+
 std::any chips_ast_builder::visitC_loop_statement(
     ChipsParser::C_loop_statementContext *ctx) {
   VERBOSE_VISIT_ENTER

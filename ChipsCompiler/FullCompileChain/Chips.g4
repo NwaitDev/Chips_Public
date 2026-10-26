@@ -1,12 +1,12 @@
 grammar Chips;
 
-program 
+program
     : preamble* system? EOF
     ;
 
 system
     : SYSTEM_KW L_CURL
-        s_statement*    
+        s_statement*
       R_CURL
     ;
 
@@ -92,7 +92,7 @@ then_section
         (statement)*
       R_CURL
     ;
- 
+
 expr
     : expr0 LT expr     # LT
     | expr0 GT expr     # GT
@@ -101,7 +101,7 @@ expr
     | expr0 NEQ expr    # NEQ
     | expr0 EQ  expr    # EQ
     | expr0 AND expr    # AND
-    | expr0 OR expr     # OR   
+    | expr0 OR expr     # OR
     | expr0             # PassExpr0
     ;
 
@@ -135,7 +135,7 @@ expr2
     | cast                                      # CastAs
     ;
 
-cast    
+cast
     : L_PARENTH df_type R_PARENTH expr
     ;
 
@@ -144,7 +144,7 @@ c_expr
     | STOP_KW           #Stop
     ;
 
-c_stopless_expr 
+c_stopless_expr
     : c_stopless_expr0 LT c_stopless_expr   #CLT
     | c_stopless_expr0 GT c_stopless_expr   #CGT
     | c_stopless_expr0 LEQ c_stopless_expr  #CLEQ
@@ -283,6 +283,7 @@ statement
     | loop_statement                                        # StatementLoop
     | if_else_statement                                     # StatementIfElse
     | if_statement                                          # StatementIf
+    | PROBE_KW L_PARENTH expr R_PARENTH SEMICOL             # StatementProbe
     ;
 
 s_statement
@@ -384,6 +385,7 @@ DEFAULT_KW          : 'default';
 USING_KW            : 'using';
 ACTUATOR_KW         : 'actuator';
 SENSOR_KW           : 'sensor';
+PROBE_KW            : 'probe';
 ARROW               : '->';
 PLUS                : '+';
 MINUS               : '-';

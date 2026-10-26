@@ -1,5 +1,5 @@
 
-// Generated from /home/ohnoanna/Code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
+// Generated from /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/FullCompileChain/ChipsXmiGenerator/../Chips.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -18,12 +18,12 @@ public:
     HAVING_KW = 17, INPUT_KW = 18, STOP_KW = 19, AMONG_KW = 20, SPREAD_KW = 21, 
     COLLECT_KW = 22, CTX_KW = 23, OBJECT_KW = 24, WITH_KW = 25, IMPLEMENTATION_KW = 26, 
     BY_KW = 27, TARGET_KW = 28, DEFAULT_KW = 29, USING_KW = 30, ACTUATOR_KW = 31, 
-    SENSOR_KW = 32, ARROW = 33, PLUS = 34, MINUS = 35, TIMES = 36, DIV = 37, 
-    MOD = 38, LT = 39, GT = 40, EQ = 41, LEQ = 42, GEQ = 43, NEQ = 44, AND = 45, 
-    OR = 46, NOT = 47, ASSIGN = 48, COMMA = 49, SEMICOL = 50, L_PARENTH = 51, 
-    R_PARENTH = 52, L_CURL = 53, R_CURL = 54, L_SQUA = 55, R_SQUA = 56, 
-    COLUMN = 57, PERIOD = 58, BOOL = 59, FLOAT = 60, INT = 61, IDENTIFIER = 62, 
-    NEWLINE = 63, WS = 64, COMMENT = 65
+    SENSOR_KW = 32, PROBE_KW = 33, ARROW = 34, PLUS = 35, MINUS = 36, TIMES = 37, 
+    DIV = 38, MOD = 39, LT = 40, GT = 41, EQ = 42, LEQ = 43, GEQ = 44, NEQ = 45, 
+    AND = 46, OR = 47, NOT = 48, ASSIGN = 49, COMMA = 50, SEMICOL = 51, 
+    L_PARENTH = 52, R_PARENTH = 53, L_CURL = 54, R_CURL = 55, L_SQUA = 56, 
+    R_SQUA = 57, COLUMN = 58, PERIOD = 59, BOOL = 60, FLOAT = 61, INT = 62, 
+    IDENTIFIER = 63, NEWLINE = 64, WS = 65, COMMENT = 66
   };
 
   enum {
@@ -1655,6 +1655,19 @@ public:
     StatementLoopContext(StatementContext *ctx);
 
     Loop_statementContext *loop_statement();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  StatementProbeContext : public StatementContext {
+  public:
+    StatementProbeContext(StatementContext *ctx);
+
+    antlr4::tree::TerminalNode *PROBE_KW();
+    antlr4::tree::TerminalNode *L_PARENTH();
+    ExprContext *expr();
+    antlr4::tree::TerminalNode *R_PARENTH();
+    antlr4::tree::TerminalNode *SEMICOL();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };

@@ -196,6 +196,12 @@
         <eStructuralFeatures xsi:type="ecore:EReference" name="else_statements" upperBound="-1"
             eType="#//statements/primitive_statement" containment="true"/>
       </eClassifiers>
+      <eClassifiers xsi:type="ecore:EClass" name="probe" eSuperTypes="#//statements/primitive_statement">
+        <eStructuralFeatures xsi:type="ecore:EReference" name="expression" lowerBound="1"
+            eType="#//rvalues/primitive_rvalue" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="location" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="text" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+      </eClassifiers>
     </eSubpackages>
     <eSubpackages name="collective" nsURI="http://chips/statements/collective" nsPrefix="chips.statements.collective">
       <eClassifiers xsi:type="ecore:EClass" name="int_declaration" eSuperTypes="#//statements/collective_declaration">

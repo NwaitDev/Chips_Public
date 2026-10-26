@@ -394,6 +394,11 @@ void CodeGenListener::setMaxTicks(long long maxTicks)
     maxTicks_ = maxTicks;
 }
 
+void CodeGenListener::setProbeFile(const std::string &path)
+{
+    probeFile_ = path;
+}
+
 std::string CodeGenListener::escapeCString(const std::string &text)
 {
     std::string out;
@@ -487,6 +492,11 @@ std::string CodeGenListener::translateStatementBody(ChipsParser::StatementContex
         return translateContextualAssignment(assign, indent);
     }
 
+    if (auto *probe = dynamic_cast<ChipsParser::StatementProbeContext *>(stmt))
+    {
+        return translateProbe(probe, indent);
+    }
+
     std::string text("");
     antlr4::misc::Interval interval = stmt->getSourceInterval();
     for (int i = interval.a; i <= interval.b; i++)
@@ -496,6 +506,60 @@ std::string CodeGenListener::translateStatementBody(ChipsParser::StatementContex
     std::cout << "unhandled: " << text << std::endl;
     std::cout << "(it has been copied verbatim)" << std::endl;
     return pad + text + "\n";
+}
+
+std::string CodeGenListener::translateProbe(ChipsParser::StatementProbeContext *ctx, int indent)
+{
+    for (antlr4::tree::ParseTree *up = ctx->parent; up; up = up->parent)
+        if (dynamic_cast<ChipsParser::With_sectionContext *>(up))
+            fail(ctx, "probe can only be used in the init and then sections of a function");
+
+    return std::string(indent, ' ') + "chips_probe(chips_instance, chips_ticks, \"" +
+           probeLocation(ctx) + "\", \"" + sourceText(ctx->expr()) + "\", " +
+           translateExpr(ctx->expr()) + ");\n";
+}
+
+std::string CodeGenListener::probeLocation(antlr4::ParserRuleContext *ctx) const
+{
+    const int line = ctx->getStart() ? static_cast<int>(ctx->getStart()->getLine()) : 0;
+    const int column = ctx->getStart() ? static_cast<int>(ctx->getStart()->getCharPositionInLine()) + 1 : 0;
+    std::string path = sourcePath_;
+    int localLine = line;
+    for (const auto &[firstLine, segmentPath] : sourceSegments_)
+        if (firstLine <= line)
+        {
+            path = segmentPath;
+            localLine = line - firstLine + 1;
+        }
+    const std::size_t slash = path.find_last_of('/');
+    if (slash != std::string::npos)
+        path = path.substr(slash + 1);
+    return path + ":" + std::to_string(localLine) + ":" + std::to_string(column);
+}
+
+void CodeGenListener::rejectProbes(antlr4::tree::ParseTree *node)
+{
+    if (!node)
+        return;
+    if (auto *probe = dynamic_cast<ChipsParser::StatementProbeContext *>(node))
+        fail(probe, "probe can only be used in the init and then sections of a function");
+    for (auto *child : node->children)
+        rejectProbes(child);
+}
+
+bool CodeGenListener::containsProbe(antlr4::tree::ParseTree *node)
+{
+    if (dynamic_cast<ChipsParser::StatementProbeContext *>(node))
+        return true;
+    for (auto *child : node->children)
+        if (containsProbe(child))
+            return true;
+    return false;
+}
+
+std::string CodeGenListener::probeParams(antlr4::tree::ParseTree *defCtx)
+{
+    return containsProbe(defCtx) ? "[[maybe_unused]] const std::string &chips_instance, [[maybe_unused]] int chips_ticks" : "";
 }
 
 std::string generateUniqueiterableName(const std::map<std::string, std::string>& used_names) {
@@ -1200,6 +1264,7 @@ void CodeGenListener::enterProgram(ChipsParser::ProgramContext *ctx)
     source_out_ << "};\n";
     source_out_ << "const std::size_t chips_diag::source_segment_count = " << segments.size() << ";\n\n";
     header_out_ << "constexpr int CHIPS_MAX_TICKS = " << maxTicks_ << ";\n\n";
+    source_out_ << "const char *const chips_probe_file = \"" << escapeCString(probeFile_) << "\";\n\n";
     header_out_ << "inline int chips_max_ticks()\n{\n    return CHIPS_MAX_TICKS;\n}\n\n";
     for (auto *preamble : ctx->preamble())
     {
@@ -1234,7 +1299,8 @@ void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx
         translateParams(ctx->df_parameter_decl()),
         translateContextualParams(),
         dico.serializeL(ctx, "_inner"),
-        translateOutputs(ctx->named_output())};
+        translateOutputs(ctx->named_output()),
+        probeParams(ctx)};
 
     emitFunction("init_" + name, signature, initBody);
     emitFunction("then_" + name, signature, thenBody);
@@ -1243,6 +1309,7 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
 {
     current_def = ctx;
     const std::string name = ctx->IDENTIFIER()->getText();
+    rejectProbes(ctx->with_section());
     registerChannels(ObjectType{ctx});
     registerContextualVars(ObjectType{ctx});
     const ObjectType ownKey{ctx};
@@ -1255,7 +1322,8 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
         translateParams(ctx->pdf_parameter_decl()),
         translateContextualParams(),
         dico.serializeP(ctx, "_inner"),
-        translateOutputs(ctx->p_named_output())};
+        translateOutputs(ctx->p_named_output()),
+        probeParams(ctx)};
 
     emitFunction("init_" + name, signature, initBody);
     emitFunction("then_" + name, signature, thenBody);
@@ -2101,6 +2169,7 @@ void CodeGenListener::registerChannels(const ObjectType &key)
 
 void CodeGenListener::exitObject_def(ChipsParser::Object_defContext *ctx)
 {
+    rejectProbes(ctx->with_section());
     registerChannels(ObjectType{ctx});
     registerContextualVars(ObjectType{ctx});
 }

@@ -455,6 +455,8 @@ fi
 if [[ "$DO_CPP" -eq 1 ]]; then
     CPP_ARGS=("$CHIPS_SOURCE" -o "$OUTPUT_DIR/$CPP_BASENAME.cpp")
     [[ -n "$SOURCE_MAP" ]] && CPP_ARGS+=(-source-map "$SOURCE_MAP")
+    PROBE_FILE="$OUTPUT_DIR/$(basename -- "$FILE" .chips).probe.csv"
+    CPP_ARGS+=(-probe-file "$PROBE_FILE")
     [[ -n "$MAX_TICKS" ]] && CPP_ARGS+=(-max-ticks "$MAX_TICKS")
     run_step \
         "CHIPS -> C++" \

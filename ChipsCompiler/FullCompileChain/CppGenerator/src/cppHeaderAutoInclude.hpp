@@ -15,6 +15,8 @@
 #include <cctype>
 #include <string>
 #include <initializer_list>
+#include <sstream>
+#include <mutex>
 
 class chips_any;
 
@@ -1530,6 +1532,45 @@ inline std::ostream &operator<<(std::ostream &os, const chips_any &c)
 {
     std::visit([&os](const auto &v) { os << v; }, c.value());
     return os;
+}
+
+extern const char *const chips_probe_file;
+
+inline std::string chips_csv_field(const std::string &text)
+{
+    std::string out = "\"";
+    for (char c : text)
+    {
+        if (c == '"')
+            out += '"';
+        out += c;
+    }
+    return out + "\"";
+}
+
+inline std::ofstream &chips_probe_stream()
+{
+    static std::ofstream out = []
+    {
+        std::ofstream stream(chips_probe_file, std::ios::out | std::ios::trunc);
+        if (!stream)
+            throw std::runtime_error(std::string("chips_probe: cannot open '") + chips_probe_file + "'");
+        stream << "instance,ticks,location,expression,value\n" << std::flush;
+        return stream;
+    }();
+    return out;
+}
+
+template <typename T>
+void chips_probe(const std::string &instance, int ticks, const char *location, const char *expression, const T &value)
+{
+    static std::mutex probe_mutex;
+    std::ostringstream text;
+    text << value;
+    const std::lock_guard<std::mutex> lock(probe_mutex);
+    chips_probe_stream() << chips_csv_field(instance) << ',' << ticks << ','
+                         << chips_csv_field(location) << ',' << chips_csv_field(expression) << ','
+                         << chips_csv_field(text.str()) << '\n' << std::flush;
 }
 
 #endif // CHIPS_HPP

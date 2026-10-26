@@ -45,6 +45,7 @@ public:
   template <dataflow_type dft> void visit(collective_parameter<dft> &node);
   template <dataflow_kind dfk, dataflow_type dft>
   void visit(function_output<dfk, dft> &node);
+  void visit(probe_statement &node);
 
   template <dataflow_type dft, statement_env stenv>
   void visit(dataflow_declaration<dft, stenv> &node);

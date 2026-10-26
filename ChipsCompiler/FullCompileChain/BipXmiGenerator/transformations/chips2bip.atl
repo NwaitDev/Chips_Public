@@ -84,7 +84,7 @@ helper context String def : capitalized() : String =
 	endif;
 
 helper context chips!collective_function_definition def : accumulatorTypeName() : String =
-	'Aggr' + self.getAccumulatorSig()->iterate(t; acc : String = '' | acc + t.name.capitalized()) + '_t';
+	'Aggr' + self.getAccumulatorSig()->iterate(t; acc : String = '' | acc + t.name.unprotected().capitalized()) + '_t';
 
 
 unique lazy rule MakeBipDataType{
@@ -124,9 +124,20 @@ lazy rule MakePrototypeParameterDeclaration{
 		n:String
 
 	to pp:bip!PrototypeParameterDeclaration(
-		type <- thisModule.MakeBipDataType(t),
+		type <-
+			if t.oclIsKindOf(String) then
+				if t.startsWith('native:') then
+					thisModule.MakeBackendDataType(t.substring(8, t.size()))
+				else if t.startsWith('const:') then
+					thisModule.MakeBackendDataType(t.substring(7, t.size()))
+				else
+					thisModule.MakeBipDataType(t)
+				endif endif
+			else
+				thisModule.MakeBipDataType(t)
+			endif,
 		name <- n,
-		const <- false
+		const <- if t.oclIsKindOf(String) then t.startsWith('const:') else false endif
 	)
 }
 
@@ -624,7 +635,7 @@ helper def : MakeBipExpression(
         chips!"chips::rvalues::collective::function"
     ) then
 	thisModule.MakeCppFunctionCall(
-			r.name, 
+			r.name.unprotected(), 
 			r.parameters->collect(p | thisModule.MakeBipExpression(p)),
 			thisModule.range(Sequence{r.parameters->size()})
 			->collect(i | Tuple{
@@ -1388,9 +1399,11 @@ helper context chips!primitive_statement def : uses_contextuals() : Set(TupleTyp
 	else if self.oclIsTypeOf(chips!"chips::statements::primitive::foreach") then
 		self.iterable_expr->uses_contextuals()
 		->union(self.statements->uses_contextuals()->asSet())
+	else if self.oclIsTypeOf(chips!"chips::statements::primitive::probe") then
+		self.expression->uses_contextuals()
 	else 
 		Set{}
-	endif endif endif endif;
+	endif endif endif endif endif;
 
 helper context Sequence(chips!primitive_statement) def : uses_contextuals() : Sequence(TupleType(type:String, name:String)) =
 	self->collect(stt | stt->uses_contextuals()->asSequence())->asSequence();
@@ -1493,6 +1506,16 @@ helper context chips!collective_statement def : collective_uses_contextuals() : 
 helper context Sequence(chips!collective_statement) def : collective_uses_contextuals() : Sequence(TupleType(type:String, name:String)) =
 	self->collect(stt | stt->collective_uses_contextuals()->asSequence())->asSequence();
 
+
+helper context chips!function_definition def : usesProbe() : Boolean =
+	chips!"chips::statements::primitive::probe".allInstances()->exists(p | p.isContainedIn(self));
+
+helper def : instanceLabel(name : String, index : Integer, dims : Sequence(Integer)) : String =
+	if dims->isEmpty() then
+		name
+	else
+		name + index.delinearize(dims)->iterate(i ; acc : String = '' | acc + '[' + i.toString() + ']')
+	endif;
 
 helper context OclAny def : isContainedIn(container : OclAny) : Boolean =
 	let parent : OclAny = self.refImmediateComposite() in
@@ -1697,7 +1720,7 @@ unique lazy rule MakeSpreadRootConnectorType{
 					thisModule.MakePortDataParameterDeclaration(acc_type, 0, acc_port_types)
 				),
 				thisModule.MakeCppFunctionCall(
-					fname + '_root',
+					fname.unprotected() + '_root',
 					Sequence{thisModule.MakeAssignmentDataOperand(input_dd)},
 					Sequence{Tuple{t = input_type, n = 'input'}},
 					acc_type
@@ -2508,6 +2531,14 @@ unique lazy rule MakeCoreAtomType {
 		ticks_aidd : bip!AtomInternalDataDeclaration = thisModule.MakeTicksDataDeclaration(chipsfunction);
 		max_ticks_prototype : bip!FunctionCallPrototype = thisModule.MakeNativeFunctionCallPrototype('chips_max_ticks', 'int');
 
+		uses_probe : Boolean = chipsfunction.usesProbe();
+		probe_ppdecls : Sequence(TupleType(t:String, n:String)) =
+			if uses_probe then
+				Sequence{Tuple{t = 'const:string', n = 'chips_instance'}, Tuple{t = 'native:int', n = 'chips_ticks'}}
+			else
+				Sequence{}
+			endif;
+
 
 		-- generating port parameter declarations
 		-----------------------------------------
@@ -2618,7 +2649,8 @@ unique lazy rule MakeCoreAtomType {
         castableTypes <- Sequence{},
         exportedPortDeclarations <- io_to_export->union(ctx_to_export),
         exportPortDeclarations <- io_to_export->union(ctx_to_export),
-		dataParameterDeclarations <- Sequence{starts},
+		dataParameterDeclarations <- Sequence{starts}
+			->union(if uses_probe then Sequence{thisModule.MakeProbeInstanceParameterDeclaration(chipsfunction)} else Sequence{} endif),
         internalPortDeclarations <- all_aipdecl,
         externalPortDeclarations <- Sequence{},
         behavior <- pn,
@@ -2633,14 +2665,15 @@ unique lazy rule MakeCoreAtomType {
 			ports_map,
 			starts,
 			thisModule.MakeCppFunctionCall(
-				'then_'+chipsfunction.name,
+				'then_'+chipsfunction.name.unprotected(),
 				aidd_input_data
 					->union(aidd_ctx_data)
 					->union(aidd_inner_data)
 					->union(aidd_output_data)
 					->collect(datum |
 						thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
-					),
+					)
+					->union(thisModule.probeArguments(chipsfunction, ticks_aidd)),
 				aidd_input_data
 					->union(aidd_ctx_data)
 					->union(aidd_inner_data)
@@ -2650,7 +2683,8 @@ unique lazy rule MakeCoreAtomType {
 							t=datum.first.type,
 							n=datum.first.name
 						}
-					),
+					)
+					->union(probe_ppdecls),
 				'void'
 			),
 			ticks_aidd
@@ -2681,14 +2715,15 @@ unique lazy rule MakeCoreAtomType {
 					)
 				)->append(
 					thisModule.MakeCppFunctionCall(
-						'init_'+chipsfunction.name,
+						'init_'+chipsfunction.name.unprotected(),
 						aidd_input_data
 							->union(aidd_ctx_data)
 							->union(aidd_inner_data)
 							->union(aidd_output_data)
 							->collect(datum |
 								thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
-							),
+							)
+							->union(thisModule.probeArguments(chipsfunction, ticks_aidd)),
 						aidd_input_data
 							->union(aidd_ctx_data)
 							->union(aidd_inner_data)
@@ -2698,7 +2733,8 @@ unique lazy rule MakeCoreAtomType {
 									t=datum.first.type,
 									n=datum.first.name
 								}
-							),
+							)
+							->union(probe_ppdecls),
 						'void'
 					)
 				)
@@ -2790,6 +2826,36 @@ unique lazy rule MakeCoreAtomType {
 	}
 }
 
+
+helper def : probeArguments(chipsfunction : chips!function_definition, ticks : bip!AtomInternalDataDeclaration) : Sequence(OclAny) =
+	if chipsfunction.usesProbe() then
+		Sequence{
+			thisModule.MakeDirectDataDeclarationReferenceExpression(thisModule.MakeProbeInstanceParameterDeclaration(chipsfunction)),
+			thisModule.MakeDirectDataDeclarationReferenceExpression(ticks)
+		}
+	else
+		Sequence{}
+	endif;
+
+unique lazy rule MakeProbeInstanceParameterDeclaration{
+	from
+		chipsfunction : chips!function_definition
+
+	to cdpd : bip!ComponentDataParameterDeclaration(
+		dataType <- thisModule.MakeBackendDataType('string'),
+		name <- 'instance_' + chipsfunction.name,
+		const <- true
+	)
+}
+
+lazy rule MakeDirectStringExpression{
+	from
+		text : String
+
+	to dse : bip!DirectStringExpression(
+		value <- '"' + text + '"'
+	)
+}
 
 unique lazy rule MakeMonotypeBufferTypeInternalDataDeclaration{
 	from
@@ -3734,7 +3800,7 @@ unique lazy rule MakeSpreadConnectorType{
 		onPorts <- ordered_downports->append(target_cppd)->union(ordered_ctx_ports),
 		down <- Sequence{
 			thisModule.MakeCppFunctionCall(
-				fname,
+				fname.unprotected(),
 				Sequence{
 					thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_decl.dd),
 					thisModule.MakeDirectDataDeclarationReferenceExpression(accumulator_decl.dd)
@@ -4184,7 +4250,7 @@ unique lazy rule MakeCollectConnectorType{
 			)
 		)->append(
 			thisModule.MakeCppFunctionCall(
-				fname,
+				fname.unprotected(),
 				Sequence{
 					thisModule.MakeDirectDataDeclarationReferenceExpression(indicator_decl.dd)
 				}->union(
@@ -4877,7 +4943,14 @@ unique lazy rule MakeFunctionalBlockCompoundType {
 
     to compound_type:bip!CompoundType(
 		name <- chipsfunction.name+'_compoundtype',
-		dataParameterDeclarations <- Sequence{only_parameter},
+		dataParameterDeclarations <- Sequence{only_parameter}
+			->union(
+				if chipsfunction.usesProbe() then
+					Sequence{thisModule.MakeFunctionComponentDataParameterDeclaration('instance', 'string', chipsfunction)}
+				else
+					Sequence{}
+				endif
+			),
 		componentDeclarations <- 
 			Sequence{core_component_declaration}->union(buffers_sequence),
 		connectorDeclarations<- connectors_sequence,
@@ -4934,7 +5007,18 @@ unique lazy rule MakeCoreComponentDeclaration {
 
 	to core_component_declaration: bip!ComponentDeclaration(
 		type <- thisModule.MakeCoreAtomType(chipsfunction),
-		parameters <- Sequence{starts_valued_expression},
+		parameters <- Sequence{starts_valued_expression}
+			->union(
+				if chipsfunction.usesProbe() then
+					Sequence{
+						thisModule.MakeDirectDataDeclarationReferenceExpression(
+							thisModule.MakeFunctionComponentDataParameterDeclaration('instance', 'string', chipsfunction)
+						)
+					}
+				else
+					Sequence{}
+				endif
+			),
 		name <- 'core'
 	),
 	
@@ -6554,7 +6638,6 @@ rule Program2BipPackage {
 			->select(fbkey | not memory.mem.fblocks->get(fbkey).ftype.oclIsUndefined())
 			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.mem.fblocks->get(fbkey).ftype->all_contextuals() } )
 			->select(fb | not fb.ctxs->isEmpty())
-			->debug('fblocks with ctx')
 			->iterate(
 				fb ; connectorlist1 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
 				connectorlist1->union(
@@ -6634,7 +6717,7 @@ rule Program2BipPackage {
 						)
 					)
 				)
-			)->flatten()->debug('ctx_connectors');
+			)->flatten();
 		
 
 		---------------------------------------------------------------------------------
@@ -8547,6 +8630,13 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 							fdecl.variable.name+'_'+i.toString(),
 							fdecl."def",
 							Sequence{thisModule.MakeDirectBooleanExpression(fdecl."def".allParametersHaveDefaults)}
+								->union(
+									if fdecl."def".usesProbe() then
+										Sequence{thisModule.MakeDirectStringExpression(thisModule.instanceLabel(fdecl.variable.name, i, dims))}
+									else
+										Sequence{}
+									endif
+								)
 						)
 					)
 				)
@@ -8563,6 +8653,13 @@ helper def: updatefblockswith(fdecl:OclAny, memory:TupleType(
 						fdecl.variable.name+'_0',
 						fdecl."def",
 						Sequence{thisModule.MakeDirectBooleanExpression(fdecl."def".allParametersHaveDefaults)}
+							->union(
+								if fdecl."def".usesProbe() then
+									Sequence{thisModule.MakeDirectStringExpression(fdecl.variable.name)}
+								else
+									Sequence{}
+								endif
+							)
 					)
 				}	
 			}

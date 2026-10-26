@@ -1419,6 +1419,31 @@ public:
   void accept(chips_ast2xmi_visitor &v) override;
 };
 
+class probe_statement
+    : public statement<statement_env::DEFINITION, recurring_statement::PROBE> {
+public:
+  rvalue_variant<expression_env::PRIMITIVE> m_expression;
+  std::string m_location;
+  std::string m_text;
+
+  probe_statement(int line, int column,
+                  rvalue_variant<expression_env::PRIMITIVE> expression,
+                  std::string location, std::string text)
+      : ast_node(line, column),
+        statement<statement_env::DEFINITION, recurring_statement::PROBE>(line,
+                                                                         column),
+        m_expression(expression), m_location(std::move(location)),
+        m_text(std::move(text)) {}
+
+  rvalue_variant<expression_env::PRIMITIVE> &get_expression() {
+    return m_expression;
+  }
+
+  void accept(chips_ast2xmi_visitor &v) override;
+};
+
+
+
 /**
  * Concrete class
  * Node of the AST that represents the ordered list of the statements

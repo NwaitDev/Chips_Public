@@ -106,7 +106,18 @@ namespace chips {
     template<recurring_statement recstt>
     using collective_statement = statement<statement_env::COLLECTIVE, recstt>;
 
-    using node_statement_variant = std::variant<node_statement<recurring_statement::IF>*,node_statement<recurring_statement::FOREACH>*,node_element_declaration<node_element::CHANNEL>*,node_element_declaration<node_element::CONTEXTUAL_INT>*,node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,node_element_declaration<node_element::CONTEXTUAL_BOOL>*,node_statement<recurring_statement::DECLARATION>*,node_statement<recurring_statement::ASSIGNMENT>*>;
+    using node_statement_variant = 
+        std::variant<
+            node_statement<recurring_statement::IF>*,
+            node_statement<recurring_statement::FOREACH>*,
+            node_element_declaration<node_element::CHANNEL>*,
+            node_element_declaration<node_element::CONTEXTUAL_INT>*,
+            node_element_declaration<node_element::CONTEXTUAL_FLOAT>*,
+            node_element_declaration<node_element::CONTEXTUAL_BOOL>*,
+            node_statement<recurring_statement::DECLARATION>*,
+            node_statement<recurring_statement::ASSIGNMENT>*,
+            node_statement<recurring_statement::PROBE>*
+        >;
 
     template<>
     struct SttEnvToSttVariant<statement_env::NODE>{
@@ -118,7 +129,8 @@ namespace chips {
             primitive_statement<recurring_statement::IF>*,
             primitive_statement<recurring_statement::FOREACH>*,
             primitive_statement<recurring_statement::DECLARATION>*,
-            primitive_statement<recurring_statement::ASSIGNMENT>*
+            primitive_statement<recurring_statement::ASSIGNMENT>*,
+            primitive_statement<recurring_statement::PROBE>*
         >;
 
     template<>

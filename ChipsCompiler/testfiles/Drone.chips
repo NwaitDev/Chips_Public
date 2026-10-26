@@ -24,6 +24,7 @@ logical Drone(float u = 0., float dt = 0.) init {
     }else{
         altitude_max = altitude_max;
     }
+    probe(altitude);
 } -> update(altitude)
 
 logical PID(float target, float current, float dt) init {

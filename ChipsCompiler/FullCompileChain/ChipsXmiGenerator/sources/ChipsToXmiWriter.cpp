@@ -324,6 +324,14 @@ void chips_ast2xmi_visitor::register_namespace(const std::string &ns_prefix) {
   m_namespaces.emplace(it->first, it->second);
 }
 
+void chips_ast2xmi_visitor::visit(probe_statement &node) {
+  begin_element("chips.statements.primitive", "probe", &node);
+  attribute("location", node.m_location);
+  attribute("text", node.m_text);
+  child("expression", node.get_expression());
+  end_element();
+}
+
 const std::map<std::string, std::string> &
 chips_ast2xmi_visitor::known_namespaces() {
   static const std::map<std::string, std::string> namespaces = {
