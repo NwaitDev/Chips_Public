@@ -1674,6 +1674,34 @@ helper def : resolveSupportNode(memory : OclAny, obj : String, index : Integer, 
 		endif
 	endif;
 
+helper def : resolveCcastLeaves(memory : OclAny, defs : Sequence(OclAny)) : OclAny =
+	memory.ccasts_map->getKeys()->iterate(
+		key ; acc : Map(OclAny, OclAny) = Map{} |
+		let supportType : String = defs->any(d | d.name = key.collective_cast).support_object.name in
+		acc->including(
+			key,
+			memory.ccasts_map->get(key)->iterate(
+				leaf ; leaves : Sequence(OclAny) = Sequence{} |
+				let node : OclAny = thisModule.resolveSupportNode(memory, leaf.leaf_fct, leaf.leaf_index, supportType, 0) in
+				if node.oclIsUndefined() then
+					let a : OclAny = 'ATL transformation Error'.debug(
+						thisModule.instanceLabel(leaf.leaf_fct, leaf.leaf_index, memory.fblocks->get(leaf.leaf_fct).dimensions) +
+						' is not linked to any ' + supportType + ' node, the collective cast ' + key.collective_cast + ' ignores it') in
+					leaves
+				else
+					leaves->append(Tuple{
+						obj = node.obj,
+						obj_index = node.index,
+						leaf_fct = leaf.leaf_fct,
+						leaf_index = leaf.leaf_index,
+						leaf_param = leaf.leaf_param,
+						leaf_fct_type = leaf.leaf_fct_type
+					})
+				endif
+			)
+		)
+	);
+
 helper def : ccastRootNode(memory : OclAny, key : OclAny, supportType : String) : OclAny =
 	let fb : OclAny = memory.fblocks->get(key.root_function) in
 	thisModule.resolveSupportNode(
@@ -6638,6 +6666,7 @@ rule Program2BipPackage {
 			->select(fbkey | not memory.mem.fblocks->get(fbkey).ftype.oclIsUndefined())
 			->collect( fbkey | Tuple{fbkey = fbkey, ctxs= memory.mem.fblocks->get(fbkey).ftype->all_contextuals() } )
 			->select(fb | not fb.ctxs->isEmpty())
+			->debug('fblocks with ctx')
 			->iterate(
 				fb ; connectorlist1 : Sequence(bip!ConnectorDeclaration) = Sequence{} |
 				connectorlist1->union(
@@ -6717,7 +6746,7 @@ rule Program2BipPackage {
 						)
 					)
 				)
-			)->flatten();
+			)->flatten()->debug('ctx_connectors');
 		
 
 		---------------------------------------------------------------------------------
@@ -6798,10 +6827,21 @@ rule Program2BipPackage {
 		-------------  Generating the bip instances of the   ----------------------------
 		-------------   collective cast connectors   ------------------------------------
 
+		resolved_mem : OclAny =
+			Tuple{
+				fblocks = memory.mem.fblocks,
+				dataflows = memory.mem.dataflows,
+				links = memory.mem.links,
+				nodes = memory.mem.nodes,
+				connections = memory.mem.connections,
+				ccasts_map = thisModule.resolveCcastLeaves(memory.mem, all_chips_collective_defs),
+				variables = memory.mem.variables
+			};
+
 		instantiated_collective_connectors_trees : Map(
 			TupleType(collective_cast:String, root_function:String,root_index:Sequence(Integer),root_parameter:String), 
 			Sequence(Map(String,OclAny))
-		) = collective_connectors_trees->collective_instantiation(memory.mem,all_chips_collective_defs);
+		) = collective_connectors_trees->collective_instantiation(resolved_mem,all_chips_collective_defs);
 
 		all_placeholders : Sequence(bip!ComponentDeclaration) =
 			collective_connectors_trees->getKeys()->iterate(
@@ -10276,7 +10316,6 @@ helper def : includingPartialConnectorForPhysical(
 	in
 	let required_object_type : String = stt.feeder.collective_function.support_object.name --.debug('required support object used') 
 	in
-	let object : TupleType(name:String, index:Integer) = memory->resolveObjectOf(leaf_fct, leaf_index, required_object_type) in
 	let key : TupleType(
 		collective_cast:String,
 		root_function:String,
@@ -10296,8 +10335,8 @@ helper def : includingPartialConnectorForPhysical(
 		leaf_param : String,
 		leaf_fct_type: String
 	) = Tuple{
-		obj=object.name, 
-		obj_index= object.index,
+		obj='', 
+		obj_index= -1,
 		leaf_fct=leaf_fct,
 		leaf_index = leaf_index, 
 		leaf_param=leaf_param,
@@ -10421,7 +10460,6 @@ helper def : includingPartialConnectorForLogical(
 	in
 	let required_object_type : String = stt.feeder.collective_function.support_object.name --.debug('required support object used') 
 	in
-	let object : TupleType(name:String, index:Integer) = memory->resolveObjectOf(leaf_fct, leaf_index, required_object_type) in
 	let key : TupleType(
 		collective_cast:String,
 		root_function:String,
@@ -10441,8 +10479,8 @@ helper def : includingPartialConnectorForLogical(
 		leaf_param : String,
 		leaf_fct_type : String
 	) = Tuple{
-		obj=object.name, 
-		obj_index= object.index,
+		obj='', 
+		obj_index= -1,
 		leaf_fct=leaf_fct,
 		leaf_index = leaf_index,
 		leaf_param=leaf_param,
