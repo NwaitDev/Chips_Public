@@ -1674,6 +1674,72 @@ helper def : resolveSupportNode(memory : OclAny, obj : String, index : Integer, 
 		endif
 	endif;
 
+helper def : ioKey(component : String, index : Integer, parameter : String) : String =
+	component + '#' + index.toString() + '#' + parameter;
+
+helper def : ccastRootIndex(memory : OclAny, key : OclAny) : Integer =
+	if memory.fblocks->get(key.root_function).instances->size() = 1 then 0 else key.root_index endif;
+
+helper def : ioUses(memory : OclAny, defs : Sequence(OclAny)) : TupleType(fed : Set(String), consumed : Set(String)) =
+	let flows : Sequence(OclAny) = memory.dataflows->getKeys()->asSequence() in
+	let casts : Sequence(OclAny) = memory.ccasts_map->getKeys()->asSequence() in
+	let roots : Sequence(TupleType(spread : Boolean, key : String)) =
+		casts->collect(key |
+			Tuple{
+				spread = defs->any(d | d.name = key.collective_cast).collective_function_type = #spread,
+				key = thisModule.ioKey(key.root_function, thisModule.ccastRootIndex(memory, key), key.root_parameter.name)
+			}
+		) in
+	let leaves : Sequence(TupleType(spread : Boolean, key : String)) =
+		casts->collect(key |
+			let isSpread : Boolean = defs->any(d | d.name = key.collective_cast).collective_function_type = #spread in
+			memory.ccasts_map->get(key)->collect(leaf |
+				Tuple{spread = isSpread, key = thisModule.ioKey(leaf.leaf_fct, leaf.leaf_index, leaf.leaf_param.name)}
+			)
+		)->flatten() in
+	Tuple{
+		fed = flows->collect(f | thisModule.ioKey(f.tcomp, f.tindex, f.tparam))
+			->union(roots->reject(r | r.spread)->collect(r | r.key))
+			->union(leaves->select(l | l.spread)->collect(l | l.key))
+			->asSet(),
+		consumed = flows->collect(f | thisModule.ioKey(f.fcomp, f.findex, f.fparam))
+			->union(roots->select(r | r.spread)->collect(r | r.key))
+			->union(leaves->reject(l | l.spread)->collect(l | l.key))
+			->asSet()
+	};
+
+helper def : ioErrors(memory : OclAny, defs : Sequence(OclAny)) : Sequence(String) =
+	let uses : TupleType(fed : Set(String), consumed : Set(String)) = thisModule.ioUses(memory, defs) in
+	memory.fblocks->getKeys()->asSequence()
+	->select(k | not memory.fblocks->get(k).ftype.oclIsUndefined())
+	->sortedBy(k | k)
+	->collect(k |
+		let fb : OclAny = memory.fblocks->get(k) in
+		thisModule.range(Sequence{fb.instances->size()})->collect(i |
+			let label : String = thisModule.instanceLabel(k.unprotected(), i, fb.dimensions) in
+			fb.ftype.all_inputs
+				->select(p | not uses.fed->includes(thisModule.ioKey(k, i, p.name)))
+				->collect(p | label + '.' + p.name.unprotected() + ' (input of ' + fb.ftype.name.unprotected() + ') is never fed')
+			->union(
+				fb.ftype.all_outputs
+					->select(o | not uses.consumed->includes(thisModule.ioKey(k, i, o.name)))
+					->collect(o | label + '.' + o.name.unprotected() + ' (output of ' + fb.ftype.name.unprotected() + ') is never consumed')
+			)
+		)
+	)->flatten();
+
+helper def : stopOnErrors(errors : Sequence(String)) : Boolean =
+	if errors->isEmpty() then
+		true
+	else
+		let printed : Sequence(OclAny) = errors->collect(e | 'ATL transformation Error'.debug(e)) in
+		if printed->size() > 0 then
+			OclUndefined.transformation_stopped_because_of_unconnected_inputs_or_outputs()
+		else
+			true
+		endif
+	endif;
+
 helper def : resolveCcastLeaves(memory : OclAny, defs : Sequence(OclAny)) : OclAny =
 	memory.ccasts_map->getKeys()->iterate(
 		key ; acc : Map(OclAny, OclAny) = Map{} |
@@ -6653,6 +6719,8 @@ rule Program2BipPackage {
 			stt.evaluate(pc_and_mem.pc, pc_and_mem.mem)
 		);--.debug('\n----------------------memory state------------------------\n')
 		
+		io_check : Boolean = thisModule.stopOnErrors(thisModule.ioErrors(memory.mem, all_chips_collective_defs));
+
 		all_contextuals -- We need to do this to force the evaluation of lazy stuffs that are used all arround ATL
 		 : OclAny = memory.mem.nodes->getValues()->collect(t | t.instances->collect(seqelem | seqelem->getValues()->collect(tseqelemt | tseqelemt.instances)))->flatten()->asSequence()->toArray();
 		
@@ -6862,7 +6930,7 @@ rule Program2BipPackage {
 			connectors: Sequence(bip!ConnectorDeclaration)
 		) =
 		Tuple{
-			components = memory.mem.fblocks->getKeys()->iterate(
+			components = (if io_check then memory.mem.fblocks->getKeys() else Set{} endif)->iterate(
 				fbname ; seq :Sequence(bip!ComponentDeclaration) = Sequence{} |
 				seq->union(memory.mem.fblocks->get(fbname).instances)
 			)->union(
