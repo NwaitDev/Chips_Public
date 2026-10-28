@@ -1709,7 +1709,7 @@ helper def : ioUses(memory : OclAny, defs : Sequence(OclAny)) : TupleType(fed : 
 	};
 
 helper def : ioErrors(memory : OclAny, defs : Sequence(OclAny)) : Sequence(String) =
-	let uses : TupleType(fed : Set(String), consumed : Set(String)) = thisModule.ioUses(memory, defs) in
+	let usages : TupleType(fed : Set(String), consumed : Set(String)) = thisModule.ioUses(memory, defs) in
 	memory.fblocks->getKeys()->asSequence()
 	->select(k | not memory.fblocks->get(k).ftype.oclIsUndefined())
 	->sortedBy(k | k)
@@ -1718,11 +1718,11 @@ helper def : ioErrors(memory : OclAny, defs : Sequence(OclAny)) : Sequence(Strin
 		thisModule.range(Sequence{fb.instances->size()})->collect(i |
 			let label : String = thisModule.instanceLabel(k.unprotected(), i, fb.dimensions) in
 			fb.ftype.all_inputs
-				->select(p | not uses.fed->includes(thisModule.ioKey(k, i, p.name)))
+				->select(p | not usages.fed->includes(thisModule.ioKey(k, i, p.name)))
 				->collect(p | label + '.' + p.name.unprotected() + ' (input of ' + fb.ftype.name.unprotected() + ') is never fed')
 			->union(
 				fb.ftype.all_outputs
-					->select(o | not uses.consumed->includes(thisModule.ioKey(k, i, o.name)))
+					->select(o | not usages.consumed->includes(thisModule.ioKey(k, i, o.name)))
 					->collect(o | label + '.' + o.name.unprotected() + ' (output of ' + fb.ftype.name.unprotected() + ') is never consumed')
 			)
 		)
