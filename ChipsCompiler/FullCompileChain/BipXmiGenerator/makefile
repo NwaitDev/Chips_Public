@@ -11,4 +11,3 @@ transformations/chips2bip.emftvm: emftvm.class
 
 clean: 
 	rm *.class transformations/*.emftvm
-	rm -r examplemodels/output
