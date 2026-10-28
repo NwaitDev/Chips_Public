@@ -1,0 +1,53 @@
+Metrics recap
+-----------------------------9 Drones, One PID per Drone + One overall PID-------------------------------------------
+
+BIP -> C++ project             2,569s
+  CMake configuration            0,031s
+  System build                   84,089s
+----------------------------------------------------------------
+  Total                          86,689s
+
+  Components (instances)         161
+  Connectors (instances)         179
+  Lines of the bip model         1226
+
+11,35s user 1,28s system 63% cpu 19,788 total
+
+-----------------------------4 Drones, One PID per Drone + One overall PID-------------------------------------------
+
+System executable: /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/CHIPS_GENERATED/output/build/system
+  CHIPS -> CHIPS XMI             0,298s
+  CHIPS XMI -> BIP XMI           0,883s
+  CHIPS -> C++                   0,300s
+  BIP XMI -> BIP                 0,747s
+  BIP identifiers cleanup        0,003s
+  BIP -> C++ project             1,747s
+  CMake configuration            0,032s
+  System build                   85,785s
+----------------------------------------------------------------
+  Total                          89,795s
+
+  Lines of the chips model       155
+  Components (instances)         81
+  Connectors (instances)         89
+  Lines of the bip model         1141
+
+
+
+-----------------------------4 Drones, One PID per Drone-------------------------------------------
+System executable: /home/agallone/Documents/Thesis_code/Chips_Public/ChipsCompiler/CHIPS_GENERATED/output/build/system
+  CHIPS -> CHIPS XMI             0,307s
+  CHIPS XMI -> BIP XMI           0,904s
+  CHIPS -> C++                   0,314s
+  BIP XMI -> BIP                 0,733s
+  BIP identifiers cleanup        0,003s
+  BIP -> C++ project             1,666s
+  CMake configuration            0,265s
+  System build                   79,998s
+----------------------------------------------------------------
+  Total                          84,190s
+
+  Lines of the chips model       150
+  Components (instances)         70
+  Connectors (instances)         74
+  Lines of the bip model         1056

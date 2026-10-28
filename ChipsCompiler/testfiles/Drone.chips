@@ -27,34 +27,10 @@ logical Drone(float u = 0., float dt = 0.) init {
     probe(altitude);
 } -> update(altitude)
 
-logical PID(float target, float current, float dt) init {
-    float prevError = 0.;
-    float proportional = 0.;
-    float integral = 0.;
-    float derivative = 0.;
-    float kp = 1.5;
-    float ki = 0.6;
-    float kd = 0.0;
-    float minOutput = 0.0;
-    float maxOutput = 15.0;
-}then{
-    float error = target - current;
-    float p_out = kp * error;
-    proportional = error;
-    integral = integral + error * dt;
-    float i_out = ki * integral;
-    derivative = 0.;
-    if(dt > 0.){
-        derivative = (error - prevError) / dt;
-    }
-    float d_out = kd * derivative;
-    float rawCorrection = p_out + i_out + d_out;
-    float saturated = (float)(imax((int)(minOutput), imin((int)(rawCorrection), (int)(maxOutput))));
-    prevError = error;
-} -> correction(saturated)
 
 system {
     PID ctrl;
+    
     Drone drone;
     float dt = 0.1;
     float target = 5.0;

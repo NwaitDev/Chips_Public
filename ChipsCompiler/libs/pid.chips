@@ -1,0 +1,18 @@
+logical PID(float goal, float measure, float dt, float Kp, float Ki, float Kd) init {
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;
+    float derivative = 0.;
+}then{
+    float error = goal - measure;
+    proportional = error;
+    float p_out = Kp * proportional;
+    integral = integral + error * dt;
+    float i_out = Ki * integral;
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+    float d_out = Kd * derivative;
+    prevError = error;
+} -> correction(p_out + i_out + d_out)

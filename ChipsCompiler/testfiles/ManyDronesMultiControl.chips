@@ -1,0 +1,156 @@
+logical Trajectory() init{
+    int ticks = 0;
+    float setup_altitude = 5.;
+    int setup_time = 300;
+    float required_altitude;
+} then {
+    if(ticks < setup_time){
+        required_altitude = setup_altitude;
+    } else {
+        if (ticks < 600) {
+            required_altitude = required_altitude + 0.01;
+        }else{
+            if (ticks > 800){
+                required_altitude = required_altitude - 0.03;
+            }
+        }
+    }
+    ticks = ticks +1;
+    probe(required_altitude);
+} ->command(required_altitude)
+
+physical Drone(float u = 0., float dt = 0., float windz = 0.) 
+with {
+    Chan previous;
+    Chan next;
+} init {
+    float m = 0.2; //mass
+    float altitude = 0.;
+    float altitude_max = 0.; // maximum altitude reached
+    float velocity = 0.;
+    float GRAVITY = 9.81;
+    float KP = 0.29;
+    float DRAG_COEFF = 0.8;
+}then{
+    float radian = ((2. * 3.14159265358979323846) / 60.);
+    float K = 4. * KP * radian * radian;
+    float Fp = (K * u * u) + windz;
+    float drag = DRAG_COEFF * velocity;
+    float a = (Fp / m) - GRAVITY - (drag / m);
+    velocity = velocity + a * dt;
+    altitude = altitude + velocity * dt;
+    if(altitude < 0.){
+        altitude = 0.;
+        velocity = 0.;
+    }
+    if(altitude_max < altitude){
+        altitude_max = altitude;
+    }else{
+        altitude_max = altitude_max;
+    }
+    probe(altitude);
+} -> alt_output1(altitude)
+-> alt_output2(altitude)
+
+logical Wind(float max_windpower, float max_wind_change)
+init {
+    float wind_power = 0.;
+} then {
+    wind_power = wind_power - ((randin01()-0.5)*max_wind_change);
+    if(wind_power > max_windpower){
+        wind_power = max_windpower;
+    }
+    if(wind_power< -max_windpower) {
+        wind_power = -max_windpower;
+    }
+}
+-> pow(wind_power)
+
+logical PID(float target, float current, float dt) init {
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;
+    float derivative = 0.;
+    float kp = 1.5;
+    float ki = 0.6;
+    float kd = 0.0;
+    float minOutput = 0.0;
+    float maxOutput = 14.0;
+}then{
+    float error = target - current;
+    float p_out = kp * error;
+    proportional = error;
+    integral = integral + error * dt;
+    float i_out = ki * integral;
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+    float d_out = kd * derivative;
+    float rawCorrection = p_out + i_out + d_out;
+    float saturated = (float)(imax((int)(minOutput), imin((int)(rawCorrection), (int)(maxOutput))));
+    prevError = error;
+} -> correction(saturated)
+
+spread (float target = input) formation among Drone {} 
+-> @(target)
+-> previous(target+0.4)
+-> next(target-0.4)
+
+spread (float windcoef = input) windspread among Drone {
+    float max_deviation = 1.;
+    float neighbour_wind = windcoef -0.5 + randin01();
+    if(neighbour_wind > max_deviation){
+        neighbour_wind = max_deviation;
+    } 
+    if(neighbour_wind < -max_deviation){
+        neighbour_wind = -max_deviation;
+    }
+} ->@(windcoef)
+->default(neighbour_wind)
+
+
+collect (float sum = 0., int number = 0) avg among Drone {
+    sum = sum + previous.sum + next.sum + input;
+    number = previous.number + next.number + 1;
+}->@(sum / ((float) number))
+->default(sum, number)
+
+system {
+    int nb_drones = 9;
+    float dt = 0.1;
+
+    Trajectory traj;
+
+    PID overall_ctrl;
+    overall_ctrl.dt(dt);
+    overall_ctrl.target(traj.command);
+
+    Wind wind;
+    wind.max_windpower(0.5);
+    wind.max_wind_change(0.1);
+
+    Drone [nb_drones] drones;
+    PID [nb_drones] local_ctrl;
+
+
+
+    for i in range(nb_drones) {
+        overall_ctrl.current((avg) drones[i].alt_output2);
+
+        drones[i].windz((windspread) wind.pow);
+        local_ctrl[i].target((formation) overall_ctrl.correction);
+        local_ctrl[i].dt(dt);
+        local_ctrl[i].current(drones[i].alt_output1);
+        drones[i].u(local_ctrl[i].correction);
+        drones[i].dt(dt);
+        link local_ctrl[i] to drones[i];
+        
+        if(i < nb_drones -1) {
+            drones[i+1].previous(drones[i].next);
+            drones[i].next(drones[i+1].previous);
+        }
+    }
+    link overall_ctrl to drones[nb_drones/2];
+    link wind to drones[0];
+}

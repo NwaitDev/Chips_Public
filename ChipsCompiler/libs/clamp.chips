@@ -1,0 +1,13 @@
+
+logical CLAMP(float data, float min, float max)
+init {
+    float saturated;
+} then {
+    saturated = data;
+    if(data > max){
+        saturated = max;
+    }
+    if(data<min){
+        saturated = min;
+    }
+} ->out(saturated)
