@@ -43,6 +43,7 @@ helper def : inputCategory : String = 'input';
 helper def : outputCategory : String = 'output';
 helper def : innerCategory : String = 'inner';
 helper def : ctxCategory : String = 'ctx';
+helper def : incomingCategory : String = 'incoming';
 
 helper context chips!function_definition def : recvPortName : String = self.name+'_recv';
 helper context chips!function_definition def : sendPortName : String = self.name+'_send';
@@ -579,9 +580,9 @@ helper context Integer def : delinearize(dims:Sequence(Integer)) : Sequence(Inte
 
 
 helper context String def: typenameToDefaultDirectExpression() : OclAny =
-	if self = 'int' then thisModule.MakeDirectIntegerExpression(1)
-	else if self = 'float' then thisModule.MakeDirectFloatExpression(1.0)
-	else if self = 'bool' then thisModule.MakeDirectBooleanExpression(true)
+	if self = 'int' then thisModule.MakeDirectIntegerExpression(0)
+	else if self = 'float' then thisModule.MakeDirectFloatExpression(0.0)
+	else if self = 'bool' then thisModule.MakeDirectBooleanExpression(false)
 	else OclUndefined
 	endif endif endif;
 
@@ -2223,26 +2224,29 @@ helper def : MakeCoreTransitions(
 	ports : Map(String, bip!AtomInternalPortDeclaration),
 	starts : bip!ComponentDataParameterDeclaration,
 	action : bip!Expression,
-	ticks : bip!AtomInternalDataDeclaration) : Sequence(bip!Transition) =
+	ticks : bip!AtomInternalDataDeclaration,
+	receive_actions : Sequence(bip!Expression)) : Sequence(bip!Transition) =
 	let chain : Sequence(String) =
 		Sequence{'RECEIVE', 'READCTX', 'THEN', 'WRITECTX', 'SEND'}
 			->select(n | not states->get(n).oclIsUndefined()) in
 	let leaving_port : Map(String, String) =
 		Map{('RECEIVE', 'recv'), ('READCTX', 'readctx'), ('WRITECTX', 'writectx'), ('SEND', 'send')} in
+	let start_target : String =
+		if states->get('READCTX').oclIsUndefined() then 'THEN' else 'READCTX' endif in
 	let init_transitions : Sequence(bip!Transition) =
-		if states->get('SEND').oclIsUndefined() then
+		if states->get('RECEIVE').oclIsUndefined() then
 			Sequence{
 				thisModule.MakeTransition(
-					states->get('INIT'), states->get(chain->first()), ports->get('starts'),
+					states->get('INIT'), states->get(start_target), ports->get('starts'),
 					thisModule.MakeTrivialGuard(true))
 			}
 		else
 			Sequence{
 				thisModule.MakeTransition(
-					states->get('INIT'), states->get(chain->first()), ports->get('starts'),
+					states->get('INIT'), states->get('RECEIVE'), ports->get('starts'),
 					thisModule.MakeNotExpression(thisModule.MakeDirectDataDeclarationReferenceExpression(starts))),
 				thisModule.MakeTransition(
-					states->get('INIT'), states->get('SEND'), ports->get('starts'),
+					states->get('INIT'), states->get(start_target), ports->get('starts'),
 					thisModule.MakeDirectDataDeclarationReferenceExpression(starts))
 			}
 		endif in
@@ -2256,11 +2260,16 @@ helper def : MakeCoreTransitions(
 					states->get(src), states->get(dst), ports->get('then'),
 					thisModule.MakeTicksComparison(ticks, false),
 					Sequence{action, thisModule.MakeTicksIncrement(ticks)})
+			else if src = 'RECEIVE' then
+				thisModule.MakeTransitionWithOperations(
+					states->get(src), states->get(dst), ports->get('recv'),
+					thisModule.MakeTrivialGuard(true),
+					receive_actions)
 			else
 				thisModule.MakeTransition(
 					states->get(src), states->get(dst), ports->get(leaving_port->get(src)),
 					thisModule.MakeTrivialGuard(true))
-			endif
+			endif endif
 		)
 	)
 	->append(
@@ -2540,6 +2549,17 @@ helper context chips!function_definition def : allParametersHaveDefaults : Boole
 		)
 		->forAll(p | not p.default_value.oclIsUndefined());
 
+helper context chips!function_definition def : hasParameterDefaults : Boolean =
+	self.parameters
+		->union(
+			if self.oclIsTypeOf(chips!physical_definition) then
+				self.sensor
+			else
+				Sequence{}
+			endif
+		)
+		->exists(p | not p.default_value.oclIsUndefined());
+
 unique lazy rule MakeCoreAtomType {
 	from 
 		chipsfunction: chips!function_definition
@@ -2596,6 +2616,28 @@ unique lazy rule MakeCoreAtomType {
 				thisModule.inputCategory
 			));
 		aidd_input_data : Sequence(OclAny) = all_inputs->merge(aidd_input);
+		aidd_incoming : Sequence(bip!AtomInternalDataDeclaration) = 
+			all_inputs->collect(t | thisModule.MakeCoreAtomInternalDataDeclaration(
+				t.type,
+				t.name,
+				chipsfunction,
+				thisModule.incomingCategory
+			));
+		receive_actions : Sequence(bip!Expression) =
+			thisModule.range(Sequence{all_inputs->size()})->collect(i |
+				thisModule.MakeCppFunctionCall(
+					'chips_receive',
+					Sequence{
+						thisModule.MakeDirectDataDeclarationReferenceExpression(aidd_input->get(i)),
+						thisModule.MakeDirectDataDeclarationReferenceExpression(aidd_incoming->get(i))
+					},
+					Sequence{
+						Tuple{t = all_inputs->get(i).type, n = 'current'},
+						Tuple{t = all_inputs->get(i).type, n = 'incoming'}
+					},
+					'void'
+				)
+			);
 		aidd_output : Sequence(bip!AtomInternalDataDeclaration) = 
 			all_outputs->collect(t | thisModule.MakeCoreAtomInternalDataDeclaration(
 				t.type,
@@ -2638,7 +2680,7 @@ unique lazy rule MakeCoreAtomType {
 		-----------------------------------------
 		
 		pdpd_inputs : Sequence(bip!DataDeclarationReferenceDataParameter) = 
-			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs->collect(t | t.type),aidd_input,chipsfunction);
+			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_inputs->collect(t | t.type),aidd_incoming,chipsfunction);
 
 		pdpd_outputs : Sequence(bip!DataDeclarationReferenceDataParameter) = 
 			thisModule.MakeCoreAtomPortDataParamDeclSequence(all_outputs->collect(t | t.type), aidd_output,chipsfunction);
@@ -2748,7 +2790,7 @@ unique lazy rule MakeCoreAtomType {
         internalPortDeclarations <- all_aipdecl,
         externalPortDeclarations <- Sequence{},
         behavior <- pn,
-        internalDataDeclarations <- aidd_input->union(aidd_ctx)->union(aidd_inner)->union(aidd_output)->append(ticks_aidd)
+        internalDataDeclarations <- aidd_input->union(aidd_incoming)->union(aidd_ctx)->union(aidd_inner)->union(aidd_output)->append(ticks_aidd)
     ),
 
 	pn : bip!PetriNet(
@@ -2781,7 +2823,8 @@ unique lazy rule MakeCoreAtomType {
 					->union(probe_ppdecls),
 				'void'
 			),
-			ticks_aidd
+			ticks_aidd,
+			receive_actions
 		),
 		initialActions <-
 			Sequence{
@@ -2807,6 +2850,26 @@ unique lazy rule MakeCoreAtomType {
 							chipsfunction.dimsOf(datum.first.name)
 						)
 					)
+				)->union(
+					if chipsfunction.hasParameterDefaults then
+						Sequence{
+							thisModule.MakeCppFunctionCall(
+								'defaults_'+chipsfunction.name.unprotected(),
+								aidd_input_data->collect(datum |
+									thisModule.MakeDirectDataDeclarationReferenceExpression(datum.second)
+								),
+								aidd_input_data->collect(datum |
+									Tuple{
+										t=datum.first.type,
+										n=datum.first.name
+									}
+								),
+								'void'
+							)
+						}
+					else
+						Sequence{}
+					endif
 				)->append(
 					thisModule.MakeCppFunctionCall(
 						'init_'+chipsfunction.name.unprotected(),

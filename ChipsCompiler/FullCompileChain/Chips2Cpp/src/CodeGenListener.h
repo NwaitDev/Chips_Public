@@ -96,6 +96,8 @@ private:
     std::map<DefType, std::map<std::string, std::string>> fn_contextuals_;
     bool lookupContextualType(const std::string &name, std::string &type) const;
     static void collectFunctionContextualUses(antlr4::tree::ParseTree *node, std::vector<std::pair<std::string, antlr4::ParserRuleContext *>> &uses);
+    template <typename ParamCtx>
+    void emitDefaults(const std::string &name, const std::string &signature, const std::vector<ParamCtx *> &params);
     std::string spreadRootFunction(ChipsParser::Collective_op_defContext *ctx);
     std::string accumulatorInitialization(ChipsParser::Collective_op_defContext *ctx, int indent);
     std::vector<std::string> sortedChannelNames(ChipsParser::Collective_op_defContext *ctx) const;

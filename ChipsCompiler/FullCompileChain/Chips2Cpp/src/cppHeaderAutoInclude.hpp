@@ -209,6 +209,7 @@ public:
         }
 
         data_ = rhs.data_;
+        stopFlag = rhs.stopFlag;
 
         age_ = 0;
 
@@ -275,6 +276,7 @@ public:
         dimensions_ = rhs.dimensions_;
         shape_ = rhs.shape_;
         data_ = rhs.data_;
+        stopFlag = rhs.stopFlag;
         age_ = 0;
     }
 
@@ -1394,6 +1396,15 @@ chips<bool> is_fresh(chips<U> var)
     return var.is_fresh();
 }
 
+
+template <typename T>
+inline void chips_receive(chips<T> &current, const chips<T> &incoming)
+{
+    if (incoming.stopFlag)
+        current.tick();
+    else
+        current = incoming;
+}
 
 /*=====================================================================
  *  chips_reset : assignment that adopts the shape of the right-hand side

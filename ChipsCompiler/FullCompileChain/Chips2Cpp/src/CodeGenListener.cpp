@@ -1304,6 +1304,7 @@ void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx
 
     emitFunction("init_" + name, signature, initBody);
     emitFunction("then_" + name, signature, thenBody);
+    emitDefaults(name, translateParams(ctx->df_parameter_decl()), ctx->df_parameter_decl());
 }
 void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx)
 {
@@ -1327,6 +1328,25 @@ void CodeGenListener::exitP_function_def(ChipsParser::P_function_defContext *ctx
 
     emitFunction("init_" + name, signature, initBody);
     emitFunction("then_" + name, signature, thenBody);
+    emitDefaults(name, translateParams(ctx->pdf_parameter_decl()), ctx->pdf_parameter_decl());
+}
+
+template <typename ParamCtx>
+void CodeGenListener::emitDefaults(const std::string &name, const std::string &signature, const std::vector<ParamCtx *> &params)
+{
+    std::vector<ParamCtx *> defaulted;
+    for (auto *p : params)
+        if (p->expr())
+            defaulted.push_back(p);
+    if (defaulted.empty())
+        return;
+    std::sort(defaulted.begin(), defaulted.end(),
+        [](ParamCtx *a, ParamCtx *b) { return a->IDENTIFIER()->getText() < b->IDENTIFIER()->getText(); });
+
+    std::string body;
+    for (auto *p : defaulted)
+        body += statementGuard(p, 4, sourceText(p)) + "    " + p->IDENTIFIER()->getText() + "_in = " + translateExpr(p->expr()) + ";\n";
+    emitFunction("defaults_" + name, {signature}, body);
 }
 
 // ---------- Collective function definition relative ----------
