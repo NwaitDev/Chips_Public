@@ -6,11 +6,15 @@ Control of Hierarchical Interconnected Programmable Systems
 
 ## Why Chips?
 
-Chips is a language to textually design complex systems with ease. Its main focus is on describing **embedded** applications for several devices in one single program.
+Chips is a language to textually describe models of spatially structured systems.
 
-Whatever the devices, whatever the number or the structure of the network they form, Chips will handle it, and it will give the programmer the opportunity to manage all the parameters **adaptively**.
+It is a synchronous description language that is built upon the [BIP framework](https://www-verimag.imag.fr/TOOLS/DCS/bip/doc/latest/html/index.html). Chips models architectures is based on 3 elements:
 
-It is a synchronous description language that is built upon the [BIP framework](https://www-verimag.imag.fr/TOOLS/DCS/bip/doc/latest/html/index.html). Chips assumes that each subroutine is either a temporarily centralized operation (which Chips calls *logical*), or a perpetually executed protocol (respectively *physical*) instanciated on each device.
+1) A network specifying locations and the bridges linking them together,
+2) A network specifying functions providing dataflows to each other,
+3) A mapping of the functions onto the locations.
+
+When designing models, data transfer between the functions can be parameterized by the bridges taken by the information, thus allowing an extremely versatile set of interactions between the components of the systems modeled.
 
 Its toolchain being built using robust Model Driven Engineering methods and tools (EMF metamodels and ATL Model2Model transformations), we ensure the code generated from a Chips specification is correct regarding our language semantics (yet to be formalised). The so-said code is generated acknowledging the different nature of the model's elements.
 
@@ -21,15 +25,11 @@ The Chips language takes its root in the design of block schema representation o
 - Simulation of Block Diagram models according to Chips specification,
 - Easy generation of large BIP models when their desired architecture matches the Chips semantics,
 - C++ code generation for Chips Models to embark on real hardware,
-- JavaBIP code generation for interfacing with other Java applications like microservices (yet to be integrated).
 
 ## Current state of the project
 
-- A parser is implemented for the language, separately from the rest of the compile chain. It generates ```.xmi``` serialized versions of Chips models.
-- ATL transformations are developped for turning ```.xmi``` serialized versions of Chips models into ```.xmi``` serialized versions of equivalent (yet to prove) BIP models. Such transformations are based on the ```chips1.1.ecore``` and ```BIP.ecore``` metamodels. They are 
-  - fully integrated to the compile chain, 
-  - but not complete yet (missing interpretation of network architecture, dataflows and collective primitives)
-- A forked version of the BIP compiler is provided. It has been modified to be able to either read ```.bip``` files or ```.xmi``` serialized versions of BIP models. It is also integrated to the compile chain.
+- Chips 1.1 supported (handling collective operations for models including one function per node of interest)
+- A forked version of the BIP compiler is provided. It has been modified to be able to either read ```.bip``` files or ```.xmi``` serialized BIP models. It is also integrated to the compile chain.
 
 
 ## Installation (On Unix based systems)
@@ -45,17 +45,22 @@ Once all these softwares are installed with the method of your choic, open a ter
 ```bash
 cd <path to your desired installation location>
 git clone git@github.com:NwaitDev/Chips_Public.git
-cd Chips_Public/ChipsCompiler/FullCompileChain
-./build.sh # Compiles all the sources (Chips Parser + ATL transformations + BIP Compiler)
+cd Chips_Public/ChipsCompiler
+make # Compiles all the sources (Chips Parser + ATL transformations + BIP Compiler + CppProject generation)
+cd FullCompileChain/BipCompiler/distribution
+source setenv.sh
+cd -
 source setenv.sh # Defines Environment variables to run the compiler
+make install
 ```
+(the setenv.sh scripts require to be run for each instance of terminal you wish to use Chips in)
 
 ## Running the compiler
 
 The compiler CLI is available in the form of a bash script called ```chipsc```:
-```<Installation path>/Chips_Public/ChipsCompiler/FullCompileChain/chipsc```.
+```<Installation path>/Chips_Public/ChipsCompiler/chipsc```.
 
-Feel free to make your own alias or simlink for this program.
+(the make install rule creates a simlink for this program in your PATH)
 
 ## Documentation Links
 
@@ -64,18 +69,16 @@ Feel free to make your own alias or simlink for this program.
 
 ## Upgrades for next versions of Chips 
 
-- Adding MACROS ?
-- Generation of Block Diagrams PNG from Chips specs ? <3 
-- adding collective primitives to the base syntax to integrate aggregate programming features
-- aliases to apply dimensionnal analysis on top of the type checking
-- Object orientation of the language (interfaces, inheritance, object composition)
-- Enumerations for contextually named integers (see TeaStore implementation)
-- Syntaxic coloration for Chips and some code snippets
-- Function wrapping in different files
-- new syntax for easier usage of physical interfaces ?
-- Pure addition and extension (syntactic sugar)
-- multiple devices node implementation
-- external chips libraries/packages
+- macros and constexpr
+- generation of block diagrams PNG from Chips specs <3
+- annotations for dimensionnal analysis
+- object orientation of the language
+- including enumerations
+- syntaxic coloration and code snippets
+- functions that are not functional blocks 
+- collective operations supporting several targets per node
+- proper libraries/packages management
+- handling reconfigurations of the connexions of models elements
 
 ## License
 I have no idea of what license to use, I'm just a poor little PhD student 
