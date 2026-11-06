@@ -24,7 +24,17 @@ namespace
             {"imin", {"chips_int"}},
             {"fmin", {"chips_float"}},
             {"imax", {"chips_int"}},
-            {"fmax", {"chips_float"}}
+            {"fmax", {"chips_float"}},
+            {"isqrt", {"chips_int"}},
+            {"fsqrt", {"chips_float"}},
+            {"sin",   {"chips_float"}},
+            {"cos",   {"chips_float"}},
+            {"tan",   {"chips_float"}},
+            {"asin",  {"chips_float"}},
+            {"acos",  {"chips_float"}},
+            {"atan",  {"chips_float"}},
+            {"exp",   {"chips_float"}},
+            {"log",   {"chips_float"}}
         };
         return table;
     }
@@ -50,6 +60,8 @@ namespace
             return firstArgType == "chips_float" ? "fmin" : "imin";
         if (fname == "max")
             return firstArgType == "chips_float" ? "fmax" : "imax";
+        if (fname == "sqrt")
+            return firstArgType == "chips_float" ? "fsqrt" : "isqrt";
         return fname;
     }
 
@@ -59,10 +71,13 @@ namespace
             return "chips_float";
         if (runtimeName == "is_fresh")
             return "chips_bool";
-        if (runtimeName == "imin" || runtimeName == "imax" ||
+        if (runtimeName == "imin" || runtimeName == "imax" || runtimeName == "isqrt" ||
             runtimeName == "ones" || runtimeName == "zeros" || runtimeName == "range")
             return "chips_int";
-        if (runtimeName == "fmin" || runtimeName == "fmax")
+        if (runtimeName == "fmin" || runtimeName == "fmax" || runtimeName == "fsqrt" ||
+            runtimeName == "sin" || runtimeName == "cos" || runtimeName == "tan" || 
+            runtimeName == "asin" || runtimeName == "acos" || runtimeName == "atan" ||
+            runtimeName == "exp" || runtimeName == "log")
             return "chips_float";
         return "chips_int /* unresolved function return type */";
     }

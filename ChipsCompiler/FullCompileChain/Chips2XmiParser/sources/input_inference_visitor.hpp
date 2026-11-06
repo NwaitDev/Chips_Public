@@ -348,6 +348,27 @@ public:
       }
       return input_constraint{false, dataflow_type::FLOAT};
     }
+    if (name == "isqrt") {
+      if (args.size()!= 1) {
+        type_fail(venv, ctx, "'isqrt' function takes exactly one int parameter");
+      }
+      return input_constraint{false, dataflow_type::INT};
+    }
+    if (name == "fsqrt") {
+      if (args.size()!= 1) {
+        type_fail(venv, ctx, "'fsqrt' function takes exactly one float parameter");
+      }
+      return input_constraint{false, dataflow_type::FLOAT};
+    }
+    if (name == "sin" || name == "cos" ||name == "tan" ||
+        name == "asin" ||name == "acos" || name == "atan" || 
+        name == "exp" || name == "log") {
+      if (args.size()!= 1) {
+        type_fail(venv, ctx, "'"+name+"' functions take exactly one float parameter");
+      }
+      return input_constraint{false, dataflow_type::FLOAT};
+    }
+    
     if (name == "is_fresh") {
       if (args.size() != 1) {
         type_fail(venv, ctx, "'is_fresh' takes exactly one parameter");

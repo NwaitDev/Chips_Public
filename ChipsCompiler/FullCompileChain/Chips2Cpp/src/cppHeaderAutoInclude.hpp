@@ -17,6 +17,7 @@
 #include <initializer_list>
 #include <sstream>
 #include <mutex>
+#include <math.h>
 
 class chips_any;
 
@@ -1113,7 +1114,7 @@ typename chips<T>::slice_proxy &chips<T>::slice_proxy::operator=(const chips_any
 }
 
 /*=====================================================================
- *  imin,imax,fmin and fmax : min and max functions for chips numerics
+ *  isqrt,fsqrt,imin,imax,fmin and fmax,sin,soc,tan,asin,acos,atan,exp,log
  *=====================================================================*/
 
 inline chips_int imin(const chips_int &lhs, const chips_int &rhs)
@@ -1179,6 +1180,139 @@ inline chips_float fmax(const chips_float &lhs, const chips_float &rhs)
     }
     return res;
 }
+
+
+inline chips_int isqrt(const chips_int &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("isqrt only accepts singletons");
+    chips_int res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = (int) std::sqrt(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float fsqrt(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("fsqrt only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = std::sqrt(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float sin(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("sin only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = sin(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float cos(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("cos only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = cos(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float tan(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("tan only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = tan(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float asin(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("asin only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = asin(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float acos(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("acos only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = acos(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float atan(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("atan only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = atan(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float exp(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("exp only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = exp(operand.data().at(0));
+    }
+    return res;
+}
+
+inline chips_float log(const chips_float &operand)
+{
+    if (operand.shape() != std::vector<int>{1})
+        chips_diag::error("log only accepts singletons");
+    chips_float res(operand.shape());
+    res.stopFlag = operand.stopFlag;
+    if (!res.stopFlag)
+    {
+        res = log(operand.data().at(0));
+    }
+    return res;
+}
+
+
 
 
 /*=====================================================================

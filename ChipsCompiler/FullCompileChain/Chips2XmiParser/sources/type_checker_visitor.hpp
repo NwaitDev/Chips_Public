@@ -419,6 +419,26 @@ public:
       }
       return dataflow_type::FLOAT;
     }
+    if (name == "isqrt")
+    {
+      if (args.size() != 1)
+      {
+        type_fail(venv, ctx, "'isqrt' takes exactly one parameter");
+      }
+      type_of(args[0]);
+      return dataflow_type::INT;
+    }
+    if (name == "fsqrt" || name == "sin" || name == "cos" || name == "tan" ||
+        name == "asin" ||name == "acos" ||name == "atan" || 
+        name = "exp" || name == "log")
+    {
+      if (args.size() != 1)
+      {
+        type_fail(venv, ctx, "'"+name+"' takes exactly one float parameter");
+      }
+      type_of(args[0]);
+      return dataflow_type::FLOAT;
+    }
     type_fail(venv, ctx, "unknown function '" + name + "'");
   }
 

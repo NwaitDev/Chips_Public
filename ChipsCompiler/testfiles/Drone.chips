@@ -35,8 +35,8 @@ system {
     float dt = 0.1;
     float target = 5.0;
     ctrl.dt(dt);
-    ctrl.target(target);
-    ctrl.current(drone.update);
+    ctrl.goal(target);
+    ctrl.measure(drone.update);
     drone.u(ctrl.correction);
     drone.dt(dt);
 }

@@ -1,4 +1,7 @@
-logical PID(float goal, float measure, float dt, float Kp, float Ki, float Kd) init {
+// Regular Proportional Integral Derivative controller
+logical PID(float goal, float measure, 
+                float dt, float Kp, 
+                float Ki, float Kd) init {
     float prevError = 0.;
     float proportional = 0.;
     float integral = 0.;
@@ -16,3 +19,93 @@ logical PID(float goal, float measure, float dt, float Kp, float Ki, float Kd) i
     float d_out = Kd * derivative;
     prevError = error;
 } -> correction(p_out + i_out + d_out)
+
+// PID controller with conditional integral antiwindup
+logical PID_CI(float goal, float measure, float dt,
+               float Kp, float Ki, float Kd,
+               float min, float max) init {
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;
+    float derivative = 0.;
+}then{
+    float error = goal - measure;
+ 
+    proportional = error;
+    float p_out = Kp * proportional;
+ 
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+    float d_out = Kd * derivative;
+ 
+    float candidate = integral + error * dt;
+    float unsat = p_out + Ki * candidate + d_out;
+ 
+    if(unsat > max){
+        if(error > 0.){
+            candidate = integral;
+        }
+    }
+    if(unsat < min){
+        if(error < 0.){
+            candidate = integral;
+        }
+    }
+    integral = candidate;
+ 
+    float i_out = Ki * integral;
+    float output = p_out + i_out + d_out;
+ 
+    // Saturate the actuator command
+    if(output > max){
+        output = max;
+    }
+    if(output < min){
+        output = min;
+    }
+ 
+    prevError = error;
+} -> correction(output)
+ 
+// PID controller with Back Calculation antiwindup
+logical PID_BC(float goal, float measure, float dt,
+               float Kp, float Ki, float Kd,
+               float min, float max, float Tt) init {
+    float prevError = 0.;
+    float proportional = 0.;
+    float integral = 0.;   // stores Ki * (integral of error)
+    float derivative = 0.;
+}then{
+    float error = goal - measure;
+ 
+    proportional = error;
+    float p_out = Kp * proportional;
+ 
+    integral = integral + Ki * error * dt;
+    float i_out = integral;
+ 
+    derivative = 0.;
+    if(dt > 0.){
+        derivative = (error - prevError) / dt;
+    }
+    float d_out = Kd * derivative;
+ 
+    float unsat = p_out + i_out + d_out;
+ 
+    // Saturate the actuator command
+    float output = unsat;
+    if(output > max){
+        output = max;
+    }
+    if(output < min){
+        output = min;
+    }
+
+    if(Tt > 0.){
+        integral = integral + ((output - unsat) / Tt) * dt;
+    }
+ 
+    prevError = error;
+} -> correction(output)
