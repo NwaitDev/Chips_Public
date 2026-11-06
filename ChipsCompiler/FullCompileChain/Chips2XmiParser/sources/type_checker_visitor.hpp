@@ -429,8 +429,8 @@ public:
       return dataflow_type::INT;
     }
     if (name == "fsqrt" || name == "sin" || name == "cos" || name == "tan" ||
-        name == "asin" ||name == "acos" ||name == "atan" || 
-        name = "exp" || name == "log")
+        name == "asin" || name == "acos" || name == "atan" || 
+        name == "exp" || name == "log")
     {
       if (args.size() != 1)
       {
