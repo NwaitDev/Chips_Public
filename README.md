@@ -41,7 +41,7 @@ Before anything, make sure you have all the following software in a recent enoug
 git g++ gcc make cmake build-essential curl bash ant java realpath
 ```
 
-Once all these softwares are installed with the method of your choic, open a terminal and run:
+Once all these softwares are installed with the method of your choice, open a terminal and run:
 ```bash
 cd <path to your desired installation location>
 git clone git@github.com:NwaitDev/Chips_Public.git
@@ -64,8 +64,8 @@ The compiler CLI is available in the form of a bash script called ```chipsc```:
 
 ## Documentation Links
 
-- [Users documentation](./documentation/UsersDocumentation/UD0_Introduction.md)
-- [Developers documentation](./documentation/DevelopersDocumentation/DD0_Introduction.md)
+- [Users documentation](./documentation/UsersDocumentation/Introduction.md)
+- [Developers documentation](./documentation/DevelopersDocumentation/Introduction.md)
 
 ## Upgrades for next versions of Chips 
 

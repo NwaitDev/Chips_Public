@@ -2,8 +2,6 @@
 
 As Chips is a synchronous language, it allows programmers to develop models that compute information just as a sort of industrial production line.
 
-<img>
-
 Every function is meant to process as long as it is fed by new data. Therefore, as opposed to other more general languages, when you define a variable in Chips, what you actually define is a *dataflow*. Chips is all about manipulating dataflows. Whenever you want to combine several dataflows, or even turn a single dataflow into another, you need to define a function.
 
 ## Dataflow types
