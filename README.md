@@ -38,7 +38,7 @@ The Chips language takes its root in the design of block schema representation o
 
 Before anything, make sure you have all the following software in a recent enough version (who still uses java 1.7 anyway?) installed on your machine:
 ``` 
-git g++ gcc make cmake build-essential curl bash ant java realpath
+git g++ gcc make cmake build-essential curl bash ant java realpath python3
 ```
 
 Once all these softwares are installed with the method of your choice, open a terminal and run:
