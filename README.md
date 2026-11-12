@@ -46,14 +46,8 @@ Once all these softwares are installed with the method of your choice, open a te
 cd <path to your desired installation location>
 git clone git@github.com:NwaitDev/Chips_Public.git
 cd Chips_Public/ChipsCompiler
-make # Compiles all the sources (Chips Parser + ATL transformations + BIP Compiler + CppProject generation)
-cd FullCompileChain/BipCompiler/distribution
-source setenv.sh
-cd -
-source setenv.sh # Defines Environment variables to run the compiler
 make install
 ```
-(the setenv.sh scripts require to be run for each instance of terminal you wish to use Chips in)
 
 ## Running the compiler
 
