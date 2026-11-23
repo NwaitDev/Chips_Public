@@ -1,0 +1,37 @@
+logical loopreader() init {
+    int data = -1;
+} then {
+    data = fromfile("misc/fromfiletestloop.csv", "LOOP");
+    probe(data);
+}
+
+logical oncereader() init {
+    int data = -1;
+} then {
+    data = fromfile("misc/fromfiletestonce.csv","ONCE");
+    probe(data);
+}
+
+logical timedreader() init {
+    int data = -1;
+} then {
+    data = fromfile("misc/fromfiletesttimed.csv","TIMED");
+    probe(data);
+}
+
+logical arrayoncereader() init {
+    int [3] data;
+} then {
+    data = fromfile("misc/fromfiletesttimed.csv","ONCE");
+    probe(data);
+}
+
+system{
+    // files read by these components are meant for simulations 
+    // running with --max-ticks 16 
+    loopreader lr;
+    oncereader or;
+    timedreader tr;
+    arrayoncereader aor;
+}
+
