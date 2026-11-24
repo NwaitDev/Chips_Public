@@ -22,7 +22,7 @@ logical timedreader() init {
 logical arrayoncereader() init {
     int [3] data;
 } then {
-    data = fromfile("misc/fromfiletesttimed.csv","ONCE");
+    data = fromfile("misc/fromfiletestonceArray.csv","ONCE");
     probe(data);
 }
 

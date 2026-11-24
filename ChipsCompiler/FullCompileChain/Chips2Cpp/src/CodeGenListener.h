@@ -166,6 +166,11 @@ private:
     static void rejectProbes(antlr4::tree::ParseTree *node);
     static std::string probeParams(antlr4::tree::ParseTree *defCtx);
     std::vector<std::pair<int, std::string>> sourceSegments_;
+    std::map<std::pair<std::string, std::string>, std::string> fromFileLines_;
+    std::string fromFilePath(antlr4::ParserRuleContext *ctx, const std::string &literal) const;
+    void collectFromFiles(antlr4::tree::ParseTree *node, std::vector<ChipsParser::StatementFromFileContext *> &out);
+    std::string translateFromFileReads(antlr4::tree::ParseTree *section, const std::string &function, int indent);
+    std::string translateFromFile(ChipsParser::StatementFromFileContext *ctx, int indent);
     static std::string escapeCString(const std::string &text);
     long long maxTicks_ = 1000;
     std::string translateLoop(ChipsParser::Loop_statementContext *ctx, int indent);

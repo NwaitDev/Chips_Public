@@ -18,6 +18,8 @@
 #include <sstream>
 #include <mutex>
 #include <math.h>
+#include <map>
+#include <regex>
 
 class chips_any;
 
@@ -1716,6 +1718,238 @@ void chips_probe(const std::string &instance, int ticks, const char *location, c
     chips_probe_stream() << chips_csv_field(instance) << ',' << ticks << ','
                          << chips_csv_field(location) << ',' << chips_csv_field(expression) << ','
                          << chips_csv_field(text.str()) << '\n' << std::flush;
+}
+
+inline std::string chips_trim(const std::string &text)
+{
+    const auto begin = text.find_first_not_of(" \t\r\n");
+    if (begin == std::string::npos)
+        return "";
+    const auto end = text.find_last_not_of(" \t\r\n");
+    return text.substr(begin, end - begin + 1);
+}
+
+inline std::vector<std::string> chips_csv_fields(const std::string &line)
+{
+    std::vector<std::string> fields;
+    std::string current;
+    bool quoted = false;
+    for (std::size_t i = 0; i < line.size(); ++i)
+    {
+        const char c = line[i];
+        if (quoted)
+        {
+            if (c == '"' && i + 1 < line.size() && line[i + 1] == '"')
+            {
+                current += '"';
+                ++i;
+            }
+            else if (c == '"')
+                quoted = false;
+            else
+                current += c;
+        }
+        else if (c == '"')
+            quoted = true;
+        else if (c == ',')
+        {
+            fields.push_back(chips_trim(current));
+            current.clear();
+        }
+        else
+            current += c;
+    }
+    if (quoted)
+        throw std::runtime_error("chips_fromfile: unterminated quoted field in '" + line + "'");
+    fields.push_back(chips_trim(current));
+    return fields;
+}
+
+
+template <typename T>
+T chips_parse_literal(const std::string &text, const char *location, const char *path)
+{
+    static const std::regex bool_re("true|false");
+    static const std::regex int_re("-?[0-9]+");
+    static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)");
+    const auto fail = [&](const std::string &expected)
+    {
+        return std::runtime_error(std::string("chips_fromfile: ") + location + ": value '" + text +
+                                  "' read from '" + path + "' is not a valid " + expected + " literal");
+    };
+    try
+    {
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            if (!std::regex_match(text, bool_re))
+                throw fail("bool");
+            return text == "true";
+        }
+        else if constexpr (std::is_integral_v<T>)
+        {
+            if (!std::regex_match(text, int_re))
+                throw fail("int");
+            return static_cast<T>(std::stoi(text));
+        }
+        else if constexpr (std::is_floating_point_v<T>)
+        {
+            if (!std::regex_match(text, float_re))
+                throw fail("float");
+            return static_cast<T>(std::stod(text));
+        }
+        else
+            static_assert(sizeof(T) == 0, "chips_fromfile: unsupported type");
+    }
+    catch (const std::out_of_range &)
+    {
+        throw fail("in-range");
+    }
+}
+
+inline std::vector<std::string> chips_array_elements(const std::string &value, const char *location, const char *path)
+{
+    const auto fail = [&](const std::string &reason)
+    {
+        return std::runtime_error(std::string("chips_fromfile: ") + location + ": " + reason + " in '" + path + "'");
+    };
+    if (value.size() < 2 || value.back() != ']')
+        throw fail("malformed array '" + value + "'");
+    std::vector<std::string> elements;
+    std::string current;
+    int nesting = 0;
+    for (std::size_t i = 1; i + 1 < value.size(); ++i)
+    {
+        const char c = value[i];
+        if (c == '[')
+            ++nesting;
+        else if (c == ']' && --nesting < 0)
+            throw fail("unbalanced brackets in '" + value + "'");
+        if (c == ',' && nesting == 0)
+        {
+            elements.push_back(current);
+            current.clear();
+        }
+        else
+            current += c;
+    }
+    if (nesting != 0)
+        throw fail("unbalanced brackets in '" + value + "'");
+    if (!chips_trim(current).empty() || !elements.empty())
+        elements.push_back(current);
+    return elements;
+}
+
+template <typename T>
+std::vector<int> chips_fromfile_flatten(const std::vector<std::string> &elements, std::vector<T> &data,
+                                        const char *location, const char *path)
+{
+    std::vector<int> sub;
+    for (std::size_t i = 0; i < elements.size(); ++i)
+    {
+        const std::string value = chips_trim(elements[i]);
+        std::vector<int> shape;
+        if (!value.empty() && value.front() == '[')
+            shape = chips_fromfile_flatten<T>(chips_array_elements(value, location, path), data, location, path);
+        else
+            data.push_back(chips_parse_literal<T>(value, location, path));
+        if (i == 0)
+            sub = shape;
+        else if (shape != sub)
+            throw std::runtime_error(std::string("chips_fromfile: ") + location + ": values of inconsistent shapes " +
+                                     chips_diag::format_shape(sub) + " and " + chips_diag::format_shape(shape) +
+                                     " in '" + path + "'");
+    }
+    sub.insert(sub.begin(), static_cast<int>(elements.size()));
+    return sub;
+}
+
+template <typename T>
+chips<T> chips_fromfile_value(const std::vector<std::string> &fields, const char *location, const char *path)
+{
+    std::vector<T> data;
+    std::vector<int> shape = chips_fromfile_flatten<T>(fields, data, location, path);
+    return chips<T>(std::move(shape), std::move(data));
+}
+
+inline void chips_fromfile_open(std::ifstream &in, const char *location, const char *path)
+{
+    if (in.is_open())
+        return;
+    in.open(path);
+    if (!in)
+        throw std::runtime_error(std::string("chips_fromfile: ") + location + ": cannot open '" + path + "'");
+}
+struct chips_fromfile_state
+{
+    std::ifstream in;
+    bool has_current = false;
+    std::vector<std::string> current;
+};
+
+inline chips_fromfile_state &chips_fromfile_stream(const std::string &instance, const char *key)
+{
+    static std::mutex m;
+    static std::map<std::string, chips_fromfile_state> states;
+    const std::lock_guard<std::mutex> lock(m);
+    return states[instance + '\x1f' + key];
+}
+
+inline std::vector<std::string> chips_fromfile_next_line(chips_fromfile_state &state, const char *location, const char *path,
+                                                         const char *mode, int ticks)
+{
+    const auto fail = [&](const std::string &reason)
+    {
+        return std::runtime_error(std::string("chips_fromfile: ") + location + ": " + reason + " in '" + path + "'");
+    };
+    const std::string m(mode);
+    std::ifstream &in = state.in;
+    chips_fromfile_open(in, location, path);
+    std::string line;
+
+    if (m == "ONCE")
+    {
+        if (!std::getline(in, line))
+            throw fail("no more lines to read");
+        return chips_csv_fields(line);
+    }
+
+    if (m == "LOOP")
+    {
+        if (!std::getline(in, line))
+        {
+            in.clear();
+            in.seekg(0);
+            if (!std::getline(in, line))
+                throw fail("no line to read");
+        }
+        return chips_csv_fields(line);
+    }
+
+    const std::streampos start = in.tellg();
+    if (!std::getline(in, line))
+    {
+        in.clear();
+        if (!state.has_current)
+            throw fail("no line to read");
+        return state.current;
+    }
+    std::vector<std::string> fields = chips_csv_fields(line);
+    if (fields.size() < 2)
+        throw fail("line '" + line + "' has no value after its tick column");
+    const int tick = chips_parse_literal<int>(fields[0], location, path);
+    if (tick < ticks)
+        throw fail("tick " + std::to_string(tick) + " was missed (current tick is " + std::to_string(ticks) + ")");
+    if (tick > ticks)
+    {
+        in.seekg(start);
+        if (!state.has_current)
+            throw fail("no value before tick " + std::to_string(tick) + " (current tick is " + std::to_string(ticks) + ")");
+        return state.current;
+    }
+    fields.erase(fields.begin());
+    state.current = std::move(fields);
+    state.has_current = true;
+    return state.current;
 }
 
 #endif // CHIPS_HPP

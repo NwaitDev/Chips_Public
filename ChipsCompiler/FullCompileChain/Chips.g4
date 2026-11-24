@@ -284,13 +284,14 @@ statement
     | if_else_statement                                     # StatementIfElse
     | if_statement                                          # StatementIf
     | PROBE_KW L_PARENTH expr R_PARENTH SEMICOL             # StatementProbe
+    | IDENTIFIER suffixes ASSIGN FROMFILE_KW L_PARENTH 
+        STRING COMMA STRING R_PARENTH suffixes SEMICOL               # StatementFromFile
     ;
 
 s_statement
     : IDENTIFIER suffixes IDENTIFIER SEMICOL                                                #ObjectDeclaration
     | block PERIOD IDENTIFIER L_PARENTH s_expr R_PARENTH SEMICOL                            #FeedingStatement
     | LINK_KW IDENTIFIER suffixes TO_KW IDENTIFIER suffixes SEMICOL                         #LinkingStatement
-    | IDENTIFIER suffixes IMPLEMENTATION_KW IDENTIFIER suffixes USING_KW IDENTIFIER SEMICOL #ImplementationStatement
     | s_loop_statement                                                                      #SLoopStatement
     | s_if_else_statement                                                                   #SIfElseStatement
     | s_if_statement                                                                        #SIfStatement
@@ -368,8 +369,6 @@ IF_KW               : 'if';
 ELSE_KW             : 'else';
 TO_KW               : 'to';
 LINK_KW             : 'link';
-IMPLEMENTS_KW       : 'implements';
-HAVING_KW           : 'having';
 INPUT_KW            : 'input';
 STOP_KW             : 'stop';
 AMONG_KW            : 'among';
@@ -378,7 +377,6 @@ COLLECT_KW          : 'collect';
 CTX_KW              : 'ctx';
 OBJECT_KW           : 'object';
 WITH_KW             : 'with';
-IMPLEMENTATION_KW   : 'implementation';
 BY_KW               : 'by';
 TARGET_KW           : '@';
 DEFAULT_KW          : 'default';
@@ -386,6 +384,7 @@ USING_KW            : 'using';
 ACTUATOR_KW         : 'actuator';
 SENSOR_KW           : 'sensor';
 PROBE_KW            : 'probe';
+FROMFILE_KW         : 'fromfile';
 ARROW               : '->';
 PLUS                : '+';
 MINUS               : '-';
@@ -414,6 +413,7 @@ R_SQUA              : ']';
 COLUMN              : ':';
 PERIOD              : '.';
 
+STRING              : '"'.*?'"';
 BOOL                : 'true'| 'false';
 
 fragment DIGIT      : [0-9] ;

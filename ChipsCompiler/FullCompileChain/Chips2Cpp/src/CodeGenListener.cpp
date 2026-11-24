@@ -5,6 +5,7 @@
 #include <cctype>
 #include <algorithm>
 #include <type_traits>
+#include <filesystem>
 
 
 namespace
@@ -512,6 +513,11 @@ std::string CodeGenListener::translateStatementBody(ChipsParser::StatementContex
         return translateProbe(probe, indent);
     }
 
+    if (auto *fromfile = dynamic_cast<ChipsParser::StatementFromFileContext *>(stmt))
+    {
+        return translateFromFile(fromfile, indent);
+    }
+
     std::string text("");
     antlr4::misc::Interval interval = stmt->getSourceInterval();
     for (int i = interval.a; i <= interval.b; i++)
@@ -575,6 +581,93 @@ bool CodeGenListener::containsProbe(antlr4::tree::ParseTree *node)
 std::string CodeGenListener::probeParams(antlr4::tree::ParseTree *defCtx)
 {
     return containsProbe(defCtx) ? "[[maybe_unused]] const std::string &chips_instance, [[maybe_unused]] int chips_ticks" : "";
+}
+
+void CodeGenListener::collectFromFiles(antlr4::tree::ParseTree *node, std::vector<ChipsParser::StatementFromFileContext *> &out)
+{
+    if (auto *ff = dynamic_cast<ChipsParser::StatementFromFileContext *>(node))
+        out.push_back(ff);
+    for (auto *child : node->children)
+        collectFromFiles(child, out);
+}
+
+std::string CodeGenListener::translateFromFileReads(antlr4::tree::ParseTree *section, const std::string &function, int indent)
+{
+    fromFileLines_.clear();
+    std::vector<ChipsParser::StatementFromFileContext *> reads;
+    collectFromFiles(section, reads);
+
+    std::string out;
+    for (auto *ff : reads)
+    {
+        const std::string mode = ff->STRING(1)->getText();
+        if (mode != "\"ONCE\"" && mode != "\"LOOP\"" && mode != "\"TIMED\"")
+            fail(ff, "unknown fromfile mode " + mode + ", expected \"ONCE\", \"LOOP\" or \"TIMED\"");
+
+        const std::pair<std::string, std::string> key{fromFilePath(ff, ff->STRING(0)->getText()), mode};
+        if (fromFileLines_.count(key))
+            continue;
+
+        const std::string var = "chips_fromfile_line_" + std::to_string(fromFileLines_.size());
+        fromFileLines_[key] = var;
+        out += statementGuard(ff, indent, "") + std::string(indent, ' ') + "const std::vector<std::string> " + var +
+               " = chips_fromfile_next_line(chips_fromfile_stream(chips_instance, \"" + function + "\\x1f\" " +
+                              key.first + "), \"" + probeLocation(ff) + "\", " + key.first + ", " + mode + ", chips_ticks);\n";
+    }
+    return out;
+}
+
+std::string CodeGenListener::fromFilePath(antlr4::ParserRuleContext *ctx, const std::string &literal) const
+{
+    std::filesystem::path file(literal.substr(1, literal.size() - 2));
+    if (file.is_relative())
+    {
+        const int line = ctx->getStart() ? static_cast<int>(ctx->getStart()->getLine()) : 0;
+        std::string escaped = sourcePath_;
+        for (const auto &[firstLine, segmentPath] : sourceSegments_)
+            if (firstLine <= line)
+                escaped = segmentPath;
+        std::string source;
+        for (std::size_t i = 0; i < escaped.size(); ++i)
+        {
+            if (escaped[i] == '\\' && i + 1 < escaped.size())
+                ++i;
+            source += escaped[i];
+        }
+        file = std::filesystem::path(source).parent_path() / file;
+    }
+    return "\"" + escapeCString(std::filesystem::weakly_canonical(std::filesystem::absolute(file)).string()) + "\"";
+}
+
+std::string CodeGenListener::translateFromFile(ChipsParser::StatementFromFileContext *ctx, int indent)
+{
+    const std::string path = fromFilePath(ctx, ctx->STRING(0)->getText());
+    const auto line = fromFileLines_.find({path, ctx->STRING(1)->getText()});
+    if (line == fromFileLines_.end())
+        fail(ctx, "fromfile can only be used in the init and then sections of a function");
+
+    const ResolvedVariable target = resolveVariable(ctx->IDENTIFIER()->getText(), ctx);
+    std::string chipType;
+    if (!lookupVarType(target.base, chipType))
+        fail(ctx, "'" + target.base + "' is not a variable known by '" + currentDefName() + "'");
+
+    std::string native;
+    if (chipType == "chips_int")
+        native = "int";
+    else if (chipType == "chips_float")
+        native = "double";
+    else if (chipType == "chips_bool")
+        native = "bool";
+    else
+        fail(ctx, "fromfile cannot assign a value of type '" + chipType + "'");
+
+    std::string indices;
+    for (auto *e : ctx->suffixes(1)->expr())
+        indices += (indices.empty() ? "" : ", ") + std::string("static_cast<int>(") + translateExpr(e) + ")";
+
+        return std::string(indent, ' ') + target.emitted + translateLhsSuffixes(ctx->suffixes(0)) + " = " +
+           "chips_fromfile_value<" + native + ">(" + line->second + ", \"" + probeLocation(ctx) + "\", " + path + ")" +
+           translateSuffixes(ctx->suffixes(1)) + ";\n";
 }
 
 std::string generateUniqueiterableName(const std::map<std::string, std::string>& used_names) {
@@ -709,16 +802,16 @@ std::string CodeGenListener::translateCLhsSuffixes(ChipsParser::C_suffixesContex
     return out;
 }
 
-std::string CodeGenListener::shapedValue(const std::string &chipType, const std::vector<std::string> &dims)
+std::string CodeGenListener::shapedValue(const std::string &chipsType, const std::vector<std::string> &dims)
 {
     std::string native = "int";
     std::string defaultValue = "0";
-    if (chipType == "chips_float")
+    if (chipsType == "chips_float")
     {
         native = "double";
         defaultValue = "0.0";
     }
-    else if (chipType == "chips_bool")
+    else if (chipsType == "chips_bool")
     {
         native = "bool";
         defaultValue = "false";
@@ -732,7 +825,7 @@ std::string CodeGenListener::shapedValue(const std::string &chipType, const std:
 
 std::string CodeGenListener::translateDecl(ChipsParser::StatementDeclarationContext *ctx, int indent, bool inScope)
 {
-    std::string chipType = chipsTypeFor(ctx->df_type());
+    std::string chipsType = chipsTypeFor(ctx->df_type());
     std::string varName = ctx->IDENTIFIER()->getText();
     std::string pad(indent, ' ');
 
@@ -744,22 +837,22 @@ std::string CodeGenListener::translateDecl(ChipsParser::StatementDeclarationCont
     if (!inScope)
     {
         if (std::holds_alternative<ChipsParser::L_function_defContext *>(current_def))
-            dico.addLogical(std::get<ChipsParser::L_function_defContext *>(current_def), varName, chipType);
+            dico.addLogical(std::get<ChipsParser::L_function_defContext *>(current_def), varName, chipsType);
         else if (std::holds_alternative<ChipsParser::P_function_defContext *>(current_def))
-            dico.addPhysical(std::get<ChipsParser::P_function_defContext *>(current_def), varName, chipType);
+            dico.addPhysical(std::get<ChipsParser::P_function_defContext *>(current_def), varName, chipsType);
 
         std::string out;
         if (!dims.empty())
-            out += pad + "chips_reset(" + varName + "_inner, " + shapedValue(chipType, dims) + ");\n";
+            out += pad + "chips_reset(" + varName + "_inner, " + shapedValue(chipsType, dims) + ");\n";
         if (ctx->ASSIGN())
             out += pad + varName + "_inner = " + translateExpr(ctx->expr()) + ";\n";
         return out;
     }
 
     if (!std::holds_alternative<ChipsParser::Collective_op_defContext *>(current_def))
-        storeVar(current_def, varName, chipType);
+        storeVar(current_def, varName, chipsType);
 
-    std::string out = pad + chipType + " " + varName + " = " + shapedValue(chipType, dims) + ";\n";
+    std::string out = pad + chipsType + " " + varName + " = " + shapedValue(chipsType, dims) + ";\n";
     if (ctx->ASSIGN())
         out += pad + varName + " = " + translateExpr(ctx->expr()) + ";\n";
     return out;
@@ -1307,8 +1400,10 @@ void CodeGenListener::exitL_function_def(ChipsParser::L_function_defContext *ctx
     const std::string name = ctx->IDENTIFIER()->getText();
     computeFunctionContextuals(ctx, nullptr);
 
-    const std::string initBody = translateStatements(ctx->init_section()->statement(), 4, false);
-    const std::string thenBody = translateStatements(ctx->then_section()->statement(), 4, true) + outputText();
+    std::string initBody = translateFromFileReads(ctx->init_section(), "init_" + name, 4);
+    initBody += translateStatements(ctx->init_section()->statement(), 4, false);
+    std::string thenBody = translateFromFileReads(ctx->then_section(), "then_" + name, 4);
+    thenBody += translateStatements(ctx->then_section()->statement(), 4, true) + outputText();
 
     const std::vector<std::string> signature{
         translateParams(ctx->df_parameter_decl()),
@@ -1507,19 +1602,19 @@ std::string CodeGenListener::translateCIfElse(ChipsParser::C_if_else_statementCo
 
 std::string CodeGenListener::translateCDecl(ChipsParser::Cdf_full_declarationContext *ctx, int indent)
 {
-    std::string chipType = chipsTypeFor(ctx->df_type());
+    std::string chipsType = chipsTypeFor(ctx->df_type());
     std::string varName = ctx->IDENTIFIER()->getText();
     std::string pad(indent, ' ');
 
     auto *cctx = std::get<ChipsParser::Collective_op_defContext*>(current_def);
-    storeVar(cctx, varName, chipType);
+    storeVar(cctx, varName, chipsType);
 
     std::vector<std::string> dims;
     if (auto *suffixes = ctx->c_suffixes())
         for (auto *e : suffixes->c_stopless_expr())
             dims.push_back(translateCStoplessExpr(e));
 
-    std::string out = pad + chipType + " " + varName + " = " + shapedValue(chipType, dims) + ";\n";
+    std::string out = pad + chipsType + " " + varName + " = " + shapedValue(chipsType, dims) + ";\n";
     if (ctx->ASSIGN())
         out += pad + varName + " = " + translateCExpr(ctx->c_expr()) + ";\n";
     return out;
