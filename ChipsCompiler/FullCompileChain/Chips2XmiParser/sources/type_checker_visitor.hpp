@@ -851,16 +851,6 @@ public:
     return {};
   }
 
-  std::any visitImplementationStatement(
-      ChipsParser::ImplementationStatementContext *ctx)
-  {
-    for (std::size_t i = 0; i < 2; ++i)
-    {
-      check_suffixes(ctx->suffixes(i));
-    }
-    return {};
-  }
-
   std::any
   visitSBlockOutputExpression(ChipsParser::SBlockOutputExpressionContext *ctx)
   {

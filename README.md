@@ -64,12 +64,11 @@ The compiler CLI is available in the form of a bash script called ```chipsc```:
 ## Upgrades for next versions of Chips 
 
 - macros and constexpr
-- generation of block diagrams PNG from Chips specs <3
 - annotations for dimensionnal analysis
 - object orientation of the language
 - including enumerations
 - syntaxic coloration and code snippets
-- functions that are not functional blocks 
+- functions that are not functional blocks
 - collective operations supporting several targets per node
 - proper libraries/packages management
 - handling reconfigurations of the connexions of models elements
