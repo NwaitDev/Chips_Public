@@ -14,7 +14,7 @@ flowchart TD
     cxmi -->|chips2bip.atl on EMFTVM| bxmi[".bip.xmi"]:::input
     bxmi -->|bipc --genbip| bip[".bip"]:::input
     bip -->|bipc C++ project, CMake build| sys["system executable"]
-    sys -->|run, stdout to SystemTrace.log| probe[".probe.csv"]:::input
+    sys -->|run, stdout to SystemTrace.log| probe[".probes/ folder"]:::input
     probe -->|probe2table.py, probe2plot.py with --plot| res[".table.csv, probes.pdf"]
     chips -->|Chips2Cpp| cpp["bip_importable.cpp / .hpp"]
     cpp -->|compiled into the system| sys

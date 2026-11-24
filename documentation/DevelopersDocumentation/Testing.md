@@ -11,11 +11,11 @@ Since the compiler is broken down into several different programs, each stage ca
 | Rebuild without recompiling Chips | `chipsc <folder>/<pkg>.bip` |
 | Build but not run | `chipsc f.chips --no-run` |
 | Time each step | add `--metrics` |
-| Re-plot an old run | `chipsc run.probe.csv --plot` |
+| Re-plot an old run | `chipsc run.probes/index.csv --plot` |
 
 All artefacts and logs land in the output folder (`-o`, default `CHIPS_GENERATED`): one `<Step>Debug.log` per step, `merged/` and its `.map` when `--include` is used, `output/build/system`, `SystemTrace.log`.
 
 
 ### TODO
 
-There is no automated test suite yet. A `tests/` folder of `.chips` files with expected `.bip` and probe CSVs, plus a script that diffs them, would make a VERY GOOD contribution.
+There is no automated test suite yet. A `tests/` folder of `.chips` files with expected `.bip` and probe folders, plus a script that diffs them, would make a VERY GOOD contribution.

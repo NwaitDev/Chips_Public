@@ -186,7 +186,7 @@ std::pair<std::string, std::size_t> original_position(const SourceSegments &segm
 
 void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeaderPath,
                   const std::filesystem::path &hppPath, const std::filesystem::path &cppPath, long long maxTicks,
-                  const SourceSegments &segments, const std::string &probeFile)
+                  const SourceSegments &segments, const std::string &probeDir)
 {
     antlr4::ANTLRInputStream inputStream(read_file(chipsPath));
     ChipsLexer lexer(&inputStream);
@@ -199,7 +199,7 @@ void generate_cpp(const std::string &chipsPath, const std::string &runtimeHeader
     CodeGenListener listener(tokens, headerBody, sourceBody);
     listener.setSourcePath(chipsPath);
     listener.setSourceSegments(segments);
-    listener.setProbeFile(probeFile);
+    listener.setProbeDir(probeDir);
     listener.setMaxTicks(maxTicks);
     antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
         {"-o", "path of the generated source file (default: bip_importable.cpp)"},
         {"-oh", "path of the generated header file (default: the source path with a .hpp extension)"},
         {"-max-ticks", "number of THEN cycles after which each core component stops (default: 1000)"},
-        {"-probe-file", "path of the csv file written by the probe statements (default: <input without extension>.probe.csv)"},
+        {"-probe-dir", "directory where each probe statement writes one csv file per instance (default: <input without extension>.probes)"},
         {"-source-map", "file mapping the lines of <input> to the files it was merged from (one '<first line>\\t<path>' per line)"}};
 
     std::map<std::string, std::string> args = parseCommandLine(argc, argv, paramDescriptions);
@@ -268,10 +268,10 @@ int main(int argc, char **argv)
     {
         if (args.count("-source-map"))
             segments = read_source_map(args.at("-source-map"));
-        const std::string probeFile = args.count("-probe-file")
-            ? std::filesystem::absolute(args.at("-probe-file")).string()
-            : std::filesystem::path(chipsPath).replace_extension(".probe.csv").string();
-        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath, maxTicks, segments, probeFile);
+        const std::string probeDir = args.count("-probe-dir")
+            ? std::filesystem::absolute(args.at("-probe-dir")).string()
+            : std::filesystem::path(chipsPath).replace_extension(".probes").string();
+        generate_cpp(chipsPath, runtimeHeaderPath, hppPath, cppPath, maxTicks, segments, probeDir);
     }
     catch (const ChipsGenerationError &e)
     {

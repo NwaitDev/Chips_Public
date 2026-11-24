@@ -1,7 +1,7 @@
 declare -A DESCRIPTIONS=(
     ["-h"]="Print this message."
     ["-i"]="Print information about this software."
-    ["file"]="Source file to work with. Accepted formats are .chips, .chips.xmi, .bip.xmi, .bip or .csv. A .csv file must be a probe file: only the probe table (and the plots with --plot) are generated from it."
+    ["file"]="Source file to work with. Accepted formats are .chips, .chips.xmi, .bip.xmi, .bip or .csv. A .csv file must be the index.csv of a probe folder (<name>.probes/index.csv): only the probe table (and the plots with --plot) are generated from it."
     ["--chips-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> chips model. Only works with .chips files."
     ["--bip-xmi"]="Stop the compilation after having generated the xmi serialized version of <file> equivalent bip model. Only works with .chips and .chips.xmi files."
     ["--bip"]="Stop the compilation after having generated the bip model of <file>. Only works with .chips, .chips.xmi and .bip.xmi files."
@@ -11,7 +11,7 @@ declare -A DESCRIPTIONS=(
     ["--include"]="Prepend the content of the chips <lib> file to <file> before compiling it. <lib> is either a path or the name of a file in the libs folder (the .chips extension can be omitted). Can be given several times: the files are prepended in the given order. An included file must not contain a system section. Only works with .chips files."
     ["-o"]="The name of the folder in which to store the model elements generated. If no <folder> is specified, artifacts will be stored in CHIPS_GENERATED."
     ["--no-run"]="Build the system executable without running it nor post-processing its probes."
-    ["--plot"]="Plot the probed values (one pdf page per instance) in <folder>/probes.pdf. Only works with .chips files (after running the system) and .csv probe files."
+    ["--plot"]="Plot the probed values (one pdf page per instance) in <folder>/probes.pdf. Only works with .chips files (after running the system) and probe index.csv files."
 )
 
 OPTION_ORDER=(-h -i --chips-xmi --bip-xmi --bip --cpp-only --max-ticks --metrics --include -o --no-run --plot)
