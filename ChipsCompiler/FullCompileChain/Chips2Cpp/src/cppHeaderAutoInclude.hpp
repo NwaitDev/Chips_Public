@@ -1735,7 +1735,8 @@ T chips_parse_literal(const std::string &text, const char *location, const char 
 {
     static const std::regex bool_re("true|false");
     static const std::regex int_re("-?[0-9]+");
-    static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)([eE][+-]?[0-9]+)?");
+    static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)");
+    // static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)([eE][+-]?[0-9]+)?");
     const auto fail = [&](const std::string &expected)
     {
         return std::runtime_error(std::string("chips_fromfile: ") + location + ": value '" + text +
@@ -1947,13 +1948,16 @@ std::string chips_probe_literal(const T &v)
         return v ? "true" : "false";
     else if constexpr (std::is_floating_point_v<T>)
     {
-        char buffer[64];
-        const auto result = std::to_chars(buffer, buffer + sizeof(buffer), v);
+        char buffer[512];
+        const auto result = std::to_chars(buffer, buffer + sizeof(buffer), v, std::chars_format::fixed);
         std::string text(buffer, result.ptr);
-        if (text.find_first_of(".ni") != std::string::npos)
-            return text;
-        const std::size_t exponent = text.find('e');
-        return exponent == std::string::npos ? text + ".0" : text.insert(exponent, ".0");
+        return text.find_first_of(".ni") != std::string::npos ? text : text + ".0";
+        // const auto result = std::to_chars(buffer, buffer + sizeof(buffer), v);
+        // std::string text(buffer, result.ptr);
+        // if (text.find_first_of(".ni") != std::string::npos)
+        //     return text;
+        // const std::size_t exponent = text.find('e');
+        // return exponent == std::string::npos ? text + ".0" : text.insert(exponent, ".0");
     }
     else
     {
@@ -1977,8 +1981,6 @@ std::string chips_probe_block(const chips<T> &c, std::size_t dim, std::size_t &p
 template <typename T>
 std::vector<std::string> chips_probe_fields(const chips<T> &c)
 {
-    if (c.stopFlag)
-        return {"stop"};
     if (c.shape().empty() || c.data().empty())
         return {"[]"};
     if (c.shape().size() == 1 && c.shape()[0] == 1)
