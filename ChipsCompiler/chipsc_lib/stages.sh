@@ -98,7 +98,7 @@ bip_env_valid() {
 load_bip_env() {
     bip_env_valid && return 0
     if bip_env_set; then
-        echo "Warning: the BIP2_ENGINE_* variables do not point to an engine with Atom.hpp and libengine.a; reloading them from '$BIP_SETENV'." >&2
+        echo "Warning: the BIP2_ENGINE_* variables do not point to an engine with Atom.hpp or libengine.a; reloading them from '$BIP_SETENV'." >&2
     fi
     if [[ -f "$BIP_SETENV" ]]; then
         local previous_dir="$PWD"
