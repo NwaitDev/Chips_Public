@@ -61,20 +61,21 @@ The compiler CLI is available in the form of a bash script called ```chipsc```:
 - [Users documentation](./documentation/UsersDocumentation/Introduction.md)
 - [Developers documentation](./documentation/DevelopersDocumentation/Introduction.md)
 
-## Upgrades for next versions of Chips 
+## Upgrades for future versions of Chips 
 
-- macros and constexpr
-- annotations for dimensionnal analysis
-- object orientation of the language
-- including enumerations
-- syntaxic coloration and code snippets
-- functions that are not functional blocks
-- collective operations supporting several targets per node
-- proper libraries/packages management
-- handling reconfigurations of the connexions of models elements
+- macros and constexpr?
+- annotations for dimensionnal analysis!
+- object orientation of the language?
+- including enumerations!
+- syntaxic coloration and code snippets!
+- definition of functions that are not functional blocks!
+- collective operations supporting several targets per node?
+- proper libraries/packages management!
+- handling reconfigurations of the connexions of models elements! (using DR-BIP?)
+- Association of physical functions to a ```.json``` sort of feature model describing the device it models, thus enriching simulations with real field data?
 
 ## License
-I have no idea of what license to use, I'm just a poor little PhD student 
+Chips is distributed under the CeCILL-B license.
 
 ## Project status
 Ongoing project
