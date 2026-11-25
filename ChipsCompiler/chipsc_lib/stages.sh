@@ -91,8 +91,15 @@ bip_env_set() {
     [[ -n "${BIP2_ENGINE_LIB_DIR:-}" && -n "${BIP2_ENGINE_GENERIC_DIR:-}" && -n "${BIP2_ENGINE_SPECIFIC_DIR:-}" ]]
 }
 
+bip_env_valid() {
+    bip_env_set && [[ -f "$BIP2_ENGINE_GENERIC_DIR/Atom.hpp" ]]
+}
+
 load_bip_env() {
-    bip_env_set && return 0
+    bip_env_valid && return 0
+    if bip_env_set; then
+        echo "Warning: '$BIP2_ENGINE_GENERIC_DIR' has no Atom.hpp; reloading the BIP2_ENGINE_* variables from '$BIP_SETENV'." >&2
+    fi
     if [[ -f "$BIP_SETENV" ]]; then
         local previous_dir="$PWD"
         cd -- "$(dirname -- "$BIP_SETENV")"
@@ -101,8 +108,8 @@ load_bip_env() {
         set -eu
         cd -- "$previous_dir"
     fi
-    if ! bip_env_set; then
-        echo "Warning: BIP2_ENGINE_* variables are not set and could not be loaded from '$BIP_SETENV'; the build will probably fail." >&2
+    if ! bip_env_valid; then
+        echo "Warning: no BIP engine with Atom.hpp found through the BIP2_ENGINE_* variables or '$BIP_SETENV'; the build will probably fail. Build the engine with make in ChipsCompiler." >&2
     fi
 }
 
@@ -136,8 +143,7 @@ stage_build() {
         -p "$package" \
         -d "$ROOT_COMPONENT()" \
         --gencpp-cc-extra-opt=-std=c++17 \
-        --gencpp-cc-extra-opt=-I"$cpp_dir" \
-        --gencpp-cc-I="$CPP_BASENAME.hpp" \
+        --gencpp-cc-I="$cpp_dir" \
         --gencpp-cc-extra-src="$cpp_dir/$CPP_BASENAME.cpp" \
         --gencpp-output-dir="$BUILD_ROOT"
 
