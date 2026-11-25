@@ -4,6 +4,8 @@ Because every programmer prefers to copy/paste code instead of reading documenta
 
 ## Additioner
 
+An example of simple system that plugs 2 components together (an additioner and a consumer) and continuously feeds the additioner with the integers 31 and 11. The Consumer component prints the data it receives into a csv file.
+
 ```
 logical Additioner(int a, int b) 
 init {} then {} -> out(a+b)
@@ -24,6 +26,8 @@ system {
 
 
 ## Additioner Array
+
+Example of additionner components that are instanciated all at the same time and feading each other with the data of the previously computed sum.
 
 ```
 logical Additioners(int a, int b) 
@@ -50,6 +54,8 @@ system {
 ```
 
 ## Message Broadcast
+
+Example of model instantiating components in a (small) network of objects so they communicate by passing themselves data according to the topology of the network.
 
 ```
 logical Sender() 
