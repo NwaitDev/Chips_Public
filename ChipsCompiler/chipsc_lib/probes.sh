@@ -1,8 +1,12 @@
 process_probes() {
     local probe_file="$1"
     local stem
-    stem="$(basename -- "$probe_file" .csv)"
-    stem="${stem%.probe}"
+    if [[ "$(basename -- "$probe_file")" == "index.csv" ]]; then
+        stem="$(basename -- "$(dirname -- "$probe_file")" .probes)"
+    else
+        stem="$(basename -- "$probe_file" .csv)"
+        stem="${stem%.probe}"
+    fi
     local probe_table="$OUTPUT_DIR/$stem.table.csv"
     run_step \
         "Probes -> table" \

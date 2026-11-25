@@ -19,7 +19,10 @@
 #include <mutex>
 #include <math.h>
 #include <map>
+#include <set>
 #include <regex>
+#include <charconv>
+#include <filesystem>
 
 class chips_any;
 
@@ -1681,45 +1684,6 @@ inline std::ostream &operator<<(std::ostream &os, const chips_any &c)
     return os;
 }
 
-extern const char *const chips_probe_file;
-
-inline std::string chips_csv_field(const std::string &text)
-{
-    std::string out = "\"";
-    for (char c : text)
-    {
-        if (c == '"')
-            out += '"';
-        out += c;
-    }
-    return out + "\"";
-}
-
-inline std::ofstream &chips_probe_stream()
-{
-    static std::ofstream out = []
-    {
-        std::ofstream stream(chips_probe_file, std::ios::out | std::ios::trunc);
-        if (!stream)
-            throw std::runtime_error(std::string("chips_probe: cannot open '") + chips_probe_file + "'");
-        stream << "instance,ticks,location,expression,value\n" << std::flush;
-        return stream;
-    }();
-    return out;
-}
-
-template <typename T>
-void chips_probe(const std::string &instance, int ticks, const char *location, const char *expression, const T &value)
-{
-    static std::mutex probe_mutex;
-    std::ostringstream text;
-    text << value;
-    const std::lock_guard<std::mutex> lock(probe_mutex);
-    chips_probe_stream() << chips_csv_field(instance) << ',' << ticks << ','
-                         << chips_csv_field(location) << ',' << chips_csv_field(expression) << ','
-                         << chips_csv_field(text.str()) << '\n' << std::flush;
-}
-
 inline std::string chips_trim(const std::string &text)
 {
     const auto begin = text.find_first_not_of(" \t\r\n");
@@ -1772,6 +1736,7 @@ T chips_parse_literal(const std::string &text, const char *location, const char 
     static const std::regex bool_re("true|false");
     static const std::regex int_re("-?[0-9]+");
     static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)");
+    // static const std::regex float_re("-?(\\.[0-9]+|[0-9]+\\.[0-9]*)([eE][+-]?[0-9]+)?");
     const auto fail = [&](const std::string &expected)
     {
         return std::runtime_error(std::string("chips_fromfile: ") + location + ": value '" + text +
@@ -1950,6 +1915,162 @@ inline std::vector<std::string> chips_fromfile_next_line(chips_fromfile_state &s
     state.current = std::move(fields);
     state.has_current = true;
     return state.current;
+}
+
+extern const char *const chips_probe_dir;
+
+inline std::string chips_csv_field(const std::string &text)
+{
+    if (text.find_first_of(",\"\r\n") == std::string::npos)
+        return text;
+    std::string out = "\"";
+    for (char c : text)
+    {
+        if (c == '"')
+            out += '"';
+        out += c;
+    }
+    return out + "\"";
+}
+
+inline std::string chips_probe_safe_name(const std::string &text)
+{
+    std::string out;
+    for (char c : text)
+        out += std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '.' ? c : '_';
+    return out.empty() ? "_" : out;
+}
+
+template <typename T>
+std::string chips_probe_literal(const T &v)
+{
+    if constexpr (std::is_same_v<T, bool>)
+        return v ? "true" : "false";
+    else if constexpr (std::is_floating_point_v<T>)
+    {
+        char buffer[512];
+        const auto result = std::to_chars(buffer, buffer + sizeof(buffer), v, std::chars_format::fixed);
+        std::string text(buffer, result.ptr);
+        return text.find_first_of(".ni") != std::string::npos ? text : text + ".0";
+        // const auto result = std::to_chars(buffer, buffer + sizeof(buffer), v);
+        // std::string text(buffer, result.ptr);
+        // if (text.find_first_of(".ni") != std::string::npos)
+        //     return text;
+        // const std::size_t exponent = text.find('e');
+        // return exponent == std::string::npos ? text + ".0" : text.insert(exponent, ".0");
+    }
+    else
+    {
+        std::ostringstream text;
+        text << v;
+        return text.str();
+    }
+}
+
+template <typename T>
+std::string chips_probe_block(const chips<T> &c, std::size_t dim, std::size_t &pos)
+{
+    if (dim == c.shape().size())
+        return chips_probe_literal<T>(c.data()[pos++]);
+    std::string out = "[";
+    for (int i = 0; i < c.shape()[dim]; ++i)
+        out += (i ? "," : "") + chips_probe_block(c, dim + 1, pos);
+    return out + "]";
+}
+
+template <typename T>
+std::vector<std::string> chips_probe_fields(const chips<T> &c)
+{
+    if (c.shape().empty() || c.data().empty())
+        return {"[]"};
+    if (c.shape().size() == 1 && c.shape()[0] == 1)
+        return {chips_probe_literal<T>(c.data()[0])};
+    std::vector<std::string> fields;
+    std::size_t pos = 0;
+    for (int i = 0; i < c.shape()[0]; ++i)
+        fields.push_back(chips_probe_block(c, 1, pos));
+    return fields;
+}
+
+inline std::vector<std::string> chips_probe_fields(const chips_any &c)
+{
+    return std::visit([](const auto &v) { return chips_probe_fields(v); }, c.value());
+}
+
+template <typename T>
+std::vector<std::string> chips_probe_fields(const T &v)
+{
+    return {chips_probe_literal<T>(v)};
+}
+
+class chips_probe_files
+{
+public:
+    static chips_probe_files &get()
+    {
+        static chips_probe_files files;
+        return files;
+    }
+
+    void write(const std::string &instance, int ticks, const char *stem, const char *location,
+               const char *expression, const std::vector<std::string> &fields)
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        const std::string name = std::string(stem) + "_" + chips_probe_safe_name(instance) + ".csv";
+        auto it = streams_.find(name);
+        if (it == streams_.end())
+        {
+            if (streams_.size() >= max_open_)
+                streams_.clear();
+            const bool created = created_.insert(name).second;
+            if (created)
+                index_ << chips_csv_field(name) << ',' << chips_csv_field(instance) << ','
+                       << chips_csv_field(location) << ',' << chips_csv_field(expression) << '\n' << std::flush;
+            it = streams_.emplace(name, std::ofstream(dir_ / name, created ? std::ios::trunc : std::ios::app)).first;
+            if (!it->second)
+                throw std::runtime_error("chips_probe: cannot open '" + (dir_ / name).string() + "'");
+        }
+        std::ofstream &out = it->second;
+        out << ticks;
+        for (const std::string &field : fields)
+            out << ',' << chips_csv_field(field);
+        out << '\n' << std::flush;
+    }
+
+private:
+    static constexpr std::size_t max_open_ = 256;
+    std::mutex mutex_;
+    std::filesystem::path dir_;
+    std::ofstream index_;
+    std::map<std::string, std::ofstream> streams_;
+    std::set<std::string> created_;
+
+    chips_probe_files() : dir_(chips_probe_dir)
+    {
+        const std::filesystem::path index = dir_ / "index.csv";
+        std::ifstream previous(index);
+        std::string line;
+        if (previous && std::getline(previous, line))
+            while (std::getline(previous, line))
+            {
+                const std::string name = chips_csv_fields(line).at(0);
+                if (!name.empty() && name.find('/') == std::string::npos)
+                    std::filesystem::remove(dir_ / name);
+            }
+        previous.close();
+        std::filesystem::create_directories(dir_);
+        index_.open(index, std::ios::trunc);
+        if (!index_)
+            throw std::runtime_error("chips_probe: cannot open '" + index.string() + "'");
+        index_ << "file,instance,location,expression\n" << std::flush;
+    }
+};
+
+template <typename T>
+void chips_probe(const std::string &instance, int ticks, const char *stem, const char *location,
+                 const char *expression, const T &value)
+{
+    chips_probe_files::get().write(instance, ticks, stem, location, expression, chips_probe_fields(value));
 }
 
 #endif // CHIPS_HPP

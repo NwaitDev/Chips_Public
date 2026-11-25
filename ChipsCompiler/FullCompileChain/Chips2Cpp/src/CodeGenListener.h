@@ -39,7 +39,7 @@ public:
     void setSourcePath(const std::string &path);
     void setSourceSegments(const std::vector<std::pair<int, std::string>> &segments);
     void setMaxTicks(long long maxTicks);
-    void setProbeFile(const std::string &path);
+    void setProbeDir(const std::string &path);
     void enterProgram(ChipsParser::ProgramContext *ctx) override;
     void exitProgram(ChipsParser::ProgramContext *ctx) override;
     void exitL_function_def(ChipsParser::L_function_defContext *ctx) override;
@@ -159,7 +159,7 @@ private:
     static std::string shapedValue(const std::string &chipType, const std::vector<std::string> &dims);
     std::string statementGuard(antlr4::ParserRuleContext *ctx, int indent, const std::string &text) const;
     std::string sourcePath_;
-    std::string probeFile_ = "chips.probe.csv";
+    std::string probeDir_ = "chips.probes";
     std::string translateProbe(ChipsParser::StatementProbeContext *ctx, int indent);
     std::string probeLocation(antlr4::ParserRuleContext *ctx) const;
     static bool containsProbe(antlr4::tree::ParseTree *node);

@@ -11,4 +11,4 @@ A new statement touches up to six places, in the following order. Skip a step on
 5. **ATL** — add or extend the rule in `chips2bip.atl` that maps it to BIP.
 6. **C++ generation** — add a `translate<Label>` branch in `CodeGenListener::translateStatementBody`; until then the statement is copied verbatim and reported as `unhandled:`.
 
-Check it end to end with `chipsc test.chips --chips-xmi`, then `--bip`, then a full run. Little reminder, you can use the ```probe``` statement inside function definitions of a Chips model to print the value of expressions in a CSV file.
+Check it end to end with `chipsc test.chips --chips-xmi`, then `--bip`, then a full run. Little reminder, you can use the ```probe``` statement inside function definitions of a Chips model to print the value of expressions in CSV files (one per probe statement and instance).

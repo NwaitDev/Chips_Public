@@ -410,9 +410,9 @@ void CodeGenListener::setMaxTicks(long long maxTicks)
     maxTicks_ = maxTicks;
 }
 
-void CodeGenListener::setProbeFile(const std::string &path)
+void CodeGenListener::setProbeDir(const std::string &path)
 {
-    probeFile_ = path;
+    probeDir_ = path;
 }
 
 std::string CodeGenListener::escapeCString(const std::string &text)
@@ -535,8 +535,13 @@ std::string CodeGenListener::translateProbe(ChipsParser::StatementProbeContext *
         if (dynamic_cast<ChipsParser::With_sectionContext *>(up))
             fail(ctx, "probe can only be used in the init and then sections of a function");
 
-    return std::string(indent, ' ') + "chips_probe(chips_instance, chips_ticks, \"" +
-           probeLocation(ctx) + "\", \"" + sourceText(ctx->expr()) + "\", " +
+    const std::string location = probeLocation(ctx);
+    const std::size_t column = location.rfind(':');
+    const std::size_t line = location.rfind(':', column - 1);
+    const std::string stem = currentDefName() + "_l" + location.substr(line + 1, column - line - 1) + "c" +
+                             location.substr(column + 1);
+    return std::string(indent, ' ') + "chips_probe(chips_instance, chips_ticks, \"" + escapeCString(stem) + "\", \"" +
+           location + "\", \"" + escapeCString(sourceText(ctx->expr())) + "\", " +
            translateExpr(ctx->expr()) + ");\n";
 }
 
@@ -1372,7 +1377,7 @@ void CodeGenListener::enterProgram(ChipsParser::ProgramContext *ctx)
     source_out_ << "};\n";
     source_out_ << "const std::size_t chips_diag::source_segment_count = " << segments.size() << ";\n\n";
     header_out_ << "constexpr int CHIPS_MAX_TICKS = " << maxTicks_ << ";\n\n";
-    source_out_ << "const char *const chips_probe_file = \"" << escapeCString(probeFile_) << "\";\n\n";
+    source_out_ << "const char *const chips_probe_dir = \"" << escapeCString(probeDir_) << "\";\n\n";
     header_out_ << "inline int chips_max_ticks()\n{\n    return CHIPS_MAX_TICKS;\n}\n\n";
     for (auto *preamble : ctx->preamble())
     {

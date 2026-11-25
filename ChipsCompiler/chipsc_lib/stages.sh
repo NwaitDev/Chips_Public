@@ -22,7 +22,7 @@ plan_stages() {
     CHIPS_XMI_FILE="$OUTPUT_DIR/out.chips.xmi"
     BIP_XMI_FILE="$OUTPUT_DIR/out.bip.xmi"
     BIP_FILE=""
-    PROBE_FILE=""
+    PROBE_DIR=""
 }
 
 stage_selected() {
@@ -54,8 +54,8 @@ stage_bip_xmi() {
 stage_cpp() {
     local cpp_args=("$CHIPS_SOURCE" -o "$OUTPUT_DIR/$CPP_BASENAME.cpp")
     [[ -n "$SOURCE_MAP" ]] && cpp_args+=(-source-map "$SOURCE_MAP")
-    PROBE_FILE="$OUTPUT_DIR/$(basename -- "$FILE" .chips).probe.csv"
-    cpp_args+=(-probe-file "$PROBE_FILE")
+    PROBE_DIR="$OUTPUT_DIR/$(basename -- "$FILE" .chips).probes"
+    cpp_args+=(-probe-dir "$PROBE_DIR")
     [[ -n "$MAX_TICKS" ]] && cpp_args+=(-max-ticks "$MAX_TICKS")
     run_step \
         "CHIPS -> C++" \
@@ -164,8 +164,8 @@ stage_run() {
         "$BUILD_ROOT/build/system"
     echo "Execution trace: $OUTPUT_DIR/SystemTrace.log"
 
-    if [[ -n "$PROBE_FILE" && -f "$PROBE_FILE" ]]; then
-        process_probes "$PROBE_FILE"
+    if [[ -n "$PROBE_DIR" && -f "$PROBE_DIR/index.csv" ]]; then
+        process_probes "$PROBE_DIR/index.csv"
     fi
 }
 

@@ -1,0 +1,25 @@
+logical reader() init {
+    int i = 0;
+    float f = 0.0;
+    float g = 0.0;
+    bool b = false;
+    int [3] a;
+    int [2][2] m;
+} then {
+    i = fromfile("out/probes/writer_l16c5_w1.csv", "TIMED");
+    f = fromfile("out/probes/writer_l17c5_w1.csv", "TIMED");
+    g = fromfile("out/probes/writer_l18c5_w1.csv", "TIMED");
+    b = fromfile("out/probes/writer_l19c5_w1.csv", "TIMED");
+    a = fromfile("out/probes/writer_l20c5_w1.csv", "TIMED");
+    m = fromfile("out/probes/writer_l21c5_w1.csv", "TIMED");
+    probe(i);
+    probe(f);
+    probe(g);
+    probe(b);
+    probe(a);
+    probe(m);
+}
+
+system {
+    reader w1;
+}
