@@ -263,16 +263,15 @@ public:
               typename = std::enable_if_t<
                   (std::is_same_v<T, int> && std::is_same_v<U, double>) ||
                   (std::is_same_v<T, double> && std::is_same_v<U, int>)>>
-    explicit operator chips<U>() const
+    explicit chips(const chips<U> &other)
+        : dimensions_(other.dimensions()),
+          shape_(other.shape()),
+          age_(other.age())
     {
-        std::vector<int> new_shape = shape_;
-
-        std::vector<U> newdata_;
-        newdata_.reserve(data_.size());
-        for (const T &v : data_)
-            newdata_.push_back(static_cast<U>(v));
-
-        return chips<U>(std::move(new_shape), std::move(newdata_));
+        data_.reserve(other.data().size());
+        for (const U &v : other.data())
+            data_.push_back(static_cast<T>(v));
+        stopFlag = other.stopFlag;
     }
 
     chips<T> to_chips() const { return *this; }
