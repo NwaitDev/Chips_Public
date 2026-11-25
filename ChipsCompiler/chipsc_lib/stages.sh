@@ -92,7 +92,7 @@ bip_env_set() {
 }
 
 bip_env_valid() {
-    bip_env_set && [[ -f "$BIP2_ENGINE_GENERIC_DIR/Atom.hpp" && -f "$BIP2_ENGINE_LIB_DIR/libengine.a" ]]
+    bip_env_set && [[ -f "$BIP2_ENGINE_SPECIFIC_DIR/Atom.hpp" && -f "$BIP2_ENGINE_LIB_DIR/libengine.a" ]]
 }
 
 load_bip_env() {
