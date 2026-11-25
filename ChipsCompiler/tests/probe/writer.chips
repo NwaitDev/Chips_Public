@@ -1,0 +1,26 @@
+logical writer() init {
+    int i = 0;
+    float f = 0.5;
+    float g = 1.0;
+    bool b = true;
+    int [3] a;
+    int [2][2] m;
+} then {
+    i = i + 1;
+    f = f * 3.0;
+    g = g * 1000.0;
+    b = !b;
+    a[0] = i;
+    a[1] = i + 1;
+    m[1][0] = i;
+    probe(i);
+    probe(f);
+    probe(g);
+    probe(b);
+    probe(a);
+    probe(m);
+}
+
+system {
+    writer w1;
+}

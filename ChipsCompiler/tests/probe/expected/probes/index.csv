@@ -1,0 +1,13 @@
+file,instance,location,expression
+writer_l16c5_w1.csv,w1,writer.chips:16:5,i
+writer_l17c5_w1.csv,w1,writer.chips:17:5,f
+writer_l18c5_w1.csv,w1,writer.chips:18:5,g
+writer_l19c5_w1.csv,w1,writer.chips:19:5,b
+writer_l20c5_w1.csv,w1,writer.chips:20:5,a
+writer_l21c5_w1.csv,w1,writer.chips:21:5,m
+writer_l16c5_sys.w_2_.csv,sys.w[2],writer.chips:16:5,i
+writer_l17c5_sys.w_2_.csv,sys.w[2],writer.chips:17:5,f
+writer_l18c5_sys.w_2_.csv,sys.w[2],writer.chips:18:5,g
+writer_l19c5_sys.w_2_.csv,sys.w[2],writer.chips:19:5,b
+writer_l20c5_sys.w_2_.csv,sys.w[2],writer.chips:20:5,a
+writer_l21c5_sys.w_2_.csv,sys.w[2],writer.chips:21:5,m
