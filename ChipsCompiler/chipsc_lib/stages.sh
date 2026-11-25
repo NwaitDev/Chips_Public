@@ -92,13 +92,13 @@ bip_env_set() {
 }
 
 bip_env_valid() {
-    bip_env_set && [[ -f "$BIP2_ENGINE_GENERIC_DIR/Atom.hpp" ]]
+    bip_env_set && [[ -f "$BIP2_ENGINE_GENERIC_DIR/Atom.hpp" && -f "$BIP2_ENGINE_LIB_DIR/libengine.a" ]]
 }
 
 load_bip_env() {
     bip_env_valid && return 0
     if bip_env_set; then
-        echo "Warning: '$BIP2_ENGINE_GENERIC_DIR' has no Atom.hpp; reloading the BIP2_ENGINE_* variables from '$BIP_SETENV'." >&2
+        echo "Warning: the BIP2_ENGINE_* variables do not point to an engine with Atom.hpp and libengine.a; reloading them from '$BIP_SETENV'." >&2
     fi
     if [[ -f "$BIP_SETENV" ]]; then
         local previous_dir="$PWD"
@@ -109,7 +109,7 @@ load_bip_env() {
         cd -- "$previous_dir"
     fi
     if ! bip_env_valid; then
-        echo "Warning: no BIP engine with Atom.hpp found through the BIP2_ENGINE_* variables or '$BIP_SETENV'; the build will probably fail. Build the engine with make in ChipsCompiler." >&2
+        echo "Warning: no BIP engine with Atom.hpp and libengine.a found through the BIP2_ENGINE_* variables or '$BIP_SETENV'; the build will probably fail. Build the engine with make in ChipsCompiler." >&2
     fi
 }
 
@@ -150,7 +150,7 @@ stage_build() {
     run_step \
         "CMake configuration" \
         "$OUTPUT_DIR/CMakeDebug.log" \
-        cmake -S "$BUILD_ROOT" -B "$BUILD_ROOT/build" -Wno-dev
+        cmake -U libengine_path -S "$BUILD_ROOT" -B "$BUILD_ROOT/build" -Wno-dev
 
     run_step \
         "System build" \
