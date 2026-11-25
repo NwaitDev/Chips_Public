@@ -16,6 +16,10 @@ Since the compiler is broken down into several different programs, each stage ca
 All artefacts and logs land in the output folder (`-o`, default `CHIPS_GENERATED`): one `<Step>Debug.log` per step, `merged/` and its `.map` when `--include` is used, `output/build/system`, `SystemTrace.log`.
 
 
+### Tests
+
+`ChipsCompiler/tests/probe/run.sh` checks the probe statement without the BIP engine: it generates C++ with Chips2Cpp, runs it from small C++ harnesses, compares the probe files with `expected/`, reads them back with `fromfile(..., "TIMED")` and checks they are unchanged, and checks the `probe2table.py` output. It needs a built Chips2Cpp, `g++` and `python3`; outputs land in `tests/probe/out/`.
+
 ### TODO
 
-There is no automated test suite yet. A `tests/` folder of `.chips` files with expected `.bip` and probe folders, plus a script that diffs them, would make a VERY GOOD contribution.
+The probe tests are the only automated tests so far, and they cover a single statement with their own script. A common test suite would make a VERY GOOD contribution: one `tests/<feature>/` folder per feature, each with `.chips` files and their expected outputs (`.bip`, generated C++, probe folders), plus a single script that runs every folder, diffs the outputs and reports the failures. The probe tests could then be moved into that layout.
